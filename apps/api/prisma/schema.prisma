@@ -1,0 +1,323 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// AUTH / BILLING
+// ============================================================
+
+model Account {
+  id         String        @id @default(uuid())
+  name       String        @db.VarChar(255)
+  status     AccountStatus @default(ACTIVE)
+  balance    BigInt        @default(0)
+  daily_fee  BigInt?       // NULL = global default ishlatiladi
+  created_at DateTime      @default(now()) @db.Timestamptz
+
+  users            User[]
+  transactions     Transaction[]
+  audit_events     AuditEvent[]
+  category_runs    CategoryRun[]
+  tracked_products TrackedProduct[]
+  alert_rules      AlertRule[]
+
+  @@map("accounts")
+}
+
+enum AccountStatus {
+  ACTIVE
+  PAYMENT_DUE
+  SUSPENDED
+}
+
+model User {
+  id            String   @id @default(uuid())
+  account_id    String
+  email         String   @unique @db.VarChar(255)
+  password_hash String   @db.VarChar(255)
+  role          UserRole @default(USER)
+  created_at    DateTime @default(now()) @db.Timestamptz
+
+  account      Account      @relation(fields: [account_id], references: [id])
+  audit_events AuditEvent[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  USER
+}
+
+model Transaction {
+  id             String          @id @default(uuid())
+  account_id     String
+  type           TransactionType
+  amount         BigInt
+  balance_before BigInt
+  balance_after  BigInt
+  description    String?         @db.Text
+  created_at     DateTime        @default(now()) @db.Timestamptz
+
+  account Account @relation(fields: [account_id], references: [id])
+
+  @@map("transactions")
+}
+
+enum TransactionType {
+  CHARGE
+  DEPOSIT
+  REFUND
+}
+
+model AuditEvent {
+  id         String   @id @default(uuid())
+  account_id String?
+  user_id    String?
+  action     String   @db.VarChar(100)
+  old_value  Json?
+  new_value  Json?
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  account Account? @relation(fields: [account_id], references: [id])
+  user    User?    @relation(fields: [user_id], references: [id])
+
+  @@map("audit_events")
+}
+
+// ============================================================
+// SYSTEM SETTINGS
+// ============================================================
+
+model SystemSetting {
+  key        String   @id @db.VarChar(100)
+  value      String   @db.Text
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  @@map("system_settings")
+}
+
+// ============================================================
+// UZUM DATA
+// ============================================================
+
+model Shop {
+  id               BigInt    @id
+  title            String?   @db.VarChar(500)
+  rating           Decimal?  @db.Decimal(3, 2)
+  orders_quantity  BigInt?
+  registered_at    DateTime? @db.Timestamptz
+  created_at       DateTime  @default(now()) @db.Timestamptz
+  updated_at       DateTime  @updatedAt @db.Timestamptz
+
+  products Product[]
+
+  @@map("shops")
+}
+
+model Product {
+  id                BigInt   @id
+  sku_group_id      BigInt?
+  shop_id           BigInt?
+  title             String   @db.Text
+  category_id       BigInt?
+  rating            Decimal? @db.Decimal(3, 2)
+  feedback_quantity Int?     @default(0)
+  orders_quantity   BigInt?  @default(0)
+  is_active         Boolean  @default(true)
+  created_at        DateTime @default(now()) @db.Timestamptz
+  updated_at        DateTime @updatedAt @db.Timestamptz
+
+  shop              Shop?               @relation(fields: [shop_id], references: [id])
+  skus              Sku[]
+  snapshots         ProductSnapshot[]
+  tracked_by        TrackedProduct[]
+  category_winners  CategoryWinner[]
+  alert_rules       AlertRule[]
+  alert_events      AlertEvent[]
+  ai_attributes     ProductAiAttribute?
+  ai_explanations   ProductAiExplanation[]
+
+  @@map("products")
+}
+
+model Sku {
+  id           BigInt   @id
+  product_id   BigInt
+  min_sell_price BigInt?
+  min_full_price BigInt?
+  stock_type   String?  @db.VarChar(10)
+  is_available Boolean  @default(true)
+  created_at   DateTime @default(now()) @db.Timestamptz
+
+  product      Product       @relation(fields: [product_id], references: [id])
+  sku_snapshots SkuSnapshot[]
+
+  @@map("skus")
+}
+
+model ProductSnapshot {
+  id                String   @id @default(uuid())
+  product_id        BigInt
+  orders_quantity   BigInt?
+  weekly_bought     Int?
+  rating            Decimal? @db.Decimal(3, 2)
+  feedback_quantity Int?
+  score             Decimal? @db.Decimal(8, 4)
+  snapshot_at       DateTime @default(now()) @db.Timestamptz
+
+  product         Product                @relation(fields: [product_id], references: [id])
+  ai_explanations ProductAiExplanation[]
+
+  @@map("product_snapshots")
+}
+
+model SkuSnapshot {
+  id               String   @id @default(uuid())
+  sku_id           BigInt
+  sell_price       BigInt?
+  full_price       BigInt?
+  discount_percent Int?
+  stock_type       String?  @db.VarChar(10)
+  snapshot_at      DateTime @default(now()) @db.Timestamptz
+
+  sku Sku @relation(fields: [sku_id], references: [id])
+
+  @@map("sku_snapshots")
+}
+
+// ============================================================
+// DISCOVERY
+// ============================================================
+
+model CategoryRun {
+  id             String          @id @default(uuid())
+  account_id     String
+  category_id    BigInt
+  status         CategoryRunStatus @default(PENDING)
+  total_products Int?
+  processed      Int             @default(0)
+  started_at     DateTime?       @db.Timestamptz
+  finished_at    DateTime?       @db.Timestamptz
+  created_at     DateTime        @default(now()) @db.Timestamptz
+
+  account  Account          @relation(fields: [account_id], references: [id])
+  winners  CategoryWinner[]
+
+  @@map("category_runs")
+}
+
+enum CategoryRunStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
+model CategoryWinner {
+  id              String   @id @default(uuid())
+  run_id          String
+  product_id      BigInt
+  score           Decimal? @db.Decimal(8, 4)
+  rank            Int?
+  weekly_bought   Int?
+  orders_quantity BigInt?
+  sell_price      BigInt?
+  created_at      DateTime @default(now()) @db.Timestamptz
+
+  run     CategoryRun @relation(fields: [run_id], references: [id])
+  product Product     @relation(fields: [product_id], references: [id])
+
+  @@map("category_winners")
+}
+
+model TrackedProduct {
+  id         String   @id @default(uuid())
+  account_id String
+  product_id BigInt
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  account Account @relation(fields: [account_id], references: [id])
+  product Product @relation(fields: [product_id], references: [id])
+
+  @@unique([account_id, product_id])
+  @@map("tracked_products")
+}
+
+// ============================================================
+// ALERTS
+// ============================================================
+
+model AlertRule {
+  id         String    @id @default(uuid())
+  account_id String
+  product_id BigInt
+  rule_type  AlertType
+  threshold  Decimal?  @db.Decimal(10, 2)
+  is_active  Boolean   @default(true)
+  created_at DateTime  @default(now()) @db.Timestamptz
+
+  account Account      @relation(fields: [account_id], references: [id])
+  product Product      @relation(fields: [product_id], references: [id])
+  events  AlertEvent[]
+
+  @@map("alert_rules")
+}
+
+enum AlertType {
+  PRICE_DROP
+  STOCK_LOW
+  SCORE_SPIKE
+}
+
+model AlertEvent {
+  id           String   @id @default(uuid())
+  rule_id      String
+  product_id   BigInt
+  message      String?  @db.Text
+  triggered_at DateTime @default(now()) @db.Timestamptz
+
+  rule    AlertRule @relation(fields: [rule_id], references: [id])
+  product Product   @relation(fields: [product_id], references: [id])
+
+  @@map("alert_events")
+}
+
+// ============================================================
+// AI TABLES
+// ============================================================
+
+model ProductAiAttribute {
+  id         String   @id @default(uuid())
+  product_id BigInt   @unique
+  brand      String?  @db.VarChar(255)
+  model      String?  @db.VarChar(255)
+  type       String?  @db.VarChar(255)
+  color      String?  @db.VarChar(255)
+  raw_json   Json?
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  product Product @relation(fields: [product_id], references: [id])
+
+  @@map("product_ai_attributes")
+}
+
+model ProductAiExplanation {
+  id          String   @id @default(uuid())
+  product_id  BigInt
+  snapshot_id String?
+  explanation String?  @db.Text
+  created_at  DateTime @default(now()) @db.Timestamptz
+
+  product  Product          @relation(fields: [product_id], references: [id])
+  snapshot ProductSnapshot? @relation(fields: [snapshot_id], references: [id])
+
+  @@map("product_ai_explanations")
+}

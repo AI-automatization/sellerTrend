@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --version:*)",
+      "Bash(pnpm --version:*)",
+      "Bash(npx --version:*)",
+      "Bash(npm --version:*)",
+      "Bash(npm install:*)",
+      "Bash(export PATH=\"$PATH:/c/Users/User/AppData/Roaming/npm\")",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm --filter api exec nest new:*)",
+      "Bash(pnpm init:*)",
+      "Bash(pnpm approve-builds:*)",
+      "Bash(pnpm --filter api exec prisma generate:*)",
+      "Bash(pnpm --filter web create:*)",
+      "Bash(pnpm create:*)",
+      "Bash(pnpm --filter web exec esbuild:*)",
+      "Bash(pnpm rebuild:*)",
+      "Bash(node:*)",
+      "Bash(pnpm --filter web exec vite build:*)"
+    ]
+  }
+}

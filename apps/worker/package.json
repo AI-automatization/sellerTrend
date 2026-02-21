@@ -1,0 +1,25 @@
+{
+  "name": "worker",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node -r tsconfig-paths/register src/main.ts",
+    "start": "node dist/main"
+  },
+  "dependencies": {
+    "bullmq": "^5.42.2",
+    "ioredis": "^5.4.2",
+    "dotenv": "^16.4.7",
+    "@prisma/client": "^6.3.1",
+    "@uzum/types": "workspace:*",
+    "@uzum/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "prisma": "^6.3.1",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.7.3"
+  }
+}
