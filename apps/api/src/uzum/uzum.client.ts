@@ -1,112 +1,34 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { sleep } from '@uzum/utils';
 
-const MAKE_SEARCH_QUERY = `
-  query makeSearch($queryInput: MakeSearchQueryInput!) {
-    makeSearch(query: $queryInput) {
-      items {
-        catalogCard {
-          ... on SkuGroupCard {
-            __typename
-            id
-            productId
-            ordersQuantity
-            feedbackQuantity
-            rating
-            minSellPrice
-            minFullPrice
-            title
-            discount {
-              discountPrice
-              fullDiscountPercent
-              sellDiscountPercent
-              paymentOptionKey
-            }
-            buyingOptions {
-              defaultSkuId
-              isBestPrice
-              isSingleSku
-              deliveryOptions {
-                stockType
-                shortDate
-              }
-            }
-          }
-        }
-      }
-      total
-    }
-  }
-`;
-
-const PRODUCT_PAGE_QUERY = `
-  query productPage($productId: Long!) {
-    product(id: $productId) {
-      id
-      title
-      ordersQuantity
-      feedbackQuantity
-      rating
-      actions {
-        text
-      }
-      skuList {
-        id
-        sellPrice
-        fullPrice
-        discountPercent
-        availableAmount
-      }
-      shop {
-        id
-        title
-        rating
-        ordersQuantity
-      }
-    }
-  }
-`;
-
-const BASE_URL = 'https://graphql.uzum.uz/';
+const REST_BASE = 'https://api.uzum.uz/api/v2';
 const HEADERS = {
-  'Content-Type': 'application/json',
   'User-Agent':
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   Origin: 'https://uzum.uz',
   Referer: 'https://uzum.uz/',
   'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',
+  Accept: 'application/json',
 };
 
 @Injectable()
 export class UzumClient {
   private readonly logger = new Logger(UzumClient.name);
 
+  /**
+   * Fetch category listing via REST API
+   */
   async fetchCategoryListing(
     categoryId: number,
     page: number = 0,
     retries = 3,
   ): Promise<{ items: any[]; total: number }> {
-    const payload = {
-      operationName: 'makeSearch',
-      query: MAKE_SEARCH_QUERY,
-      variables: {
-        queryInput: {
-          categoryId,
-          pagination: { offset: page * 48, limit: 48 },
-          showAdultContent: 'HIDE',
-          filters: [],
-          sort: 'BY_RELEVANCE_DESC',
-        },
-      },
-    };
+    const offset = page * 48;
+    const url = `${REST_BASE}/category/${categoryId}/products?size=48&page=${page}&sort=ORDER_COUNT_DESC`;
 
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
-        const response = await fetch(BASE_URL, {
-          method: 'POST',
-          headers: HEADERS,
-          body: JSON.stringify(payload),
-        });
+        const response = await fetch(url, { headers: HEADERS });
 
         if (response.status === 429) {
           this.logger.warn(`Rate limited (429), waiting 5s...`);
@@ -114,17 +36,14 @@ export class UzumClient {
           continue;
         }
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-        const data = await response.json();
-        const result = data?.data?.makeSearch;
+        const data = (await response.json()) as any;
+        const payload = data?.payload ?? data;
+        const items = payload?.data?.products ?? payload?.products ?? [];
+        const total = payload?.data?.total ?? payload?.total ?? 0;
 
-        return {
-          items: result?.items ?? [],
-          total: result?.total ?? 0,
-        };
+        return { items, total };
       } catch (err) {
         this.logger.error(`fetchCategoryListing attempt ${attempt + 1}: ${err}`);
         if (attempt < retries - 1) await sleep(2000 * (attempt + 1));
@@ -134,20 +53,16 @@ export class UzumClient {
     return { items: [], total: 0 };
   }
 
+  /**
+   * Fetch product detail via REST API.
+   * Returns data normalized to match the old GraphQL shape used by uzum.service.ts
+   */
   async fetchProductDetail(productId: number, retries = 3): Promise<any | null> {
-    const payload = {
-      operationName: 'productPage',
-      query: PRODUCT_PAGE_QUERY,
-      variables: { productId },
-    };
+    const url = `${REST_BASE}/product/${productId}`;
 
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
-        const response = await fetch(BASE_URL, {
-          method: 'POST',
-          headers: HEADERS,
-          body: JSON.stringify(payload),
-        });
+        const response = await fetch(url, { headers: HEADERS });
 
         if (response.status === 429) {
           await sleep(5000);
@@ -156,8 +71,47 @@ export class UzumClient {
 
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-        const data = await response.json();
-        return data?.data?.product ?? null;
+        const data = (await response.json()) as any;
+        const d = data?.payload?.data ?? null;
+        if (!d) return null;
+
+        // Normalize REST fields → service-expected shape
+        const skuList = (d.skuList ?? []).map((sku: any) => {
+          const full = sku.fullPrice ?? 0;
+          const sell = sku.purchasePrice ?? full;
+          const discountPercent = full > 0 ? Math.round(((full - sell) / full) * 100) : 0;
+          return {
+            id: sku.id,
+            sellPrice: sell,
+            fullPrice: full,
+            discountPercent,
+            availableAmount: sku.availableAmount ?? 0,
+            stockType: sku.stock?.type ?? 'FBS',
+          };
+        });
+
+        const seller = d.seller ?? null;
+        const shop = seller
+          ? {
+              id: seller.id,
+              title: seller.title,
+              rating: seller.rating ?? 0,
+              ordersQuantity: seller.orders ?? 0,
+            }
+          : null;
+
+        return {
+          id: d.id,
+          title: d.title,
+          rating: d.rating ?? 0,
+          feedbackQuantity: d.reviewsAmount ?? 0,
+          ordersQuantity: d.ordersAmount ?? 0,
+          // rOrdersAmount = recent orders (best proxy for weekly_bought via REST API)
+          recentOrdersAmount: d.rOrdersAmount ?? null,
+          actions: { text: '' },
+          skuList,
+          shop,
+        };
       } catch (err) {
         this.logger.error(`fetchProductDetail attempt ${attempt + 1}: ${err}`);
         if (attempt < retries - 1) await sleep(2000 * (attempt + 1));

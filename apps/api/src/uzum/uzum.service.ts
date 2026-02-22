@@ -74,8 +74,12 @@ export class UzumService {
     });
 
     // 4. Parse weekly_bought
+    // Prefer recentOrdersAmount (rOrdersAmount from REST API) over actions text parsing
     const actionsText = detail.actions?.text ?? '';
-    const weeklyBought = parseWeeklyBought(actionsText);
+    const weeklyBought =
+      detail.recentOrdersAmount != null
+        ? detail.recentOrdersAmount
+        : parseWeeklyBought(actionsText);
 
     // 5. Upsert SKUs
     const skuList = detail.skuList ?? [];

@@ -12,7 +12,6 @@ export function RegisterPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
       const res = await authApi.register(form.email, form.password, form.company_name);
       localStorage.setItem('access_token', res.data.access_token);
@@ -25,64 +24,82 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="bg-white rounded-xl shadow p-8 w-full max-w-sm">
-        <h2 className="text-2xl font-bold mb-6 text-center">Ro'yxatdan o'tish</h2>
+    <div className="min-h-screen flex items-center justify-center bg-base-200" data-theme="night">
+      <div className="card w-full max-w-sm shadow-2xl bg-base-100">
+        <div className="card-body">
+          {/* Logo */}
+          <div className="flex flex-col items-center mb-2">
+            <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center mb-3">
+              <span className="text-primary-content font-black text-xl">U</span>
+            </div>
+            <h1 className="text-2xl font-bold">Uzum Trend</h1>
+            <p className="text-base-content/50 text-sm">Yangi hisob yaratish</p>
+          </div>
 
-        {error && (
-          <div className="bg-red-50 text-red-700 px-4 py-2 rounded mb-4 text-sm">
-            {error}
-          </div>
-        )}
+          {error && (
+            <div role="alert" className="alert alert-error alert-soft py-2 text-sm">
+              <span>{error}</span>
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Kompaniya nomi</label>
-            <input
-              type="text"
-              value={form.company_name}
-              onChange={(e) => setForm({ ...form, company_name: e.target.value })}
-              required
-              minLength={2}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
-            <input
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              required
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Parol</label>
-            <input
-              type="password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              required
-              minLength={8}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-          >
-            {loading ? "Ro'yxatdan o'tilmoqda..." : "Ro'yxatdan o'tish"}
-          </button>
-        </form>
+          <form onSubmit={handleSubmit} className="space-y-3 mt-2">
+            <fieldset className="fieldset">
+              <legend className="fieldset-legend text-xs">Kompaniya nomi</legend>
+              <input
+                type="text"
+                value={form.company_name}
+                onChange={(e) => setForm({ ...form, company_name: e.target.value })}
+                required
+                minLength={2}
+                className="input input-bordered w-full"
+                placeholder="Mening do'konim"
+              />
+            </fieldset>
 
-        <p className="text-center text-sm text-slate-500 mt-4">
-          Akkaunt bormi?{' '}
-          <Link to="/login" className="text-blue-600 hover:underline">
-            Kirish
-          </Link>
-        </p>
+            <fieldset className="fieldset">
+              <legend className="fieldset-legend text-xs">Email</legend>
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                required
+                className="input input-bordered w-full"
+                placeholder="email@example.com"
+              />
+            </fieldset>
+
+            <fieldset className="fieldset">
+              <legend className="fieldset-legend text-xs">Parol</legend>
+              <input
+                type="password"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                required
+                minLength={8}
+                className="input input-bordered w-full"
+                placeholder="Kamida 8 ta belgi"
+              />
+            </fieldset>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn btn-primary w-full mt-2"
+            >
+              {loading && <span className="loading loading-spinner loading-sm" />}
+              {loading ? "Yaratilmoqda..." : "Ro'yxatdan o'tish"}
+            </button>
+          </form>
+
+          <div className="divider text-xs text-base-content/40">yoki</div>
+
+          <p className="text-center text-sm">
+            Akkaunt bormi?{' '}
+            <Link to="/login" className="link link-primary">
+              Kirish
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

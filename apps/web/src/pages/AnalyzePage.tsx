@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { uzumApi, productsApi } from '../api/client';
+import { FireIcon, MagnifyingGlassIcon } from '../components/icons';
+import { ScoreChart } from '../components/ScoreChart';
 
 interface AnalyzeResult {
   product_id: number;
@@ -9,13 +11,39 @@ interface AnalyzeResult {
   orders_quantity: number;
   weekly_bought: number | null;
   score: number;
-  snapshot_id: string;
   sell_price: number | null;
+}
+
+interface Snapshot {
+  score: number;
+  weekly_bought: number | null;
+  orders_quantity: string;
+  snapshot_at: string;
+}
+
+// max realistic score ≈ 10 (based on formula upper bound)
+const MAX_SCORE = 10;
+
+function ScoreRadial({ score }: { score: number }) {
+  const pct = Math.min((score / MAX_SCORE) * 100, 100);
+  const color =
+    score >= 6 ? '#22c55e' : score >= 4 ? '#f59e0b' : '#6b7280';
+
+  return (
+    <div
+      className="radial-progress text-2xl font-bold"
+      style={{ '--value': pct, '--size': '7rem', '--thickness': '6px', color } as any}
+      role="progressbar"
+    >
+      {score.toFixed(2)}
+    </div>
+  );
 }
 
 export function AnalyzePage() {
   const [url, setUrl] = useState('');
   const [result, setResult] = useState<AnalyzeResult | null>(null);
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [tracked, setTracked] = useState(false);
@@ -24,16 +52,35 @@ export function AnalyzePage() {
     e.preventDefault();
     setError('');
     setResult(null);
+    setSnapshots([]);
     setTracked(false);
     setLoading(true);
-
     try {
       const res = await uzumApi.analyzeUrl(url);
-      setResult(res.data);
+      const data: AnalyzeResult = res.data;
+      setResult(data);
+
+      // Load snapshot history for this product
+      try {
+        const snap = await productsApi.getSnapshots(String(data.product_id));
+        const chartData = snap.data
+          .slice()
+          .reverse()
+          .map((s: Snapshot) => ({
+            date: new Date(s.snapshot_at).toLocaleDateString('uz-UZ', {
+              month: 'short',
+              day: 'numeric',
+            }),
+            score: Number(Number(s.score).toFixed(4)),
+          }));
+        setSnapshots(chartData);
+      } catch {
+        // snapshot history optional
+      }
     } catch (err: any) {
       setError(
         err.response?.data?.message ??
-          "Tahlil vaqtida xato yuz berdi. URL to'g'riligini tekshiring."
+          "Tahlil vaqtida xato. URL to'g'riligini tekshiring."
       );
     } finally {
       setLoading(false);
@@ -44,91 +91,152 @@ export function AnalyzePage() {
     if (!result) return;
     try {
       await productsApi.track(String(result.product_id));
-      setTracked(true);
     } catch {
-      // Already tracked or error
-      setTracked(true);
+      // already tracked — ignore
     }
-  }
-
-  function getScoreColor(score: number) {
-    if (score >= 3.5) return 'text-green-600 bg-green-50';
-    if (score >= 2.5) return 'text-yellow-600 bg-yellow-50';
-    return 'text-slate-600 bg-slate-50';
+    setTracked(true);
   }
 
   return (
-    <div className="p-6 max-w-2xl">
-      <h1 className="text-2xl font-bold mb-6">URL Tahlil</h1>
+    <div className="max-w-2xl space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <MagnifyingGlassIcon className="w-6 h-6 text-primary" />
+          URL Tahlil
+        </h1>
+        <p className="text-base-content/50 text-sm mt-1">
+          Uzum mahsulot URL'ini kiriting — real vaqtda score hisoblanadi
+        </p>
+      </div>
 
-      <form onSubmit={handleAnalyze} className="bg-white rounded-xl shadow p-6 space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-2">Uzum mahsulot URL</label>
-          <input
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            required
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="https://uzum.uz/product/12345"
-          />
-          <p className="text-xs text-slate-400 mt-1">
-            Uzum mahsulot sahifasining URL'ini kiriting
-          </p>
+      {/* URL form */}
+      <div className="card bg-base-200 shadow-sm">
+        <div className="card-body">
+          <form onSubmit={handleAnalyze} className="flex flex-col gap-4">
+            <fieldset className="fieldset">
+              <legend className="fieldset-legend">Uzum mahsulot havolasi</legend>
+              <input
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                required
+                className="input input-bordered w-full"
+                placeholder="https://uzum.uz/ru/product/mahsulot-nomi-123456"
+              />
+              <p className="fieldset-label">
+                Uzum mahsulot sahifasining to'liq URL'ini kiriting
+              </p>
+            </fieldset>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn btn-primary gap-2"
+            >
+              {loading
+                ? <span className="loading loading-spinner loading-sm" />
+                : <MagnifyingGlassIcon className="w-4 h-4" />}
+              {loading ? 'Tahlil qilinmoqda...' : 'Tahlil qilish'}
+            </button>
+          </form>
         </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-        >
-          {loading ? 'Tahlil qilinmoqda...' : 'Tahlil qilish'}
-        </button>
-      </form>
+      </div>
 
+      {/* Error */}
       {error && (
-        <div className="mt-4 bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">
-          {error}
+        <div role="alert" className="alert alert-error alert-soft">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>{error}</span>
         </div>
       )}
 
+      {/* Result */}
       {result && (
-        <div className="mt-6 bg-white rounded-xl shadow p-6 space-y-4">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <h2 className="font-semibold text-lg">{result.title}</h2>
-              <p className="text-slate-400 text-sm mt-1">ID: {result.product_id}</p>
+        <div className="card bg-base-200 shadow-sm">
+          <div className="card-body gap-5">
+            {/* Title + score */}
+            <div className="flex items-start gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <FireIcon className="w-4 h-4 text-orange-400 shrink-0" />
+                  <span className="text-xs text-base-content/50">#{result.product_id}</span>
+                </div>
+                <h2 className="font-bold text-lg leading-snug">{result.title}</h2>
+              </div>
+              <div className="shrink-0 text-center">
+                <ScoreRadial score={result.score} />
+                <p className="text-xs text-base-content/40 mt-1">Trend Score</p>
+              </div>
             </div>
-            <span
-              className={`ml-4 px-4 py-2 rounded-lg font-bold text-xl ${getScoreColor(result.score)}`}
-            >
-              {result.score.toFixed(2)}
-            </span>
-          </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Stat label="Jami buyurtmalar" value={result.orders_quantity.toLocaleString()} />
-            <Stat
-              label="Bu hafta sotilgan"
-              value={result.weekly_bought ? result.weekly_bought.toLocaleString() : 'N/A'}
-            />
-            <Stat label="Reyting" value={`★ ${result.rating}`} />
-            <Stat label="Sharhlar" value={result.feedback_quantity.toLocaleString()} />
-            {result.sell_price && (
-              <Stat
-                label="Narx"
-                value={`${result.sell_price.toLocaleString()} so'm`}
+            <div className="divider my-0" />
+
+            {/* Stats grid */}
+            <div className="grid grid-cols-2 gap-3">
+              <StatCard
+                label="Jami buyurtmalar"
+                value={result.orders_quantity.toLocaleString()}
+                accent="text-primary"
               />
-            )}
-          </div>
+              <StatCard
+                label="So'nggi faollik"
+                value={result.weekly_bought != null ? result.weekly_bought.toLocaleString() : 'N/A'}
+                accent={result.weekly_bought ? 'text-success' : 'text-base-content/40'}
+              />
+              <StatCard
+                label="Reyting"
+                value={`★ ${result.rating}`}
+                accent="text-yellow-400"
+              />
+              <StatCard
+                label="Sharhlar"
+                value={result.feedback_quantity.toLocaleString()}
+                accent="text-secondary"
+              />
+              {result.sell_price != null && (
+                <StatCard
+                  label="Narx"
+                  value={`${result.sell_price.toLocaleString()} so'm`}
+                  accent="text-accent"
+                  wide
+                />
+              )}
+            </div>
 
-          <div className="pt-2 border-t">
-            <button
-              onClick={handleTrack}
-              disabled={tracked}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 disabled:opacity-50"
-            >
-              {tracked ? 'Kuzatuvga qo\'shildi ✓' : 'Kuzatuvga qo\'shish'}
-            </button>
+            {/* Score history chart */}
+            {snapshots.length > 1 && (
+              <>
+                <div className="divider my-0" />
+                <div>
+                  <p className="text-xs text-base-content/50 mb-2">Score tarixi</p>
+                  <ScoreChart data={snapshots} />
+                </div>
+              </>
+            )}
+
+            {/* Score formula hint */}
+            <div className="alert alert-info alert-soft text-xs">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="h-4 w-4 shrink-0 stroke-current">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>
+                Score = 0.55×ln(1+faollik) + 0.25×ln(1+jami) + 0.10×reyting + 0.10×ombor
+              </span>
+            </div>
+
+            {/* Actions */}
+            <div className="card-actions justify-end">
+              <button
+                onClick={handleTrack}
+                disabled={tracked}
+                className={`btn btn-sm gap-2 ${tracked ? 'btn-success' : 'btn-outline btn-success'}`}
+              >
+                {tracked ? '✓ Kuzatuvga qo\'shildi' : '+ Kuzatuvga qo\'shish'}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -136,11 +244,21 @@ export function AnalyzePage() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function StatCard({
+  label,
+  value,
+  accent,
+  wide,
+}: {
+  label: string;
+  value: string;
+  accent?: string;
+  wide?: boolean;
+}) {
   return (
-    <div className="bg-slate-50 rounded-lg p-3">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="font-semibold mt-1">{value}</p>
+    <div className={`bg-base-300 rounded-xl p-3 ${wide ? 'col-span-2' : ''}`}>
+      <p className="text-xs text-base-content/50 mb-1">{label}</p>
+      <p className={`font-bold text-lg tabular-nums ${accent ?? ''}`}>{value}</p>
     </div>
   );
 }

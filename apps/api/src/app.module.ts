@@ -1,11 +1,11 @@
-import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { BillingModule } from './billing/billing.module';
 import { UzumModule } from './uzum/uzum.module';
 import { ProductsModule } from './products/products.module';
-import { BillingMiddleware } from './billing/billing.middleware';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -15,17 +15,7 @@ import { BillingMiddleware } from './billing/billing.middleware';
     BillingModule,
     UzumModule,
     ProductsModule,
+    AdminModule,
   ],
 })
-export class AppModule {
-  configure(consumer: MiddlewareConsumer) {
-    // Apply billing guard to all protected routes (except auth)
-    consumer
-      .apply(BillingMiddleware)
-      .exclude(
-        { path: 'api/v1/auth/(.*)', method: RequestMethod.ALL },
-        { path: 'api/docs/(.*)', method: RequestMethod.ALL },
-      )
-      .forRoutes('*');
-  }
-}
+export class AppModule {}

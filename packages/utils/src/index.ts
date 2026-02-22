@@ -27,10 +27,14 @@ export function parseWeeklyBought(actionsText: string): number | null {
 
 /**
  * Extract product ID from Uzum URL
- * Supports: https://uzum.uz/product/12345 or https://uzum.uz/uz/product/12345
+ * Supports:
+ *   https://uzum.uz/product/12345
+ *   https://uzum.uz/uz/product/12345
+ *   https://uzum.uz/ru/product/molochnaya-smes-dlya-155927?skuId=232522
  */
 export function parseUzumProductId(url: string): number | null {
-  const match = url.match(/\/product\/(\d+)/);
+  // Match the last numeric sequence in the product slug (before ? or end)
+  const match = url.match(/\/product\/[^?/]*?(\d+)(?:[?/]|$)/);
   if (!match) return null;
   return parseInt(match[1], 10);
 }

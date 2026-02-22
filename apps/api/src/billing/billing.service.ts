@@ -14,13 +14,16 @@ export class BillingService {
     return BigInt(setting?.value ?? '50000');
   }
 
-  async chargeAllActiveAccounts(): Promise<void> {
+  async chargeAllActiveAccounts(): Promise<{ charged: number; suspended: number; total: number }> {
     const defaultFee = await this.getSystemDailyFee();
     const today = new Date().toISOString().split('T')[0];
 
     const accounts = await this.prisma.account.findMany({
       where: { status: 'ACTIVE' },
     });
+
+    let charged = 0;
+    let suspended = 0;
 
     for (const account of accounts) {
       const fee = account.daily_fee ?? defaultFee;
@@ -43,14 +46,18 @@ export class BillingService {
           }),
         ]);
         this.logger.log(`Charged ${fee} from account ${account.id}`);
+        charged++;
       } else {
         await this.prisma.account.update({
           where: { id: account.id },
           data: { status: 'PAYMENT_DUE' },
         });
         this.logger.warn(`Account ${account.id} set to PAYMENT_DUE`);
+        suspended++;
       }
     }
+
+    return { charged, suspended, total: accounts.length };
   }
 
   async depositBalance(

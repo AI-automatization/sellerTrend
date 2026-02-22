@@ -17,7 +17,21 @@
       "Bash(pnpm --filter web exec esbuild:*)",
       "Bash(pnpm rebuild:*)",
       "Bash(node:*)",
-      "Bash(pnpm --filter web exec vite build:*)"
+      "Bash(pnpm --filter web exec vite build:*)",
+      "Bash(pnpm --filter web add:*)",
+      "Bash(pnpm --filter api add:*)",
+      "Bash(pnpm exec nest build:*)",
+      "Bash(docker:*)",
+      "Bash(docker compose:*)",
+      "Bash(cd /c/Users/User/Desktop/TrendShopAnalyze && docker-compose up -d 2>&1)",
+      "Bash(curl:*)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\)[''payload''][''data'']; print\\(json.dumps\\({k:d[k] for k in [''id'',''title'',''rating'',''reviewsAmount'',''ordersAmount'',''totalAvailableAmount'']}, ensure_ascii=False, indent=2\\)\\)\")",
+      "Bash(tail:*)",
+      "Bash(__NEW_LINE_d14bf76155588620__ curl -s -X POST https://graphql.uzum.uz/ -H \"Content-Type: application/json\" -H \"User-Agent: Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36\" -H \"Origin: https://uzum.uz\" -H \"Referer: https://uzum.uz/\" -b \"$COOKIES\" -d '{\"\"operationName\"\":\"\"productPage\"\",\"\"query\"\":\"\"query productPage\\($productId: Long!\\) { product\\(id: $productId\\) { id actions { text } } }\"\",\"\"variables\"\":{\"\"productId\"\":155927}}' -w \"\\\\nHTTP:%{http_code}\")",
+      "Bash(echo:*)",
+      "Bash(cd /c/Users/User/Desktop/TrendShopAnalyze/apps/web && export PATH=\"$PATH:/c/Users/User/AppData/Roaming/npm\" && pnpm tsc --noEmit 2>&1)",
+      "Bash(cd /c/Users/User/Desktop/TrendShopAnalyze/apps/api && export PATH=\"$PATH:/c/Users/User/AppData/Roaming/npm\" && pnpm tsc --noEmit 2>&1)",
+      "Bash(cd /c/Users/User/Desktop/TrendShopAnalyze/apps/worker && export PATH=\"$PATH:/c/Users/User/AppData/Roaming/npm\" && \\\\\nnpx ts-node -e \"\nimport 'dotenv/config';\nimport { triggerBillingNow } from './src/jobs/billing.job';\ntriggerBillingNow\\(\\).then\\(j => { console.log\\('Job queued, id:', j.id\\); process.exit\\(0\\); }\\).catch\\(e => { console.error\\(e\\); process.exit\\(1\\); }\\);\n\" 2>&1)"
     ]
   }
 }

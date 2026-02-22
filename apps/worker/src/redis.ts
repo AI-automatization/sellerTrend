@@ -1,11 +1,10 @@
-import Redis from 'ioredis';
+const url = new URL(process.env.REDIS_URL ?? 'redis://localhost:6379');
 
-const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
-
-export const redis = new Redis(REDIS_URL, {
-  maxRetriesPerRequest: null, // Required for BullMQ
-});
-
+// Pass plain connection options to avoid ioredis version conflicts with BullMQ
 export const redisConnection = {
-  connection: redis,
+  connection: {
+    host: url.hostname,
+    port: parseInt(url.port || '6379', 10),
+    maxRetriesPerRequest: null, // Required for BullMQ
+  },
 };
