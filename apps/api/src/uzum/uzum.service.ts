@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UzumClient } from './uzum.client';
+import { AiService } from '../ai/ai.service';
 import {
   parseUzumProductId,
   parseWeeklyBought,
@@ -14,6 +15,7 @@ export class UzumService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly uzumClient: UzumClient,
+    private readonly aiService: AiService,
   ) {}
 
   /**
@@ -141,6 +143,34 @@ export class UzumService {
       },
     });
 
+    // 8. Anomaly detection: score spike check (fire-and-forget)
+    const scoreNum = Number(score.toFixed(4));
+    this.checkScoreAnomaly(BigInt(productId), scoreNum).catch(() => {});
+
+    // 9. AI — attribute extraction (fire-and-forget, cached)
+    const primaryDiscount = primarySku?.discountPercent ?? 0;
+
+    this.aiService
+      .extractAttributes(BigInt(productId), detail.title)
+      .catch(() => {});
+
+    // 10. AI — winner explanation if score is notable (score > 3)
+    let aiExplanation: string[] | null = null;
+    if (scoreNum > 3) {
+      aiExplanation = await this.aiService
+        .explainWinner({
+          productId: BigInt(productId),
+          snapshotId: snapshot.id,
+          title: detail.title,
+          score: scoreNum,
+          weeklyBought: weeklyBought,
+          ordersQuantity: detail.ordersQuantity ?? 0,
+          discountPercent: primaryDiscount,
+          rating: detail.rating ?? 0,
+        })
+        .catch(() => null);
+    }
+
     return {
       product_id: productId,
       title: detail.title,
@@ -148,9 +178,52 @@ export class UzumService {
       feedback_quantity: detail.feedbackQuantity,
       orders_quantity: detail.ordersQuantity,
       weekly_bought: weeklyBought,
-      score: Number(score.toFixed(4)),
+      score: scoreNum,
       snapshot_id: snapshot.id,
       sell_price: primarySku?.sellPrice,
+      ai_explanation: aiExplanation,
     };
+  }
+
+  /**
+   * Detect score spike and fire SCORE_SPIKE alert events.
+   * Runs asynchronously — errors are silently ignored.
+   */
+  private async checkScoreAnomaly(productId: bigint, currentScore: number) {
+    // Get last 7 historical snapshots (skip the most recent just saved)
+    const history = await this.prisma.productSnapshot.findMany({
+      where: { product_id: productId },
+      orderBy: { snapshot_at: 'desc' },
+      skip: 1,
+      take: 7,
+      select: { score: true },
+    });
+
+    if (history.length < 3) return;
+
+    const scores = history.map((s) => Number(s.score ?? 0));
+    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+    const variance =
+      scores.reduce((sum, s) => sum + Math.pow(s - avg, 2), 0) / scores.length;
+    const stdDev = Math.sqrt(variance);
+
+    const isSpike = currentScore > avg + 2 * stdDev && currentScore - avg > 1.0;
+    if (!isSpike) return;
+
+    // Fire alert events for any active SCORE_SPIKE rules on this product
+    const rules = await this.prisma.alertRule.findMany({
+      where: { product_id: productId, rule_type: 'SCORE_SPIKE', is_active: true },
+      select: { id: true },
+    });
+
+    if (rules.length === 0) return;
+
+    await this.prisma.alertEvent.createMany({
+      data: rules.map((r) => ({
+        rule_id: r.id,
+        product_id: productId,
+        message: `Score spike detected: ${currentScore.toFixed(2)} (avg ${avg.toFixed(2)})`,
+      })),
+    });
   }
 }

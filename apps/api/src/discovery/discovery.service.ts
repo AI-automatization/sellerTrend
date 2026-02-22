@@ -1,15 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { calculateScore, getSupplyPressure, sleep } from '@uzum/utils';
-
-const REST_BASE = 'https://api.uzum.uz/api/v2';
-const HEADERS = {
-  'User-Agent':
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  Origin: 'https://uzum.uz',
-  Referer: 'https://uzum.uz/',
-  Accept: 'application/json',
-};
+import { enqueueDiscovery } from './discovery.queue';
 
 @Injectable()
 export class DiscoveryService {
@@ -17,7 +8,7 @@ export class DiscoveryService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Start a new discovery run — processes in background */
+  /** Create a DB record and enqueue to BullMQ worker */
   async startRun(accountId: string, categoryId: number): Promise<string> {
     const run = await this.prisma.categoryRun.create({
       data: {
@@ -27,10 +18,8 @@ export class DiscoveryService {
       },
     });
 
-    // Fire-and-forget background processing
-    this.processRun(run.id, categoryId).catch((err) =>
-      this.logger.error(`Run ${run.id} failed: ${err.message}`),
-    );
+    await enqueueDiscovery({ categoryId, runId: run.id, accountId });
+    this.logger.log(`[run:${run.id}] Enqueued category ${categoryId} → BullMQ`);
 
     return run.id;
   }
@@ -125,131 +114,5 @@ export class DiscoveryService {
         sell_price: w.sell_price?.toString(),
       })),
     };
-  }
-
-  /** Background processing logic */
-  private async processRun(runId: string, categoryId: number) {
-    this.logger.log(`[run:${runId}] Starting category ${categoryId}`);
-
-    await this.prisma.categoryRun.update({
-      where: { id: runId },
-      data: { status: 'RUNNING', started_at: new Date() },
-    });
-
-    try {
-      const firstPage = await this.fetchPage(categoryId, 0);
-      const total = firstPage.total;
-      const totalPages = Math.min(Math.ceil(total / 48), 10);
-
-      await this.prisma.categoryRun.update({
-        where: { id: runId },
-        data: { total_products: total },
-      });
-
-      const allItems: any[] = [...firstPage.items];
-
-      for (let page = 1; page < totalPages; page++) {
-        await sleep(1000);
-        const pageData = await this.fetchPage(categoryId, page);
-        allItems.push(...pageData.items);
-        await this.prisma.categoryRun.update({
-          where: { id: runId },
-          data: { processed: page * 48 },
-        });
-      }
-
-      // Score and sort
-      const scored = allItems
-        .filter((item: any) => item?.id && item?.ordersAmount != null)
-        .map((item: any) => {
-          const stockType: 'FBO' | 'FBS' =
-            item?.skuList?.[0]?.stock?.type === 'FBO' ? 'FBO' : 'FBS';
-          return {
-            item,
-            score: calculateScore({
-              weekly_bought: item.rOrdersAmount ?? null,
-              orders_quantity: item.ordersAmount ?? 0,
-              rating: item.rating ?? 0,
-              supply_pressure: getSupplyPressure(stockType),
-            }),
-          };
-        })
-        .sort((a, b) => b.score - a.score);
-
-      const top20 = scored.slice(0, 20);
-
-      for (let i = 0; i < top20.length; i++) {
-        const { item, score } = top20[i];
-        const productId = BigInt(item.id);
-        const sellPrice = item.skuList?.[0]?.purchasePrice
-          ? BigInt(item.skuList[0].purchasePrice)
-          : null;
-
-        await this.prisma.product.upsert({
-          where: { id: productId },
-          update: {
-            title: item.title ?? item.localizableTitle?.ru ?? '',
-            rating: item.rating,
-            orders_quantity: BigInt(item.ordersAmount ?? 0),
-          },
-          create: {
-            id: productId,
-            title: item.title ?? item.localizableTitle?.ru ?? '',
-            rating: item.rating,
-            orders_quantity: BigInt(item.ordersAmount ?? 0),
-          },
-        });
-
-        await this.prisma.categoryWinner.create({
-          data: {
-            run_id: runId,
-            product_id: productId,
-            score,
-            rank: i + 1,
-            weekly_bought: item.rOrdersAmount ?? null,
-            orders_quantity: BigInt(item.ordersAmount ?? 0),
-            sell_price: sellPrice,
-          },
-        });
-      }
-
-      await this.prisma.categoryRun.update({
-        where: { id: runId },
-        data: { status: 'DONE', finished_at: new Date(), processed: allItems.length },
-      });
-
-      this.logger.log(
-        `[run:${runId}] Done. ${allItems.length} products, ${top20.length} winners`,
-      );
-    } catch (err: any) {
-      this.logger.error(`[run:${runId}] Error: ${err.message}`);
-      await this.prisma.categoryRun.update({
-        where: { id: runId },
-        data: { status: 'FAILED', finished_at: new Date() },
-      });
-      throw err;
-    }
-  }
-
-  private async fetchPage(
-    categoryId: number,
-    page: number,
-  ): Promise<{ items: any[]; total: number }> {
-    const url = `${REST_BASE}/category/${categoryId}/products?size=48&page=${page}&sort=ORDER_COUNT_DESC`;
-    const res = await fetch(url, { headers: HEADERS });
-
-    if (res.status === 429) {
-      await sleep(5000);
-      return this.fetchPage(categoryId, page);
-    }
-
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-    const data = (await res.json()) as any;
-    const payload = data?.payload ?? data;
-    const items: any[] = payload?.data?.products ?? payload?.products ?? [];
-    const total: number = payload?.data?.total ?? payload?.total ?? 0;
-
-    return { items, total };
   }
 }

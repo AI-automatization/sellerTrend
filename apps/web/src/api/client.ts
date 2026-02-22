@@ -51,6 +51,8 @@ export const productsApi = {
   track: (productId: string) => api.post(`/products/${productId}/track`),
   getSnapshots: (productId: string) =>
     api.get(`/products/${productId}/snapshots`),
+  getForecast: (productId: string) =>
+    api.get(`/products/${productId}/forecast`),
 };
 
 // Uzum endpoints
@@ -61,6 +63,16 @@ export const uzumApi = {
 // Billing endpoints
 export const billingApi = {
   getBalance: () => api.get('/billing/balance'),
+};
+
+// Discovery endpoints
+export const discoveryApi = {
+  startRun: (input: string | number) =>
+    api.post('/discovery/run', { input: String(input) }),
+  listRuns: () => api.get('/discovery/runs'),
+  getRun: (id: string) => api.get(`/discovery/runs/${id}`),
+  getLeaderboard: (categoryId?: number) =>
+    api.get('/discovery/leaderboard', { params: categoryId ? { category_id: categoryId } : {} }),
 };
 
 // Admin endpoints (SUPER_ADMIN only)

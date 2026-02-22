@@ -2,6 +2,12 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { productsApi, billingApi } from '../api/client';
 import { ScoreChart } from '../components/ScoreChart';
+
+interface Forecast {
+  forecast_7d: number;
+  trend: 'up' | 'flat' | 'down';
+  slope: number;
+}
 import {
   FireIcon,
   WalletIcon,
@@ -45,12 +51,12 @@ function ProductDrawer({
   onClose: () => void;
 }) {
   const [chartData, setChartData] = useState<{ date: string; score: number }[]>([]);
+  const [forecast, setForecast] = useState<Forecast | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    productsApi
-      .getSnapshots(product.product_id)
-      .then((r) => {
+    Promise.all([
+      productsApi.getSnapshots(product.product_id).then((r) => {
         const data = r.data
           .slice()
           .reverse()
@@ -64,8 +70,11 @@ function ProductDrawer({
             score: Number(Number(s.score).toFixed(4)),
           }));
         setChartData(data);
-      })
-      .finally(() => setLoading(false));
+      }),
+      productsApi.getForecast(product.product_id)
+        .then((r) => setForecast(r.data))
+        .catch(() => {}),
+    ]).finally(() => setLoading(false));
   }, [product.product_id]);
 
   return (
@@ -125,7 +134,7 @@ function ProductDrawer({
         </div>
 
         {/* Chart */}
-        <div className="px-4 pb-4 flex-1">
+        <div className="px-4 pb-2 flex-1">
           <p className="text-xs text-base-content/50 mb-3 font-medium">Score tarixi</p>
           {loading ? (
             <div className="flex justify-center py-8">
@@ -135,6 +144,38 @@ function ProductDrawer({
             <ScoreChart data={chartData} />
           )}
         </div>
+
+        {/* 7-day forecast */}
+        {forecast && (
+          <div className="px-4 pb-4">
+            <div className="bg-base-300 rounded-xl p-3">
+              <p className="text-xs text-base-content/50 mb-2">7 kunlik bashorat</p>
+              <div className="flex items-center gap-3">
+                <span className={`text-2xl font-bold tabular-nums ${
+                  forecast.trend === 'up'
+                    ? 'text-success'
+                    : forecast.trend === 'down'
+                    ? 'text-error'
+                    : 'text-base-content'
+                }`}>
+                  {forecast.forecast_7d.toFixed(2)}
+                </span>
+                <span className="text-lg">
+                  {forecast.trend === 'up' ? '↗' : forecast.trend === 'down' ? '↘' : '→'}
+                </span>
+                <span className={`badge badge-sm ${
+                  forecast.trend === 'up'
+                    ? 'badge-success'
+                    : forecast.trend === 'down'
+                    ? 'badge-error'
+                    : 'badge-ghost'
+                }`}>
+                  {forecast.trend === 'up' ? 'O\'sayapti' : forecast.trend === 'down' ? 'Tushayapti' : 'Barqaror'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="p-4 border-t border-base-300">

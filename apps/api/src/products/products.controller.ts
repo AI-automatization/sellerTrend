@@ -29,4 +29,10 @@ export class ProductsController {
   snapshots(@Param('id') productId: string) {
     return this.productsService.getProductSnapshots(BigInt(productId));
   }
+
+  /** 7-day score forecast with trend direction */
+  @Get(':id/forecast')
+  forecast(@Param('id') productId: string) {
+    return this.productsService.getForecast(BigInt(productId));
+  }
 }

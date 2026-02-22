@@ -3,6 +3,7 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { AnalyzePage } from './pages/AnalyzePage';
+import { DiscoveryPage } from './pages/DiscoveryPage';
 import { AdminPage } from './pages/AdminPage';
 import { Layout } from './components/Layout';
 
@@ -30,6 +31,7 @@ export default function App() {
         >
           <Route index element={<DashboardPage />} />
           <Route path="analyze" element={<AnalyzePage />} />
+          <Route path="discovery" element={<DiscoveryPage />} />
           <Route path="admin" element={<AdminPage />} />
         </Route>
       </Routes>

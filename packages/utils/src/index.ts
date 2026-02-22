@@ -47,6 +47,23 @@ export function getSupplyPressure(stockType: 'FBO' | 'FBS'): number {
 }
 
 /**
+ * Extract category ID from Uzum category URL
+ * Supports:
+ *   https://uzum.uz/ru/category/smartfony--879
+ *   https://uzum.uz/category/elektronika--123
+ *   879 (plain number string)
+ */
+export function parseUzumCategoryId(input: string): number | null {
+  const trimmed = input.trim();
+  // Plain number
+  if (/^\d+$/.test(trimmed)) return parseInt(trimmed, 10);
+  // URL format: /category/slug--ID (double dash before ID)
+  const match = trimmed.match(/--(\d+)(?:[/?#]|$)/);
+  if (match) return parseInt(match[1], 10);
+  return null;
+}
+
+/**
  * Sleep utility for rate limiting
  */
 export function sleep(ms: number): Promise<void> {

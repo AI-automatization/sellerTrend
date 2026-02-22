@@ -5,6 +5,7 @@ import {
   MagnifyingGlassIcon,
   ArrowRightOnRectangleIcon,
   WalletIcon,
+  ArrowTrendingUpIcon,
 } from './icons';
 import { getTokenPayload, billingApi } from '../api/client';
 
@@ -104,6 +105,12 @@ export function Layout() {
               <NavLink to="/analyze" className={({ isActive }) => isActive ? 'active' : ''}>
                 <MagnifyingGlassIcon className="w-4 h-4" />
                 URL Analyze
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/discovery" className={({ isActive }) => isActive ? 'active' : ''}>
+                <ArrowTrendingUpIcon className="w-4 h-4" />
+                Discovery
               </NavLink>
             </li>
 

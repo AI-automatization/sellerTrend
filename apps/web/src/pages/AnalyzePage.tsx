@@ -12,6 +12,7 @@ interface AnalyzeResult {
   weekly_bought: number | null;
   score: number;
   sell_price: number | null;
+  ai_explanation: string[] | null;
 }
 
 interface Snapshot {
@@ -213,6 +214,26 @@ export function AnalyzePage() {
                 <div>
                   <p className="text-xs text-base-content/50 mb-2">Score tarixi</p>
                   <ScoreChart data={snapshots} />
+                </div>
+              </>
+            )}
+
+            {/* AI Explanation */}
+            {result.ai_explanation && result.ai_explanation.length > 0 && (
+              <>
+                <div className="divider my-0" />
+                <div>
+                  <p className="text-xs text-base-content/50 mb-2 flex items-center gap-1">
+                    <span>🤖</span> Claude AI tahlili
+                  </p>
+                  <ul className="space-y-1.5">
+                    {result.ai_explanation.map((bullet, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm">
+                        <span className="text-primary mt-0.5">•</span>
+                        <span>{bullet}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </>
             )}

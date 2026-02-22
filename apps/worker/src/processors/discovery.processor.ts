@@ -17,7 +17,8 @@ async function fetchCategoryPage(
   categoryId: number,
   page: number,
 ): Promise<{ items: any[]; total: number }> {
-  const url = `${REST_BASE}/category/${categoryId}/products?size=48&page=${page}&sort=ORDER_COUNT_DESC`;
+  // Correct REST endpoint for category product listing
+  const url = `${REST_BASE}/main/search/product?categoryId=${categoryId}&size=48&page=${page}&sort=ORDER_COUNT_DESC&showAdultContent=HIDE`;
   const res = await fetch(url, { headers: HEADERS });
 
   if (res.status === 429) {
@@ -29,8 +30,8 @@ async function fetchCategoryPage(
 
   const data = (await res.json()) as any;
   const payload = data?.payload ?? data;
-  const items: any[] = payload?.data?.products ?? payload?.products ?? [];
-  const total: number = payload?.data?.total ?? payload?.total ?? 0;
+  const items: any[] = payload?.products ?? payload?.data?.products ?? [];
+  const total: number = payload?.total ?? payload?.data?.total ?? 0;
 
   return { items, total };
 }
