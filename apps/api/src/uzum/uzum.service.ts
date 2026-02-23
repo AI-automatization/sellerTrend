@@ -86,7 +86,7 @@ export class UzumService {
     // 5. Upsert SKUs
     const skuList = detail.skuList ?? [];
     for (const sku of skuList) {
-      const stockType = sku.availableAmount > 0 ? 'FBO' : 'FBS';
+      const stockType = (sku.stockType as 'FBO' | 'FBS') ?? 'FBS';
 
       await this.prisma.sku.upsert({
         where: { id: BigInt(sku.id) },
@@ -121,7 +121,7 @@ export class UzumService {
     // 6. Calculate score
     const primarySku = skuList[0];
     const supplyPressure = getSupplyPressure(
-      primarySku?.availableAmount > 0 ? 'FBO' : 'FBS',
+      (primarySku?.stockType as 'FBO' | 'FBS') ?? 'FBS',
     );
 
     const score = calculateScore({

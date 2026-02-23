@@ -264,6 +264,7 @@ export function createSourcingWorker() {
 
       const browser = await chromium.launch({
         headless: true,
+        proxy: process.env.PROXY_URL ? { server: process.env.PROXY_URL } : undefined,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
