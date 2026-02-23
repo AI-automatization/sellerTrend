@@ -14,6 +14,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { MagnifyingGlassIcon, ArrowTrendingUpIcon } from '../components/icons';
+import { CompetitorSection } from '../components/competitor/CompetitorSection';
 
 interface AnalyzeResult {
   product_id: number;
@@ -491,6 +492,13 @@ export function ProductPage() {
           </div>
         </div>
       )}
+
+      {/* Competitor Price Tracker */}
+      <CompetitorSection
+        productId={String(result.product_id)}
+        ourPrice={result.sell_price}
+        ourTitle={result.title}
+      />
 
       {/* Global Market Price Comparison */}
       <GlobalPriceComparison

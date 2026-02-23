@@ -7,6 +7,8 @@ import { DiscoveryPage } from './pages/DiscoveryPage';
 import { AdminPage } from './pages/AdminPage';
 import { ProductPage } from './pages/ProductPage';
 import { SourcingPage } from './pages/SourcingPage';
+import { ProfitCalculatorPage } from './pages/ProfitCalculatorPage';
+import { PublicLeaderboardPage } from './pages/PublicLeaderboardPage';
 import { Layout } from './components/Layout';
 
 function isAuthenticated() {
@@ -23,6 +25,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/leaderboard" element={<PublicLeaderboardPage />} />
         <Route
           path="/"
           element={
@@ -36,6 +39,7 @@ export default function App() {
           <Route path="products/:id" element={<ProductPage />} />
           <Route path="discovery" element={<DiscoveryPage />} />
           <Route path="sourcing" element={<SourcingPage />} />
+          <Route path="tools/profit-calculator" element={<ProfitCalculatorPage />} />
           <Route path="admin" element={<AdminPage />} />
         </Route>
       </Routes>

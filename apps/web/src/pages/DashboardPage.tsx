@@ -20,6 +20,7 @@ import {
   ArrowTrendingUpIcon,
   MagnifyingGlassIcon,
 } from '../components/icons';
+import { SkeletonStat, SkeletonCard, SkeletonTable } from '../components/ui/Skeleton';
 
 interface TrackedProduct {
   product_id: string;
@@ -76,8 +77,32 @@ export function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <span className="loading loading-dots loading-lg text-primary" />
+      <div className="space-y-6 max-w-6xl">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="skeleton w-32 h-7 rounded" />
+            <div className="skeleton w-52 h-4 rounded" />
+          </div>
+          <div className="flex gap-2">
+            <div className="skeleton w-28 h-8 rounded" />
+            <div className="skeleton w-28 h-8 rounded" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <SkeletonStat /><SkeletonStat /><SkeletonStat /><SkeletonStat />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2"><SkeletonCard lines={7} height="h-5" /></div>
+          <SkeletonCard lines={5} />
+        </div>
+        <div className="card bg-base-200 shadow-sm">
+          <div className="card-body p-0">
+            <div className="px-4 pt-4 pb-3 border-b border-base-300">
+              <div className="skeleton w-52 h-5 rounded" />
+            </div>
+            <SkeletonTable rows={6} cols={8} />
+          </div>
+        </div>
       </div>
     );
   }
@@ -144,15 +169,26 @@ export function DashboardPage() {
 
       {/* Payment alert */}
       {paymentDue && (
-        <div role="alert" className="alert alert-error">
+        <div role="alert" className="alert alert-error alert-soft">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
-          <div>
-            <h3 className="font-bold">To'lov kerak!</h3>
-            <div className="text-xs">Balansingiz yetarli emas. Hisobni to'ldiring.</div>
+          <div className="flex-1">
+            <h3 className="font-bold">Balans yetarli emas!</h3>
+            <div className="text-xs opacity-80">
+              Joriy balans:{' '}
+              <span className="font-semibold">
+                {balance ? Number(balance.balance).toLocaleString() : '0'} so'm
+              </span>
+              {' · '}Kunlik to'lov:{' '}
+              <span className="font-semibold">
+                {balance ? Number(balance.daily_fee).toLocaleString() : '0'} so'm/kun
+              </span>
+            </div>
           </div>
-          <button className="btn btn-sm btn-ghost">To'ldirish</button>
+          <Link to="/billing" className="btn btn-sm btn-error">
+            Hisobni to'ldirish →
+          </Link>
         </div>
       )}
 
@@ -367,10 +403,26 @@ export function DashboardPage() {
           </div>
 
           {products.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <MagnifyingGlassIcon className="w-12 h-12 text-base-content/20" />
-              <p className="text-base-content/50">Hali mahsulot qo'shilmagan</p>
-              <Link to="/analyze" className="btn btn-primary btn-sm">Birinchi tahlil</Link>
+            <div className="flex flex-col items-center justify-center py-20 gap-4 px-4">
+              <div className="w-16 h-16 rounded-full bg-base-300 flex items-center justify-center">
+                <MagnifyingGlassIcon className="w-8 h-8 text-base-content/30" />
+              </div>
+              <div className="text-center">
+                <p className="font-semibold text-base-content/70">Hali mahsulot kuzatilmayapti</p>
+                <p className="text-sm text-base-content/40 mt-1 max-w-xs">
+                  Uzum mahsulot havolasini tahlil qiling — u avtomatik kuzatuvga qo'shiladi
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Link to="/analyze" className="btn btn-primary btn-sm">
+                  <MagnifyingGlassIcon className="w-4 h-4" />
+                  URL Tahlil
+                </Link>
+                <Link to="/discovery" className="btn btn-outline btn-sm">
+                  <ArrowTrendingUpIcon className="w-4 h-4" />
+                  Discovery
+                </Link>
+              </div>
             </div>
           ) : (
             <div className="overflow-x-auto">

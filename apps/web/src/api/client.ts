@@ -103,6 +103,57 @@ export const sourcingApi = {
   getHistory: () => api.get('/sourcing/history'),
 };
 
+// Competitor types
+export interface CompetitorDiscoverItem {
+  product_id: string;
+  title: string;
+  sell_price: string | null;
+  rating: number;
+  orders_quantity: string;
+  is_cheaper: boolean;
+  price_diff_pct: number;
+}
+
+export interface TrackedCompetitor {
+  tracking_id: string;
+  competitor_product_id: string;
+  competitor_title: string;
+  is_active: boolean;
+  latest_price: string | null;
+  latest_full_price: string | null;
+  latest_discount_pct: number;
+  prev_price: string | null;
+  trend: 'up' | 'down' | 'stable';
+  last_snapshot_at: string | null;
+}
+
+// Competitor endpoints
+export const competitorApi = {
+  getPrices: (productId: string) =>
+    api.get<{
+      our_product: { product_id: string; title: string; sell_price: string | null; category_id: string };
+      competitors: CompetitorDiscoverItem[];
+    }>(`/competitor/products/${productId}/prices`),
+
+  trackCompetitors: (productId: string, competitorProductIds: string[]) =>
+    api.post<{ tracked_count: number; trackings: Array<{ id: string; competitor_product_id: string }> }>(
+      '/competitor/track',
+      { product_id: productId, competitor_product_ids: competitorProductIds },
+    ),
+
+  getTracked: (productId: string) =>
+    api.get<{ competitors: TrackedCompetitor[] }>(`/competitor/products/${productId}/tracked`),
+
+  getPriceHistory: (productId: string, competitorId: string) =>
+    api.get<{
+      tracking_id: string;
+      snapshots: Array<{ id: string; sell_price: string | null; discount_pct: number; snapshot_at: string }>;
+    }>(`/competitor/products/${productId}/competitors/${competitorId}/history`),
+
+  untrack: (productId: string, competitorId: string) =>
+    api.delete(`/competitor/products/${productId}/competitors/${competitorId}`),
+};
+
 // Admin endpoints (SUPER_ADMIN only)
 export const adminApi = {
   listAccounts: () => api.get('/admin/accounts'),
