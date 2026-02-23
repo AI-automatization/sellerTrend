@@ -24,6 +24,8 @@ import { ExportModule } from './export/export.module';
 // v2.0 modules
 import { ConsultationModule } from './consultation/consultation.module';
 import { GatewayModule } from './common/gateways/gateway.module';
+// v3.0 Signals
+import { SignalsModule } from './signals/signals.module';
 
 @Module({
   imports: [
@@ -50,6 +52,8 @@ import { GatewayModule } from './common/gateways/gateway.module';
     // v2.0
     ConsultationModule,
     GatewayModule,
+    // v3.0 Signals
+    SignalsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
   controllers: [HealthController],

@@ -16,6 +16,8 @@ import { ApiKeysPage } from './pages/ApiKeysPage';
 import { DescriptionGeneratorPage } from './pages/DescriptionGeneratorPage';
 import { ElasticityPage } from './pages/ElasticityPage';
 import { ConsultationPage } from './pages/ConsultationPage';
+// v3.0 pages
+import { SignalsPage } from './pages/SignalsPage';
 import { Layout } from './components/Layout';
 
 function isAuthenticated() {
@@ -54,6 +56,8 @@ export default function App() {
           <Route path="ai-description" element={<DescriptionGeneratorPage />} />
           <Route path="elasticity" element={<ElasticityPage />} />
           <Route path="consultation" element={<ConsultationPage />} />
+          {/* v3.0 Signals */}
+          <Route path="signals" element={<SignalsPage />} />
           <Route path="admin" element={<AdminPage />} />
         </Route>
       </Routes>

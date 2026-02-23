@@ -380,6 +380,432 @@ export interface ElasticityResult {
   interpretation: string;
 }
 
+// ============================================================
+// Feature 21 — Cannibalization Detection
+// ============================================================
+
+export interface CannibalizationPair {
+  product_a_id: string;
+  product_b_id: string;
+  product_a_title: string;
+  product_b_title: string;
+  overlap_score: number; // 0-1
+  reason: string;
+}
+
+export function detectCannibalization(
+  products: Array<{
+    id: string;
+    title: string;
+    category_id: number | null;
+    score: number;
+    weekly_bought: number;
+    shop_id: string | null;
+  }>,
+): CannibalizationPair[] {
+  const pairs: CannibalizationPair[] = [];
+  for (let i = 0; i < products.length; i++) {
+    for (let j = i + 1; j < products.length; j++) {
+      const a = products[i];
+      const b = products[j];
+      if (a.shop_id !== b.shop_id || !a.shop_id) continue;
+
+      let overlap = 0;
+      const reasons: string[] = [];
+
+      // Same category
+      if (a.category_id && a.category_id === b.category_id) {
+        overlap += 0.4;
+        reasons.push('Bir xil kategoriya');
+      }
+
+      // Title similarity (simple word overlap)
+      const wordsA = new Set(a.title.toLowerCase().split(/\s+/).filter((w) => w.length > 2));
+      const wordsB = new Set(b.title.toLowerCase().split(/\s+/).filter((w) => w.length > 2));
+      const common = [...wordsA].filter((w) => wordsB.has(w)).length;
+      const totalUnique = new Set([...wordsA, ...wordsB]).size;
+      const titleSim = totalUnique > 0 ? common / totalUnique : 0;
+      if (titleSim > 0.3) {
+        overlap += 0.3 * titleSim;
+        reasons.push(`Nom o'xshashligi ${(titleSim * 100).toFixed(0)}%`);
+      }
+
+      // Similar score range
+      const scoreDiff = Math.abs(a.score - b.score);
+      if (scoreDiff < 0.5) {
+        overlap += 0.2 * (1 - scoreDiff / 0.5);
+        reasons.push('Yaqin score darajasi');
+      }
+
+      // Similar sales
+      const maxSales = Math.max(a.weekly_bought, b.weekly_bought, 1);
+      const salesSim = 1 - Math.abs(a.weekly_bought - b.weekly_bought) / maxSales;
+      if (salesSim > 0.7) {
+        overlap += 0.1 * salesSim;
+        reasons.push('Yaqin sotuv hajmi');
+      }
+
+      if (overlap >= 0.4) {
+        pairs.push({
+          product_a_id: a.id,
+          product_b_id: b.id,
+          product_a_title: a.title,
+          product_b_title: b.title,
+          overlap_score: Number(Math.min(1, overlap).toFixed(3)),
+          reason: reasons.join('; '),
+        });
+      }
+    }
+  }
+  return pairs.sort((a, b) => b.overlap_score - a.overlap_score);
+}
+
+// ============================================================
+// Feature 22 — Dead Stock Predictor
+// ============================================================
+
+export interface DeadStockResult {
+  product_id: string;
+  title: string;
+  risk_level: 'high' | 'medium' | 'low';
+  risk_score: number; // 0-1
+  days_to_dead: number;
+  factors: string[];
+}
+
+export function predictDeadStock(
+  snapshots: Array<{ score: number; weekly_bought: number; date: string }>,
+  productId: string,
+  title: string,
+): DeadStockResult {
+  const factors: string[] = [];
+  let risk = 0;
+
+  if (snapshots.length < 2) {
+    return { product_id: productId, title, risk_level: 'low', risk_score: 0, days_to_dead: 999, factors: ['Yetarli data yo\'q'] };
+  }
+
+  // Recent sales trend
+  const recentSales = snapshots.slice(-7).map((s) => s.weekly_bought);
+  const avgRecent = recentSales.reduce((a, b) => a + b, 0) / recentSales.length;
+  const olderSales = snapshots.slice(0, -7).map((s) => s.weekly_bought);
+  const avgOlder = olderSales.length > 0 ? olderSales.reduce((a, b) => a + b, 0) / olderSales.length : avgRecent;
+
+  if (avgRecent < 1) {
+    risk += 0.4;
+    factors.push('Haftalik sotuv deyarli 0');
+  } else if (avgOlder > 0 && avgRecent / avgOlder < 0.3) {
+    risk += 0.3;
+    factors.push(`Sotuv ${((1 - avgRecent / avgOlder) * 100).toFixed(0)}% tushgan`);
+  }
+
+  // Score trend
+  const scores = snapshots.map((s) => s.score);
+  const recentScoreAvg = scores.slice(-7).reduce((a, b) => a + b, 0) / Math.min(7, scores.length);
+  const olderScoreAvg = scores.slice(0, -7).length > 0
+    ? scores.slice(0, -7).reduce((a, b) => a + b, 0) / scores.slice(0, -7).length
+    : recentScoreAvg;
+
+  if (recentScoreAvg < 1.0) {
+    risk += 0.3;
+    factors.push('Score juda past (<1.0)');
+  } else if (olderScoreAvg > 0 && recentScoreAvg / olderScoreAvg < 0.5) {
+    risk += 0.2;
+    factors.push('Score keskin tushgan');
+  }
+
+  // Velocity decline
+  if (recentSales.length >= 3) {
+    const declining = recentSales.every((v, i) => i === 0 || v <= recentSales[i - 1]);
+    if (declining) {
+      risk += 0.15;
+      factors.push('Doimiy sotuv pasayishi');
+    }
+  }
+
+  // Estimate days to dead stock
+  const salesDeclineRate = avgOlder > 0 ? (avgOlder - avgRecent) / avgOlder : 0;
+  const daysEstimate = salesDeclineRate > 0 ? Math.round(avgRecent / (salesDeclineRate * avgOlder / 7)) : 999;
+
+  const riskLevel: DeadStockResult['risk_level'] =
+    risk >= 0.6 ? 'high' : risk >= 0.3 ? 'medium' : 'low';
+
+  return {
+    product_id: productId,
+    title,
+    risk_level: riskLevel,
+    risk_score: Number(Math.min(1, risk).toFixed(3)),
+    days_to_dead: Math.max(0, Math.min(daysEstimate, 999)),
+    factors: factors.length > 0 ? factors : ['Xavf belgilari aniqlanmadi'],
+  };
+}
+
+// ============================================================
+// Feature 23 — Category Saturation Index
+// ============================================================
+
+export interface SaturationResult {
+  category_id: number;
+  saturation_index: number; // 0-1
+  level: 'oversaturated' | 'saturated' | 'moderate' | 'underserved';
+  seller_count: number;
+  avg_score: number;
+  avg_weekly_sales: number;
+  top10_share_pct: number;
+}
+
+export function calculateSaturation(
+  products: Array<{ score: number; weekly_bought: number; shop_id: string | null }>,
+  categoryId: number,
+): SaturationResult {
+  const n = products.length;
+  if (n === 0) {
+    return {
+      category_id: categoryId, saturation_index: 0, level: 'underserved',
+      seller_count: 0, avg_score: 0, avg_weekly_sales: 0, top10_share_pct: 0,
+    };
+  }
+
+  const uniqueSellers = new Set(products.map((p) => p.shop_id).filter(Boolean)).size;
+  const totalSales = products.reduce((s, p) => s + p.weekly_bought, 0);
+  const avgScore = products.reduce((s, p) => s + p.score, 0) / n;
+  const avgSales = totalSales / n;
+
+  // Top 10% market share
+  const sorted = [...products].sort((a, b) => b.weekly_bought - a.weekly_bought);
+  const top10Count = Math.max(1, Math.ceil(n * 0.1));
+  const top10Sales = sorted.slice(0, top10Count).reduce((s, p) => s + p.weekly_bought, 0);
+  const top10Share = totalSales > 0 ? top10Sales / totalSales : 0;
+
+  // Saturation = f(seller_density, competition, concentration)
+  const sellerDensity = Math.min(1, uniqueSellers / 50); // normalized: 50+ sellers = max
+  const competitionIntensity = Math.min(1, n / 200);     // 200+ products = max
+  const concentration = 1 - top10Share; // low concentration = more saturation
+
+  const saturation = 0.40 * sellerDensity + 0.35 * competitionIntensity + 0.25 * concentration;
+
+  const level: SaturationResult['level'] =
+    saturation > 0.75 ? 'oversaturated' : saturation > 0.50 ? 'saturated' :
+    saturation > 0.25 ? 'moderate' : 'underserved';
+
+  return {
+    category_id: categoryId,
+    saturation_index: Number(saturation.toFixed(3)),
+    level,
+    seller_count: uniqueSellers,
+    avg_score: Number(avgScore.toFixed(2)),
+    avg_weekly_sales: Number(avgSales.toFixed(1)),
+    top10_share_pct: Number((top10Share * 100).toFixed(1)),
+  };
+}
+
+// ============================================================
+// Feature 24 — Flash Sale Detection
+// ============================================================
+
+export interface FlashSaleResult {
+  product_id: string;
+  title: string;
+  price_drop_pct: number;
+  old_price: number;
+  new_price: number;
+  detected_at: string;
+}
+
+export function detectFlashSales(
+  priceHistory: Array<{
+    product_id: string;
+    title: string;
+    prices: Array<{ price: number; date: string }>;
+  }>,
+  threshold = 15,
+): FlashSaleResult[] {
+  const results: FlashSaleResult[] = [];
+  for (const item of priceHistory) {
+    if (item.prices.length < 2) continue;
+    const sorted = [...item.prices].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const prev = sorted[sorted.length - 2];
+    const latest = sorted[sorted.length - 1];
+    if (prev.price > 0 && latest.price < prev.price) {
+      const dropPct = ((prev.price - latest.price) / prev.price) * 100;
+      if (dropPct >= threshold) {
+        results.push({
+          product_id: item.product_id,
+          title: item.title,
+          price_drop_pct: Number(dropPct.toFixed(1)),
+          old_price: prev.price,
+          new_price: latest.price,
+          detected_at: latest.date,
+        });
+      }
+    }
+  }
+  return results.sort((a, b) => b.price_drop_pct - a.price_drop_pct);
+}
+
+// ============================================================
+// Feature 25 — New Product Early Signal
+// ============================================================
+
+export interface EarlySignalResult {
+  product_id: string;
+  title: string;
+  momentum_score: number;
+  days_since_first: number;
+  sales_velocity: number;
+  score_growth: number;
+}
+
+export function detectEarlySignals(
+  products: Array<{
+    product_id: string;
+    title: string;
+    created_at: string;
+    snapshots: Array<{ score: number; weekly_bought: number; date: string }>;
+  }>,
+  maxAgeDays = 30,
+): EarlySignalResult[] {
+  const now = Date.now();
+  const results: EarlySignalResult[] = [];
+
+  for (const p of products) {
+    const ageMs = now - new Date(p.created_at).getTime();
+    const ageDays = ageMs / (1000 * 60 * 60 * 24);
+    if (ageDays > maxAgeDays || p.snapshots.length < 2) continue;
+
+    const scores = p.snapshots.map((s) => s.score);
+    const sales = p.snapshots.map((s) => s.weekly_bought);
+    const firstScore = scores[0] || 0;
+    const lastScore = scores[scores.length - 1] || 0;
+    const scoreGrowth = firstScore > 0 ? (lastScore - firstScore) / firstScore : lastScore > 0 ? 1 : 0;
+    const avgSales = sales.reduce((a, b) => a + b, 0) / sales.length;
+    const salesVelocity = ageDays > 0 ? avgSales / ageDays * 7 : avgSales;
+
+    // Momentum = weighted combo of growth + velocity
+    const momentum = 0.5 * Math.min(1, scoreGrowth) + 0.5 * Math.min(1, salesVelocity / 50);
+
+    if (momentum > 0.2) {
+      results.push({
+        product_id: p.product_id,
+        title: p.title,
+        momentum_score: Number(momentum.toFixed(3)),
+        days_since_first: Math.round(ageDays),
+        sales_velocity: Number(salesVelocity.toFixed(1)),
+        score_growth: Number((scoreGrowth * 100).toFixed(1)),
+      });
+    }
+  }
+
+  return results.sort((a, b) => b.momentum_score - a.momentum_score);
+}
+
+// ============================================================
+// Feature 26 — Stock Cliff Alert
+// ============================================================
+
+export interface StockCliffResult {
+  product_id: string;
+  title: string;
+  current_velocity: number; // units per day
+  estimated_days_left: number;
+  severity: 'critical' | 'warning' | 'ok';
+}
+
+export function detectStockCliff(
+  products: Array<{
+    product_id: string;
+    title: string;
+    weekly_bought: number;
+    orders_quantity: number;
+    snapshots: Array<{ weekly_bought: number; date: string }>;
+  }>,
+): StockCliffResult[] {
+  const results: StockCliffResult[] = [];
+  for (const p of products) {
+    const recentSales = p.snapshots.slice(-7);
+    if (recentSales.length < 2) continue;
+
+    // Calculate daily velocity
+    const totalRecent = recentSales.reduce((s, snap) => s + snap.weekly_bought, 0);
+    const velocity = totalRecent / (recentSales.length * 7); // per day
+
+    // Estimate remaining stock heuristic: if recent weekly_bought is high but dropping...
+    const latest = recentSales[recentSales.length - 1]?.weekly_bought ?? 0;
+    const prev = recentSales[0]?.weekly_bought ?? 0;
+    const dropRate = prev > 0 ? (prev - latest) / prev : 0;
+
+    // If sales are accelerating but supply pressure signs exist
+    const estDaysLeft = velocity > 0 ? Math.max(0, Math.round(30 * (1 - dropRate))) : 999;
+
+    let severity: StockCliffResult['severity'] = 'ok';
+    if (estDaysLeft < 7 || (dropRate > 0.5 && velocity > 1)) {
+      severity = 'critical';
+    } else if (estDaysLeft < 14 || dropRate > 0.3) {
+      severity = 'warning';
+    }
+
+    if (severity !== 'ok') {
+      results.push({
+        product_id: p.product_id,
+        title: p.title,
+        current_velocity: Number(velocity.toFixed(2)),
+        estimated_days_left: estDaysLeft,
+        severity,
+      });
+    }
+  }
+  return results.sort((a, b) => a.estimated_days_left - b.estimated_days_left);
+}
+
+// ============================================================
+// Feature 30 — Replenishment Planner
+// ============================================================
+
+export interface ReplenishmentPlan {
+  product_id: string;
+  title: string;
+  avg_daily_sales: number;
+  lead_time_days: number;
+  safety_stock_days: number;
+  reorder_point: number;
+  suggested_order_qty: number;
+  next_order_date: string;
+}
+
+export function planReplenishment(
+  products: Array<{
+    product_id: string;
+    title: string;
+    weekly_bought: number;
+    current_stock?: number;
+  }>,
+  leadTimeDays = 14,
+  safetyStockDays = 7,
+  orderCycleDays = 30,
+): ReplenishmentPlan[] {
+  const now = new Date();
+  return products.map((p) => {
+    const dailySales = p.weekly_bought / 7;
+    const reorderPoint = Math.ceil(dailySales * (leadTimeDays + safetyStockDays));
+    const suggestedQty = Math.ceil(dailySales * orderCycleDays);
+    const stock = p.current_stock ?? suggestedQty;
+    const daysUntilReorder = dailySales > 0 ? Math.max(0, Math.floor((stock - reorderPoint) / dailySales)) : 999;
+    const nextOrderDate = new Date(now);
+    nextOrderDate.setDate(nextOrderDate.getDate() + daysUntilReorder);
+
+    return {
+      product_id: p.product_id,
+      title: p.title,
+      avg_daily_sales: Number(dailySales.toFixed(2)),
+      lead_time_days: leadTimeDays,
+      safety_stock_days: safetyStockDays,
+      reorder_point: reorderPoint,
+      suggested_order_qty: suggestedQty,
+      next_order_date: nextOrderDate.toISOString().split('T')[0],
+    };
+  }).sort((a, b) => new Date(a.next_order_date).getTime() - new Date(b.next_order_date).getTime());
+}
+
 export function calculateElasticity(input: ElasticityInput): ElasticityResult {
   const { price_old, price_new, qty_old, qty_new } = input;
 

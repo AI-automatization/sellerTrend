@@ -208,6 +208,30 @@ export const consultationApi = {
     api.post(`/consultations/${id}/rate`, { rating, review }),
 };
 
+// Signals endpoints (v3.0)
+export const signalsApi = {
+  getCannibalization: () => api.get('/signals/cannibalization'),
+  getDeadStock: () => api.get('/signals/dead-stock'),
+  getSaturation: (categoryId: number) =>
+    api.get('/signals/saturation', { params: { category_id: categoryId } }),
+  getFlashSales: () => api.get('/signals/flash-sales'),
+  getEarlySignals: () => api.get('/signals/early-signals'),
+  getStockCliffs: () => api.get('/signals/stock-cliffs'),
+  getRanking: (productId: string) => api.get(`/signals/ranking/${productId}`),
+  getChecklist: (productId?: string) =>
+    api.get('/signals/checklist', { params: productId ? { product_id: productId } : {} }),
+  saveChecklist: (data: { product_id?: string; title: string; items: any[] }) =>
+    api.post('/signals/checklist', data),
+  createPriceTest: (data: { product_id: string; original_price: number; test_price: number }) =>
+    api.post('/signals/price-tests', data),
+  listPriceTests: () => api.get('/signals/price-tests'),
+  updatePriceTest: (id: string, data: {
+    status?: string; original_sales?: number; test_sales?: number; conclusion?: string;
+  }) => api.patch(`/signals/price-tests/${id}`, data),
+  getReplenishment: (leadTimeDays?: number) =>
+    api.get('/signals/replenishment', { params: leadTimeDays ? { lead_time_days: leadTimeDays } : {} }),
+};
+
 // Admin endpoints (SUPER_ADMIN only)
 export const adminApi = {
   listAccounts: () => api.get('/admin/accounts'),

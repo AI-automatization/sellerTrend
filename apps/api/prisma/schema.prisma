@@ -36,6 +36,8 @@ model Account {
   api_keys               ApiKey[]
   consultant_sessions    Consultation[] @relation("consultant_sessions")
   client_sessions        Consultation[] @relation("client_sessions")
+  price_tests            PriceTest[]
+  product_checklists     ProductChecklist[]
 
   @@map("accounts")
 }
@@ -160,6 +162,7 @@ model Product {
   external_search_jobs ExternalSearchJob[]
   competitors_from     CompetitorTracking[] @relation("product_competitors")
   competitors_of       CompetitorTracking[] @relation("competitor_of")
+  price_tests          PriceTest[]
 
   @@map("products")
 }
@@ -618,4 +621,55 @@ enum ConsultationStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
+}
+
+// ============================================================
+// PRICE TESTING (Feature 29 — A/B Price Testing)
+// ============================================================
+
+model PriceTest {
+  id             String          @id @default(uuid())
+  account_id     String
+  product_id     BigInt
+  original_price BigInt
+  test_price     BigInt
+  status         PriceTestStatus @default(PLANNED)
+  start_date     DateTime?       @db.Timestamptz
+  end_date       DateTime?       @db.Timestamptz
+  original_sales Int             @default(0)
+  test_sales     Int             @default(0)
+  original_revenue BigInt        @default(0)
+  test_revenue     BigInt        @default(0)
+  conclusion     String?         @db.Text
+  created_at     DateTime        @default(now()) @db.Timestamptz
+
+  account Account @relation(fields: [account_id], references: [id])
+  product Product @relation(fields: [product_id], references: [id])
+
+  @@map("price_tests")
+}
+
+enum PriceTestStatus {
+  PLANNED
+  RUNNING
+  COMPLETED
+  CANCELLED
+}
+
+// ============================================================
+// PRODUCT CHECKLIST (Feature 28 — Product Launch Checklist)
+// ============================================================
+
+model ProductChecklist {
+  id         String   @id @default(uuid())
+  account_id String
+  product_id BigInt?
+  title      String   @db.VarChar(255)
+  items      Json     @default("[]")
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @updatedAt @db.Timestamptz
+
+  account Account @relation(fields: [account_id], references: [id])
+
+  @@map("product_checklists")
 }
