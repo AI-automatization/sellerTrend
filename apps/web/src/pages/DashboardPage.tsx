@@ -9,8 +9,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
-  RadialBarChart,
-  RadialBar,
   PieChart,
   Pie,
   Legend,

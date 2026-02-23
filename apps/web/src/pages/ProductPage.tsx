@@ -13,7 +13,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { FireIcon, MagnifyingGlassIcon, ArrowTrendingUpIcon } from '../components/icons';
+import { MagnifyingGlassIcon, ArrowTrendingUpIcon } from '../components/icons';
 
 interface AnalyzeResult {
   product_id: number;

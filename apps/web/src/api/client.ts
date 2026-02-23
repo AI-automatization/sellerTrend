@@ -77,6 +77,26 @@ export const discoveryApi = {
     api.get('/discovery/leaderboard', { params: categoryId ? { category_id: categoryId } : {} }),
 };
 
+// Sourcing endpoints
+export const sourcingApi = {
+  getCurrencyRates: () => api.get('/sourcing/currency-rates'),
+  refreshRates: () => api.post('/sourcing/currency-rates/refresh'),
+  getCargoProviders: (origin?: string) =>
+    api.get('/sourcing/cargo/providers', { params: origin ? { origin } : {} }),
+  calculateCargo: (data: {
+    item_name?: string;
+    item_cost_usd: number;
+    weight_kg: number;
+    quantity: number;
+    provider_id: string;
+    customs_rate?: number;
+    sell_price_uzs?: number;
+  }) => api.post('/sourcing/cargo/calculate', data),
+  searchPrices: (query: string, source: string) =>
+    api.post('/sourcing/search', { query, source }),
+  getHistory: () => api.get('/sourcing/history'),
+};
+
 // Admin endpoints (SUPER_ADMIN only)
 export const adminApi = {
   listAccounts: () => api.get('/admin/accounts'),

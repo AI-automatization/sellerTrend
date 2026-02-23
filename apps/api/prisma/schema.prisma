@@ -21,12 +21,14 @@ model Account {
   daily_fee  BigInt?       // NULL = global default ishlatiladi
   created_at DateTime      @default(now()) @db.Timestamptz
 
-  users            User[]
-  transactions     Transaction[]
-  audit_events     AuditEvent[]
-  category_runs    CategoryRun[]
-  tracked_products TrackedProduct[]
-  alert_rules      AlertRule[]
+  users              User[]
+  transactions       Transaction[]
+  audit_events       AuditEvent[]
+  category_runs      CategoryRun[]
+  tracked_products   TrackedProduct[]
+  alert_rules        AlertRule[]
+  price_searches     ExternalPriceSearch[]
+  cargo_calculations CargoCalculation[]
 
   @@map("accounts")
 }
@@ -312,6 +314,78 @@ model ProductAiAttribute {
   product Product @relation(fields: [product_id], references: [id])
 
   @@map("product_ai_attributes")
+}
+
+// ============================================================
+// SOURCING
+// ============================================================
+
+model CurrencyRate {
+  id         String   @id @default(uuid())
+  from_code  String   @db.VarChar(10) // USD, CNY, EUR
+  to_code    String   @db.VarChar(10) // UZS
+  rate       Decimal  @db.Decimal(20, 4)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  @@unique([from_code, to_code])
+  @@map("currency_rates")
+}
+
+model CargoProvider {
+  id            String   @id @default(uuid())
+  name          String   @db.VarChar(255)
+  origin        String   @db.VarChar(10) // CN, EU
+  destination   String   @db.VarChar(10) // UZ
+  method        String   @db.VarChar(50) // AVIA, CARGO, RAIL, AUTO, TURKEY
+  rate_per_kg   Decimal  @db.Decimal(10, 2) // USD per kg
+  delivery_days Int
+  min_weight_kg Decimal? @db.Decimal(10, 2)
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now()) @db.Timestamptz
+
+  calculations CargoCalculation[]
+
+  @@map("cargo_providers")
+}
+
+model ExternalPriceSearch {
+  id         String   @id @default(uuid())
+  account_id String
+  query      String   @db.VarChar(500)
+  source     String   @db.VarChar(50) // ALIBABA, ALIEXPRESS, SERPAPI
+  results    Json?
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  account Account @relation(fields: [account_id], references: [id])
+
+  @@map("external_price_searches")
+}
+
+model CargoCalculation {
+  id              String   @id @default(uuid())
+  account_id      String
+  provider_id     String?
+  item_name       String?  @db.VarChar(500)
+  item_cost_usd   Decimal  @db.Decimal(20, 2)
+  weight_kg       Decimal  @db.Decimal(10, 2)
+  quantity        Int
+  customs_rate    Decimal  @db.Decimal(5, 4) // 0.10 = 10%
+  vat_rate        Decimal  @db.Decimal(5, 4) // 0.12 = 12%
+  cargo_cost_usd  Decimal  @db.Decimal(20, 2)
+  customs_usd     Decimal  @db.Decimal(20, 2)
+  vat_usd         Decimal  @db.Decimal(20, 2)
+  landed_cost_usd Decimal  @db.Decimal(20, 2)
+  landed_cost_uzs Decimal  @db.Decimal(20, 2)
+  sell_price_uzs  Decimal? @db.Decimal(20, 2)
+  gross_margin    Decimal? @db.Decimal(8, 4)
+  roi             Decimal? @db.Decimal(8, 4)
+  usd_rate        Decimal  @db.Decimal(20, 4)
+  created_at      DateTime @default(now()) @db.Timestamptz
+
+  account  Account        @relation(fields: [account_id], references: [id])
+  provider CargoProvider? @relation(fields: [provider_id], references: [id])
+
+  @@map("cargo_calculations")
 }
 
 model ProductAiExplanation {

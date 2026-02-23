@@ -22,6 +22,11 @@ interface Snapshot {
   snapshot_at: string;
 }
 
+interface ChartPoint {
+  date: string;
+  score: number;
+}
+
 // max realistic score ≈ 10 (based on formula upper bound)
 const MAX_SCORE = 10;
 
@@ -44,7 +49,7 @@ function ScoreRadial({ score }: { score: number }) {
 export function AnalyzePage() {
   const [url, setUrl] = useState('');
   const [result, setResult] = useState<AnalyzeResult | null>(null);
-  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
+  const [snapshots, setSnapshots] = useState<ChartPoint[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [tracked, setTracked] = useState(false);

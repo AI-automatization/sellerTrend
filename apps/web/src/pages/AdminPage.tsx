@@ -279,7 +279,7 @@ type Tab = 'accounts' | 'users' | 'permissions' | 'audit';
 export function AdminPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [globalFee, setGlobalFee] = useState<GlobalFee | null>(null);
+  const [_globalFee, setGlobalFee] = useState<GlobalFee | null>(null);
   const [auditLog, setAuditLog] = useState<AuditEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>('accounts');

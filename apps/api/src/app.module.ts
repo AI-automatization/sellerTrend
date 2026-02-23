@@ -10,6 +10,7 @@ import { ProductsModule } from './products/products.module';
 import { AdminModule } from './admin/admin.module';
 import { DiscoveryModule } from './discovery/discovery.module';
 import { AiModule } from './ai/ai.module';
+import { SourcingModule } from './sourcing/sourcing.module';
 import { CommonModule } from './common/common.module';
 import { HealthController } from './common/health.controller';
 
@@ -26,6 +27,7 @@ import { HealthController } from './common/health.controller';
     AdminModule,
     DiscoveryModule,
     AiModule,
+    SourcingModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
   controllers: [HealthController],

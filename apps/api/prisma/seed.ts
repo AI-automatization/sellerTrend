@@ -72,6 +72,26 @@ async function main() {
   console.log('   🔑 Parol:  Demo123!');
   console.log('   💰 Balans: 500,000 so\'m');
 
+  // 4. Cargo providers
+  const existing = await prisma.cargoProvider.count();
+  if (existing === 0) {
+    await prisma.cargoProvider.createMany({
+      data: [
+        // Xitoy → Toshkent
+        { name: 'Kargo Ekspres (Xitoy)', origin: 'CN', destination: 'UZ', method: 'CARGO', rate_per_kg: 5.5, delivery_days: 18 },
+        { name: 'Temir Yo\'l (Xitoy)',   origin: 'CN', destination: 'UZ', method: 'RAIL',  rate_per_kg: 3.8, delivery_days: 15, min_weight_kg: 100 },
+        { name: 'Avia (Xitoy)',          origin: 'CN', destination: 'UZ', method: 'AVIA',  rate_per_kg: 6.5, delivery_days: 5 },
+        // Yevropa → Toshkent
+        { name: 'Avto (Yevropa)',            origin: 'EU', destination: 'UZ', method: 'AUTO',   rate_per_kg: 3.5, delivery_days: 14 },
+        { name: 'Avia (Yevropa)',            origin: 'EU', destination: 'UZ', method: 'AVIA',   rate_per_kg: 8.0, delivery_days: 3 },
+        { name: 'Turkiya orqali (Yevropa)', origin: 'EU', destination: 'UZ', method: 'TURKEY', rate_per_kg: 4.0, delivery_days: 10 },
+      ],
+    });
+    console.log('\n✅ Cargo provayderlar yaratildi (6 ta)');
+  } else {
+    console.log('\n✅ Cargo provayderlar allaqachon mavjud');
+  }
+
   console.log('\n🎉 Seed yakunlandi!');
 }
 
