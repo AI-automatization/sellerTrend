@@ -16,20 +16,25 @@ const queueEvents = new QueueEvents('sourcing-search', redisConnection);
 
 export interface SourcingSearchJobData {
   query: string;
+  // Full mode fields
+  jobId?: string;
+  productId?: number;
+  productTitle?: string;
+  accountId?: string;
+  platforms?: string[];
 }
 
 export interface ExternalProduct {
   title: string;
   price: string;
-  source: string; // 'ALIEXPRESS' | 'ALIBABA'
+  source: string; // 'ALIEXPRESS' | 'ALIBABA' | 'BANGGOOD' | 'SHOPEE' | '1688' | ...
   link: string;
   image: string;
   store: string;
 }
 
 /**
- * Job yuboramiz va natijasini kutamiz (max 30 soniya).
- * Agar vaqt o'tsa yoki xato bo'lsa — bo'sh massiv qaytaramiz.
+ * Quick search — Job yuboramiz va natijasini kutamiz (max 60 soniya).
  */
 export async function enqueueSourcingSearch(
   query: string,
@@ -41,9 +46,24 @@ export async function enqueueSourcingSearch(
   );
 
   try {
-    const result = await job.waitUntilFinished(queueEvents, 30_000);
+    const result = await job.waitUntilFinished(queueEvents, 60_000);
     return Array.isArray(result) ? result : [];
   } catch {
     return [];
   }
+}
+
+/**
+ * Full pipeline — fire-and-forget job (results saved to DB).
+ * Client polls GET /sourcing/jobs/:id for status.
+ */
+export async function enqueueSourcingJob(
+  data: SourcingSearchJobData,
+): Promise<void> {
+  await sourcingSearchQueue.add('full-search', data, {
+    attempts: 2,
+    backoff: { type: 'fixed', delay: 5000 },
+    removeOnComplete: 100,
+    removeOnFail: 50,
+  });
 }

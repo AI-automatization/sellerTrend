@@ -92,6 +92,25 @@ async function main() {
     console.log('\n✅ Cargo provayderlar allaqachon mavjud');
   }
 
+  // 5. External platforms
+  const platformCount = await prisma.externalPlatform.count();
+  if (platformCount === 0) {
+    await prisma.externalPlatform.createMany({
+      data: [
+        { code: '1688',        name: '1688.com',        country: 'CN', base_url: 'https://www.1688.com',       api_type: 'serpapi' },
+        { code: 'taobao',      name: 'Taobao',          country: 'CN', base_url: 'https://www.taobao.com',     api_type: 'serpapi' },
+        { code: 'aliexpress',  name: 'AliExpress',      country: 'CN', base_url: 'https://www.aliexpress.com', api_type: 'affiliate' },
+        { code: 'alibaba',     name: 'Alibaba',         country: 'CN', base_url: 'https://www.alibaba.com',    api_type: 'serpapi' },
+        { code: 'amazon_de',   name: 'Amazon.de',       country: 'DE', base_url: 'https://www.amazon.de',      api_type: 'serpapi' },
+        { code: 'banggood',    name: 'Banggood',        country: 'CN', base_url: 'https://www.banggood.com',   api_type: 'playwright' },
+        { code: 'shopee',      name: 'Shopee',          country: 'CN', base_url: 'https://shopee.com',         api_type: 'playwright' },
+      ],
+    });
+    console.log('\n✅ External platformalar yaratildi (7 ta)');
+  } else {
+    console.log('\n✅ External platformalar allaqachon mavjud');
+  }
+
   console.log('\n🎉 Seed yakunlandi!');
 }
 

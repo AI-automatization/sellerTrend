@@ -29,6 +29,7 @@ model Account {
   alert_rules        AlertRule[]
   price_searches     ExternalPriceSearch[]
   cargo_calculations CargoCalculation[]
+  external_search_jobs ExternalSearchJob[]
 
   @@map("accounts")
 }
@@ -150,6 +151,7 @@ model Product {
   alert_events      AlertEvent[]
   ai_attributes     ProductAiAttribute?
   ai_explanations   ProductAiExplanation[]
+  external_search_jobs ExternalSearchJob[]
 
   @@map("products")
 }
@@ -365,6 +367,8 @@ model CargoCalculation {
   id              String   @id @default(uuid())
   account_id      String
   provider_id     String?
+  job_id          String?
+  result_id       String?
   item_name       String?  @db.VarChar(500)
   item_cost_usd   Decimal  @db.Decimal(20, 2)
   weight_kg       Decimal  @db.Decimal(10, 2)
@@ -382,10 +386,83 @@ model CargoCalculation {
   usd_rate        Decimal  @db.Decimal(20, 4)
   created_at      DateTime @default(now()) @db.Timestamptz
 
-  account  Account        @relation(fields: [account_id], references: [id])
-  provider CargoProvider? @relation(fields: [provider_id], references: [id])
+  account  Account                @relation(fields: [account_id], references: [id])
+  provider CargoProvider?         @relation(fields: [provider_id], references: [id])
+  job      ExternalSearchJob?     @relation(fields: [job_id], references: [id])
+  result   ExternalSearchResult?  @relation(fields: [result_id], references: [id])
 
   @@map("cargo_calculations")
+}
+
+// ============================================================
+// EXTERNAL SOURCING
+// ============================================================
+
+model ExternalPlatform {
+  id         String   @id @default(uuid())
+  code       String   @unique @db.VarChar(50)  // "alibaba", "1688", "taobao", "aliexpress", "amazon_de"
+  name       String   @db.VarChar(100)
+  country    String   @db.VarChar(10)           // "CN", "DE", "US"
+  base_url   String   @db.VarChar(255)
+  is_active  Boolean  @default(true)
+  api_type   String   @db.VarChar(30)           // "serpapi", "affiliate", "playwright", "direct"
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  search_results ExternalSearchResult[]
+
+  @@map("external_platforms")
+}
+
+model ExternalSearchJob {
+  id          String               @id @default(uuid())
+  account_id  String
+  product_id  BigInt
+  query       String               @db.Text
+  status      ExternalSearchStatus @default(PENDING)
+  platforms   String[]
+  created_at  DateTime             @default(now()) @db.Timestamptz
+  finished_at DateTime?            @db.Timestamptz
+
+  account            Account                @relation(fields: [account_id], references: [id])
+  product            Product                @relation(fields: [product_id], references: [id])
+  results            ExternalSearchResult[]
+  cargo_calculations CargoCalculation[]
+
+  @@map("external_search_jobs")
+}
+
+enum ExternalSearchStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
+model ExternalSearchResult {
+  id             String   @id @default(uuid())
+  job_id         String
+  platform_id    String
+  external_id    String?  @db.VarChar(255)
+  title          String   @db.Text
+  price_usd      Decimal  @db.Decimal(12, 2)
+  price_local    Decimal? @db.Decimal(12, 2)
+  currency       String   @db.VarChar(5)
+  url            String   @db.Text
+  image_url      String?  @db.Text
+  seller_name    String?  @db.VarChar(255)
+  seller_rating  Decimal? @db.Decimal(3, 2)
+  min_order_qty  Int?     @default(1)
+  shipping_days  Int?
+  ai_match_score Decimal? @db.Decimal(4, 3) // 0.000 - 1.000
+  ai_notes       String?  @db.Text
+  rank           Int?
+  created_at     DateTime @default(now()) @db.Timestamptz
+
+  job                ExternalSearchJob  @relation(fields: [job_id], references: [id])
+  platform           ExternalPlatform   @relation(fields: [platform_id], references: [id])
+  cargo_calculations CargoCalculation[]
+
+  @@map("external_search_results")
 }
 
 model ProductAiExplanation {

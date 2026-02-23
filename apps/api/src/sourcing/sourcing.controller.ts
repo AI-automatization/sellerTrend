@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Query,
+  Param,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -54,7 +55,7 @@ export class SourcingController {
     return this.sourcingService.calculateCargo({ ...body, account_id });
   }
 
-  /** Xitoy/Global bozorda narx qidirish */
+  /** Quick narx qidirish (Playwright, backward compat) */
   @Post('search')
   search(
     @Body() body: { query: string; source: string },
@@ -65,6 +66,43 @@ export class SourcingController {
       body.source || 'ALIBABA',
       account_id,
     );
+  }
+
+  /** Full sourcing job — AI query gen + multi-platform search + scoring */
+  @Post('jobs')
+  createJob(
+    @Body()
+    body: {
+      product_id: number;
+      product_title: string;
+      platforms?: string[];
+    },
+    @CurrentUser('account_id') account_id: string,
+  ) {
+    return this.sourcingService.createSearchJob({
+      account_id,
+      product_id: body.product_id,
+      product_title: body.product_title,
+      platforms: body.platforms,
+    });
+  }
+
+  /** Get job status and results */
+  @Get('jobs/:id')
+  getJob(@Param('id') id: string) {
+    return this.sourcingService.getSearchJob(id);
+  }
+
+  /** List recent search jobs */
+  @Get('jobs')
+  listJobs(@CurrentUser('account_id') account_id: string) {
+    return this.sourcingService.listSearchJobs(account_id);
+  }
+
+  /** Available platforms */
+  @Get('platforms')
+  getPlatforms() {
+    return this.sourcingService.getPlatforms();
   }
 
   /** Oxirgi hisoblashlar tarixi */
