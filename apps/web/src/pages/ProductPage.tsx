@@ -65,9 +65,15 @@ function extractSearchQuery(title: string): string {
 }
 
 const SOURCE_META: Record<string, { label: string; flag: string; color: string }> = {
-  ALIBABA:   { label: 'Alibaba',   flag: '🇨🇳', color: 'badge-warning' },
-  ALIEXPRESS:{ label: 'AliExpress',flag: '🛒', color: 'badge-error' },
-  SERPAPI:   { label: 'Google',    flag: '🔍', color: 'badge-info' },
+  EBAY:          { label: 'eBay',          flag: '🛒', color: 'badge-warning' },
+  JOOM:          { label: 'Joom',          flag: '🌍', color: 'badge-primary' },
+  BANGGOOD:       { label: 'Banggood',       flag: '🛍️', color: 'badge-accent' },
+  SHOPEE:         { label: 'Shopee',        flag: '🛒', color: 'badge-success' },
+  ALIBABA:       { label: 'Alibaba',       flag: '🇨🇳', color: 'badge-secondary' },
+  ALIEXPRESS:    { label: 'AliExpress',    flag: '🛍️', color: 'badge-error' },
+  DHGATE:        { label: 'DHgate',        flag: '🏪', color: 'badge-accent' },
+  MADE_IN_CHINA: { label: 'MadeInChina',  flag: '🏭', color: 'badge-neutral' },
+  SERPAPI:       { label: 'Google',        flag: '🔍', color: 'badge-info' },
 };
 
 const MAX_SCORE = 10;
@@ -204,21 +210,14 @@ export function ProductPage() {
     setExtSearched(true);
     setExtLoading(true);
     const q = extractSearchQuery(result.title);
-    Promise.allSettled([
-      sourcingApi.searchPrices(q, 'ALIBABA'),
-      sourcingApi.searchPrices(q, 'ALIEXPRESS'),
-    ]).then((results) => {
-      const items: ExternalItem[] = [];
-      let noteText = '';
-      for (const r of results) {
-        if (r.status === 'fulfilled') {
-          items.push(...(r.value.data.results ?? []));
-          if (r.value.data.note) noteText = r.value.data.note;
-        }
-      }
-      setExtItems(items.slice(0, 12));
-      if (noteText) setExtNote(noteText);
-    }).finally(() => setExtLoading(false));
+    sourcingApi
+      .searchPrices(q, 'BOTH')
+      .then((res) => {
+        setExtItems((res.data.results ?? []).slice(0, 12));
+        if (res.data.note) setExtNote(res.data.note);
+      })
+      .catch(() => {})
+      .finally(() => setExtLoading(false));
   }, [result?.title]);
 
   async function handleTrack() {
@@ -566,7 +565,7 @@ function GlobalPriceComparison({
               Global Bozor Taqqoslash
             </h2>
             <p className="text-xs text-base-content/50 mt-0.5">
-              Shu mahsulot uchun Alibaba va AliExpress narxlari
+              Shu mahsulot uchun Banggood va Shopee global narxlari
             </p>
           </div>
           <Link to="/sourcing" className="btn btn-outline btn-xs gap-1">
@@ -587,16 +586,11 @@ function GlobalPriceComparison({
           </div>
         )}
 
-        {/* Note (demo/no-key message) */}
+        {/* Note message */}
         {!loading && note && (
           <div className="flex items-start gap-2 bg-base-300 rounded-xl px-4 py-3 text-sm">
             <span className="text-base-content/40 text-xs shrink-0 mt-0.5">ℹ️</span>
-            <div>
-              <p className="text-base-content/70">{note}</p>
-              <p className="text-xs text-base-content/40 mt-1">
-                Real natijalar uchun <code className="bg-base-content/10 px-1 rounded">SERPAPI_KEY</code> ni <code className="bg-base-content/10 px-1 rounded">.env</code> ga qo'shing
-              </p>
-            </div>
+            <p className="text-base-content/70">{note}</p>
           </div>
         )}
 

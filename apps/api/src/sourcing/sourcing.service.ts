@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import { enqueueSourcingSearch } from './sourcing.queue';
 
 // Cargo yo'nalishlari
 export interface CargoCalcInput {
@@ -34,10 +34,7 @@ export interface CargoCalcResult {
 
 @Injectable()
 export class SourcingService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly config: ConfigService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   // ─── Currency Rates ────────────────────────────────────────────────────────
 
@@ -217,60 +214,17 @@ export class SourcingService {
 
   async searchExternalPrices(
     query: string,
-    source: string,
+    _source: string,
     account_id: string,
   ) {
-    const serpApiKey = this.config.get<string>('SERPAPI_KEY');
+    // Playwright worker orqali real AliExpress + Alibaba mahsulotlari
+    const results = await enqueueSourcingSearch(query);
 
-    if (!serpApiKey) {
-      // SerpAPI kalit yo'q — demo ma'lumotlar qaytaramiz
-      const demoResults = this.getDemoResults(query, source);
-      await this.prisma.externalPriceSearch.create({
-        data: { account_id, query, source, results: demoResults },
-      });
-      return { results: demoResults, note: 'Demo ma\'lumotlar. SERPAPI_KEY sozlang.' };
-    }
+    await this.prisma.externalPriceSearch.create({
+      data: { account_id, query, source: 'PLAYWRIGHT', results: results as any },
+    });
 
-    try {
-      const engine = source === 'ALIEXPRESS' ? 'aliexpress' : 'alibaba';
-      const url = `https://serpapi.com/search.json?engine=${engine}&query=${encodeURIComponent(query)}&api_key=${serpApiKey}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('SerpAPI error: ' + res.status);
-      const data = await res.json() as any;
-
-      const items = (data.organic_results ?? data.products ?? []).slice(0, 12).map((item: any) => ({
-        title: item.title ?? item.name ?? '',
-        price: item.price ?? item.min_price ?? '',
-        source: item.source ?? source,
-        link: item.link ?? item.product_link ?? '',
-        image: item.thumbnail ?? item.image ?? '',
-        store: item.seller ?? item.store_name ?? '',
-      }));
-
-      await this.prisma.externalPriceSearch.create({
-        data: { account_id, query, source, results: items },
-      });
-
-      return { results: items };
-    } catch (e) {
-      const demoResults = this.getDemoResults(query, source);
-      await this.prisma.externalPriceSearch.create({
-        data: { account_id, query, source, results: demoResults },
-      });
-      return { results: demoResults, note: 'SerpAPI xatosi. Demo ma\'lumotlar ko\'rsatilmoqda.' };
-    }
-  }
-
-  private getDemoResults(query: string, source: string) {
-    const prices = [2.5, 3.8, 5.2, 1.9, 4.1, 3.3];
-    return Array.from({ length: 6 }, (_, i) => ({
-      title: `${query} - ${source} variant ${i + 1}`,
-      price: `$${prices[i]}`,
-      source,
-      link: '#',
-      image: '',
-      store: `Demo Store ${i + 1}`,
-    }));
+    return { results };
   }
 
   // ─── History ───────────────────────────────────────────────────────────────

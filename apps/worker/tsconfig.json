@@ -3,6 +3,7 @@
   "compilerOptions": {
     "outDir": "./dist",
     "baseUrl": "./",
+    "lib": ["ES2022", "DOM"],
     "paths": {
       "@uzum/types": ["../../packages/types/src"],
       "@uzum/utils": ["../../packages/utils/src"]
