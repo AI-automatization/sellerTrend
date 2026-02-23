@@ -55,12 +55,12 @@ export function LeaderboardPage() {
   }, [tab]);
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="w-full space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FireIcon className="w-6 h-6 text-orange-400" />
+          <h1 className="text-2xl lg:text-3xl font-bold flex items-center gap-2">
+            <FireIcon className="w-6 h-6 lg:w-7 lg:h-7 text-orange-400" />
             Leaderboard
           </h1>
           <p className="text-base-content/50 text-sm mt-1">
@@ -93,7 +93,7 @@ export function LeaderboardPage() {
         </div>
       ) : tab === 'global' ? (
         /* Global leaderboard */
-        <div className="card bg-base-200 shadow-sm">
+        <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
           <div className="card-body p-0">
             <div className="px-4 pt-4 pb-3 border-b border-base-300">
               <h2 className="card-title text-base gap-2">
@@ -159,7 +159,7 @@ export function LeaderboardPage() {
         /* Category leaderboard */
         <div className="space-y-4">
           {catLeaders.length === 0 ? (
-            <div className="card bg-base-200 shadow-sm">
+            <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
               <div className="card-body items-center py-12 text-base-content/40">
                 <FireIcon className="w-10 h-10" />
                 <p>Kategoriya ma'lumotlari hali yig'ilmagan</p>
@@ -167,7 +167,7 @@ export function LeaderboardPage() {
             </div>
           ) : (
             catLeaders.map((cat) => (
-              <div key={cat.category_id} className="card bg-base-200 shadow-sm">
+              <div key={cat.category_id} className="rounded-2xl bg-base-200/60 border border-base-300/50">
                 <div className="card-body p-4">
                   <h3 className="font-bold text-sm flex items-center gap-2">
                     <span className="badge badge-primary badge-sm">#{cat.category_id}</span>

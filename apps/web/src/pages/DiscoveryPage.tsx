@@ -154,7 +154,7 @@ function ScannerTab() {
     <>
       <div className="space-y-6">
         {/* Start run form */}
-        <div className="card bg-base-200 shadow-sm">
+        <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
           <div className="card-body">
             <h2 className="card-title text-base">Yangi skanerlash</h2>
             <div className="flex flex-wrap gap-2 mb-3">
@@ -181,7 +181,7 @@ function ScannerTab() {
         </div>
 
         {/* Runs list */}
-        <div className="card bg-base-200 shadow-sm">
+        <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
           <div className="card-body p-0">
             <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-base-300">
               <h2 className="card-title text-base gap-2">
@@ -312,7 +312,7 @@ function SeasonalCalendarTab() {
     <div className="space-y-6">
       {/* Upcoming */}
       {upcoming.length > 0 && (
-        <div className="card bg-base-200 shadow-sm">
+        <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
           <div className="card-body p-4">
             <h2 className="card-title text-base gap-2">
               <span className="text-lg">📅</span> Yaqin 30 kunda
@@ -337,7 +337,7 @@ function SeasonalCalendarTab() {
       )}
 
       {/* Heatmap calendar */}
-      <div className="card bg-base-200 shadow-sm">
+      <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
         <div className="card-body">
           <h2 className="card-title text-base">Yillik mavsumiy kalendar</h2>
           <p className="text-xs text-base-content/40">
@@ -431,7 +431,7 @@ function NicheFinderTab() {
   return (
     <div className="space-y-6">
       {/* Search */}
-      <div className="card bg-base-200 shadow-sm">
+      <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
         <div className="card-body">
           <h2 className="card-title text-base">Niche qidirish</h2>
           <div className="flex flex-wrap gap-2 mb-3">
@@ -469,7 +469,7 @@ function NicheFinderTab() {
           {loading ? (
             <div className="flex justify-center py-12"><span className="loading loading-dots loading-lg text-primary" /></div>
           ) : subTab === 'niches' ? (
-            <div className="card bg-base-200 shadow-sm">
+            <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
               <div className="card-body p-0">
                 <div className="px-4 pt-4 pb-3 border-b border-base-300">
                   <h3 className="font-bold text-sm">Niche imkoniyatlari</h3>
@@ -517,7 +517,7 @@ function NicheFinderTab() {
               </div>
             </div>
           ) : (
-            <div className="card bg-base-200 shadow-sm">
+            <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
               <div className="card-body p-0">
                 <div className="px-4 pt-4 pb-3 border-b border-base-300">
                   <h3 className="font-bold text-sm">Demand-Supply Gap'lar</h3>
@@ -576,8 +576,8 @@ export function DiscoveryPage() {
     <div className="space-y-6 w-full">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <ArrowTrendingUpIcon className="w-6 h-6 text-primary" />
+        <h1 className="text-2xl lg:text-3xl font-bold flex items-center gap-2">
+          <ArrowTrendingUpIcon className="w-6 h-6 lg:w-7 lg:h-7 text-primary" />
           Category Discovery
         </h1>
         <p className="text-base-content/50 text-sm mt-1">

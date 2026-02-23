@@ -57,12 +57,12 @@ export function ApiKeysPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="w-full space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-warning">
+          <h1 className="text-2xl lg:text-3xl font-bold flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 lg:w-7 lg:h-7 text-warning">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
             </svg>
             API Kalitlari
@@ -100,7 +100,7 @@ export function ApiKeysPage() {
 
       {/* Create form modal */}
       {showCreate && (
-        <div className="card bg-base-200 shadow-sm">
+        <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
           <div className="card-body">
             <h2 className="card-title text-base">Yangi API kalit</h2>
             <form onSubmit={handleCreate} className="flex gap-3">
@@ -125,7 +125,7 @@ export function ApiKeysPage() {
       )}
 
       {/* Keys list */}
-      <div className="card bg-base-200 shadow-sm">
+      <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
         <div className="card-body p-0">
           <div className="px-4 pt-4 pb-3 border-b border-base-300">
             <h2 className="card-title text-base">Kalitlar</h2>
@@ -188,7 +188,7 @@ export function ApiKeysPage() {
       </div>
 
       {/* Info */}
-      <div className="card bg-base-200 shadow-sm">
+      <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
         <div className="card-body p-4">
           <h3 className="font-bold text-sm">Foydalanish</h3>
           <div className="bg-base-300 rounded-lg p-3 mt-2 font-mono text-xs">

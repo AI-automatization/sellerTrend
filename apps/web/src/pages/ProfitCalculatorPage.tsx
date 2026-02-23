@@ -59,11 +59,11 @@ export function ProfitCalculatorPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="w-full space-y-4 lg:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-accent">
+        <h1 className="text-2xl lg:text-3xl font-bold flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 lg:w-7 lg:h-7 text-accent">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75V18m15-8.25l-8.25 4.5m0 0l-8.25-4.5M21 9.75v4.5m0 0l-8.25 4.5m0 0l-8.25-4.5" />
           </svg>
           Profit Kalkulyator
@@ -75,7 +75,7 @@ export function ProfitCalculatorPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Form */}
-        <div className="card bg-base-200 shadow-sm">
+        <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
           <div className="card-body">
             <h2 className="card-title text-base">Parametrlar</h2>
             <form onSubmit={handleSubmit} className="space-y-3 mt-2">
@@ -194,21 +194,21 @@ export function ProfitCalculatorPage() {
                   </div>
                   <div className="stat-desc">so'm</div>
                 </div>
-                <div className="stat bg-base-200 rounded-2xl">
+                <div className="stat bg-base-200/60 border border-base-300/50 rounded-2xl">
                   <div className="stat-title text-xs">Margin</div>
                   <div className={`stat-value text-xl ${result.margin_pct > 20 ? 'text-success' : result.margin_pct > 0 ? 'text-warning' : 'text-error'}`}>
                     {result.margin_pct.toFixed(1)}%
                   </div>
                   <div className="stat-desc">sof margin</div>
                 </div>
-                <div className="stat bg-base-200 rounded-2xl">
+                <div className="stat bg-base-200/60 border border-base-300/50 rounded-2xl">
                   <div className="stat-title text-xs">ROI</div>
                   <div className={`stat-value text-xl ${result.roi_pct > 50 ? 'text-success' : result.roi_pct > 0 ? 'text-warning' : 'text-error'}`}>
                     {result.roi_pct.toFixed(1)}%
                   </div>
                   <div className="stat-desc">rentabellik</div>
                 </div>
-                <div className="stat bg-base-200 rounded-2xl">
+                <div className="stat bg-base-200/60 border border-base-300/50 rounded-2xl">
                   <div className="stat-title text-xs">Daromad</div>
                   <div className="stat-value text-xl">{formatNum(result.revenue)}</div>
                   <div className="stat-desc">so'm</div>
@@ -216,7 +216,7 @@ export function ProfitCalculatorPage() {
               </div>
 
               {/* Detail card */}
-              <div className="card bg-base-200 shadow-sm">
+              <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
                 <div className="card-body p-4">
                   <h3 className="font-bold text-sm">Batafsil</h3>
                   <div className="space-y-2 mt-2 text-sm">
@@ -264,7 +264,7 @@ export function ProfitCalculatorPage() {
               </div>
             </>
           ) : (
-            <div className="card bg-base-200 shadow-sm">
+            <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
               <div className="card-body items-center py-16 text-base-content/40">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75V18m15-8.25l-8.25 4.5m0 0l-8.25-4.5M21 9.75v4.5m0 0l-8.25 4.5m0 0l-8.25-4.5" />
