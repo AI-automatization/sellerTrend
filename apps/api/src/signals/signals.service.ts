@@ -229,7 +229,9 @@ export class SignalsService {
     };
   }
 
-  async saveChecklist(accountId: string, data: { product_id?: string; title: string; items: any[] }) {
+  async saveChecklist(accountId: string, data: { product_id?: string; title?: string; items?: any[] }) {
+    const title = data.title || 'Yangi mahsulot chiqarish';
+    const items = data.items ?? [];
     const productId = data.product_id ? BigInt(data.product_id) : null;
 
     const existing = await this.prisma.productChecklist.findFirst({
@@ -239,7 +241,7 @@ export class SignalsService {
     if (existing) {
       return this.prisma.productChecklist.update({
         where: { id: existing.id },
-        data: { title: data.title, items: data.items as any },
+        data: { title, items: items as any },
       });
     }
 
@@ -247,8 +249,8 @@ export class SignalsService {
       data: {
         account_id: accountId,
         product_id: productId,
-        title: data.title,
-        items: data.items as any,
+        title,
+        items: items as any,
       },
     });
   }

@@ -45,8 +45,12 @@ export class ReportsController {
 
   /** Generate market share report (Feature 35) */
   @Get('market-share')
-  getMarketShare(@Query('category_id') categoryId: string) {
-    return this.reportsService.generateMarketShareReport(Number(categoryId));
+  getMarketShare(@Query('category_id') categoryId?: string) {
+    const cid = Number(categoryId);
+    if (!categoryId || isNaN(cid)) {
+      return { category_id: null, total_products: 0, total_sales: 0, shops: [] };
+    }
+    return this.reportsService.generateMarketShareReport(cid);
   }
 
   /** Generate report data */

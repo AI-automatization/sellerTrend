@@ -12,16 +12,16 @@ type Tab =
   | 'price-test'
   | 'replenishment';
 
-const TABS: { key: Tab; label: string; icon: string }[] = [
-  { key: 'cannibalization', label: 'Kannibalizatsiya', icon: '21' },
-  { key: 'dead-stock', label: 'Dead Stock', icon: '22' },
-  { key: 'saturation', label: 'Saturatsiya', icon: '23' },
-  { key: 'flash-sales', label: 'Flash Sale', icon: '24' },
-  { key: 'early-signals', label: 'Erta Signal', icon: '25' },
-  { key: 'stock-cliffs', label: 'Stock Alert', icon: '26' },
-  { key: 'checklist', label: 'Checklist', icon: '28' },
-  { key: 'price-test', label: 'Narx Test', icon: '29' },
-  { key: 'replenishment', label: 'Zahira', icon: '30' },
+const TABS: { key: Tab; label: string; emoji: string; shortLabel: string }[] = [
+  { key: 'cannibalization', label: 'Kannibalizatsiya', emoji: '🔀', shortLabel: 'Kannibal.' },
+  { key: 'dead-stock', label: 'Dead Stock', emoji: '💀', shortLabel: 'Dead Stock' },
+  { key: 'saturation', label: 'Saturatsiya', emoji: '📊', shortLabel: 'Saturats.' },
+  { key: 'flash-sales', label: 'Flash Sale', emoji: '⚡', shortLabel: 'Flash' },
+  { key: 'early-signals', label: 'Erta Signal', emoji: '🌱', shortLabel: 'Erta' },
+  { key: 'stock-cliffs', label: 'Stock Alert', emoji: '📦', shortLabel: 'Stock' },
+  { key: 'checklist', label: 'Checklist', emoji: '✅', shortLabel: 'Check' },
+  { key: 'price-test', label: 'Narx Test', emoji: '🧪', shortLabel: 'A/B Test' },
+  { key: 'replenishment', label: 'Zahira', emoji: '🔄', shortLabel: 'Zahira' },
 ];
 
 export function SignalsPage() {
@@ -29,43 +29,90 @@ export function SignalsPage() {
 
   return (
     <div className="w-full space-y-4 lg:space-y-6">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold">Signallar</h1>
-          <p className="text-base-content/60 text-sm mt-1">
-            v3.0 — Ogohlantirish va analitika signallari
+          <h1 className="text-2xl lg:text-3xl font-bold flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 lg:w-7 lg:h-7 text-warning">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+            </svg>
+            Signallar
+          </h1>
+          <p className="text-base-content/50 text-sm mt-1">
+            v3.0 — Ogohlantirish va analitika signallari (Features 21-30)
           </p>
+        </div>
+        <div className="text-xs text-base-content/30 hidden sm:block">
+          {TABS.length} ta signal moduli
         </div>
       </div>
 
-      {/* Tab navigation */}
-      <div className="bg-base-200/60 border border-base-300/50 rounded-2xl p-2">
-        <div className="flex flex-wrap gap-1">
+      {/* Tab navigation — scrollable on mobile */}
+      <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-2 overflow-x-auto">
+        <div className="flex gap-1 min-w-max">
           {TABS.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`btn btn-sm ${tab === t.key ? 'btn-primary' : 'btn-ghost'}`}
+              className={`btn btn-sm gap-1.5 whitespace-nowrap transition-all ${
+                tab === t.key
+                  ? 'btn-primary shadow-md shadow-primary/20'
+                  : 'btn-ghost hover:bg-base-300/50'
+              }`}
             >
-              <span className="badge badge-xs badge-outline mr-1">{t.icon}</span>
-              {t.label}
+              <span className="text-base">{t.emoji}</span>
+              <span className="hidden sm:inline">{t.label}</span>
+              <span className="sm:hidden">{t.shortLabel}</span>
             </button>
           ))}
         </div>
       </div>
 
       {/* Tab content */}
-      <div className="bg-base-200/60 border border-base-300/50 rounded-2xl p-4 lg:p-6">
-        {tab === 'cannibalization' && <CannibalizationTab />}
-        {tab === 'dead-stock' && <DeadStockTab />}
-        {tab === 'saturation' && <SaturationTab />}
-        {tab === 'flash-sales' && <FlashSalesTab />}
-        {tab === 'early-signals' && <EarlySignalsTab />}
-        {tab === 'stock-cliffs' && <StockCliffsTab />}
-        {tab === 'checklist' && <ChecklistTab />}
-        {tab === 'price-test' && <PriceTestTab />}
-        {tab === 'replenishment' && <ReplenishmentTab />}
-      </div>
+      {tab === 'cannibalization' && <CannibalizationTab />}
+      {tab === 'dead-stock' && <DeadStockTab />}
+      {tab === 'saturation' && <SaturationTab />}
+      {tab === 'flash-sales' && <FlashSalesTab />}
+      {tab === 'early-signals' && <EarlySignalsTab />}
+      {tab === 'stock-cliffs' && <StockCliffsTab />}
+      {tab === 'checklist' && <ChecklistTab />}
+      {tab === 'price-test' && <PriceTestTab />}
+      {tab === 'replenishment' && <ReplenishmentTab />}
+    </div>
+  );
+}
+
+/* ============ Shared ============ */
+function SectionCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-6">
+      {children}
+    </div>
+  );
+}
+
+function SectionHeader({ title, desc }: { title: string; desc: string }) {
+  return (
+    <div className="mb-4">
+      <h2 className="text-lg lg:text-xl font-bold">{title}</h2>
+      <p className="text-base-content/50 text-sm mt-0.5">{desc}</p>
+    </div>
+  );
+}
+
+function EmptyState({ text }: { text: string }) {
+  return (
+    <div className="text-center py-12 text-base-content/30">
+      <p className="text-4xl mb-2">📭</p>
+      <p className="text-sm">{text}</p>
+    </div>
+  );
+}
+
+function LoadingSpinner() {
+  return (
+    <div className="flex justify-center py-12">
+      <span className="loading loading-dots loading-lg text-primary" />
     </div>
   );
 }
@@ -82,45 +129,45 @@ function CannibalizationTab() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="flex justify-center py-12"><span className="loading loading-spinner loading-lg" /></div>;
+  if (loading) return <SectionCard><LoadingSpinner /></SectionCard>;
 
   return (
-    <div>
-      <h2 className="text-xl font-bold mb-2">Kannibalizatsiya Ogohlantirishi</h2>
-      <p className="text-base-content/60 text-sm mb-4">
-        Sizning mahsulotlaringiz bir-birining bozorini yeyaptimi?
-      </p>
+    <SectionCard>
+      <SectionHeader
+        title="Kannibalizatsiya Ogohlantirishi"
+        desc="Sizning mahsulotlaringiz bir-birining bozorini yeyaptimi?"
+      />
       {data.length === 0 ? (
-        <div className="text-center py-8 text-base-content/50">Kannibalizatsiya aniqlanmadi</div>
+        <EmptyState text="Kannibalizatsiya aniqlanmadi — yaxshi!" />
       ) : (
         <div className="overflow-x-auto">
           <table className="table table-sm">
             <thead>
-              <tr>
+              <tr className="text-xs text-base-content/40 uppercase">
                 <th>Mahsulot A</th>
                 <th>Mahsulot B</th>
-                <th>Overlap</th>
+                <th className="text-center">Overlap</th>
                 <th>Sabab</th>
               </tr>
             </thead>
             <tbody>
               {data.map((pair: any, i: number) => (
-                <tr key={i}>
-                  <td className="max-w-[200px] truncate">{pair.product_a_title}</td>
-                  <td className="max-w-[200px] truncate">{pair.product_b_title}</td>
-                  <td>
+                <tr key={i} className="hover:bg-base-300/20 transition-colors">
+                  <td className="max-w-[200px] truncate text-sm">{pair.product_a_title}</td>
+                  <td className="max-w-[200px] truncate text-sm">{pair.product_b_title}</td>
+                  <td className="text-center">
                     <div className="radial-progress text-xs text-warning" style={{ '--value': pair.overlap_score * 100, '--size': '2.5rem' } as any}>
                       {(pair.overlap_score * 100).toFixed(0)}%
                     </div>
                   </td>
-                  <td className="text-xs text-base-content/70">{pair.reason}</td>
+                  <td className="text-xs text-base-content/60 max-w-[200px]">{pair.reason}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
-    </div>
+    </SectionCard>
   );
 }
 
@@ -136,30 +183,36 @@ function DeadStockTab() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="flex justify-center py-12"><span className="loading loading-spinner loading-lg" /></div>;
+  if (loading) return <SectionCard><LoadingSpinner /></SectionCard>;
 
   const riskColor = (level: string) =>
     level === 'high' ? 'badge-error' : level === 'medium' ? 'badge-warning' : 'badge-success';
 
   return (
-    <div>
-      <h2 className="text-xl font-bold mb-2">Dead Stock Bashorati</h2>
-      <p className="text-base-content/60 text-sm mb-4">
-        Qaysi mahsulotlar tez orada sotilmaydigan holatga tushishi mumkin?
-      </p>
+    <SectionCard>
+      <SectionHeader
+        title="Dead Stock Bashorati"
+        desc="Qaysi mahsulotlar tez orada sotilmaydigan holatga tushishi mumkin?"
+      />
       {data.length === 0 ? (
-        <div className="text-center py-8 text-base-content/50">Dead stock xavfi yo'q</div>
+        <EmptyState text="Dead stock xavfi yo'q — yaxshi!" />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {data.map((item: any) => (
-            <div key={item.product_id} className="card bg-base-300/50 p-4">
+            <div key={item.product_id} className="rounded-xl bg-base-300/40 border border-base-300/30 p-4 hover:bg-base-300/60 transition-colors">
               <div className="flex items-start justify-between mb-2">
-                <h3 className="font-semibold text-sm truncate max-w-[60%]">{item.title}</h3>
+                <h3 className="font-semibold text-sm truncate max-w-[65%]">{item.title}</h3>
                 <span className={`badge ${riskColor(item.risk_level)} badge-sm`}>{item.risk_level}</span>
               </div>
-              <div className="flex gap-4 text-xs text-base-content/70 mb-2">
-                <span>Risk: {(item.risk_score * 100).toFixed(0)}%</span>
-                <span>~{item.days_to_dead} kun qoldi</span>
+              <div className="flex gap-4 text-xs text-base-content/60 mb-3">
+                <span>Risk: <b>{(item.risk_score * 100).toFixed(0)}%</b></span>
+                <span>~<b>{item.days_to_dead}</b> kun qoldi</span>
+              </div>
+              <div className="w-full bg-base-300 rounded-full h-1.5 mb-2">
+                <div
+                  className={`h-1.5 rounded-full ${item.risk_level === 'high' ? 'bg-error' : item.risk_level === 'medium' ? 'bg-warning' : 'bg-success'}`}
+                  style={{ width: `${Math.min(item.risk_score * 100, 100)}%` }}
+                />
               </div>
               <div className="flex flex-wrap gap-1">
                 {item.factors.map((f: string, i: number) => (
@@ -170,7 +223,7 @@ function DeadStockTab() {
           ))}
         </div>
       )}
-    </div>
+    </SectionCard>
   );
 }
 
@@ -194,10 +247,12 @@ function SaturationTab() {
     l === 'moderate' ? 'text-info' : 'text-success';
 
   return (
-    <div>
-      <h2 className="text-xl font-bold mb-2">Kategoriya Saturatsiya Indeksi</h2>
-      <p className="text-base-content/60 text-sm mb-4">Kategoriyada raqobat qanchalik kuchli?</p>
-      <div className="flex gap-2 mb-6">
+    <SectionCard>
+      <SectionHeader
+        title="Kategoriya Saturatsiya Indeksi"
+        desc="Kategoriyada raqobat qanchalik kuchli?"
+      />
+      <div className="flex gap-2 mb-6 flex-wrap">
         <input
           type="number"
           className="input input-bordered input-sm w-48"
@@ -211,27 +266,30 @@ function SaturationTab() {
         </button>
       </div>
       {data && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="stat bg-base-300/50 rounded-xl p-4">
-            <div className="stat-title text-xs">Saturatsiya</div>
-            <div className="stat-value text-2xl">{(data.saturation_index * 100).toFixed(0)}%</div>
-            <div className={`stat-desc ${levelColor(data.level)}`}>{data.level}</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="rounded-xl bg-base-300/40 border border-base-300/30 p-4">
+            <p className="text-xs text-base-content/40">Saturatsiya</p>
+            <p className="text-2xl font-bold mt-1">{(data.saturation_index * 100).toFixed(0)}%</p>
+            <p className={`text-xs mt-0.5 font-medium ${levelColor(data.level)}`}>{data.level}</p>
           </div>
-          <div className="stat bg-base-300/50 rounded-xl p-4">
-            <div className="stat-title text-xs">Sotuvchilar</div>
-            <div className="stat-value text-2xl">{data.seller_count}</div>
+          <div className="rounded-xl bg-base-300/40 border border-base-300/30 p-4">
+            <p className="text-xs text-base-content/40">Sotuvchilar</p>
+            <p className="text-2xl font-bold mt-1">{data.seller_count}</p>
           </div>
-          <div className="stat bg-base-300/50 rounded-xl p-4">
-            <div className="stat-title text-xs">O'rt. Score</div>
-            <div className="stat-value text-2xl">{data.avg_score}</div>
+          <div className="rounded-xl bg-base-300/40 border border-base-300/30 p-4">
+            <p className="text-xs text-base-content/40">O'rt. Score</p>
+            <p className="text-2xl font-bold mt-1">{data.avg_score}</p>
           </div>
-          <div className="stat bg-base-300/50 rounded-xl p-4">
-            <div className="stat-title text-xs">Top 10% ulushi</div>
-            <div className="stat-value text-2xl">{data.top10_share_pct}%</div>
+          <div className="rounded-xl bg-base-300/40 border border-base-300/30 p-4">
+            <p className="text-xs text-base-content/40">Top 10% ulushi</p>
+            <p className="text-2xl font-bold mt-1">{data.top10_share_pct}%</p>
           </div>
         </div>
       )}
-    </div>
+      {!data && !loading && (
+        <EmptyState text="Kategoriya ID kiritib, tahlil qiling" />
+      )}
+    </SectionCard>
   );
 }
 
@@ -247,43 +305,49 @@ function FlashSalesTab() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="flex justify-center py-12"><span className="loading loading-spinner loading-lg" /></div>;
+  if (loading) return <SectionCard><LoadingSpinner /></SectionCard>;
 
   return (
-    <div>
-      <h2 className="text-xl font-bold mb-2">Flash Sale Detector</h2>
-      <p className="text-base-content/60 text-sm mb-4">
-        Kuzatilayotgan mahsulotlarda keskin narx tushishi aniqlandi
-      </p>
+    <SectionCard>
+      <SectionHeader
+        title="Flash Sale Detector"
+        desc="Kuzatilayotgan mahsulotlarda keskin narx tushishi"
+      />
       {data.length === 0 ? (
-        <div className="text-center py-8 text-base-content/50">Flash sale aniqlanmadi</div>
+        <EmptyState text="Flash sale aniqlanmadi" />
       ) : (
         <div className="overflow-x-auto">
           <table className="table table-sm">
             <thead>
-              <tr>
+              <tr className="text-xs text-base-content/40 uppercase">
                 <th>Mahsulot</th>
-                <th>Eski narx</th>
-                <th>Yangi narx</th>
-                <th>Tushish</th>
+                <th className="text-right">Eski narx</th>
+                <th className="text-right">Yangi narx</th>
+                <th className="text-center">Tushish</th>
                 <th>Sana</th>
               </tr>
             </thead>
             <tbody>
               {data.map((item: any, i: number) => (
-                <tr key={i}>
-                  <td className="max-w-[200px] truncate">{item.title}</td>
-                  <td>{Number(item.old_price).toLocaleString()} so'm</td>
-                  <td className="text-success">{Number(item.new_price).toLocaleString()} so'm</td>
-                  <td><span className="badge badge-error badge-sm">-{item.price_drop_pct}%</span></td>
-                  <td className="text-xs">{new Date(item.detected_at).toLocaleDateString()}</td>
+                <tr key={i} className="hover:bg-base-300/20 transition-colors">
+                  <td className="max-w-[200px] truncate text-sm">{item.title}</td>
+                  <td className="text-right tabular-nums text-sm line-through text-base-content/40">
+                    {Number(item.old_price).toLocaleString()} so'm
+                  </td>
+                  <td className="text-right tabular-nums text-sm text-success font-medium">
+                    {Number(item.new_price).toLocaleString()} so'm
+                  </td>
+                  <td className="text-center">
+                    <span className="badge badge-error badge-sm">-{item.price_drop_pct}%</span>
+                  </td>
+                  <td className="text-xs text-base-content/40">{new Date(item.detected_at).toLocaleDateString()}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
-    </div>
+    </SectionCard>
   );
 }
 
@@ -299,46 +363,48 @@ function EarlySignalsTab() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="flex justify-center py-12"><span className="loading loading-spinner loading-lg" /></div>;
+  if (loading) return <SectionCard><LoadingSpinner /></SectionCard>;
 
   return (
-    <div>
-      <h2 className="text-xl font-bold mb-2">Yangi Mahsulot Erta Signallari</h2>
-      <p className="text-base-content/60 text-sm mb-4">
-        30 kundan kam yoslidagi tez o'sayotgan mahsulotlar
-      </p>
+    <SectionCard>
+      <SectionHeader
+        title="Yangi Mahsulot Erta Signallari"
+        desc="30 kundan kam yoslidagi tez o'sayotgan mahsulotlar"
+      />
       {data.length === 0 ? (
-        <div className="text-center py-8 text-base-content/50">Erta signallar yo'q</div>
+        <EmptyState text="Erta signallar yo'q" />
       ) : (
         <div className="overflow-x-auto">
           <table className="table table-sm">
             <thead>
-              <tr>
+              <tr className="text-xs text-base-content/40 uppercase">
                 <th>Mahsulot</th>
-                <th>Momentum</th>
-                <th>Yoshi (kun)</th>
-                <th>Sotuv tezligi</th>
-                <th>Score o'sishi</th>
+                <th className="text-center">Momentum</th>
+                <th className="text-center">Yoshi</th>
+                <th className="text-right">Sotuv tezligi</th>
+                <th className="text-right">Score o'sishi</th>
               </tr>
             </thead>
             <tbody>
               {data.map((item: any) => (
-                <tr key={item.product_id}>
-                  <td className="max-w-[200px] truncate">{item.title}</td>
-                  <td>
-                    <progress className="progress progress-primary w-16" value={item.momentum_score * 100} max="100" />
-                    <span className="ml-2 text-xs">{(item.momentum_score * 100).toFixed(0)}%</span>
+                <tr key={item.product_id} className="hover:bg-base-300/20 transition-colors">
+                  <td className="max-w-[200px] truncate text-sm">{item.title}</td>
+                  <td className="text-center">
+                    <div className="flex items-center gap-2 justify-center">
+                      <progress className="progress progress-primary w-16 h-2" value={item.momentum_score * 100} max="100" />
+                      <span className="text-xs tabular-nums">{(item.momentum_score * 100).toFixed(0)}%</span>
+                    </div>
                   </td>
-                  <td>{item.days_since_first} kun</td>
-                  <td>{item.sales_velocity}/hafta</td>
-                  <td className="text-success">+{item.score_growth}%</td>
+                  <td className="text-center text-sm tabular-nums">{item.days_since_first} kun</td>
+                  <td className="text-right text-sm tabular-nums">{item.sales_velocity}/hafta</td>
+                  <td className="text-right text-success text-sm font-medium">+{item.score_growth}%</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
-    </div>
+    </SectionCard>
   );
 }
 
@@ -354,35 +420,35 @@ function StockCliffsTab() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="flex justify-center py-12"><span className="loading loading-spinner loading-lg" /></div>;
+  if (loading) return <SectionCard><LoadingSpinner /></SectionCard>;
 
   const sevColor = (s: string) => s === 'critical' ? 'badge-error' : 'badge-warning';
 
   return (
-    <div>
-      <h2 className="text-xl font-bold mb-2">Stock Cliff Alert</h2>
-      <p className="text-base-content/60 text-sm mb-4">
-        Zaxira tugashiga yaqin mahsulotlar
-      </p>
+    <SectionCard>
+      <SectionHeader
+        title="Stock Cliff Alert"
+        desc="Zaxira tugashiga yaqin mahsulotlar"
+      />
       {data.length === 0 ? (
-        <div className="text-center py-8 text-base-content/50">Stock cliff xavfi yo'q</div>
+        <EmptyState text="Stock cliff xavfi yo'q" />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {data.map((item: any) => (
-            <div key={item.product_id} className="card bg-base-300/50 p-4">
+            <div key={item.product_id} className="rounded-xl bg-base-300/40 border border-base-300/30 p-4 hover:bg-base-300/60 transition-colors">
               <div className="flex items-start justify-between mb-2">
                 <h3 className="font-semibold text-sm truncate max-w-[70%]">{item.title}</h3>
                 <span className={`badge ${sevColor(item.severity)} badge-sm`}>{item.severity}</span>
               </div>
-              <div className="flex gap-4 text-xs text-base-content/70">
-                <span>Tezlik: {item.current_velocity}/kun</span>
-                <span>~{item.estimated_days_left} kun qoldi</span>
+              <div className="flex gap-4 text-xs text-base-content/60">
+                <span>Tezlik: <b>{item.current_velocity}</b>/kun</span>
+                <span>~<b className={item.estimated_days_left <= 7 ? 'text-error' : ''}>{item.estimated_days_left}</b> kun qoldi</span>
               </div>
             </div>
           ))}
         </div>
       )}
-    </div>
+    </SectionCard>
   );
 }
 
@@ -421,7 +487,7 @@ function ChecklistTab() {
       .finally(() => setSaving(false));
   }
 
-  if (loading) return <div className="flex justify-center py-12"><span className="loading loading-spinner loading-lg" /></div>;
+  if (loading) return <SectionCard><LoadingSpinner /></SectionCard>;
   if (!checklist) return null;
 
   const done = checklist.items.filter((i: any) => i.done).length;
@@ -429,33 +495,33 @@ function ChecklistTab() {
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
   return (
-    <div>
+    <SectionCard>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-xl font-bold">{checklist.title}</h2>
-          <p className="text-base-content/60 text-sm">{done}/{total} bajarildi ({pct}%)</p>
+          <h2 className="text-lg lg:text-xl font-bold">{checklist.title}</h2>
+          <p className="text-base-content/50 text-sm">{done}/{total} bajarildi ({pct}%)</p>
         </div>
         <button className="btn btn-primary btn-sm" onClick={saveChecklist} disabled={saving}>
           {saving ? <span className="loading loading-spinner loading-xs" /> : 'Saqlash'}
         </button>
       </div>
-      <progress className="progress progress-primary w-full mb-4" value={pct} max="100" />
+      <progress className="progress progress-primary w-full h-2 mb-5" value={pct} max="100" />
       <div className="space-y-2">
         {checklist.items.map((item: any) => (
-          <label key={item.key} className="flex items-center gap-3 p-3 bg-base-300/50 rounded-lg cursor-pointer hover:bg-base-300/80 transition">
+          <label key={item.key} className="flex items-center gap-3 p-3 rounded-xl bg-base-300/40 border border-base-300/30 cursor-pointer hover:bg-base-300/60 transition-colors">
             <input
               type="checkbox"
               className="checkbox checkbox-primary checkbox-sm"
               checked={item.done}
               onChange={() => toggleItem(item.key)}
             />
-            <span className={`text-sm ${item.done ? 'line-through text-base-content/40' : ''}`}>
+            <span className={`text-sm ${item.done ? 'line-through text-base-content/30' : ''}`}>
               {item.label}
             </span>
           </label>
         ))}
       </div>
-    </div>
+    </SectionCard>
   );
 }
 
@@ -497,88 +563,93 @@ function PriceTestTab() {
       .catch(() => {});
   }
 
-  if (loading) return <div className="flex justify-center py-12"><span className="loading loading-spinner loading-lg" /></div>;
+  if (loading) return <SectionCard><LoadingSpinner /></SectionCard>;
 
   const statusColor = (s: string) =>
     s === 'COMPLETED' ? 'badge-success' : s === 'RUNNING' ? 'badge-warning' :
     s === 'CANCELLED' ? 'badge-error' : 'badge-ghost';
 
   return (
-    <div>
-      <h2 className="text-xl font-bold mb-2">A/B Narx Testlash</h2>
-      <p className="text-base-content/60 text-sm mb-4">
-        Turli narxlarni sinab, eng yaxshisini toping
-      </p>
+    <SectionCard>
+      <SectionHeader
+        title="A/B Narx Testlash"
+        desc="Turli narxlarni sinab, eng yaxshisini toping"
+      />
 
       {/* Create form */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        <input
-          type="text"
-          className="input input-bordered input-sm w-36"
-          placeholder="Product ID"
-          value={form.product_id}
-          onChange={(e) => setForm({ ...form, product_id: e.target.value })}
-        />
-        <input
-          type="number"
-          className="input input-bordered input-sm w-36"
-          placeholder="Asl narx"
-          value={form.original_price}
-          onChange={(e) => setForm({ ...form, original_price: e.target.value })}
-        />
-        <input
-          type="number"
-          className="input input-bordered input-sm w-36"
-          placeholder="Test narx"
-          value={form.test_price}
-          onChange={(e) => setForm({ ...form, test_price: e.target.value })}
-        />
-        <button className="btn btn-primary btn-sm" onClick={createTest} disabled={creating}>
-          {creating ? <span className="loading loading-spinner loading-xs" /> : 'Yaratish'}
-        </button>
+      <div className="rounded-xl bg-base-300/40 border border-base-300/30 p-4 mb-6">
+        <p className="text-xs text-base-content/50 mb-3">Yangi test yaratish</p>
+        <div className="flex flex-wrap gap-2">
+          <input
+            type="text"
+            className="input input-bordered input-sm w-36"
+            placeholder="Product ID"
+            value={form.product_id}
+            onChange={(e) => setForm({ ...form, product_id: e.target.value })}
+          />
+          <input
+            type="number"
+            className="input input-bordered input-sm w-36"
+            placeholder="Asl narx"
+            value={form.original_price}
+            onChange={(e) => setForm({ ...form, original_price: e.target.value })}
+          />
+          <input
+            type="number"
+            className="input input-bordered input-sm w-36"
+            placeholder="Test narx"
+            value={form.test_price}
+            onChange={(e) => setForm({ ...form, test_price: e.target.value })}
+          />
+          <button className="btn btn-primary btn-sm" onClick={createTest} disabled={creating}>
+            {creating ? <span className="loading loading-spinner loading-xs" /> : 'Yaratish'}
+          </button>
+        </div>
       </div>
 
       {tests.length === 0 ? (
-        <div className="text-center py-8 text-base-content/50">Hali test yo'q</div>
+        <EmptyState text="Hali test yo'q — yuqorida yangi test yarating" />
       ) : (
         <div className="overflow-x-auto">
           <table className="table table-sm">
             <thead>
-              <tr>
+              <tr className="text-xs text-base-content/40 uppercase">
                 <th>Mahsulot</th>
-                <th>Asl narx</th>
-                <th>Test narx</th>
-                <th>Status</th>
-                <th>Asl sotuv</th>
-                <th>Test sotuv</th>
+                <th className="text-right">Asl narx</th>
+                <th className="text-right">Test narx</th>
+                <th className="text-center">Status</th>
+                <th className="text-right">Asl sotuv</th>
+                <th className="text-right">Test sotuv</th>
                 <th>Amallar</th>
               </tr>
             </thead>
             <tbody>
               {tests.map((t: any) => (
-                <tr key={t.id}>
-                  <td className="max-w-[150px] truncate">{t.product_title || `#${t.product_id}`}</td>
-                  <td>{Number(t.original_price).toLocaleString()}</td>
-                  <td>{Number(t.test_price).toLocaleString()}</td>
-                  <td><span className={`badge ${statusColor(t.status)} badge-sm`}>{t.status}</span></td>
-                  <td>{t.original_sales}</td>
-                  <td>{t.test_sales}</td>
-                  <td className="flex gap-1">
-                    {t.status === 'PLANNED' && (
-                      <button className="btn btn-xs btn-success" onClick={() => updateStatus(t.id, 'RUNNING')}>
-                        Boshlash
-                      </button>
-                    )}
-                    {t.status === 'RUNNING' && (
-                      <button className="btn btn-xs btn-info" onClick={() => updateStatus(t.id, 'COMPLETED')}>
-                        Tugatish
-                      </button>
-                    )}
-                    {(t.status === 'PLANNED' || t.status === 'RUNNING') && (
-                      <button className="btn btn-xs btn-error" onClick={() => updateStatus(t.id, 'CANCELLED')}>
-                        Bekor
-                      </button>
-                    )}
+                <tr key={t.id} className="hover:bg-base-300/20 transition-colors">
+                  <td className="max-w-[150px] truncate text-sm">{t.product_title || `#${t.product_id}`}</td>
+                  <td className="text-right tabular-nums text-sm">{Number(t.original_price).toLocaleString()}</td>
+                  <td className="text-right tabular-nums text-sm">{Number(t.test_price).toLocaleString()}</td>
+                  <td className="text-center"><span className={`badge ${statusColor(t.status)} badge-sm`}>{t.status}</span></td>
+                  <td className="text-right tabular-nums text-sm">{t.original_sales ?? '—'}</td>
+                  <td className="text-right tabular-nums text-sm">{t.test_sales ?? '—'}</td>
+                  <td>
+                    <div className="flex gap-1">
+                      {t.status === 'PLANNED' && (
+                        <button className="btn btn-xs btn-success" onClick={() => updateStatus(t.id, 'RUNNING')}>
+                          Boshlash
+                        </button>
+                      )}
+                      {t.status === 'RUNNING' && (
+                        <button className="btn btn-xs btn-info" onClick={() => updateStatus(t.id, 'COMPLETED')}>
+                          Tugatish
+                        </button>
+                      )}
+                      {(t.status === 'PLANNED' || t.status === 'RUNNING') && (
+                        <button className="btn btn-xs btn-ghost text-error" onClick={() => updateStatus(t.id, 'CANCELLED')}>
+                          Bekor
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -586,7 +657,7 @@ function PriceTestTab() {
           </table>
         </div>
       )}
-    </div>
+    </SectionCard>
   );
 }
 
@@ -605,14 +676,14 @@ function ReplenishmentTab() {
   }, [leadTime]);
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
+    <SectionCard>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-xl font-bold">Zahira Rejalashtirish</h2>
-          <p className="text-base-content/60 text-sm">Qachon va qancha buyurtma berish kerak?</p>
+          <h2 className="text-lg lg:text-xl font-bold">Zahira Rejalashtirish</h2>
+          <p className="text-base-content/50 text-sm">Qachon va qancha buyurtma berish kerak?</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-base-content/60">Yetkazish:</span>
+          <span className="text-sm text-base-content/50">Yetkazish:</span>
           <select
             className="select select-bordered select-sm"
             value={leadTime}
@@ -627,18 +698,18 @@ function ReplenishmentTab() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12"><span className="loading loading-spinner loading-lg" /></div>
+        <LoadingSpinner />
       ) : data.length === 0 ? (
-        <div className="text-center py-8 text-base-content/50">Ma'lumot yo'q</div>
+        <EmptyState text="Ma'lumot yo'q" />
       ) : (
         <div className="overflow-x-auto">
           <table className="table table-sm">
             <thead>
-              <tr>
+              <tr className="text-xs text-base-content/40 uppercase">
                 <th>Mahsulot</th>
-                <th>Kunlik sotuv</th>
-                <th>Reorder nuqtasi</th>
-                <th>Tavsiya miqdor</th>
+                <th className="text-right">Kunlik sotuv</th>
+                <th className="text-right">Reorder nuqtasi</th>
+                <th className="text-right">Tavsiya</th>
                 <th>Keyingi buyurtma</th>
               </tr>
             </thead>
@@ -646,14 +717,15 @@ function ReplenishmentTab() {
               {data.map((item: any) => {
                 const isUrgent = new Date(item.next_order_date) <= new Date(Date.now() + 7 * 86400000);
                 return (
-                  <tr key={item.product_id} className={isUrgent ? 'bg-error/10' : ''}>
-                    <td className="max-w-[200px] truncate">{item.title}</td>
-                    <td>{item.avg_daily_sales}</td>
-                    <td>{item.reorder_point} dona</td>
-                    <td className="font-semibold">{item.suggested_order_qty} dona</td>
+                  <tr key={item.product_id} className={`hover:bg-base-300/20 transition-colors ${isUrgent ? 'bg-error/5' : ''}`}>
+                    <td className="max-w-[200px] truncate text-sm">{item.title}</td>
+                    <td className="text-right tabular-nums text-sm">{item.avg_daily_sales}</td>
+                    <td className="text-right tabular-nums text-sm">{item.reorder_point} dona</td>
+                    <td className="text-right font-semibold tabular-nums text-sm">{item.suggested_order_qty} dona</td>
                     <td>
-                      <span className={isUrgent ? 'text-error font-bold' : ''}>
+                      <span className={`text-sm ${isUrgent ? 'text-error font-bold' : 'text-base-content/70'}`}>
                         {item.next_order_date}
+                        {isUrgent && <span className="ml-1 badge badge-error badge-xs">Tez!</span>}
                       </span>
                     </td>
                   </tr>
@@ -663,6 +735,6 @@ function ReplenishmentTab() {
           </table>
         </div>
       )}
-    </div>
+    </SectionCard>
   );
 }

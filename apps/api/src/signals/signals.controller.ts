@@ -28,8 +28,12 @@ export class SignalsController {
 
   /** Feature 23 — Category Saturation Index */
   @Get('saturation')
-  getSaturation(@Query('category_id') categoryId: string) {
-    return this.signalsService.getSaturation(Number(categoryId));
+  getSaturation(@Query('category_id') categoryId?: string) {
+    const cid = Number(categoryId);
+    if (!categoryId || isNaN(cid)) {
+      return { category_id: null, seller_count: 0, product_count: 0, saturation_index: 0, avg_score: 0, level: 'unknown' };
+    }
+    return this.signalsService.getSaturation(cid);
   }
 
   /** Feature 24 — Flash Sale Detector */
