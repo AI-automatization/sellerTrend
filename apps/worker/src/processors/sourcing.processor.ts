@@ -140,7 +140,7 @@ async function scrapeShopee(
   context: BrowserContext,
 ): Promise<ExternalProduct[]> {
   const page = await context.newPage();
-  let shopeeItems: any[] | null = null;
+  let shopeeItems: any[] = [];
   let shopeeBase = 'https://shopee.com';
 
   // Intercept Shopee's search_items API
@@ -151,7 +151,7 @@ async function scrapeShopee(
         const json = await response.json();
         console.log('[Shopee] search_items captured from:', url.slice(0, 100));
         const items = json?.items ?? json?.data?.items;
-        if (Array.isArray(items) && items.length > 0 && shopeeItems === null) {
+        if (Array.isArray(items) && items.length > 0 && shopeeItems.length === 0) {
           shopeeItems = items;
           // Detect base domain from URL
           const m = url.match(/https:\/\/([^/]+)\//);
@@ -183,9 +183,9 @@ async function scrapeShopee(
     await page.evaluate(() => window.scrollTo(0, 400));
     await page.waitForTimeout(2000);
 
-    console.log(`[Shopee] shopeeItems: ${shopeeItems ? shopeeItems.length : 0}`);
+    console.log(`[Shopee] shopeeItems: ${shopeeItems.length}`);
 
-    if (shopeeItems && shopeeItems.length > 0) {
+    if (shopeeItems.length > 0) {
       return shopeeItems.slice(0, 8).map((item: any) => {
         const basic = item.item_basic ?? item;
         const shopid = item.shopid ?? basic.shopid ?? 0;
