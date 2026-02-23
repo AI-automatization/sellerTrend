@@ -29,7 +29,8 @@ model Account {
   alert_rules        AlertRule[]
   price_searches     ExternalPriceSearch[]
   cargo_calculations CargoCalculation[]
-  external_search_jobs ExternalSearchJob[]
+  external_search_jobs   ExternalSearchJob[]
+  competitor_trackings   CompetitorTracking[]
 
   @@map("accounts")
 }
@@ -152,6 +153,8 @@ model Product {
   ai_attributes     ProductAiAttribute?
   ai_explanations   ProductAiExplanation[]
   external_search_jobs ExternalSearchJob[]
+  competitors_from     CompetitorTracking[] @relation("product_competitors")
+  competitors_of       CompetitorTracking[] @relation("competitor_of")
 
   @@map("products")
 }
@@ -476,4 +479,39 @@ model ProductAiExplanation {
   snapshot ProductSnapshot? @relation(fields: [snapshot_id], references: [id])
 
   @@map("product_ai_explanations")
+}
+
+// ============================================================
+// COMPETITOR TRACKING
+// ============================================================
+
+model CompetitorTracking {
+  id                    String   @id @default(uuid())
+  account_id            String
+  product_id            BigInt
+  competitor_product_id BigInt
+  is_active             Boolean  @default(true)
+  created_at            DateTime @default(now()) @db.Timestamptz
+
+  account    Account @relation(fields: [account_id], references: [id])
+  product    Product @relation("product_competitors", fields: [product_id], references: [id])
+  competitor Product @relation("competitor_of", fields: [competitor_product_id], references: [id])
+  snapshots  CompetitorPriceSnapshot[]
+
+  @@unique([account_id, product_id, competitor_product_id])
+  @@map("competitor_trackings")
+}
+
+model CompetitorPriceSnapshot {
+  id           String   @id @default(uuid())
+  tracking_id  String
+  sell_price   BigInt?
+  full_price   BigInt?
+  discount_pct Int?     @default(0)
+  snapshot_at  DateTime @default(now()) @db.Timestamptz
+
+  tracking CompetitorTracking @relation(fields: [tracking_id], references: [id], onDelete: Cascade)
+
+  @@index([tracking_id, snapshot_at])
+  @@map("competitor_price_snapshots")
 }

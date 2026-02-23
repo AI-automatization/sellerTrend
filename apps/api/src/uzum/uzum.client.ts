@@ -140,7 +140,36 @@ export class UzumClient {
   }
 
   /**
-   * Fetch category listing via REST API
+   * Fetch category products via the working search endpoint.
+   * Uses /main/search/product?categoryId= (unlike fetchCategoryListing which uses the broken /category/{id}/products).
+   */
+  async fetchCategoryProducts(
+    categoryId: number,
+    size = 48,
+  ): Promise<any[]> {
+    const url =
+      `${REST_BASE}/main/search/product` +
+      `?categoryId=${categoryId}&size=${size}&page=0&sort=ORDER_COUNT_DESC&showAdultContent=HIDE`;
+
+    try {
+      const response = await fetch(url, { headers: HEADERS, dispatcher: proxyDispatcher } as any);
+      if (!response.ok) {
+        this.logger.warn(`fetchCategoryProducts HTTP ${response.status}`);
+        return [];
+      }
+
+      const data = (await response.json()) as any;
+      const payload = data?.payload ?? data;
+      const products = payload?.products ?? payload?.data?.products ?? [];
+      return products;
+    } catch (err: any) {
+      this.logger.error(`fetchCategoryProducts failed: ${err.message}`);
+      return [];
+    }
+  }
+
+  /**
+   * Fetch category listing via REST API (legacy — broken endpoint)
    */
   async fetchCategoryListing(
     categoryId: number,

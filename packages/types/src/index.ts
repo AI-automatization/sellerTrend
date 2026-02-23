@@ -69,7 +69,8 @@ export type JobName =
   | 'daily-billing'
   | 'category-discovery'
   | 'product-snapshot'
-  | 'url-analyze';
+  | 'url-analyze'
+  | 'competitor-snapshot';
 
 export interface UrlAnalyzeJobData {
   url: string;
