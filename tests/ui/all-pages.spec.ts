@@ -204,7 +204,7 @@ test.describe('Signals Page Tabs', () => {
     }, body.access_token);
   });
 
-  test('all 9 signal tabs are clickable', async ({ page }) => {
+  test('all 10 signal tabs are clickable', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (err) => errors.push(err.message));
 
@@ -216,7 +216,7 @@ test.describe('Signals Page Tabs', () => {
     const tabCount = await tabs.count();
 
     // Click each tab and verify no errors
-    for (let i = 0; i < tabCount && i < 9; i++) {
+    for (let i = 0; i < tabCount && i < 10; i++) {
       await tabs.nth(i).click();
       await page.waitForTimeout(500);
     }

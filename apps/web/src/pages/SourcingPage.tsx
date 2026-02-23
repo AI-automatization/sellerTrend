@@ -827,7 +827,7 @@ function ResultCard({ result }: { result: CalcResult }) {
 
 function ExternalSearch({ initialQuery }: { initialQuery?: string }) {
   const [query, setQuery] = useState(initialQuery ?? '');
-  const [source, setSource] = useState('ALIBABA');
+  const [source, setSource] = useState('BOTH');
   const [results, setResults] = useState<SearchItem[]>([]);
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
@@ -856,8 +856,9 @@ function ExternalSearch({ initialQuery }: { initialQuery?: string }) {
           <form onSubmit={handleSearch} className="flex gap-2 mt-2 flex-wrap">
             <select className="select select-bordered select-sm" value={source}
               onChange={(e) => setSource(e.target.value)}>
-              <option value="ALIBABA">🇨🇳 Banggood + Shopee</option>
-              <option value="ALIEXPRESS">🛒 Banggood + Shopee</option>
+              <option value="BOTH">🌍 Hammasi (Banggood + Shopee)</option>
+              <option value="ALIBABA">🛍️ Faqat Banggood</option>
+              <option value="ALIEXPRESS">🛒 Faqat Shopee</option>
             </select>
             <input type="text" placeholder="Masalan: wireless earphones"
               className="input input-bordered input-sm flex-1 min-w-48"

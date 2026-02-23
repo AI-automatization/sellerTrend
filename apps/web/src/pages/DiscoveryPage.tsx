@@ -58,11 +58,16 @@ interface GapItem {
 }
 
 const POPULAR_CATEGORIES = [
+  { id: 676, label: 'Elektronika' },
+  { id: 879, label: 'Smartfonlar' },
+  { id: 4830, label: 'Kiyim' },
   { id: 10012, label: "Go'zallik" },
   { id: 10091, label: 'Makiyaj' },
+  { id: 3854, label: 'Maishiy texnika' },
+  { id: 4073, label: 'Uy-ro\'zg\'or' },
+  { id: 6820, label: 'Bolalar' },
+  { id: 5058, label: 'Sport' },
   { id: 10165, label: 'Soch parvarishi' },
-  { id: 11736, label: 'Soch kosmetikasi' },
-  { id: 12888, label: 'Konturing' },
 ];
 
 const MONTH_NAMES = [

@@ -164,6 +164,7 @@ export function ProductPage() {
   const [extLoading, setExtLoading] = useState(false);
   const [extSearched, setExtSearched] = useState(false);
   const [extNote, setExtNote] = useState('');
+  const [usdRate, setUsdRate] = useState(12900);
 
   // ML Forecast state
   const [mlForecast, setMlForecast] = useState<any>(null);
@@ -200,6 +201,13 @@ export function ProductPage() {
   }
 
   useEffect(() => { loadData(); }, [id]);
+
+  // Fetch live USD rate
+  useEffect(() => {
+    sourcingApi.getCurrencyRates()
+      .then((r) => { if (r.data?.USD) setUsdRate(r.data.USD); })
+      .catch(() => {});
+  }, []);
 
   // Load ML forecast when product is loaded
   useEffect(() => {
@@ -574,6 +582,7 @@ export function ProductPage() {
       <GlobalPriceComparison
         items={extItems} loading={extLoading} note={extNote}
         uzumPrice={result.sell_price} productTitle={result.title}
+        usdRate={usdRate}
       />
 
       {/* Score formula */}
@@ -590,14 +599,14 @@ export function ProductPage() {
 // ─── Global Price Comparison ──────────────────────────────────────────────────
 
 function GlobalPriceComparison({
-  items, loading, note, uzumPrice, productTitle,
+  items, loading, note, uzumPrice, productTitle, usdRate,
 }: {
   items: ExternalItem[]; loading: boolean; note: string;
-  uzumPrice: number | null; productTitle: string;
+  uzumPrice: number | null; productTitle: string; usdRate: number;
 }) {
   const [expanded, setExpanded] = useState(false);
   const visible = expanded ? items : items.slice(0, 6);
-  const USD_RATE = 12900;
+  const USD_RATE = usdRate;
 
   function parsePrice(priceStr: string): number | null {
     const m = priceStr.match(/[\d.,]+/);

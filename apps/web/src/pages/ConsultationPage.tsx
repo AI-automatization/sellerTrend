@@ -25,6 +25,9 @@ export function ConsultationPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', category: 'Uzum strategiya', price_uzs: '', duration_min: '60' });
+  const [bookingId, setBookingId] = useState<string | null>(null);
+  const [bookingDate, setBookingDate] = useState('');
+  const [bookingTime, setBookingTime] = useState('10:00');
 
   useEffect(() => {
     loadData();
@@ -60,11 +63,15 @@ export function ConsultationPage() {
     finally { setCreating(false); }
   }
 
-  async function handleBook(id: string) {
-    const date = prompt('Sana va vaqt (YYYY-MM-DD HH:mm):');
-    if (!date) return;
+  async function handleBook() {
+    if (!bookingId || !bookingDate) return;
     try {
-      await consultationApi.book(id, new Date(date).toISOString());
+      const dateTime = new Date(`${bookingDate}T${bookingTime}`);
+      if (isNaN(dateTime.getTime())) return;
+      await consultationApi.book(bookingId, dateTime.toISOString());
+      setBookingId(null);
+      setBookingDate('');
+      setBookingTime('10:00');
       loadData();
     } catch {}
   }
@@ -223,7 +230,7 @@ export function ConsultationPage() {
                 </div>
                 {tab === 'marketplace' && (
                   <button
-                    onClick={() => handleBook(item.id)}
+                    onClick={() => { setBookingId(item.id); setBookingDate(''); setBookingTime('10:00'); }}
                     className="btn btn-primary btn-sm w-full mt-2"
                   >
                     Bron qilish
@@ -238,6 +245,45 @@ export function ConsultationPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Booking modal */}
+      {bookingId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setBookingId(null)}>
+          <div className="bg-base-200 rounded-2xl border border-base-300 p-6 w-full max-w-sm space-y-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold text-lg">Konsultatsiya bron qilish</h3>
+            <p className="text-sm text-base-content/50">Qulay sana va vaqtni tanlang</p>
+            <div className="form-control">
+              <label className="label"><span className="label-text">Sana *</span></label>
+              <input
+                type="date"
+                className="input input-bordered w-full"
+                value={bookingDate}
+                min={new Date().toISOString().split('T')[0]}
+                onChange={(e) => setBookingDate(e.target.value)}
+              />
+            </div>
+            <div className="form-control">
+              <label className="label"><span className="label-text">Vaqt *</span></label>
+              <input
+                type="time"
+                className="input input-bordered w-full"
+                value={bookingTime}
+                onChange={(e) => setBookingTime(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={handleBook}
+                disabled={!bookingDate}
+                className="btn btn-primary flex-1"
+              >
+                Tasdiqlash
+              </button>
+              <button onClick={() => setBookingId(null)} className="btn btn-ghost">Bekor</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
