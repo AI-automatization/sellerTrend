@@ -26,6 +26,12 @@ import { ConsultationModule } from './consultation/consultation.module';
 import { GatewayModule } from './common/gateways/gateway.module';
 // v3.0 Signals
 import { SignalsModule } from './signals/signals.module';
+// v4.0 Enterprise
+import { AdsModule } from './ads/ads.module';
+import { TeamModule } from './team/team.module';
+import { ReportsModule } from './reports/reports.module';
+import { WatchlistModule } from './watchlist/watchlist.module';
+import { CommunityModule } from './community/community.module';
 
 @Module({
   imports: [
@@ -54,6 +60,12 @@ import { SignalsModule } from './signals/signals.module';
     GatewayModule,
     // v3.0 Signals
     SignalsModule,
+    // v4.0 Enterprise
+    AdsModule,
+    TeamModule,
+    ReportsModule,
+    WatchlistModule,
+    CommunityModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
   controllers: [HealthController],

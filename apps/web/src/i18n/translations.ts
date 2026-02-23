@@ -18,6 +18,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     'nav.description': 'AI Tavsif',
     'nav.elasticity': 'Elastiklik',
     'nav.signals': 'Signallar',
+    'nav.enterprise': 'Enterprise',
     'nav.logout': 'Chiqish',
     // Common
     'common.loading': 'Yuklanmoqda...',
@@ -54,6 +55,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     'nav.description': 'AI Описание',
     'nav.elasticity': 'Эластичность',
     'nav.signals': 'Сигналы',
+    'nav.enterprise': 'Enterprise',
     'nav.logout': 'Выход',
     'common.loading': 'Загрузка...',
     'common.error': 'Произошла ошибка',
@@ -87,6 +89,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     'nav.description': 'AI Description',
     'nav.elasticity': 'Elasticity',
     'nav.signals': 'Signals',
+    'nav.enterprise': 'Enterprise',
     'nav.logout': 'Logout',
     'common.loading': 'Loading...',
     'common.error': 'An error occurred',

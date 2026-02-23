@@ -232,6 +232,55 @@ export const signalsApi = {
     api.get('/signals/replenishment', { params: leadTimeDays ? { lead_time_days: leadTimeDays } : {} }),
 };
 
+// Ads ROI endpoints (v4.0 — Feature 31)
+export const adsApi = {
+  createCampaign: (data: { name: string; product_id?: number; platform?: string; budget_uzs?: number }) =>
+    api.post('/ads/campaigns', data),
+  listCampaigns: () => api.get('/ads/campaigns'),
+  updateCampaign: (id: string, data: any) => api.patch(`/ads/campaigns/${id}`, data),
+  getCampaignROI: (id: string) => api.get(`/ads/campaigns/${id}/roi`),
+  deleteCampaign: (id: string) => api.delete(`/ads/campaigns/${id}`),
+};
+
+// Team endpoints (v4.0 — Feature 33)
+export const teamApi = {
+  invite: (data: { email: string; role?: string }) => api.post('/team/invite', data),
+  listInvites: () => api.get('/team/invites'),
+  listMembers: () => api.get('/team/members'),
+  cancelInvite: (id: string) => api.delete(`/team/invites/${id}`),
+};
+
+// Reports endpoints (v4.0 — Features 34-35)
+export const reportsApi = {
+  create: (data: { title: string; description?: string; report_type: string; filters?: any; columns?: any; schedule?: string }) =>
+    api.post('/reports', data),
+  list: () => api.get('/reports'),
+  remove: (id: string) => api.delete(`/reports/${id}`),
+  generate: (id: string) => api.get(`/reports/${id}/generate`),
+  marketShare: (categoryId: number) => api.get('/reports/market-share', { params: { category_id: categoryId } }),
+};
+
+// Watchlist endpoints (v4.0 — Feature 36)
+export const watchlistApi = {
+  create: (data: { name: string; description?: string; product_ids: string[] }) =>
+    api.post('/watchlists', data),
+  list: () => api.get('/watchlists'),
+  share: (id: string) => api.post(`/watchlists/${id}/share`),
+  getShared: (token: string) => api.get(`/watchlists/shared/${token}`),
+  remove: (id: string) => api.delete(`/watchlists/${id}`),
+};
+
+// Community endpoints (v4.0 — Feature 38)
+export const communityApi = {
+  createInsight: (data: { title: string; content: string; category: string }) =>
+    api.post('/community/insights', data),
+  listInsights: (category?: string) =>
+    api.get('/community/insights', { params: category ? { category } : {} }),
+  vote: (insightId: string, vote: number) =>
+    api.post(`/community/insights/${insightId}/vote`, { vote }),
+  getCategories: () => api.get('/community/categories'),
+};
+
 // Admin endpoints (SUPER_ADMIN only)
 export const adminApi = {
   listAccounts: () => api.get('/admin/accounts'),

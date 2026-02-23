@@ -18,6 +18,8 @@ import { ElasticityPage } from './pages/ElasticityPage';
 import { ConsultationPage } from './pages/ConsultationPage';
 // v3.0 pages
 import { SignalsPage } from './pages/SignalsPage';
+// v4.0 pages
+import { EnterprisePage } from './pages/EnterprisePage';
 import { Layout } from './components/Layout';
 
 function isAuthenticated() {
@@ -58,6 +60,8 @@ export default function App() {
           <Route path="consultation" element={<ConsultationPage />} />
           {/* v3.0 Signals */}
           <Route path="signals" element={<SignalsPage />} />
+          {/* v4.0 Enterprise */}
+          <Route path="enterprise" element={<EnterprisePage />} />
           <Route path="admin" element={<AdminPage />} />
         </Route>
       </Routes>
