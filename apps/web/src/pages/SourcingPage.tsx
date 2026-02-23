@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { sourcingApi } from '../api/client';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -74,7 +75,12 @@ type Tab = 'calculator' | 'search' | 'history';
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function SourcingPage() {
-  const [tab, setTab] = useState<Tab>('calculator');
+  const [searchParams] = useSearchParams();
+  // ProductPage dagi 🧮 tugmasi orqali kelgan parametrlar
+  const prefillName = searchParams.get('q') ?? '';
+  const prefillPrice = searchParams.get('price') ?? '';
+
+  const [tab, setTab] = useState<Tab>(prefillName ? 'calculator' : 'calculator');
   const [rates, setRates] = useState<CurrencyRates | null>(null);
   const [providers, setProviders] = useState<CargoProvider[]>([]);
   const [ratesLoading, setRatesLoading] = useState(true);
@@ -148,8 +154,15 @@ export function SourcingPage() {
         ))}
       </div>
 
-      {tab === 'calculator' && <CargoCalculator providers={providers} rates={rates} />}
-      {tab === 'search' && <ExternalSearch />}
+      {tab === 'calculator' && (
+        <CargoCalculator
+          providers={providers}
+          rates={rates}
+          prefillName={prefillName}
+          prefillItemCostUzs={prefillPrice ? parseFloat(prefillPrice) : undefined}
+        />
+      )}
+      {tab === 'search' && <ExternalSearch initialQuery={prefillName} />}
       {tab === 'history' && <CalculationHistory />}
     </div>
   );
@@ -160,13 +173,19 @@ export function SourcingPage() {
 function CargoCalculator({
   providers,
   rates,
+  prefillName,
+  prefillItemCostUzs,
 }: {
   providers: CargoProvider[];
   rates: CurrencyRates | null;
+  prefillName?: string;
+  prefillItemCostUzs?: number;
 }) {
+  const usdRate = rates?.USD ?? 12900;
   const [form, setForm] = useState({
-    item_name: '',
-    item_cost_usd: '',
+    item_name: prefillName ?? '',
+    // Agar UZS narx berilgan bo'lsa → USDga aylantirish
+    item_cost_usd: prefillItemCostUzs ? (prefillItemCostUzs / usdRate).toFixed(2) : '',
     weight_kg: '',
     quantity: '1',
     provider_id: '',
@@ -470,8 +489,8 @@ function ResultCard({ result }: { result: CalcResult }) {
 
 // ─── External Price Search ────────────────────────────────────────────────────
 
-function ExternalSearch() {
-  const [query, setQuery] = useState('');
+function ExternalSearch({ initialQuery }: { initialQuery?: string }) {
+  const [query, setQuery] = useState(initialQuery ?? '');
   const [source, setSource] = useState('ALIBABA');
   const [results, setResults] = useState<SearchItem[]>([]);
   const [note, setNote] = useState('');

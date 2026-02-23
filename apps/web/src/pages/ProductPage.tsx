@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { uzumApi, productsApi } from '../api/client';
+import { uzumApi, productsApi, sourcingApi } from '../api/client';
 import { ScoreChart } from '../components/ScoreChart';
 import {
   AreaChart,
@@ -40,6 +40,35 @@ interface Snapshot {
   orders_quantity: string;
   snapshot_at: string;
 }
+
+interface ExternalItem {
+  title: string;
+  price: string;
+  source: string;
+  link: string;
+  image: string;
+  store: string;
+}
+
+// Mahsulot nomidan asosiy kalit so'zlarni ajratib olish
+function extractSearchQuery(title: string): string {
+  // Brend va model nomini saqlagan holda, ortiqcha so'zlarni olib tashlash
+  const stopWords = new Set([
+    'для', 'из', 'и', 'в', 'с', 'на', 'по', 'за', 'от', 'до', 'ва', 'учун',
+    'bilan', 'uchun', 'купить', 'продажа', 'набор', 'комплект',
+  ]);
+  const words = title
+    .replace(/[()[\]{}"'«»]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length > 2 && !stopWords.has(w.toLowerCase()));
+  return words.slice(0, 5).join(' ');
+}
+
+const SOURCE_META: Record<string, { label: string; flag: string; color: string }> = {
+  ALIBABA:   { label: 'Alibaba',   flag: '🇨🇳', color: 'badge-warning' },
+  ALIEXPRESS:{ label: 'AliExpress',flag: '🛒', color: 'badge-error' },
+  SERPAPI:   { label: 'Google',    flag: '🔍', color: 'badge-info' },
+};
 
 const MAX_SCORE = 10;
 
@@ -126,6 +155,12 @@ export function ProductPage() {
   const [tracked, setTracked] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  // External price comparison
+  const [extItems, setExtItems] = useState<ExternalItem[]>([]);
+  const [extLoading, setExtLoading] = useState(false);
+  const [extSearched, setExtSearched] = useState(false);
+  const [extNote, setExtNote] = useState('');
+
   async function loadData(showRefreshing = false) {
     if (!id) return;
     if (showRefreshing) setRefreshing(true);
@@ -162,6 +197,29 @@ export function ProductPage() {
   }
 
   useEffect(() => { loadData(); }, [id]);
+
+  // Mahsulot ma'lumoti kelgandan so'ng global narxlarni qidirish
+  useEffect(() => {
+    if (!result?.title || extSearched) return;
+    setExtSearched(true);
+    setExtLoading(true);
+    const q = extractSearchQuery(result.title);
+    Promise.allSettled([
+      sourcingApi.searchPrices(q, 'ALIBABA'),
+      sourcingApi.searchPrices(q, 'ALIEXPRESS'),
+    ]).then((results) => {
+      const items: ExternalItem[] = [];
+      let noteText = '';
+      for (const r of results) {
+        if (r.status === 'fulfilled') {
+          items.push(...(r.value.data.results ?? []));
+          if (r.value.data.note) noteText = r.value.data.note;
+        }
+      }
+      setExtItems(items.slice(0, 12));
+      if (noteText) setExtNote(noteText);
+    }).finally(() => setExtLoading(false));
+  }, [result?.title]);
 
   async function handleTrack() {
     if (!id) return;
@@ -435,12 +493,240 @@ export function ProductPage() {
         </div>
       )}
 
+      {/* Global Market Price Comparison */}
+      <GlobalPriceComparison
+        items={extItems}
+        loading={extLoading}
+        note={extNote}
+        uzumPrice={result.sell_price}
+        productTitle={result.title}
+      />
+
       {/* Score formula */}
       <div className="alert alert-info alert-soft text-xs">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="h-4 w-4 shrink-0 stroke-current">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <span>Score = 0.55×ln(1+faollik) + 0.25×ln(1+jami) + 0.10×reyting + 0.10×ombor · Real vaqtda Uzumdan hisoblangan</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Global Price Comparison ──────────────────────────────────────────────────
+
+function GlobalPriceComparison({
+  items,
+  loading,
+  note,
+  uzumPrice,
+  productTitle,
+}: {
+  items: ExternalItem[];
+  loading: boolean;
+  note: string;
+  uzumPrice: number | null;
+  productTitle: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded ? items : items.slice(0, 6);
+
+  // USD kursi taxminiy (real-time emas, static fallback)
+  const USD_RATE = 12900;
+
+  function parsePrice(priceStr: string): number | null {
+    const m = priceStr.match(/[\d.,]+/);
+    if (!m) return null;
+    const n = parseFloat(m[0].replace(',', '.'));
+    if (isNaN(n)) return null;
+    // Agar dollar belgisi bo'lsa yoki kichik bo'lsa → USD
+    if (priceStr.includes('$') || n < 10000) return n * USD_RATE;
+    return n; // so'm deb hisoblaymiz
+  }
+
+  function marginLabel(extPriceUzs: number): { text: string; cls: string } | null {
+    if (!uzumPrice || uzumPrice <= 0) return null;
+    // Taxminiy landed cost: ext narx + 30% (cargo + bojxona + QQS)
+    const landed = extPriceUzs * 1.3;
+    const margin = ((uzumPrice - landed) / uzumPrice) * 100;
+    if (margin >= 30) return { text: `+${margin.toFixed(0)}% margin`, cls: 'text-success' };
+    if (margin >= 15) return { text: `+${margin.toFixed(0)}% margin`, cls: 'text-warning' };
+    if (margin > 0)   return { text: `+${margin.toFixed(0)}% margin`, cls: 'text-error' };
+    return { text: 'Zararli', cls: 'text-error' };
+  }
+
+  return (
+    <div className="card bg-base-200 shadow-sm">
+      <div className="card-body gap-4">
+        {/* Header */}
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h2 className="card-title text-base gap-2">
+              <span>🌏</span>
+              Global Bozor Taqqoslash
+            </h2>
+            <p className="text-xs text-base-content/50 mt-0.5">
+              Shu mahsulot uchun Alibaba va AliExpress narxlari
+            </p>
+          </div>
+          <Link to="/sourcing" className="btn btn-outline btn-xs gap-1">
+            Cargo kalkulyator ↗
+          </Link>
+        </div>
+
+        {/* Loading skeleton */}
+        {loading && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-base-300 rounded-xl p-4 space-y-2 animate-pulse">
+                <div className="h-20 bg-base-content/5 rounded-lg" />
+                <div className="h-3 bg-base-content/10 rounded w-3/4" />
+                <div className="h-4 bg-base-content/10 rounded w-1/2" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Note (demo/no-key message) */}
+        {!loading && note && (
+          <div className="flex items-start gap-2 bg-base-300 rounded-xl px-4 py-3 text-sm">
+            <span className="text-base-content/40 text-xs shrink-0 mt-0.5">ℹ️</span>
+            <div>
+              <p className="text-base-content/70">{note}</p>
+              <p className="text-xs text-base-content/40 mt-1">
+                Real natijalar uchun <code className="bg-base-content/10 px-1 rounded">SERPAPI_KEY</code> ni <code className="bg-base-content/10 px-1 rounded">.env</code> ga qo'shing
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Results grid */}
+        {!loading && items.length > 0 && (
+          <>
+            {/* Uzum narxi vs eng arzon xalq. narx */}
+            {uzumPrice && (() => {
+              const prices = items
+                .map((it) => parsePrice(it.price))
+                .filter((p): p is number => p !== null);
+              if (prices.length === 0) return null;
+              const minExt = Math.min(...prices);
+              const diff = ((uzumPrice - minExt) / uzumPrice) * 100;
+              return (
+                <div className="grid grid-cols-3 gap-2 bg-base-300 rounded-xl p-3">
+                  <div className="text-center">
+                    <p className="text-xs text-base-content/40">Uzumda narx</p>
+                    <p className="font-bold text-sm">{uzumPrice.toLocaleString()} so'm</p>
+                  </div>
+                  <div className="text-center flex items-center justify-center">
+                    <span className="text-2xl">↔</span>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-base-content/40">Eng arzon xalq. narx</p>
+                    <p className="font-bold text-sm text-primary">{minExt.toLocaleString()} so'm</p>
+                    {diff > 0 && (
+                      <p className="text-xs text-success mt-0.5">Farq: {diff.toFixed(0)}%</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {visible.map((item, i) => {
+                const meta = SOURCE_META[item.source] ?? { label: item.source, flag: '🌐', color: 'badge-ghost' };
+                const extPriceUzs = parsePrice(item.price);
+                const mg = extPriceUzs ? marginLabel(extPriceUzs) : null;
+
+                return (
+                  <div key={i} className="bg-base-300 rounded-xl p-3 flex flex-col gap-2 hover:bg-base-content/5 transition-colors">
+                    {/* Source badge */}
+                    <div className="flex items-center justify-between">
+                      <span className={`badge badge-xs ${meta.color}`}>
+                        {meta.flag} {meta.label}
+                      </span>
+                      {mg && (
+                        <span className={`text-xs font-medium ${mg.cls}`}>{mg.text}</span>
+                      )}
+                    </div>
+
+                    {/* Image */}
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt={item.title}
+                        className="w-full h-24 object-contain rounded-lg bg-base-200"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div className="w-full h-24 rounded-lg bg-base-200 flex items-center justify-center text-3xl">
+                        📦
+                      </div>
+                    )}
+
+                    {/* Title */}
+                    <p className="text-xs leading-snug line-clamp-2 text-base-content/80 flex-1">
+                      {item.title}
+                    </p>
+
+                    {/* Price */}
+                    <p className="font-bold text-base text-primary leading-none">{item.price}</p>
+                    {extPriceUzs && (
+                      <p className="text-xs text-base-content/40">
+                        ≈ {extPriceUzs.toLocaleString()} so'm
+                      </p>
+                    )}
+
+                    {/* Store */}
+                    {item.store && (
+                      <p className="text-xs text-base-content/40 truncate">{item.store}</p>
+                    )}
+
+                    {/* Action buttons */}
+                    <div className="flex gap-1 mt-auto">
+                      {item.link && item.link !== '#' ? (
+                        <a
+                          href={item.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-outline btn-xs flex-1"
+                        >
+                          Ko'rish ↗
+                        </a>
+                      ) : (
+                        <span className="btn btn-xs btn-disabled flex-1">Demo</span>
+                      )}
+                      <Link
+                        to={`/sourcing?q=${encodeURIComponent(productTitle)}&price=${extPriceUzs ?? ''}`}
+                        className="btn btn-ghost btn-xs"
+                        title="Cargo kalkulyatorda hisoblash"
+                      >
+                        🧮
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Show more / less */}
+            {items.length > 6 && (
+              <button
+                onClick={() => setExpanded(!expanded)}
+                className="btn btn-ghost btn-sm w-full"
+              >
+                {expanded ? '↑ Kamroq ko\'rsatish' : `↓ Yana ${items.length - 6} ta natija`}
+              </button>
+            )}
+          </>
+        )}
+
+        {/* Empty state */}
+        {!loading && items.length === 0 && !note && (
+          <div className="text-center py-8 text-base-content/30">
+            <p className="text-3xl mb-2">🔍</p>
+            <p className="text-sm">Global bozorda natija topilmadi</p>
+          </div>
+        )}
       </div>
     </div>
   );
