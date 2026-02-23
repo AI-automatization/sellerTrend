@@ -7,6 +7,11 @@ import { DiscoveryPage } from './pages/DiscoveryPage';
 import { AdminPage } from './pages/AdminPage';
 import { ProductPage } from './pages/ProductPage';
 import { SourcingPage } from './pages/SourcingPage';
+import { LeaderboardPage } from './pages/LeaderboardPage';
+import { ProfitCalculatorPage } from './pages/ProfitCalculatorPage';
+import { ShopsPage } from './pages/ShopsPage';
+import { ReferralPage } from './pages/ReferralPage';
+import { ApiKeysPage } from './pages/ApiKeysPage';
 import { Layout } from './components/Layout';
 
 function isAuthenticated() {
@@ -36,6 +41,11 @@ export default function App() {
           <Route path="products/:id" element={<ProductPage />} />
           <Route path="discovery" element={<DiscoveryPage />} />
           <Route path="sourcing" element={<SourcingPage />} />
+          <Route path="leaderboard" element={<LeaderboardPage />} />
+          <Route path="calculator" element={<ProfitCalculatorPage />} />
+          <Route path="shops" element={<ShopsPage />} />
+          <Route path="referral" element={<ReferralPage />} />
+          <Route path="api-keys" element={<ApiKeysPage />} />
           <Route path="admin" element={<AdminPage />} />
         </Route>
       </Routes>

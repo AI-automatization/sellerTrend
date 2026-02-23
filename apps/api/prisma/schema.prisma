@@ -31,6 +31,9 @@ model Account {
   cargo_calculations CargoCalculation[]
   external_search_jobs   ExternalSearchJob[]
   competitor_trackings   CompetitorTracking[]
+  referrals_from         Referral[]  @relation("referrer")
+  referrals_to           Referral[]  @relation("referred")
+  api_keys               ApiKey[]
 
   @@map("accounts")
 }
@@ -514,4 +517,69 @@ model CompetitorPriceSnapshot {
 
   @@index([tracking_id, snapshot_at])
   @@map("competitor_price_snapshots")
+}
+
+// ============================================================
+// SEASONAL TRENDS
+// ============================================================
+
+model SeasonalTrend {
+  id              String   @id @default(uuid())
+  category_id     BigInt?
+  season_name     String   @db.VarChar(100)
+  season_start    Int      // month (1-12)
+  season_end      Int      // month (1-12)
+  avg_score_boost Decimal? @db.Decimal(4, 2)
+  peak_week       Int?
+  created_at      DateTime @default(now()) @db.Timestamptz
+
+  @@map("seasonal_trends")
+}
+
+// ============================================================
+// REFERRAL SYSTEM
+// ============================================================
+
+model Referral {
+  id                  String         @id @default(uuid())
+  referrer_account_id String
+  referred_account_id String?
+  code                String         @unique @db.VarChar(20)
+  status              ReferralStatus @default(PENDING)
+  reward_days         Int            @default(7)
+  credited_at         DateTime?      @db.Timestamptz
+  created_at          DateTime       @default(now()) @db.Timestamptz
+
+  referrer Account  @relation("referrer", fields: [referrer_account_id], references: [id])
+  referred Account? @relation("referred", fields: [referred_account_id], references: [id])
+
+  @@map("referrals")
+}
+
+enum ReferralStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+}
+
+// ============================================================
+// API KEYS
+// ============================================================
+
+model ApiKey {
+  id             String    @id @default(uuid())
+  account_id     String
+  name           String    @db.VarChar(100)
+  key_prefix     String    @db.VarChar(12)
+  key_hash       String    @db.VarChar(64)
+  daily_limit    Int       @default(1000)
+  requests_today Int       @default(0)
+  last_used_at   DateTime? @db.Timestamptz
+  last_reset_at  DateTime  @default(now()) @db.Timestamptz
+  is_active      Boolean   @default(true)
+  created_at     DateTime  @default(now()) @db.Timestamptz
+
+  account Account @relation(fields: [account_id], references: [id])
+
+  @@map("api_keys")
 }

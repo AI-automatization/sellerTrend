@@ -14,6 +14,13 @@ import { SourcingModule } from './sourcing/sourcing.module';
 import { CompetitorModule } from './competitor/competitor.module';
 import { CommonModule } from './common/common.module';
 import { HealthController } from './common/health.controller';
+// v1.0 MVP new modules
+import { ToolsModule } from './tools/tools.module';
+import { LeaderboardModule } from './leaderboard/leaderboard.module';
+import { ShopsModule } from './shops/shops.module';
+import { ReferralModule } from './referral/referral.module';
+import { ApiKeysModule } from './api-keys/api-keys.module';
+import { ExportModule } from './export/export.module';
 
 @Module({
   imports: [
@@ -30,6 +37,13 @@ import { HealthController } from './common/health.controller';
     AiModule,
     SourcingModule,
     CompetitorModule,
+    // v1.0 MVP
+    ToolsModule,
+    LeaderboardModule,
+    ShopsModule,
+    ReferralModule,
+    ApiKeysModule,
+    ExportModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
   controllers: [HealthController],

@@ -3,6 +3,7 @@ import { createBillingWorker } from './processors/billing.processor';
 import { createDiscoveryWorker } from './processors/discovery.processor';
 import { createSourcingWorker } from './processors/sourcing.processor';
 import { createCompetitorWorker } from './processors/competitor.processor';
+import { createImportWorker } from './processors/import.processor';
 import { scheduleDailyBilling } from './jobs/billing.job';
 import { scheduleCompetitorSnapshots } from './jobs/competitor-snapshot.job';
 
@@ -14,6 +15,7 @@ async function bootstrap() {
   const discoveryWorker = createDiscoveryWorker();
   const sourcingWorker = createSourcingWorker();
   const competitorWorker = createCompetitorWorker();
+  const importWorker = createImportWorker();
 
   // Schedule cron jobs
   await scheduleDailyBilling();
@@ -24,6 +26,7 @@ async function bootstrap() {
   console.log('  - discovery-queue');
   console.log('  - sourcing-search');
   console.log('  - competitor-queue');
+  console.log('  - import-batch');
   console.log('Daily billing cron scheduled at 00:00');
   console.log('Competitor snapshot cron scheduled every 6h');
 
@@ -33,6 +36,7 @@ async function bootstrap() {
     await discoveryWorker.close();
     await sourcingWorker.close();
     await competitorWorker.close();
+    await importWorker.close();
     process.exit(0);
   });
 }

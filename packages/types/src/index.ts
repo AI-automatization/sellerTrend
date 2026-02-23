@@ -70,7 +70,8 @@ export type JobName =
   | 'category-discovery'
   | 'product-snapshot'
   | 'url-analyze'
-  | 'competitor-snapshot';
+  | 'competitor-snapshot'
+  | 'import-batch';
 
 export interface UrlAnalyzeJobData {
   url: string;

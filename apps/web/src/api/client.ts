@@ -41,8 +41,8 @@ export function getTokenPayload(): { role?: string; account_id?: string } | null
 export const authApi = {
   login: (email: string, password: string) =>
     api.post('/auth/login', { email, password }),
-  register: (email: string, password: string, company_name: string) =>
-    api.post('/auth/register', { email, password, company_name }),
+  register: (email: string, password: string, company_name: string, referral_code?: string) =>
+    api.post('/auth/register', { email, password, company_name, ...(referral_code ? { referral_code } : {}) }),
 };
 
 // Products endpoints
@@ -101,6 +101,71 @@ export const sourcingApi = {
   listJobs: () => api.get('/sourcing/jobs'),
   getPlatforms: () => api.get('/sourcing/platforms'),
   getHistory: () => api.get('/sourcing/history'),
+};
+
+// Leaderboard endpoints (public)
+export const leaderboardApi = {
+  getPublic: () => api.get('/leaderboard/public'),
+  getByCategories: () => api.get('/leaderboard/public/categories'),
+};
+
+// Shops endpoints
+export const shopsApi = {
+  getShop: (shopId: string) => api.get(`/shops/${shopId}`),
+  getShopProducts: (shopId: string) => api.get(`/shops/${shopId}/products`),
+};
+
+// Tools endpoints
+export const toolsApi = {
+  calculateProfit: (data: {
+    sell_price_uzs: number;
+    unit_cost_usd: number;
+    usd_to_uzs: number;
+    uzum_commission_pct: number;
+    fbo_cost_uzs?: number;
+    ads_spend_uzs?: number;
+    quantity: number;
+  }) => api.post('/tools/profit-calculator', data),
+};
+
+// Referral endpoints
+export const referralApi = {
+  generateCode: () => api.post('/referrals/generate-code'),
+  getStats: () => api.get('/referrals/stats'),
+};
+
+// API Keys endpoints
+export const apiKeysApi = {
+  create: (name: string) => api.post('/api-keys', { name }),
+  list: () => api.get('/api-keys'),
+  remove: (id: string) => api.delete(`/api-keys/${id}`),
+};
+
+// Export endpoints
+export const exportApi = {
+  exportProductsCsv: () => api.get('/products/export/csv', { responseType: 'blob' }),
+  exportDiscoveryExcel: (runId: string) =>
+    api.get(`/discovery/export/excel?run_id=${runId}`, { responseType: 'blob' }),
+  importCsv: (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return api.post('/products/import/csv', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+};
+
+// Seasonal + Niche endpoints (under discovery)
+export const seasonalApi = {
+  getCalendar: () => api.get('/discovery/seasonal-calendar'),
+  getUpcoming: () => api.get('/discovery/seasonal-calendar/upcoming'),
+};
+
+export const nicheApi = {
+  findNiches: (categoryId?: number) =>
+    api.get('/discovery/niches', { params: categoryId ? { category_id: categoryId } : {} }),
+  findGaps: (categoryId?: number) =>
+    api.get('/discovery/niches/gaps', { params: categoryId ? { category_id: categoryId } : {} }),
 };
 
 // Admin endpoints (SUPER_ADMIN only)

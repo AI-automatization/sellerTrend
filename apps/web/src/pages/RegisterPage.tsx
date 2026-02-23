@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { authApi } from '../api/client';
 
 export function RegisterPage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: '', password: '', company_name: '' });
+  const [searchParams] = useSearchParams();
+  const refCode = searchParams.get('ref') ?? '';
+  const [form, setForm] = useState({ email: '', password: '', company_name: '', referral_code: refCode });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -13,7 +15,7 @@ export function RegisterPage() {
     setError('');
     setLoading(true);
     try {
-      const res = await authApi.register(form.email, form.password, form.company_name);
+      const res = await authApi.register(form.email, form.password, form.company_name, form.referral_code || undefined);
       localStorage.setItem('access_token', res.data.access_token);
       navigate('/');
     } catch (err: any) {
@@ -78,6 +80,18 @@ export function RegisterPage() {
                 minLength={8}
                 className="input input-bordered w-full"
                 placeholder="Kamida 8 ta belgi"
+              />
+            </fieldset>
+
+            <fieldset className="fieldset">
+              <legend className="fieldset-legend text-xs">Referal kod (ixtiyoriy)</legend>
+              <input
+                type="text"
+                value={form.referral_code}
+                onChange={(e) => setForm({ ...form, referral_code: e.target.value })}
+                className="input input-bordered w-full"
+                placeholder="abcd1234"
+                maxLength={20}
               />
             </fieldset>
 
