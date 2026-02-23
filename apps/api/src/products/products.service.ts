@@ -13,6 +13,11 @@ export class ProductsService {
           include: {
             snapshots: {
               orderBy: { snapshot_at: 'desc' },
+              take: 2,
+            },
+            skus: {
+              where: { is_available: true },
+              orderBy: { min_sell_price: 'asc' },
               take: 1,
             },
           },
@@ -22,16 +27,87 @@ export class ProductsService {
 
     return tracked.map((t) => {
       const latest = t.product.snapshots[0];
+      const prev = t.product.snapshots[1];
+      const sku = t.product.skus[0];
+
+      const latestScore = latest?.score ? Number(latest.score) : null;
+      const prevScore = prev?.score ? Number(prev.score) : null;
+      const trend =
+        latestScore !== null && prevScore !== null
+          ? latestScore > prevScore + 0.05
+            ? 'up'
+            : latestScore < prevScore - 0.05
+            ? 'down'
+            : 'flat'
+          : null;
+
       return {
         product_id: t.product.id.toString(),
         title: t.product.title,
         rating: t.product.rating,
+        feedback_quantity: t.product.feedback_quantity,
         orders_quantity: t.product.orders_quantity?.toString(),
-        score: latest?.score ? Number(latest.score) : null,
+        score: latestScore,
+        prev_score: prevScore,
+        trend,
         weekly_bought: latest?.weekly_bought,
+        sell_price: sku?.min_sell_price ? Number(sku.min_sell_price) : null,
         tracked_since: t.created_at,
       };
     });
+  }
+
+  async getProductById(productId: bigint) {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      include: {
+        snapshots: {
+          orderBy: { snapshot_at: 'desc' },
+          take: 1,
+          include: {
+            ai_explanations: {
+              orderBy: { created_at: 'desc' },
+              take: 1,
+            },
+          },
+        },
+        skus: {
+          where: { is_available: true },
+          orderBy: { min_sell_price: 'asc' },
+          take: 1,
+        },
+        shop: true,
+      },
+    });
+
+    if (!product) return null;
+
+    const latest = product.snapshots[0];
+    const sku = product.skus[0];
+    const aiRaw = latest?.ai_explanations[0]?.explanation;
+    let ai_explanation: string[] | null = null;
+    if (aiRaw) {
+      try {
+        ai_explanation = JSON.parse(aiRaw);
+      } catch {
+        ai_explanation = [aiRaw];
+      }
+    }
+
+    return {
+      product_id: product.id.toString(),
+      title: product.title,
+      rating: product.rating ? Number(product.rating) : null,
+      feedback_quantity: product.feedback_quantity,
+      orders_quantity: product.orders_quantity?.toString(),
+      shop_name: (product.shop as any)?.name ?? null,
+      score: latest?.score ? Number(latest.score) : null,
+      weekly_bought: latest?.weekly_bought ?? null,
+      sell_price: sku?.min_sell_price ? Number(sku.min_sell_price) : null,
+      stock_type: sku?.stock_type ?? null,
+      ai_explanation,
+      last_updated: latest?.snapshot_at ?? product.updated_at,
+    };
   }
 
   async trackProduct(accountId: string, productId: bigint) {

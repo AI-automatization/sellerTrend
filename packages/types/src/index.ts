@@ -80,4 +80,5 @@ export interface CategoryDiscoveryJobData {
   categoryId: number;
   runId: string;
   accountId: string;
+  categoryUrl?: string; // full Uzum category URL for Playwright scraping
 }

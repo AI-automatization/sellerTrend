@@ -3,109 +3,136 @@ import { redisConnection } from '../redis';
 import { prisma } from '../prisma';
 import type { CategoryDiscoveryJobData } from '@uzum/types';
 import { calculateScore, getSupplyPressure, sleep } from '@uzum/utils';
+import {
+  scrapeCategoryProductIds,
+  fetchProductDetail,
+  type ProductDetail,
+} from './uzum-scraper';
+import {
+  extractCategoryName,
+  filterByCategory,
+} from './uzum-ai-scraper';
 
-const REST_BASE = 'https://api.uzum.uz/api/v2';
-const HEADERS = {
-  'User-Agent':
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  Origin: 'https://uzum.uz',
-  Referer: 'https://uzum.uz/',
-  Accept: 'application/json',
-};
+/**
+ * Fetch product details in parallel batches with rate limiting.
+ * Keeps concurrency at `batchSize` requests at a time.
+ */
+async function batchFetchDetails(
+  ids: number[],
+  batchSize = 5,
+): Promise<ProductDetail[]> {
+  const results: ProductDetail[] = [];
 
-async function fetchCategoryPage(
-  categoryId: number,
-  page: number,
-): Promise<{ items: any[]; total: number }> {
-  // Correct REST endpoint for category product listing
-  const url = `${REST_BASE}/main/search/product?categoryId=${categoryId}&size=48&page=${page}&sort=ORDER_COUNT_DESC&showAdultContent=HIDE`;
-  const res = await fetch(url, { headers: HEADERS });
-
-  if (res.status === 429) {
-    await sleep(5000);
-    return fetchCategoryPage(categoryId, page);
+  for (let i = 0; i < ids.length; i += batchSize) {
+    const batch = ids.slice(i, i + batchSize);
+    const batchResults = await Promise.all(batch.map(fetchProductDetail));
+    results.push(...(batchResults.filter(Boolean) as ProductDetail[]));
+    if (i + batchSize < ids.length) {
+      await sleep(500); // rate limit: ~10 req/sec
+    }
   }
 
-  if (!res.ok) throw new Error(`HTTP ${res.status} for category ${categoryId}`);
-
-  const data = (await res.json()) as any;
-  const payload = data?.payload ?? data;
-  const items: any[] = payload?.products ?? payload?.data?.products ?? [];
-  const total: number = payload?.total ?? payload?.data?.total ?? 0;
-
-  return { items, total };
+  return results;
 }
 
 async function processDiscovery(data: CategoryDiscoveryJobData) {
-  const { categoryId, runId } = data;
+  const { categoryId, runId, categoryUrl } = data;
+
+  // Build URL for Playwright (use provided URL or construct a canonical one)
+  const url =
+    categoryUrl ?? `https://uzum.uz/ru/category/c--${categoryId}`;
 
   await prisma.categoryRun.update({
     where: { id: runId },
     data: { status: 'RUNNING', started_at: new Date() },
   });
 
-  // Fetch first page to get total
-  const firstPage = await fetchCategoryPage(categoryId, 0);
-  const total = firstPage.total;
-  const totalPages = Math.min(Math.ceil(total / 48), 10); // max 10 pages (480 products)
+  const categoryName = extractCategoryName(url);
+  console.log(`[discovery] Category name: "${categoryName}"`);
+
+  // Step 1: Scrape product IDs from the category page via Playwright
+  console.log(`[discovery] Scraping category ${categoryId} from ${url}`);
+  let productIds: number[];
+  try {
+    const { ids } = await scrapeCategoryProductIds(url);
+    productIds = ids;
+  } catch (err) {
+    console.error('[discovery] Playwright scraping failed:', err);
+    throw new Error(`Playwright scraping failed: ${(err as Error).message}`);
+  }
+
+  if (productIds.length === 0) {
+    throw new Error(`No products found for category ${categoryId}`);
+  }
 
   await prisma.categoryRun.update({
     where: { id: runId },
-    data: { total_products: total },
+    data: { total_products: productIds.length },
   });
 
-  const allItems: any[] = [...firstPage.items];
+  console.log(
+    `[discovery] Found ${productIds.length} product IDs — fetching details...`,
+  );
 
-  // Fetch remaining pages with rate limiting
-  for (let page = 1; page < totalPages; page++) {
-    await sleep(1000); // 1 req/sec
-    const pageData = await fetchCategoryPage(categoryId, page);
-    allItems.push(...pageData.items);
-    await prisma.categoryRun.update({
-      where: { id: runId },
-      data: { processed: page * 48 },
-    });
+  // Step 2: Fetch product details from the working REST product detail API
+  // Limit to 100 products to keep run time reasonable
+  const idsToFetch = productIds.slice(0, 100);
+  let products = await batchFetchDetails(idsToFetch);
+
+  await prisma.categoryRun.update({
+    where: { id: runId },
+    data: { processed: products.length },
+  });
+
+  console.log(
+    `[discovery] Fetched details for ${products.length}/${idsToFetch.length} products`,
+  );
+
+  if (products.length === 0) {
+    throw new Error('Product detail API returned no results');
   }
 
-  // Score all items
-  const scored = allItems
-    .filter((item: any) => item?.id && item?.ordersAmount != null)
-    .map((item: any) => {
-      // REST API fields: id, title, rating, ordersAmount, rOrdersAmount, skuList
-      const stockType: 'FBO' | 'FBS' =
-        item?.skuList?.[0]?.stock?.type === 'FBO' ? 'FBO' : 'FBS';
+  // Step 2b: AI category filter — remove cross-category noise
+  if (categoryName) {
+    products = await filterByCategory(products, categoryName);
+    console.log(`[discovery] After AI filter: ${products.length} products`);
+    if (products.length === 0) {
+      throw new Error('AI filter removed all products — check category name');
+    }
+  }
+
+  // Step 3: Score all products
+  const scored = products
+    .map((p) => {
       const score = calculateScore({
-        weekly_bought: item.rOrdersAmount ?? null,
-        orders_quantity: item.ordersAmount ?? 0,
-        rating: item.rating ?? 0,
-        supply_pressure: getSupplyPressure(stockType),
+        weekly_bought: p.rOrdersAmount ?? null,
+        orders_quantity: p.ordersAmount,
+        rating: p.rating,
+        supply_pressure: getSupplyPressure(p.stockType),
       });
-      return { item, score, stockType };
+      return { product: p, score };
     })
     .sort((a, b) => b.score - a.score);
 
   const top20 = scored.slice(0, 20);
 
+  // Step 4: Upsert products and create winners
   for (let i = 0; i < top20.length; i++) {
-    const { item, score } = top20[i];
-
-    const productId = BigInt(item.id);
-    const sellPrice = item.skuList?.[0]?.purchasePrice
-      ? BigInt(item.skuList[0].purchasePrice)
-      : null;
+    const { product, score } = top20[i];
+    const productId = BigInt(product.id);
 
     await prisma.product.upsert({
       where: { id: productId },
       update: {
-        title: item.title ?? item.localizableTitle?.ru ?? '',
-        rating: item.rating,
-        orders_quantity: BigInt(item.ordersAmount ?? 0),
+        title: product.title,
+        rating: product.rating,
+        orders_quantity: BigInt(product.ordersAmount),
       },
       create: {
         id: productId,
-        title: item.title ?? item.localizableTitle?.ru ?? '',
-        rating: item.rating,
-        orders_quantity: BigInt(item.ordersAmount ?? 0),
+        title: product.title,
+        rating: product.rating,
+        orders_quantity: BigInt(product.ordersAmount),
       },
     });
 
@@ -115,9 +142,9 @@ async function processDiscovery(data: CategoryDiscoveryJobData) {
         product_id: productId,
         score,
         rank: i + 1,
-        weekly_bought: item.rOrdersAmount ?? null,
-        orders_quantity: BigInt(item.ordersAmount ?? 0),
-        sell_price: sellPrice,
+        weekly_bought: product.rOrdersAmount ?? null,
+        orders_quantity: BigInt(product.ordersAmount),
+        sell_price: product.sellPrice,
       },
     });
   }
@@ -127,11 +154,15 @@ async function processDiscovery(data: CategoryDiscoveryJobData) {
     data: {
       status: 'DONE',
       finished_at: new Date(),
-      processed: allItems.length,
+      processed: products.length,
     },
   });
 
-  return { total, processed: allItems.length, winners: top20.length };
+  return {
+    total: productIds.length,
+    fetched: products.length,
+    winners: top20.length,
+  };
 }
 
 export function createDiscoveryWorker() {
@@ -154,6 +185,6 @@ export function createDiscoveryWorker() {
         throw err;
       }
     },
-    { ...redisConnection, concurrency: 2 },
+    { ...redisConnection, concurrency: 1 }, // 1 concurrent run (Playwright is heavy)
   );
 }

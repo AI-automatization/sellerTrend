@@ -9,7 +9,7 @@ export class DiscoveryService {
   constructor(private readonly prisma: PrismaService) {}
 
   /** Create a DB record and enqueue to BullMQ worker */
-  async startRun(accountId: string, categoryId: number): Promise<string> {
+  async startRun(accountId: string, categoryId: number, categoryUrl?: string): Promise<string> {
     const run = await this.prisma.categoryRun.create({
       data: {
         account_id: accountId,
@@ -18,7 +18,7 @@ export class DiscoveryService {
       },
     });
 
-    await enqueueDiscovery({ categoryId, runId: run.id, accountId });
+    await enqueueDiscovery({ categoryId, runId: run.id, accountId, categoryUrl });
     this.logger.log(`[run:${run.id}] Enqueued category ${categoryId} → BullMQ`);
 
     return run.id;

@@ -18,7 +18,6 @@ export const discoveryQueue = new Queue<CategoryDiscoveryJobData>(
 
 export async function enqueueDiscovery(data: CategoryDiscoveryJobData) {
   return discoveryQueue.add('category-discovery', data, {
-    attempts: 3,
-    backoff: { type: 'exponential', delay: 5000 },
+    attempts: 1, // Playwright scraping: no retry (Uzum service outage = persistent error)
   });
 }

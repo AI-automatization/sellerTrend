@@ -8,12 +8,14 @@
     "start": "node dist/main"
   },
   "dependencies": {
-    "bullmq": "^5.42.2",
-    "ioredis": "^5.4.2",
-    "dotenv": "^16.4.7",
+    "@anthropic-ai/sdk": "^0.78.0",
     "@prisma/client": "^6.3.1",
     "@uzum/types": "workspace:*",
-    "@uzum/utils": "workspace:*"
+    "@uzum/utils": "workspace:*",
+    "bullmq": "^5.42.2",
+    "dotenv": "^16.4.7",
+    "ioredis": "^5.4.2",
+    "playwright": "^1.41.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",

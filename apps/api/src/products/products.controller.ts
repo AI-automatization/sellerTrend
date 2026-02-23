@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, UseGuards, NotFoundException } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
@@ -15,6 +15,13 @@ export class ProductsController {
   @Get('tracked')
   getTracked(@CurrentUser('account_id') accountId: string) {
     return this.productsService.getTrackedProducts(accountId);
+  }
+
+  @Get(':id')
+  async getProduct(@Param('id') productId: string) {
+    const product = await this.productsService.getProductById(BigInt(productId));
+    if (!product) throw new NotFoundException('Product not found');
+    return product;
   }
 
   @Post(':id/track')

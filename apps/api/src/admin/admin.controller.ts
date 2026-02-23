@@ -81,4 +81,60 @@ export class AdminController {
   auditLog(@Query('limit') limit?: string) {
     return this.adminService.getAuditLog(limit ? parseInt(limit) : 50);
   }
+
+  /** List all users across all accounts */
+  @Get('users')
+  listUsers() {
+    return this.adminService.listUsers();
+  }
+
+  /** Create new account + first user */
+  @Post('accounts')
+  createAccount(
+    @Body() body: { company_name: string; email: string; password: string; role: string },
+    @CurrentUser('id') adminUserId: string,
+  ) {
+    return this.adminService.createAccount(
+      body.company_name,
+      body.email,
+      body.password,
+      body.role,
+      adminUserId,
+    );
+  }
+
+  /** Add user to existing account */
+  @Post('accounts/:id/users')
+  createUser(
+    @Param('id') accountId: string,
+    @Body() body: { email: string; password: string; role: string },
+    @CurrentUser('id') adminUserId: string,
+  ) {
+    return this.adminService.createUser(
+      accountId,
+      body.email,
+      body.password,
+      body.role,
+      adminUserId,
+    );
+  }
+
+  /** Change user role */
+  @Patch('users/:id/role')
+  updateRole(
+    @Param('id') userId: string,
+    @Body() body: { role: string },
+    @CurrentUser('id') adminUserId: string,
+  ) {
+    return this.adminService.updateUserRole(userId, body.role, adminUserId);
+  }
+
+  /** Toggle user active/inactive */
+  @Patch('users/:id/toggle-active')
+  toggleActive(
+    @Param('id') userId: string,
+    @CurrentUser('id') adminUserId: string,
+  ) {
+    return this.adminService.toggleUserActive(userId, adminUserId);
+  }
 }

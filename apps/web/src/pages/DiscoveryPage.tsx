@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { discoveryApi, productsApi } from '../api/client';
 import { FireIcon, ArrowTrendingUpIcon } from '../components/icons';
 
@@ -376,9 +377,13 @@ export function DiscoveryPage() {
                         </td>
                         <td>
                           <div className="max-w-xs">
-                            <p className="text-sm font-medium leading-tight line-clamp-2">
+                            <Link
+                              to={`/products/${w.product_id}`}
+                              onClick={() => setSelectedRun(null)}
+                              className="text-sm font-medium leading-tight line-clamp-2 hover:text-primary transition-colors cursor-pointer"
+                            >
                               {w.title}
-                            </p>
+                            </Link>
                             <p className="text-xs text-base-content/40 mt-0.5">
                               #{w.product_id}
                             </p>

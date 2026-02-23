@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -166,6 +167,135 @@ export class AdminService {
     ]);
 
     return { daily_fee_default: String(fee) };
+  }
+
+  /** Create a new account + first user */
+  async createAccount(
+    companyName: string,
+    email: string,
+    password: string,
+    role: string,
+    adminUserId: string,
+  ) {
+    const existing = await this.prisma.user.findUnique({ where: { email } });
+    if (existing) throw new ConflictException('Bu email allaqachon ro\'yxatdan o\'tgan');
+
+    const allowedRoles = ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'USER'];
+    if (!allowedRoles.includes(role)) throw new BadRequestException('Noto\'g\'ri rol');
+
+    const account = await this.prisma.account.create({ data: { name: companyName } });
+    const password_hash = await bcrypt.hash(password, 12);
+    const user = await this.prisma.user.create({
+      data: { account_id: account.id, email, password_hash, role: role as any },
+    });
+
+    await this.prisma.auditEvent.create({
+      data: {
+        account_id: account.id,
+        user_id: adminUserId,
+        action: 'ACCOUNT_CREATED',
+        new_value: { company: companyName, email, role },
+      },
+    });
+
+    return { account_id: account.id, user_id: user.id, email: user.email, role: user.role };
+  }
+
+  /** Add user to existing account */
+  async createUser(
+    accountId: string,
+    email: string,
+    password: string,
+    role: string,
+    adminUserId: string,
+  ) {
+    const existing = await this.prisma.user.findUnique({ where: { email } });
+    if (existing) throw new ConflictException('Bu email allaqachon ro\'yxatdan o\'tgan');
+
+    const account = await this.prisma.account.findUnique({ where: { id: accountId } });
+    if (!account) throw new NotFoundException('Account topilmadi');
+
+    const allowedRoles = ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'USER'];
+    if (!allowedRoles.includes(role)) throw new BadRequestException('Noto\'g\'ri rol');
+
+    const password_hash = await bcrypt.hash(password, 12);
+    const user = await this.prisma.user.create({
+      data: { account_id: accountId, email, password_hash, role: role as any },
+    });
+
+    await this.prisma.auditEvent.create({
+      data: {
+        account_id: accountId,
+        user_id: adminUserId,
+        action: 'USER_CREATED',
+        new_value: { email, role },
+      },
+    });
+
+    return { id: user.id, email: user.email, role: user.role, account_id: accountId };
+  }
+
+  /** List all users */
+  async listUsers() {
+    const users = await this.prisma.user.findMany({
+      orderBy: { created_at: 'desc' },
+      include: { account: { select: { name: true } } },
+    });
+    return users.map((u) => ({
+      id: u.id,
+      email: u.email,
+      role: u.role,
+      is_active: u.is_active,
+      account_id: u.account_id,
+      account_name: u.account.name,
+      created_at: u.created_at,
+    }));
+  }
+
+  /** Update user role */
+  async updateUserRole(userId: string, role: string, adminUserId: string) {
+    const allowedRoles = ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'USER'];
+    if (!allowedRoles.includes(role)) throw new BadRequestException('Noto\'g\'ri rol');
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Foydalanuvchi topilmadi');
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: userId }, data: { role: role as any } }),
+      this.prisma.auditEvent.create({
+        data: {
+          account_id: user.account_id,
+          user_id: adminUserId,
+          action: 'USER_ROLE_CHANGED',
+          old_value: { role: user.role },
+          new_value: { role, target_user: user.email },
+        },
+      }),
+    ]);
+
+    return { id: userId, role };
+  }
+
+  /** Toggle user active status */
+  async toggleUserActive(userId: string, adminUserId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Foydalanuvchi topilmadi');
+    if (userId === adminUserId) throw new BadRequestException('O\'zingizni o\'chira olmaysiz');
+
+    const newActive = !user.is_active;
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: userId }, data: { is_active: newActive } }),
+      this.prisma.auditEvent.create({
+        data: {
+          account_id: user.account_id,
+          user_id: adminUserId,
+          action: newActive ? 'USER_ACTIVATED' : 'USER_DEACTIVATED',
+          new_value: { target_user: user.email },
+        },
+      }),
+    ]);
+
+    return { id: userId, is_active: newActive };
   }
 
   async getAuditLog(limit = 50) {

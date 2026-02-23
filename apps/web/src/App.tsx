@@ -5,6 +5,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { AnalyzePage } from './pages/AnalyzePage';
 import { DiscoveryPage } from './pages/DiscoveryPage';
 import { AdminPage } from './pages/AdminPage';
+import { ProductPage } from './pages/ProductPage';
 import { Layout } from './components/Layout';
 
 function isAuthenticated() {
@@ -31,6 +32,7 @@ export default function App() {
         >
           <Route index element={<DashboardPage />} />
           <Route path="analyze" element={<AnalyzePage />} />
+          <Route path="products/:id" element={<ProductPage />} />
           <Route path="discovery" element={<DiscoveryPage />} />
           <Route path="admin" element={<AdminPage />} />
         </Route>

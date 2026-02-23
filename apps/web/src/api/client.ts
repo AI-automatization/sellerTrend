@@ -48,6 +48,7 @@ export const authApi = {
 // Products endpoints
 export const productsApi = {
   getTracked: () => api.get('/products/tracked'),
+  getProduct: (productId: string) => api.get(`/products/${productId}`),
   track: (productId: string) => api.post(`/products/${productId}/track`),
   getSnapshots: (productId: string) =>
     api.get(`/products/${productId}/snapshots`),
@@ -58,6 +59,7 @@ export const productsApi = {
 // Uzum endpoints
 export const uzumApi = {
   analyzeUrl: (url: string) => api.post('/uzum/analyze', { url }),
+  analyzeById: (id: string) => api.get(`/uzum/product/${id}`),
 };
 
 // Billing endpoints
@@ -79,6 +81,8 @@ export const discoveryApi = {
 export const adminApi = {
   listAccounts: () => api.get('/admin/accounts'),
   getAccount: (id: string) => api.get(`/admin/accounts/${id}`),
+  createAccount: (data: { company_name: string; email: string; password: string; role: string }) =>
+    api.post('/admin/accounts', data),
   setFee: (id: string, fee: number | null) =>
     api.patch(`/admin/accounts/${id}/fee`, { fee }),
   deposit: (id: string, amount: number, description?: string) =>
@@ -87,4 +91,11 @@ export const adminApi = {
   setGlobalFee: (fee: number) => api.put('/admin/global-fee', { fee }),
   getAuditLog: (limit?: number) =>
     api.get('/admin/audit-log', { params: { limit } }),
+  listUsers: () => api.get('/admin/users'),
+  createUser: (accountId: string, data: { email: string; password: string; role: string }) =>
+    api.post(`/admin/accounts/${accountId}/users`, data),
+  updateRole: (userId: string, role: string) =>
+    api.patch(`/admin/users/${userId}/role`, { role }),
+  toggleActive: (userId: string) =>
+    api.patch(`/admin/users/${userId}/toggle-active`),
 };

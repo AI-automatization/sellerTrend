@@ -49,7 +49,8 @@ export function getSupplyPressure(stockType: 'FBO' | 'FBS'): number {
 /**
  * Extract category ID from Uzum category URL
  * Supports:
- *   https://uzum.uz/ru/category/smartfony--879
+ *   https://uzum.uz/ru/category/smartfony--879   (double dash)
+ *   https://uzum.uz/ru/category/muzhskie-krossovki-13983  (single dash)
  *   https://uzum.uz/category/elektronika--123
  *   879 (plain number string)
  */
@@ -57,9 +58,12 @@ export function parseUzumCategoryId(input: string): number | null {
   const trimmed = input.trim();
   // Plain number
   if (/^\d+$/.test(trimmed)) return parseInt(trimmed, 10);
-  // URL format: /category/slug--ID (double dash before ID)
-  const match = trimmed.match(/--(\d+)(?:[/?#]|$)/);
-  if (match) return parseInt(match[1], 10);
+  // Double-dash format: /category/smartfony--879
+  const doubleDash = trimmed.match(/--(\d+)(?:[/?#]|$)/);
+  if (doubleDash) return parseInt(doubleDash[1], 10);
+  // Single-dash format: /category/slug-name-13983
+  const singleDash = trimmed.match(/\/category\/[^/?#]+-(\d+)(?:[/?#]|$)/);
+  if (singleDash) return parseInt(singleDash[1], 10);
   return null;
 }
 

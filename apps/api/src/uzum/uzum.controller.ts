@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { IsUrl } from 'class-validator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -29,5 +29,11 @@ export class UzumController {
   ) {
     this.reqLogger.logAnalyze(accountId, dto.url);
     return this.uzumService.analyzeUrl(dto.url);
+  }
+
+  /** Fresh analyze by product ID — fetches from Uzum, saves snapshot, runs AI */
+  @Get('product/:id')
+  analyzeById(@Param('id') id: string) {
+    return this.uzumService.analyzeProduct(Number(id));
   }
 }

@@ -48,14 +48,25 @@ export class DiscoveryController {
     const categoryId = await this.uzumClient.resolveCategoryId(body.input.trim());
 
     if (!categoryId) {
+      const isSlugOnly = body.input.trim().startsWith('http') &&
+        /\/category\/[^/?#]+$/.test(body.input.trim()) &&
+        !/--\d+/.test(body.input.trim());
       throw new BadRequestException(
-        "Kategoriya ID topilmadi. To'liq Uzum category URL yoki raqam kiriting.",
+        isSlugOnly
+          ? "URL'dan kategoriya ID aniqlanmadi. URL'ni brauzerdan to'g'ridan-to'g'ri ko'chiring — ID avtomatik bo'lishi kerak (masalan: smartfony--879). Yoki faqat raqam kiriting (masalan: 10012)."
+          : "Kategoriya ID topilmadi. To'liq Uzum category URL yoki raqam kiriting.",
       );
     }
 
     this.reqLogger.logDiscovery(accountId, categoryId, body.input.trim());
 
-    const runId = await this.discoveryService.startRun(accountId, categoryId);
+    // Build category URL for Playwright scraping
+    const rawInput = body.input.trim();
+    const categoryUrl = rawInput.startsWith('http')
+      ? rawInput
+      : `https://uzum.uz/ru/category/c--${categoryId}`;
+
+    const runId = await this.discoveryService.startRun(accountId, categoryId, categoryUrl);
     return { run_id: runId, category_id: categoryId, message: 'Discovery run started' };
   }
 
