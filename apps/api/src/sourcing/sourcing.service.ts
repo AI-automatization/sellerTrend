@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { enqueueSourcingSearch } from './sourcing.queue';
+import { enqueueSourcingSearch, enqueueSourcingJob } from './sourcing.queue';
 
 // Cargo yo'nalishlari
 export interface CargoCalcInput {
@@ -210,14 +210,14 @@ export class SourcingService {
     };
   }
 
-  // ─── External Price Search ─────────────────────────────────────────────────
+  // ─── External Price Search (Quick — backward compat) ─────────────────────
 
   async searchExternalPrices(
     query: string,
     _source: string,
     account_id: string,
   ) {
-    // Playwright worker orqali real AliExpress + Alibaba mahsulotlari
+    // Playwright worker orqali real mahsulotlari
     const results = await enqueueSourcingSearch(query);
 
     await this.prisma.externalPriceSearch.create({
@@ -225,6 +225,144 @@ export class SourcingService {
     });
 
     return { results };
+  }
+
+  // ─── External Search Job (Full Pipeline) ─────────────────────────────────
+
+  async createSearchJob(params: {
+    account_id: string;
+    product_id: number;
+    product_title: string;
+    platforms?: string[];
+  }) {
+    const { account_id, product_id, product_title, platforms } = params;
+
+    // Create job record
+    const job = await this.prisma.externalSearchJob.create({
+      data: {
+        account_id,
+        product_id: BigInt(product_id),
+        query: product_title,
+        platforms: platforms ?? ['1688', 'taobao', 'alibaba', 'banggood', 'shopee'],
+        status: 'PENDING',
+      },
+    });
+
+    // Enqueue for worker processing
+    await enqueueSourcingJob({
+      query: product_title,
+      jobId: job.id,
+      productId: product_id,
+      productTitle: product_title,
+      accountId: account_id,
+      platforms: job.platforms,
+    });
+
+    return {
+      job_id: job.id,
+      status: job.status,
+      query: job.query,
+      platforms: job.platforms,
+    };
+  }
+
+  async getSearchJob(jobId: string) {
+    const job = await this.prisma.externalSearchJob.findUnique({
+      where: { id: jobId },
+      include: {
+        results: {
+          orderBy: { rank: 'asc' },
+          include: {
+            platform: { select: { code: true, name: true, country: true } },
+            cargo_calculations: {
+              take: 1,
+              include: { provider: { select: { name: true, method: true, origin: true } } },
+            },
+          },
+        },
+      },
+    });
+
+    if (!job) throw new BadRequestException('Job topilmadi');
+
+    return {
+      id: job.id,
+      status: job.status,
+      query: job.query,
+      platforms: job.platforms,
+      product_id: job.product_id.toString(),
+      created_at: job.created_at,
+      finished_at: job.finished_at,
+      results: job.results.map((r) => ({
+        id: r.id,
+        platform: r.platform.code,
+        platform_name: r.platform.name,
+        country: r.platform.country,
+        title: r.title,
+        price_usd: Number(r.price_usd),
+        price_local: r.price_local ? Number(r.price_local) : null,
+        currency: r.currency,
+        url: r.url,
+        image_url: r.image_url,
+        seller_name: r.seller_name,
+        seller_rating: r.seller_rating ? Number(r.seller_rating) : null,
+        min_order_qty: r.min_order_qty,
+        shipping_days: r.shipping_days,
+        ai_match_score: r.ai_match_score ? Number(r.ai_match_score) : null,
+        ai_notes: r.ai_notes,
+        rank: r.rank,
+        cargo: r.cargo_calculations[0]
+          ? {
+              landed_cost_usd: Number(r.cargo_calculations[0].landed_cost_usd),
+              landed_cost_uzs: Number(r.cargo_calculations[0].landed_cost_uzs),
+              cargo_cost_usd: Number(r.cargo_calculations[0].cargo_cost_usd),
+              customs_usd: Number(r.cargo_calculations[0].customs_usd),
+              vat_usd: Number(r.cargo_calculations[0].vat_usd),
+              margin_pct: r.cargo_calculations[0].gross_margin
+                ? Number(r.cargo_calculations[0].gross_margin) * 100
+                : null,
+              roi_pct: r.cargo_calculations[0].roi
+                ? Number(r.cargo_calculations[0].roi) * 100
+                : null,
+              provider: r.cargo_calculations[0].provider
+                ? `${r.cargo_calculations[0].provider.name} (${r.cargo_calculations[0].provider.origin})`
+                : null,
+            }
+          : null,
+      })),
+    };
+  }
+
+  async listSearchJobs(account_id: string) {
+    const jobs = await this.prisma.externalSearchJob.findMany({
+      where: { account_id },
+      orderBy: { created_at: 'desc' },
+      take: 20,
+      include: {
+        _count: { select: { results: true } },
+      },
+    });
+
+    return jobs.map((j) => ({
+      id: j.id,
+      query: j.query,
+      status: j.status,
+      platforms: j.platforms,
+      product_id: j.product_id.toString(),
+      result_count: j._count.results,
+      created_at: j.created_at,
+      finished_at: j.finished_at,
+    }));
+  }
+
+  // ─── Platforms ───────────────────────────────────────────────────────────
+
+  async getPlatforms() {
+    return this.prisma.externalPlatform.findMany({
+      where: { is_active: true },
+      orderBy: { name: 'asc' },
+      select: { id: true, code: true, name: true, country: true, api_type: true },
+    });
   }
 
   // ─── History ───────────────────────────────────────────────────────────────

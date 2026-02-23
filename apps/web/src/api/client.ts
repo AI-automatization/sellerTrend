@@ -94,6 +94,12 @@ export const sourcingApi = {
   }) => api.post('/sourcing/cargo/calculate', data),
   searchPrices: (query: string, source: string) =>
     api.post('/sourcing/search', { query, source }),
+  // Full sourcing job API
+  createJob: (data: { product_id: number; product_title: string; platforms?: string[] }) =>
+    api.post('/sourcing/jobs', data),
+  getJob: (id: string) => api.get(`/sourcing/jobs/${id}`),
+  listJobs: () => api.get('/sourcing/jobs'),
+  getPlatforms: () => api.get('/sourcing/platforms'),
   getHistory: () => api.get('/sourcing/history'),
 };
 

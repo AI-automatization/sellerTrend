@@ -168,4 +168,116 @@ export class AiService {
       await new Promise((r) => setTimeout(r, 350));
     }
   }
+
+  /**
+   * Generate optimized search queries for external marketplace search.
+   * Uses Haiku for speed and cost efficiency.
+   */
+  async generateSearchQuery(
+    productTitle: string,
+  ): Promise<{ cn_query: string; en_query: string; keywords: string[] }> {
+    const fallback = {
+      cn_query: productTitle,
+      en_query: productTitle,
+      keywords: productTitle.split(/\s+/).slice(0, 5),
+    };
+
+    try {
+      const message = await this.client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 256,
+        messages: [
+          {
+            role: 'user',
+            content:
+              `Mahsulot nomi: "${productTitle}"\n\n` +
+              `Quyidagi JSON formatida qidiruv so'rovlari yarat (boshqa hech narsa yozmang):\n` +
+              `{\n` +
+              `  "cn_query": "Xitoy marketplace (1688/Taobao) uchun qisqa inglizcha yoki xitoycha qidiruv",\n` +
+              `  "en_query": "Amazon/AliExpress uchun inglizcha qidiruv",\n` +
+              `  "keywords": ["asosiy", "kalit", "sozlar"]\n` +
+              `}`,
+          },
+        ],
+      });
+
+      const text =
+        message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+      try {
+        const parsed = JSON.parse(text);
+        return {
+          cn_query: parsed.cn_query || fallback.cn_query,
+          en_query: parsed.en_query || fallback.en_query,
+          keywords: Array.isArray(parsed.keywords) ? parsed.keywords : fallback.keywords,
+        };
+      } catch {
+        this.logger.warn(`AI search query parse failed: ${text.slice(0, 100)}`);
+        return fallback;
+      }
+    } catch (err: any) {
+      this.logger.error(`generateSearchQuery failed: ${err.message}`);
+      return fallback;
+    }
+  }
+
+  /**
+   * Score external search results for match quality against a Uzum product.
+   * Uses Sonnet for better accuracy. Batch processes up to 20 results.
+   */
+  async scoreExternalResults(
+    uzumTitle: string,
+    results: Array<{ index: number; title: string; price: string; platform: string }>,
+  ): Promise<Array<{ index: number; match_score: number; note: string }>> {
+    if (results.length === 0) return [];
+
+    const fallback = results.map((r) => ({
+      index: r.index,
+      match_score: 0.5,
+      note: 'AI scoring unavailable',
+    }));
+
+    try {
+      const resultsList = results
+        .map((r) => `${r.index}. [${r.platform}] ${r.title} — ${r.price}`)
+        .join('\n');
+
+      const message = await this.client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        messages: [
+          {
+            role: 'user',
+            content:
+              `Uzum mahsuloti: "${uzumTitle}"\n\n` +
+              `Quyidagi tashqi platformalardan topilgan mahsulotlarni tahlil qil.\n` +
+              `Har biriga 0.0-1.0 oraligida match_score ber.\n` +
+              `Bir xil mahsulotga 0.8+, oxshashiga 0.5-0.8, boshqasiga 0.5 dan past.\n\n` +
+              `Mahsulotlar:\n${resultsList}\n\n` +
+              `Faqat JSON massiv qaytir:\n` +
+              `[{"index": 0, "match_score": 0.95, "note": "Xuddi shu model"}, ...]`,
+          },
+        ],
+      });
+
+      const text =
+        message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+      try {
+        const parsed = JSON.parse(text);
+        if (!Array.isArray(parsed)) return fallback;
+        return parsed.map((item: any) => ({
+          index: typeof item.index === 'number' ? item.index : 0,
+          match_score: typeof item.match_score === 'number'
+            ? Math.min(1, Math.max(0, item.match_score))
+            : 0.5,
+          note: item.note || '',
+        }));
+      } catch {
+        this.logger.warn(`AI scoring parse failed: ${text.slice(0, 100)}`);
+        return fallback;
+      }
+    } catch (err: any) {
+      this.logger.error(`scoreExternalResults failed: ${err.message}`);
+      return fallback;
+    }
+  }
 }

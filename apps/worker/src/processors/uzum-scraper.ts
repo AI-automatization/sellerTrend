@@ -16,8 +16,13 @@
  */
 
 import { chromium } from 'playwright';
+import { ProxyAgent } from 'undici';
 
 const REST_BASE = 'https://api.uzum.uz/api/v2';
+
+const proxyDispatcher = process.env.PROXY_URL
+  ? new ProxyAgent(process.env.PROXY_URL)
+  : undefined;
 const HEADERS: Record<string, string> = {
   'User-Agent':
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -48,12 +53,13 @@ function parseProductId(href: string): number | null {
  */
 export async function scrapeCategoryProductIds(
   categoryUrl: string,
-  scrollCount = 6,
+  scrollCount = 15,
 ): Promise<{ ids: number[]; screenshotBase64?: string }> {
   console.log(`[scraper] Opening ${categoryUrl}`);
 
   const browser = await chromium.launch({
     headless: true,
+    proxy: process.env.PROXY_URL ? { server: process.env.PROXY_URL } : undefined,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -158,7 +164,8 @@ export async function fetchProductDetail(
   try {
     const res = await fetch(`${REST_BASE}/product/${productId}`, {
       headers: HEADERS,
-    });
+      dispatcher: proxyDispatcher,
+    } as any);
     if (!res.ok) return null;
 
     const data = (await res.json()) as any;

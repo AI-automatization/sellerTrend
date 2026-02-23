@@ -1,6 +1,6 @@
 // Account / Auth types
 export type AccountStatus = 'ACTIVE' | 'PAYMENT_DUE' | 'SUSPENDED';
-export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'USER';
+export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'MODERATOR' | 'USER';
 export type TransactionType = 'CHARGE' | 'DEPOSIT' | 'REFUND';
 
 // Uzum types
@@ -69,7 +69,8 @@ export type JobName =
   | 'daily-billing'
   | 'category-discovery'
   | 'product-snapshot'
-  | 'url-analyze';
+  | 'url-analyze'
+  | 'competitor-snapshot';
 
 export interface UrlAnalyzeJobData {
   url: string;

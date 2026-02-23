@@ -75,8 +75,8 @@ async function processDiscovery(data: CategoryDiscoveryJobData) {
   );
 
   // Step 2: Fetch product details from the working REST product detail API
-  // Limit to 100 products to keep run time reasonable
-  const idsToFetch = productIds.slice(0, 100);
+  // Limit to 200 products to cover more of the category
+  const idsToFetch = productIds.slice(0, 200);
   let products = await batchFetchDetails(idsToFetch);
 
   await prisma.categoryRun.update({

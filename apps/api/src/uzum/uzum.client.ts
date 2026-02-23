@@ -1,7 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ProxyAgent } from 'undici';
 import { parseUzumCategoryId, sleep } from '@uzum/utils';
 
 const REST_BASE = 'https://api.uzum.uz/api/v2';
+
+const proxyDispatcher = process.env.PROXY_URL
+  ? new ProxyAgent(process.env.PROXY_URL)
+  : undefined;
 const HEADERS = {
   'User-Agent':
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -78,7 +83,7 @@ export class UzumClient {
         `${REST_BASE}/main/search/product` +
         `?text=${encodeURIComponent(keyword)}&size=3&sort=ORDER_COUNT_DESC&showAdultContent=HIDE`;
 
-      const res = await fetch(searchUrl, { headers: HEADERS });
+      const res = await fetch(searchUrl, { headers: HEADERS, dispatcher: proxyDispatcher } as any);
       if (!res.ok) return null;
 
       const data = (await res.json()) as any;
@@ -92,7 +97,7 @@ export class UzumClient {
 
       const detail = await this.fetchProductDetail(Number(productId));
       // detail.category comes from the raw data — need to re-fetch raw
-      const rawRes = await fetch(`${REST_BASE}/product/${productId}`, { headers: HEADERS });
+      const rawRes = await fetch(`${REST_BASE}/product/${productId}`, { headers: HEADERS, dispatcher: proxyDispatcher } as any);
       if (!rawRes.ok) return null;
 
       const raw = (await rawRes.json()) as any;
@@ -135,7 +140,36 @@ export class UzumClient {
   }
 
   /**
-   * Fetch category listing via REST API
+   * Fetch category products via the working search endpoint.
+   * Uses /main/search/product?categoryId= (unlike fetchCategoryListing which uses the broken /category/{id}/products).
+   */
+  async fetchCategoryProducts(
+    categoryId: number,
+    size = 48,
+  ): Promise<any[]> {
+    const url =
+      `${REST_BASE}/main/search/product` +
+      `?categoryId=${categoryId}&size=${size}&page=0&sort=ORDER_COUNT_DESC&showAdultContent=HIDE`;
+
+    try {
+      const response = await fetch(url, { headers: HEADERS, dispatcher: proxyDispatcher } as any);
+      if (!response.ok) {
+        this.logger.warn(`fetchCategoryProducts HTTP ${response.status}`);
+        return [];
+      }
+
+      const data = (await response.json()) as any;
+      const payload = data?.payload ?? data;
+      const products = payload?.products ?? payload?.data?.products ?? [];
+      return products;
+    } catch (err: any) {
+      this.logger.error(`fetchCategoryProducts failed: ${err.message}`);
+      return [];
+    }
+  }
+
+  /**
+   * Fetch category listing via REST API (legacy — broken endpoint)
    */
   async fetchCategoryListing(
     categoryId: number,
@@ -147,7 +181,7 @@ export class UzumClient {
 
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
-        const response = await fetch(url, { headers: HEADERS });
+        const response = await fetch(url, { headers: HEADERS, dispatcher: proxyDispatcher } as any);
 
         if (response.status === 429) {
           this.logger.warn(`Rate limited (429), waiting 5s...`);
@@ -181,7 +215,7 @@ export class UzumClient {
 
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
-        const response = await fetch(url, { headers: HEADERS });
+        const response = await fetch(url, { headers: HEADERS, dispatcher: proxyDispatcher } as any);
 
         if (response.status === 429) {
           await sleep(5000);
