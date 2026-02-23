@@ -12,6 +12,10 @@ import { ProfitCalculatorPage } from './pages/ProfitCalculatorPage';
 import { ShopsPage } from './pages/ShopsPage';
 import { ReferralPage } from './pages/ReferralPage';
 import { ApiKeysPage } from './pages/ApiKeysPage';
+// v2.0 pages
+import { DescriptionGeneratorPage } from './pages/DescriptionGeneratorPage';
+import { ElasticityPage } from './pages/ElasticityPage';
+import { ConsultationPage } from './pages/ConsultationPage';
 import { Layout } from './components/Layout';
 
 function isAuthenticated() {
@@ -46,6 +50,10 @@ export default function App() {
           <Route path="shops" element={<ShopsPage />} />
           <Route path="referral" element={<ReferralPage />} />
           <Route path="api-keys" element={<ApiKeysPage />} />
+          {/* v2.0 */}
+          <Route path="ai-description" element={<DescriptionGeneratorPage />} />
+          <Route path="elasticity" element={<ElasticityPage />} />
+          <Route path="consultation" element={<ConsultationPage />} />
           <Route path="admin" element={<AdminPage />} />
         </Route>
       </Routes>

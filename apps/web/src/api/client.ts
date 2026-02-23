@@ -54,6 +54,10 @@ export const productsApi = {
     api.get(`/products/${productId}/snapshots`),
   getForecast: (productId: string) =>
     api.get(`/products/${productId}/forecast`),
+  getMlForecast: (productId: string) =>
+    api.get(`/products/${productId}/ml-forecast`),
+  getTrendAnalysis: (productId: string) =>
+    api.get(`/products/${productId}/trend-analysis`),
 };
 
 // Uzum endpoints
@@ -94,7 +98,6 @@ export const sourcingApi = {
   }) => api.post('/sourcing/cargo/calculate', data),
   searchPrices: (query: string, source: string) =>
     api.post('/sourcing/search', { query, source }),
-  // Full sourcing job API
   createJob: (data: { product_id: number; product_title: string; platforms?: string[] }) =>
     api.post('/sourcing/jobs', data),
   getJob: (id: string) => api.get(`/sourcing/jobs/${id}`),
@@ -126,6 +129,22 @@ export const toolsApi = {
     ads_spend_uzs?: number;
     quantity: number;
   }) => api.post('/tools/profit-calculator', data),
+  calculateElasticity: (data: {
+    price_old: number;
+    price_new: number;
+    qty_old: number;
+    qty_new: number;
+  }) => api.post('/tools/price-elasticity', data),
+  generateDescription: (data: {
+    title: string;
+    attributes?: Record<string, string | null>;
+    category?: string;
+    keywords?: string[];
+  }) => api.post('/tools/generate-description', data),
+  analyzeSentiment: (data: {
+    productTitle: string;
+    reviews: string[];
+  }) => api.post('/tools/analyze-sentiment', data),
 };
 
 // Referral endpoints
@@ -166,6 +185,27 @@ export const nicheApi = {
     api.get('/discovery/niches', { params: categoryId ? { category_id: categoryId } : {} }),
   findGaps: (categoryId?: number) =>
     api.get('/discovery/niches/gaps', { params: categoryId ? { category_id: categoryId } : {} }),
+};
+
+// Consultation endpoints (Feature 15)
+export const consultationApi = {
+  list: (category?: string) =>
+    api.get('/consultations', { params: category ? { category } : {} }),
+  getCategories: () => api.get('/consultations/categories'),
+  getMyListings: () => api.get('/consultations/my-listings'),
+  getMyBookings: () => api.get('/consultations/my-bookings'),
+  create: (data: {
+    title: string;
+    description?: string;
+    category: string;
+    price_uzs: number;
+    duration_min?: number;
+  }) => api.post('/consultations', data),
+  book: (id: string, scheduled_at: string) =>
+    api.post(`/consultations/${id}/book`, { scheduled_at }),
+  complete: (id: string) => api.post(`/consultations/${id}/complete`),
+  rate: (id: string, rating: number, review?: string) =>
+    api.post(`/consultations/${id}/rate`, { rating, review }),
 };
 
 // Admin endpoints (SUPER_ADMIN only)

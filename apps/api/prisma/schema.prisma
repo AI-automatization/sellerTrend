@@ -34,6 +34,8 @@ model Account {
   referrals_from         Referral[]  @relation("referrer")
   referrals_to           Referral[]  @relation("referred")
   api_keys               ApiKey[]
+  consultant_sessions    Consultation[] @relation("consultant_sessions")
+  client_sessions        Consultation[] @relation("client_sessions")
 
   @@map("accounts")
 }
@@ -582,4 +584,38 @@ model ApiKey {
   account Account @relation(fields: [account_id], references: [id])
 
   @@map("api_keys")
+}
+
+// ============================================================
+// CONSULTATIONS (Feature 15 — Konsultatsiya Marketplace)
+// ============================================================
+
+model Consultation {
+  id              String             @id @default(uuid())
+  consultant_id   String
+  client_id       String?
+  title           String             @db.VarChar(255)
+  description     String?            @db.Text
+  category        String             @db.VarChar(100)
+  price_uzs       BigInt
+  duration_min    Int                @default(60)
+  status          ConsultationStatus @default(AVAILABLE)
+  scheduled_at    DateTime?          @db.Timestamptz
+  completed_at    DateTime?          @db.Timestamptz
+  rating          Decimal?           @db.Decimal(2, 1)
+  review          String?            @db.Text
+  created_at      DateTime           @default(now()) @db.Timestamptz
+
+  consultant Account  @relation("consultant_sessions", fields: [consultant_id], references: [id])
+  client     Account? @relation("client_sessions", fields: [client_id], references: [id])
+
+  @@map("consultations")
+}
+
+enum ConsultationStatus {
+  AVAILABLE
+  BOOKED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
 }

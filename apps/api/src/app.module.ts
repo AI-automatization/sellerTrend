@@ -14,18 +14,21 @@ import { SourcingModule } from './sourcing/sourcing.module';
 import { CompetitorModule } from './competitor/competitor.module';
 import { CommonModule } from './common/common.module';
 import { HealthController } from './common/health.controller';
-// v1.0 MVP new modules
+// v1.0 MVP modules
 import { ToolsModule } from './tools/tools.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { ShopsModule } from './shops/shops.module';
 import { ReferralModule } from './referral/referral.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
 import { ExportModule } from './export/export.module';
+// v2.0 modules
+import { ConsultationModule } from './consultation/consultation.module';
+import { GatewayModule } from './common/gateways/gateway.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]), // 60 req/min per IP
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
     CommonModule,
     PrismaModule,
     AuthModule,
@@ -44,6 +47,9 @@ import { ExportModule } from './export/export.module';
     ReferralModule,
     ApiKeysModule,
     ExportModule,
+    // v2.0
+    ConsultationModule,
+    GatewayModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
   controllers: [HealthController],

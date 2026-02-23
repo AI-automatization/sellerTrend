@@ -117,7 +117,6 @@ export function DashboardPage() {
   }
 
   // Computed stats
-  const totalOrders = products.reduce((s, p) => s + (p.orders_quantity ? Number(p.orders_quantity) : 0), 0);
   const totalWeeklySales = products.reduce((s, p) => s + (p.weekly_bought ?? 0), 0);
   const avgScore = products.length > 0
     ? products.reduce((s, p) => s + (p.score ?? 0), 0) / products.length

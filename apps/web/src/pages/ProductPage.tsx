@@ -165,6 +165,11 @@ export function ProductPage() {
   const [extSearched, setExtSearched] = useState(false);
   const [extNote, setExtNote] = useState('');
 
+  // ML Forecast state
+  const [mlForecast, setMlForecast] = useState<any>(null);
+  const [trendAnalysis, setTrendAnalysis] = useState<any>(null);
+  const [mlLoading, setMlLoading] = useState(false);
+
   async function loadData(showRefreshing = false) {
     if (!id) return;
     if (showRefreshing) setRefreshing(true);
@@ -195,6 +200,19 @@ export function ProductPage() {
   }
 
   useEffect(() => { loadData(); }, [id]);
+
+  // Load ML forecast when product is loaded
+  useEffect(() => {
+    if (!id || !result) return;
+    setMlLoading(true);
+    Promise.all([
+      productsApi.getMlForecast(id).catch(() => ({ data: null })),
+      productsApi.getTrendAnalysis(id).catch(() => ({ data: null })),
+    ]).then(([mlRes, trendRes]) => {
+      if (mlRes.data) setMlForecast(mlRes.data);
+      if (trendRes.data) setTrendAnalysis(trendRes.data);
+    }).finally(() => setMlLoading(false));
+  }, [id, result?.product_id]);
 
   useEffect(() => {
     if (!result?.title || extSearched) return;
@@ -387,6 +405,126 @@ export function ProductPage() {
                 </AreaChart>
               </ResponsiveContainer>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* ML Forecast — Feature 11 */}
+      {(mlForecast || mlLoading) && (
+        <div className="rounded-2xl bg-base-200/60 border border-primary/20 p-4 lg:p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🧠</span>
+            <h2 className="font-bold text-base lg:text-lg">ML Prognoz (Ensemble)</h2>
+            <span className="badge badge-primary badge-sm ml-auto">AI+ML</span>
+          </div>
+
+          {mlLoading && !mlForecast ? (
+            <div className="flex justify-center py-8">
+              <span className="loading loading-dots loading-lg text-primary" />
+            </div>
+          ) : mlForecast && (
+            <>
+              {/* Score & Sales forecast summaries */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3">
+                  <p className="text-xs text-base-content/50">7 kun score</p>
+                  <p className={`font-bold text-lg tabular-nums ${
+                    mlForecast.score_forecast.trend === 'up' ? 'text-success' :
+                    mlForecast.score_forecast.trend === 'down' ? 'text-error' : ''
+                  }`}>
+                    {mlForecast.score_forecast.predictions?.[6]?.value?.toFixed(2) ?? '—'}
+                  </p>
+                  <TrendBadge trend={mlForecast.score_forecast.trend} />
+                </div>
+                <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3">
+                  <p className="text-xs text-base-content/50">7 kun sotuv</p>
+                  <p className={`font-bold text-lg tabular-nums ${
+                    mlForecast.sales_forecast.trend === 'up' ? 'text-success' :
+                    mlForecast.sales_forecast.trend === 'down' ? 'text-error' : ''
+                  }`}>
+                    {mlForecast.sales_forecast.predictions?.[6]?.value?.toFixed(0) ?? '—'}
+                  </p>
+                  <TrendBadge trend={mlForecast.sales_forecast.trend} />
+                </div>
+                <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3">
+                  <p className="text-xs text-base-content/50">Ishonchlilik</p>
+                  <p className="font-bold text-lg tabular-nums">
+                    {(mlForecast.score_forecast.confidence * 100).toFixed(0)}%
+                  </p>
+                  <p className="text-xs text-base-content/40">confidence</p>
+                </div>
+                <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3">
+                  <p className="text-xs text-base-content/50">Ma'lumot</p>
+                  <p className="font-bold text-lg tabular-nums">{mlForecast.data_points}</p>
+                  <p className="text-xs text-base-content/40">snapshot</p>
+                </div>
+              </div>
+
+              {/* Confidence interval chart */}
+              {mlForecast.score_forecast.predictions?.length > 0 && (
+                <div>
+                  <p className="text-xs text-base-content/50 mb-2">Score prognoz (95% ishonch intervali)</p>
+                  <ResponsiveContainer width="100%" height={180}>
+                    <AreaChart
+                      data={[
+                        ...mlForecast.snapshots.slice(-10).map((s: any) => ({
+                          date: new Date(s.date).toLocaleDateString('uz-UZ', { month: 'short', day: 'numeric' }),
+                          score: s.score,
+                        })),
+                        ...mlForecast.score_forecast.predictions.map((p: any) => ({
+                          date: new Date(p.date).toLocaleDateString('uz-UZ', { month: 'short', day: 'numeric' }),
+                          predicted: p.value,
+                          lower: p.lower,
+                          upper: p.upper,
+                        })),
+                      ]}
+                      margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="confGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                      <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} tickLine={false} axisLine={false} />
+                      <YAxis tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                      <Tooltip {...glassTooltip} />
+                      <Area type="monotone" dataKey="score" stroke="#a78bfa" strokeWidth={2} fill="none" dot={false} />
+                      <Area type="monotone" dataKey="upper" stroke="none" fill="url(#confGrad)" dot={false} />
+                      <Area type="monotone" dataKey="lower" stroke="none" fill="none" dot={false} />
+                      <Area type="monotone" dataKey="predicted" stroke="#6366f1" strokeWidth={2} strokeDasharray="5 5" fill="none" dot={{ r: 3, fill: '#6366f1' }} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* AI Trend Analysis */}
+              {trendAnalysis?.analysis && (
+                <div className="bg-base-300/60 rounded-xl p-4 space-y-2">
+                  <h3 className="text-sm font-bold flex items-center gap-2">
+                    <span>🤖</span> AI Trend Tahlili
+                  </h3>
+                  <p className="text-sm text-base-content/80">{trendAnalysis.analysis}</p>
+                  {trendAnalysis.factors?.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {trendAnalysis.factors.map((f: string, i: number) => (
+                        <span key={i} className="badge badge-outline badge-sm">{f}</span>
+                      ))}
+                    </div>
+                  )}
+                  {trendAnalysis.recommendation && (
+                    <p className="text-sm text-primary font-medium mt-1">
+                      Tavsiya: {trendAnalysis.recommendation}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <p className="text-xs text-base-content/30">
+                Ensemble: WMA + Holt's Exponential Smoothing + Linear Regression · MAE: {mlForecast.score_forecast.metrics?.mae ?? '—'} · RMSE: {mlForecast.score_forecast.metrics?.rmse ?? '—'}
+              </p>
+            </>
           )}
         </div>
       )}

@@ -511,7 +511,6 @@ export function AdminPage() {
             {/* Role cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
               {ROLES.map((role) => {
-                const meta = ROLE_META[role];
                 const perms = PERMISSIONS[role];
                 return (
                   <div key={role} className="rounded-2xl bg-base-200/60 border border-base-300/50 p-5">
