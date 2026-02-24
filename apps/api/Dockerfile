@@ -34,7 +34,6 @@ RUN pnpm install --frozen-lockfile --prod --filter api --filter @uzum/types --fi
 
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 WORKDIR /app/apps/api
 RUN pnpm exec prisma generate
