@@ -14,9 +14,9 @@ WORKDIR /app
 COPY tsconfig.base.json ./
 COPY packages/ ./packages/
 COPY apps/worker/ ./apps/worker/
-COPY apps/api/prisma/ ./apps/api/prisma/
+COPY apps/api/prisma/ ./apps/worker/prisma/
 WORKDIR /app/apps/worker
-RUN pnpm exec prisma generate --schema=../api/prisma/schema.prisma
+RUN pnpm exec prisma generate
 RUN pnpm run build
 
 # Use Debian slim for Playwright Chromium support (Alpine lacks required libs)
@@ -56,8 +56,8 @@ COPY packages/utils/package.json ./packages/utils/
 RUN pnpm install --frozen-lockfile --prod --filter worker --filter @uzum/types --filter @uzum/utils
 
 COPY --from=builder /app/apps/worker/dist ./apps/worker/dist
-COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+COPY --from=builder /app/apps/worker/prisma ./apps/worker/prisma
 
 WORKDIR /app/apps/worker
-RUN pnpm exec prisma generate --schema=../api/prisma/schema.prisma
+RUN pnpm exec prisma generate
 CMD ["node", "dist/main"]
