@@ -31,9 +31,18 @@ RUN pnpm --filter=worker deploy --legacy --prod /app/worker-deploy
 # Copy worker compiled output into the bundle
 RUN cp -r /app/apps/worker/dist /app/worker-deploy/
 RUN cp -r /app/apps/worker/prisma /app/worker-deploy/
-# Inject built package dist (pnpm deploy excludes dist/ because it is in .gitignore)
-RUN cp -r /app/packages/types/dist /app/worker-deploy/node_modules/@uzum/types/
-RUN cp -r /app/packages/utils/dist /app/worker-deploy/node_modules/@uzum/utils/
+# pnpm deploy --legacy creates symlinks for workspace packages pointing back to
+# /app/packages/*. Dereference them into real directory copies so the bundle
+# is fully self-contained (the symlink targets won't exist in the runner image).
+RUN for pkg in types utils; do \
+      link="/app/worker-deploy/node_modules/@uzum/$pkg"; \
+      if [ -L "$link" ]; then \
+        real=$(readlink -f "$link"); \
+        cp -rL "$real" "/tmp/uzum_${pkg}_copy" && \
+        rm -f "$link" && \
+        mv "/tmp/uzum_${pkg}_copy" "$link"; \
+      fi; \
+    done
 
 # Use Debian slim for Playwright Chromium support (Alpine lacks required libs)
 FROM node:20-slim AS runner
