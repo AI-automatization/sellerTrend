@@ -16,7 +16,7 @@ import {
   RadialBarChart,
   RadialBar,
 } from 'recharts';
-import { productsApi, billingApi, exportApi, getTokenPayload } from '../api/client';
+import { productsApi, billingApi, exportApi, getTokenPayload, adminApi } from '../api/client';
 import {
   FireIcon,
   WalletIcon,
@@ -84,6 +84,8 @@ export function DashboardPage() {
   const [balance, setBalance] = useState<Balance | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [adminOverview, setAdminOverview] = useState<any>(null);
+  const [adminRevenue, setAdminRevenue] = useState<any>(null);
 
   const isSuperAdmin = getTokenPayload()?.role === 'SUPER_ADMIN';
 
@@ -94,6 +96,12 @@ export function DashboardPage() {
     // SUPER_ADMIN doesn't have billing
     if (!isSuperAdmin) {
       promises.push(billingApi.getBalance().then((r) => setBalance(r.data)));
+    }
+    if (isSuperAdmin) {
+      promises.push(
+        adminApi.getStatsOverview().then((r) => setAdminOverview(r.data)).catch(() => {}),
+        adminApi.getStatsRevenue().then((r) => setAdminRevenue(r.data)).catch(() => {}),
+      );
     }
     Promise.all(promises).finally(() => setLoading(false));
   }, []);
@@ -212,17 +220,17 @@ export function DashboardPage() {
       {/* Stats row — 4 col responsive */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         {isSuperAdmin ? (
-          <div className="rounded-2xl p-4 lg:p-5 bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
+          <div className="rounded-2xl p-4 lg:p-5 bg-gradient-to-br from-success/10 to-success/5 border border-success/20">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs text-base-content/40 font-medium uppercase tracking-wider">Admin</span>
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-primary">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                </svg>
+              <span className="text-xs text-base-content/40 font-medium uppercase tracking-wider">Tushum</span>
+              <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
+                <WalletIcon className="w-4 h-4 text-success" />
               </div>
             </div>
-            <p className="text-2xl lg:text-3xl font-bold text-primary">Super</p>
-            <p className="text-xs text-base-content/30 mt-1">billing yo'q</p>
+            <p className="text-2xl lg:text-3xl font-bold text-success tabular-nums">
+              {adminRevenue ? Number(adminRevenue.today_revenue ?? 0).toLocaleString() : '—'}
+            </p>
+            <p className="text-xs text-base-content/30 mt-1">bugungi tushum (so'm)</p>
           </div>
         ) : (
           <div className={`rounded-2xl p-4 lg:p-5 transition-all ${paymentDue ? 'bg-gradient-to-br from-error/10 to-error/5 border border-error/20' : 'bg-base-200/60 border border-base-300/50'}`}>
@@ -278,6 +286,31 @@ export function DashboardPage() {
           </p>
         </div>
       </div>
+
+      {isSuperAdmin && adminOverview && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          <div className="rounded-2xl p-4 lg:p-5 bg-base-200/60 border border-base-300/50">
+            <span className="text-xs text-base-content/40 font-medium uppercase tracking-wider">MRR</span>
+            <p className="text-2xl font-bold text-primary mt-2 tabular-nums">{adminRevenue ? Number(adminRevenue.mrr ?? 0).toLocaleString() : '—'}</p>
+            <p className="text-xs text-base-content/30 mt-1">oylik daromad</p>
+          </div>
+          <div className="rounded-2xl p-4 lg:p-5 bg-base-200/60 border border-base-300/50">
+            <span className="text-xs text-base-content/40 font-medium uppercase tracking-wider">Faol akkauntlar</span>
+            <p className="text-2xl font-bold mt-2">{adminOverview.accounts?.active ?? '—'}</p>
+            <p className="text-xs text-base-content/30 mt-1">jami: {adminOverview.accounts?.total ?? '—'}</p>
+          </div>
+          <div className="rounded-2xl p-4 lg:p-5 bg-base-200/60 border border-base-300/50">
+            <span className="text-xs text-base-content/40 font-medium uppercase tracking-wider">Bugun aktiv</span>
+            <p className="text-2xl font-bold text-info mt-2">{adminOverview.users?.today_active ?? '—'}</p>
+            <p className="text-xs text-base-content/30 mt-1">foydalanuvchilar</p>
+          </div>
+          <div className="rounded-2xl p-4 lg:p-5 bg-base-200/60 border border-base-300/50">
+            <span className="text-xs text-base-content/40 font-medium uppercase tracking-wider">To'lov kutmoqda</span>
+            <p className="text-2xl font-bold text-error mt-2">{adminRevenue?.payment_due_count ?? '—'}</p>
+            <p className="text-xs text-base-content/30 mt-1">akkauntlar</p>
+          </div>
+        </div>
+      )}
 
       {/* Charts grid */}
       {products.length > 0 && (

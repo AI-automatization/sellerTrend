@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { adminApi } from '../api/client';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -169,16 +170,35 @@ function StatCard({ label, value, sub, color }: { label: string; value: string |
 
 // ─── Tab type ─────────────────────────────────────────────────────────────────
 
-type Tab = 'dashboard' | 'users' | 'accounts' | 'popular' | 'analytics' | 'system' | 'feedback' | 'notifications' | 'audit' | 'permissions';
+type Tab = 'dashboard' | 'users' | 'accounts' | 'popular' | 'analytics' | 'system' | 'feedback' | 'notifications' | 'audit' | 'permissions' | 'deposits';
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
+const VALID_TABS: Tab[] = ['dashboard', 'users', 'accounts', 'popular', 'analytics', 'system', 'feedback', 'notifications', 'audit', 'permissions', 'deposits'];
+
 export function AdminPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab') as Tab | null;
+  const initialTab = tabFromUrl && VALID_TABS.includes(tabFromUrl) ? tabFromUrl : 'dashboard';
+
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [auditLog, setAuditLog] = useState<AuditEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+  const [activeTab, setActiveTabState] = useState<Tab>(initialTab);
+
+  function setActiveTab(tab: Tab) {
+    setActiveTabState(tab);
+    setSearchParams(tab === 'dashboard' ? {} : { tab });
+  }
+  void setActiveTab; // used by sidebar URL navigation, keep for future inline tab switches
+
+  // Sync tab when URL changes (e.g., sidebar click)
+  useEffect(() => {
+    const t = searchParams.get('tab') as Tab | null;
+    const resolved = t && VALID_TABS.includes(t) ? t : 'dashboard';
+    if (resolved !== activeTab) setActiveTabState(resolved);
+  }, [searchParams]);
 
   // Stats
   const [overview, setOverview] = useState<any>(null);
@@ -193,6 +213,9 @@ export function AdminPage() {
   const [feedbackStats, setFeedbackStats] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any>(null);
+  const [depositLog, setDepositLog] = useState<any[]>([]);
+  const [depositLogTotal, setDepositLogTotal] = useState(0);
+  const [depositLogPage, setDepositLogPage] = useState(1);
 
   // Modals
   const [depositTarget, setDepositTarget] = useState<Account | null>(null);
@@ -240,6 +263,11 @@ export function AdminPage() {
     } else if (activeTab === 'feedback') {
       adminApi.getAdminFeedback().then((r) => setFeedbackTickets(r.data?.items || r.data || [])).catch(() => {});
       adminApi.getFeedbackStats().then((r) => setFeedbackStats(r.data)).catch(() => {});
+    } else if (activeTab === 'deposits') {
+      adminApi.getDepositLog(depositLogPage).then((r) => {
+        setDepositLog(r.data?.items || []);
+        setDepositLogTotal(r.data?.total || 0);
+      }).catch(() => {});
     }
   }, [activeTab]);
 
@@ -304,6 +332,15 @@ export function AdminPage() {
     setNotifSending(false);
   }
 
+  async function handleDeleteDeposit(id: string) {
+    if (!confirm('Bu tranzaksiyani o\'chirmoqchimisiz?')) return;
+    try {
+      await adminApi.deleteDeposit(id);
+      setDepositLog((prev) => prev.filter((d: any) => d.id !== id));
+      setDepositLogTotal((prev) => prev - 1);
+    } catch { /* empty */ }
+  }
+
   async function handleFeedbackStatus(ticketId: string, status: string) {
     try {
       await adminApi.updateFeedbackStatus(ticketId, status);
@@ -320,18 +357,21 @@ export function AdminPage() {
   const totalBalance = accounts.reduce((s, a) => s + Number(a.balance), 0);
   const activeUsers = users.filter((u) => u.is_active).length;
 
-  const tabs: { key: Tab; label: string }[] = [
-    { key: 'dashboard', label: 'Dashboard' },
-    { key: 'users', label: 'Userlar' },
-    { key: 'accounts', label: 'Accountlar' },
-    { key: 'popular', label: 'Mashhur' },
-    { key: 'analytics', label: 'Analitika' },
-    { key: 'system', label: 'Tizim' },
-    { key: 'feedback', label: 'Feedback' },
-    { key: 'notifications', label: 'Xabarlar' },
-    { key: 'audit', label: 'Audit' },
-    { key: 'permissions', label: 'Ruxsatlar' },
-  ];
+  const TAB_TITLES: Record<Tab, { title: string; desc: string }> = {
+    dashboard: { title: 'Dashboard', desc: 'Umumiy statistika va real-time ko\'rsatkichlar' },
+    users: { title: 'Foydalanuvchilar', desc: `${users.length} foydalanuvchi, ${activeUsers} faol` },
+    accounts: { title: 'Akkauntlar', desc: `${accounts.length} akkaunt, ${activeAccounts} faol` },
+    popular: { title: 'Mashhur', desc: 'Top mahsulotlar va kategoriyalar' },
+    analytics: { title: 'Analitika', desc: 'Top foydalanuvchilar va faollik' },
+    system: { title: 'Tizim Salomatligi', desc: 'API, Database, Disk holati' },
+    feedback: { title: 'Feedback Boshqaruv', desc: 'Foydalanuvchi murojatlari' },
+    notifications: { title: 'Xabarnomalar', desc: 'Barcha foydalanuvchilarga xabar yuborish' },
+    audit: { title: 'Audit Log', desc: 'Barcha o\'zgarishlar tarixi' },
+    permissions: { title: 'Ruxsatlar', desc: 'Rol va huquqlar tizimi' },
+    deposits: { title: 'Deposit Log', desc: 'Balans to\'ldirish tarixi' },
+  };
+
+  const currentTab = TAB_TITLES[activeTab];
 
   return (
     <>
@@ -339,8 +379,11 @@ export function AdminPage() {
         {/* Header + Search */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Admin Panel</h1>
-            <p className="text-base-content/40 text-sm mt-0.5">Platformani to'liq boshqarish</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{currentTab.title}</h1>
+              <span className="badge badge-error badge-sm">Admin</span>
+            </div>
+            <p className="text-base-content/40 text-sm mt-0.5">{currentTab.desc}</p>
           </div>
           <div className="flex items-center gap-2">
             <input className="input input-bordered input-sm w-48" placeholder="Qidirish (Ctrl+K)..."
@@ -382,16 +425,6 @@ export function AdminPage() {
             </div>
           </div>
         )}
-
-        {/* Tabs */}
-        <div className="tabs tabs-bordered overflow-x-auto">
-          {tabs.map((t) => (
-            <button key={t.key} onClick={() => setActiveTab(t.key)}
-              className={`tab tab-sm whitespace-nowrap ${activeTab === t.key ? 'tab-active font-semibold' : ''}`}>
-              {t.label}
-            </button>
-          ))}
-        </div>
 
         {/* ═══════════════ DASHBOARD TAB ═══════════════ */}
         {activeTab === 'dashboard' && (
@@ -863,6 +896,50 @@ export function AdminPage() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {activeTab === 'deposits' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-base-content/50">Jami: {depositLogTotal} ta deposit</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="table table-sm">
+                <thead>
+                  <tr><th>Sana</th><th>Kompaniya</th><th>Miqdor</th><th>Oldingi</th><th>Keyingi</th><th>Izoh</th><th>Amal</th></tr>
+                </thead>
+                <tbody>
+                  {depositLog.map((d: any) => (
+                    <tr key={d.id} className="hover">
+                      <td className="text-xs whitespace-nowrap">{new Date(d.created_at).toLocaleString()}</td>
+                      <td className="text-sm">{d.account_name}</td>
+                      <td className="text-success font-bold tabular-nums">+{Number(d.amount).toLocaleString()}</td>
+                      <td className="text-xs tabular-nums text-base-content/50">{Number(d.balance_before).toLocaleString()}</td>
+                      <td className="text-xs tabular-nums text-base-content/50">{Number(d.balance_after).toLocaleString()}</td>
+                      <td className="text-xs text-base-content/40 max-w-xs truncate">{d.description || '—'}</td>
+                      <td>
+                        <button className="btn btn-ghost btn-xs text-error" onClick={() => handleDeleteDeposit(d.id)}>
+                          O'chirish
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {!depositLog.length && (
+                    <tr><td colSpan={7} className="text-center text-base-content/40 py-8">Deposit mavjud emas</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {depositLogTotal > 20 && (
+              <div className="flex justify-center gap-2">
+                <button className="btn btn-ghost btn-sm" disabled={depositLogPage <= 1}
+                  onClick={() => setDepositLogPage((p) => p - 1)}>Oldingi</button>
+                <span className="btn btn-ghost btn-sm no-animation">{depositLogPage}</span>
+                <button className="btn btn-ghost btn-sm" disabled={depositLog.length < 20}
+                  onClick={() => setDepositLogPage((p) => p + 1)}>Keyingi</button>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Patch,
   Put,
   Body,
@@ -403,6 +404,27 @@ export class AdminController {
     return this.adminService.sendFeedbackMessage(ticketId, adminUserId, body.content, true);
   }
 
+  // ============================================================
+  // DEPOSIT LOG ENDPOINTS
+  // ============================================================
+
+  /** Deposit Log — paginated list */
+  @Get('deposit-log')
+  getDepositLog(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.adminService.getDepositLog(
+      page ? parseInt(page) : 1,
+      limit ? parseInt(limit) : 20,
+    );
+  }
+
+  /** Delete deposit log entry */
+  @Delete('deposit-log/:id')
+  deleteDepositLog(@Param('id') id: string) {
+    return this.adminService.deleteDepositLog(id);
+  }
   // ============================================================
   // EXPORT ENDPOINTS
   // ============================================================

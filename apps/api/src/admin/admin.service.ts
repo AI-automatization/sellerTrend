@@ -1727,4 +1727,55 @@ export class AdminService {
       created_at: a.created_at.toISOString(),
     }));
   }
+
+  /** Deposit Log — list all DEPOSIT transactions */
+  async getDepositLog(page = 1, limit = 20) {
+    const skip = (page - 1) * limit;
+    const where = { type: 'DEPOSIT' as const };
+    
+    const [items, total] = await Promise.all([
+      this.prisma.transaction.findMany({
+        where,
+        orderBy: { created_at: 'desc' },
+        skip,
+        take: limit,
+        include: {
+          account: { select: { id: true, name: true, status: true } },
+        },
+      }),
+      this.prisma.transaction.count({ where }),
+    ]);
+
+    return {
+      items: items.map((t) => ({
+        id: t.id,
+        account_id: t.account_id,
+        account_name: t.account.name,
+        account_status: t.account.status,
+        amount: t.amount.toString(),
+        balance_before: t.balance_before.toString(),
+        balance_after: t.balance_after.toString(),
+        description: t.description,
+        created_at: t.created_at,
+      })),
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+    };
+  }
+
+  /** Delete a single deposit log entry */
+  async deleteDepositLog(transactionId: string) {
+    const tx = await this.prisma.transaction.findUnique({
+      where: { id: transactionId },
+    });
+    if (!tx) throw new NotFoundException('Transaction topilmadi');
+    if (tx.type !== 'DEPOSIT') throw new BadRequestException('Faqat DEPOSIT turidagi tranzaksiyalarni o\'chirish mumkin');
+    
+    await this.prisma.transaction.delete({
+      where: { id: transactionId },
+    });
+    
+    return { deleted: true };
+  }
 }
