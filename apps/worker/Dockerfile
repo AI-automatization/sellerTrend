@@ -58,12 +58,13 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .pnpmfile.cjs ./
 COPY apps/worker/package.json ./apps/worker/
 COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
+# Copy built package dist BEFORE pnpm install so workspace symlinks resolve correctly
+COPY --from=builder /app/packages/types/dist ./packages/types/dist
+COPY --from=builder /app/packages/utils/dist ./packages/utils/dist
 RUN pnpm install --frozen-lockfile --prod --filter worker --filter @uzum/types --filter @uzum/utils
 
 COPY --from=builder /app/apps/worker/dist ./apps/worker/dist
 COPY --from=builder /app/apps/worker/prisma ./apps/worker/prisma
-COPY --from=builder /app/packages/types/dist ./packages/types/dist
-COPY --from=builder /app/packages/utils/dist ./packages/utils/dist
 
 WORKDIR /app/apps/worker
 RUN pnpm exec prisma generate
