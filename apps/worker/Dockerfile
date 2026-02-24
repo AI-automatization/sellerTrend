@@ -31,6 +31,12 @@ RUN pnpm --filter=worker deploy --legacy --prod /app/worker-deploy
 # Copy worker compiled output into the bundle
 RUN cp -r /app/apps/worker/dist /app/worker-deploy/
 RUN cp -r /app/apps/worker/prisma /app/worker-deploy/
+# Debug: show what pnpm deploy created before dereference
+RUN echo "=== packages/utils ===" && ls -la /app/packages/utils/ && \
+    echo "=== packages/utils/dist ===" && ls /app/packages/utils/dist/ 2>/dev/null || echo "NO dist" && \
+    echo "=== deploy @uzum ===" && ls -la /app/worker-deploy/node_modules/@uzum/ && \
+    echo "=== deploy @uzum/utils ===" && ls -la /app/worker-deploy/node_modules/@uzum/utils/ 2>/dev/null || echo "NOT A DIR" && \
+    echo "=== deploy @uzum/utils/dist ===" && ls /app/worker-deploy/node_modules/@uzum/utils/dist/ 2>/dev/null || echo "NO dist"
 # pnpm deploy --legacy creates symlinks for workspace packages pointing back to
 # /app/packages/*. Dereference them into real directory copies so the bundle
 # is fully self-contained (the symlink targets won't exist in the runner image).
@@ -38,9 +44,14 @@ RUN for pkg in types utils; do \
       link="/app/worker-deploy/node_modules/@uzum/$pkg"; \
       if [ -L "$link" ]; then \
         real=$(readlink -f "$link"); \
+        echo "Dereferencing $pkg: $link -> $real"; \
         cp -rL "$real" "/tmp/uzum_${pkg}_copy" && \
         rm -f "$link" && \
-        mv "/tmp/uzum_${pkg}_copy" "$link"; \
+        mv "/tmp/uzum_${pkg}_copy" "$link" && \
+        echo "Done: $(ls /app/worker-deploy/node_modules/@uzum/$pkg/dist/ 2>/dev/null || echo 'NO dist after mv')"; \
+      else \
+        echo "$pkg is NOT a symlink, skipping dereference"; \
+        ls -la "$link" 2>/dev/null || echo "$link does not exist"; \
       fi; \
     done
 
