@@ -106,6 +106,9 @@ importers:
       socket.io:
         specifier: ^4.8.3
         version: 4.8.3
+      swagger-ui-dist:
+        specifier: 5.17.14
+        version: 5.17.14
       undici:
         specifier: ^7.22.0
         version: 7.22.0
