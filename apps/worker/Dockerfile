@@ -60,4 +60,4 @@ COPY --from=builder /app/apps/worker/prisma ./apps/worker/prisma
 
 WORKDIR /app/apps/worker
 RUN pnpm exec prisma generate
-CMD ["node", "dist/main"]
+CMD ["node", "dist/apps/worker/src/main"]
