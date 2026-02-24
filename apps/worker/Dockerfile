@@ -24,6 +24,17 @@ WORKDIR /app/apps/worker
 RUN pnpm exec prisma generate
 RUN pnpm run build
 
+# Create a standalone production bundle — pnpm deploy resolves all workspace
+# symlinks into real directory copies so no symlinks exist in the output
+WORKDIR /app
+RUN pnpm --filter=worker deploy --prod /app/worker-deploy
+# Copy worker compiled output into the bundle
+RUN cp -r /app/apps/worker/dist /app/worker-deploy/
+RUN cp -r /app/apps/worker/prisma /app/worker-deploy/
+# Inject built package dist (pnpm deploy excludes dist/ because it is in .gitignore)
+RUN cp -r /app/packages/types/dist /app/worker-deploy/node_modules/@uzum/types/
+RUN cp -r /app/packages/utils/dist /app/worker-deploy/node_modules/@uzum/utils/
+
 # Use Debian slim for Playwright Chromium support (Alpine lacks required libs)
 FROM node:20-slim AS runner
 RUN npm install -g pnpm@10.30.1
@@ -54,18 +65,10 @@ ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium
 WORKDIR /app
 ENV NODE_ENV=production
 
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .pnpmfile.cjs ./
-COPY apps/worker/package.json ./apps/worker/
-COPY packages/types/package.json ./packages/types/
-COPY packages/utils/package.json ./packages/utils/
-RUN pnpm install --frozen-lockfile --prod --filter worker --filter @uzum/types --filter @uzum/utils
+# Copy the entire standalone deployment bundle (real directories, no symlinks)
+COPY --from=builder /app/worker-deploy ./
 
-COPY --from=builder /app/apps/worker/dist ./apps/worker/dist
-COPY --from=builder /app/apps/worker/prisma ./apps/worker/prisma
-# Inject built dist directly into the exact node_modules locations Node.js resolves to
-COPY --from=builder /app/packages/types/dist ./apps/worker/node_modules/@uzum/types/dist
-COPY --from=builder /app/packages/utils/dist ./apps/worker/node_modules/@uzum/utils/dist
+# Generate Prisma client (schema is at ./prisma/schema.prisma)
+RUN ./node_modules/.bin/prisma generate
 
-WORKDIR /app/apps/worker
-RUN pnpm exec prisma generate
 CMD ["node", "dist/apps/worker/src/main"]
