@@ -1,510 +1,280 @@
-import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ReferenceLine,
-} from 'recharts';
-import { sourcingApi } from '../api/client';
+import { useState } from 'react';
+import { toolsApi } from '../api/client';
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-interface Inputs {
-  sell_price: string;
-  buy_price_usd: string;
-  usd_rate: string;
-  commission_pct: number;
-  fbo_cost: string;
-  ad_cost: string;
-  quantity: string;
+interface ProfitResult {
+  revenue: number;
+  total_cost: number;
+  gross_profit: number;
+  net_profit: number;
+  margin_pct: number;
+  roi_pct: number;
+  breakeven_qty: number;
+  breakeven_price: number;
 }
 
-interface CalcResult {
-  buyPriceUzs: number;
-  commissionAmount: number;
-  variableCostPerUnit: number;
-  totalCostPerUnit: number;
-  profitPerUnit: number;
-  totalProfit: number;
-  marginPct: number;
-  roiPct: number;
-  breakevenQty: number;
-  chartData: { units: number; cashFlow: number }[];
+const DEFAULT_FORM = {
+  sell_price_uzs: '',
+  unit_cost_usd: '',
+  usd_to_uzs: '12800',
+  uzum_commission_pct: '10',
+  fbo_cost_uzs: '',
+  ads_spend_uzs: '',
+  quantity: '100',
+};
+
+function formatNum(n: number) {
+  return n.toLocaleString('en-US', { maximumFractionDigits: 0 });
 }
-
-// ─── Calculator logic ─────────────────────────────────────────────────────────
-
-function calcResults(inputs: Inputs): CalcResult {
-  const sellPrice = Number(inputs.sell_price) || 0;
-  const buyPriceUsd = Number(inputs.buy_price_usd) || 0;
-  const usdRate = Number(inputs.usd_rate) || 12900;
-  const commissionPct = inputs.commission_pct;
-  const fboCost = Number(inputs.fbo_cost) || 0;
-  const adCost = Number(inputs.ad_cost) || 0;
-  const quantity = Math.max(1, Number(inputs.quantity) || 1);
-
-  const buyPriceUzs = buyPriceUsd * usdRate;
-  const commissionAmount = sellPrice * (commissionPct / 100);
-  const variableCostPerUnit = commissionAmount + fboCost + adCost;
-  const totalCostPerUnit = buyPriceUzs + variableCostPerUnit;
-  const profitPerUnit = sellPrice - totalCostPerUnit;
-  const totalProfit = profitPerUnit * quantity;
-  const marginPct = sellPrice > 0 ? (profitPerUnit / sellPrice) * 100 : 0;
-  const roiPct = totalCostPerUnit > 0 ? (profitPerUnit / totalCostPerUnit) * 100 : 0;
-
-  // Breakeven: how many units to sell to recover full inventory investment
-  const totalInvestment = buyPriceUzs * quantity;
-  const contributionPerUnit = sellPrice - variableCostPerUnit;
-  const breakevenQty =
-    contributionPerUnit > 0 ? Math.ceil(totalInvestment / contributionPerUnit) : Infinity;
-
-  // Chart: x = units sold, y = cash flow (revenue - all costs)
-  const maxX = Math.max(quantity, isFinite(breakevenQty) ? breakevenQty * 1.2 : quantity);
-  const steps = 40;
-  const step = Math.max(1, Math.ceil(maxX / steps));
-  const chartData: { units: number; cashFlow: number }[] = [];
-  for (let x = 0; x <= maxX; x += step) {
-    chartData.push({ units: x, cashFlow: Math.round(x * contributionPerUnit - totalInvestment) });
-  }
-  if (chartData[chartData.length - 1].units < maxX) {
-    chartData.push({ units: Math.round(maxX), cashFlow: Math.round(maxX * contributionPerUnit - totalInvestment) });
-  }
-
-  return {
-    buyPriceUzs,
-    commissionAmount,
-    variableCostPerUnit,
-    totalCostPerUnit,
-    profitPerUnit,
-    totalProfit,
-    marginPct,
-    roiPct,
-    breakevenQty,
-    chartData,
-  };
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function ProfitCalculatorPage() {
-  const [searchParams] = useSearchParams();
+  const [form, setForm] = useState(DEFAULT_FORM);
+  const [result, setResult] = useState<ProfitResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const [inputs, setInputs] = useState<Inputs>({
-    sell_price: searchParams.get('sell_price') ?? '',
-    buy_price_usd: searchParams.get('buy_price_usd') ?? '',
-    usd_rate: '12900',
-    commission_pct: 10,
-    fbo_cost: '',
-    ad_cost: '',
-    quantity: '100',
-  });
-  const [loadingRate, setLoadingRate] = useState(false);
-
-  // Auto-load USD/UZS rate from API
-  useEffect(() => {
-    setLoadingRate(true);
-    sourcingApi
-      .getCurrencyRates()
-      .then((res) => {
-        const rate = (res.data as { USD?: number })?.USD;
-        if (rate && rate > 0) {
-          setInputs((prev) => ({ ...prev, usd_rate: String(rate) }));
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoadingRate(false));
-  }, []);
-
-  function set(key: keyof Inputs, value: string | number) {
-    setInputs((prev) => ({ ...prev, [key]: value }));
+  function set(key: string, val: string) {
+    setForm((f) => ({ ...f, [key]: val }));
   }
 
-  const r = calcResults(inputs);
-  const hasResult = Number(inputs.sell_price) > 0 && Number(inputs.buy_price_usd) > 0;
-
-  const marginColor =
-    r.marginPct >= 30 ? 'text-success' : r.marginPct >= 15 ? 'text-warning' : 'text-error';
-  const marginBadge =
-    r.marginPct >= 30 ? 'badge-success' : r.marginPct >= 15 ? 'badge-warning' : 'badge-error';
-  const marginLabel =
-    r.marginPct >= 30 ? "Zo'r" : r.marginPct >= 15 ? "O'rtacha" : 'Past';
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const res = await toolsApi.calculateProfit({
+        sell_price_uzs: Number(form.sell_price_uzs),
+        unit_cost_usd: Number(form.unit_cost_usd),
+        usd_to_uzs: Number(form.usd_to_uzs),
+        uzum_commission_pct: Number(form.uzum_commission_pct),
+        fbo_cost_uzs: form.fbo_cost_uzs ? Number(form.fbo_cost_uzs) : undefined,
+        ads_spend_uzs: form.ads_spend_uzs ? Number(form.ads_spend_uzs) : undefined,
+        quantity: Number(form.quantity),
+      });
+      setResult(res.data);
+    } catch (err: any) {
+      setError(err.response?.data?.message ?? 'Xato yuz berdi');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="w-full space-y-4 lg:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">Foyda Kalkulyatori</h1>
-        <p className="text-base-content/50 text-sm mt-0.5">
-          Uzum savdosi uchun sof foyda, margin va ROI hisobi
+        <h1 className="text-2xl lg:text-3xl font-bold flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 lg:w-7 lg:h-7 text-accent">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75V18m15-8.25l-8.25 4.5m0 0l-8.25-4.5M21 9.75v4.5m0 0l-8.25 4.5m0 0l-8.25-4.5" />
+          </svg>
+          Profit Kalkulyator
+        </h1>
+        <p className="text-base-content/50 text-sm mt-1">
+          Uzum'da sotish uchun foyda, margin va ROI hisoblang
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Form */}
+        <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
+          <div className="card-body">
+            <h2 className="card-title text-base">Parametrlar</h2>
+            <form onSubmit={handleSubmit} className="space-y-3 mt-2">
+              <div className="grid grid-cols-2 gap-3">
+                <fieldset className="fieldset">
+                  <legend className="fieldset-legend text-xs">Sotish narxi (so'm)</legend>
+                  <input
+                    type="number"
+                    value={form.sell_price_uzs}
+                    onChange={(e) => set('sell_price_uzs', e.target.value)}
+                    required
+                    min={1}
+                    className="input input-bordered w-full"
+                    placeholder="100 000"
+                  />
+                </fieldset>
+                <fieldset className="fieldset">
+                  <legend className="fieldset-legend text-xs">Xarid narxi (USD)</legend>
+                  <input
+                    type="number"
+                    value={form.unit_cost_usd}
+                    onChange={(e) => set('unit_cost_usd', e.target.value)}
+                    required
+                    min={0.01}
+                    step="0.01"
+                    className="input input-bordered w-full"
+                    placeholder="5.00"
+                  />
+                </fieldset>
+              </div>
 
-        {/* ── LEFT: Inputs ── */}
-        <div className="card bg-base-200 shadow-sm">
-          <div className="card-body gap-4">
-            <h2 className="font-semibold text-sm text-base-content/70">Kirish ma'lumotlari</h2>
+              <div className="grid grid-cols-2 gap-3">
+                <fieldset className="fieldset">
+                  <legend className="fieldset-legend text-xs">USD kursi (so'm)</legend>
+                  <input
+                    type="number"
+                    value={form.usd_to_uzs}
+                    onChange={(e) => set('usd_to_uzs', e.target.value)}
+                    required
+                    min={1}
+                    className="input input-bordered w-full"
+                    placeholder="12800"
+                  />
+                </fieldset>
+                <fieldset className="fieldset">
+                  <legend className="fieldset-legend text-xs">Uzum komissiya (%)</legend>
+                  <input
+                    type="number"
+                    value={form.uzum_commission_pct}
+                    onChange={(e) => set('uzum_commission_pct', e.target.value)}
+                    required
+                    min={0}
+                    max={100}
+                    className="input input-bordered w-full"
+                    placeholder="10"
+                  />
+                </fieldset>
+              </div>
 
-            {/* Sell price */}
-            <div className="form-control gap-1">
-              <label className="label py-0">
-                <span className="label-text text-xs">Sotuv narxi (so'm)</span>
-              </label>
-              <input
-                type="number"
-                className="input input-bordered input-sm"
-                placeholder="masalan: 85 000"
-                value={inputs.sell_price}
-                onChange={(e) => set('sell_price', e.target.value)}
-              />
-            </div>
+              <div className="grid grid-cols-2 gap-3">
+                <fieldset className="fieldset">
+                  <legend className="fieldset-legend text-xs">FBO xarajat (so'm)</legend>
+                  <input
+                    type="number"
+                    value={form.fbo_cost_uzs}
+                    onChange={(e) => set('fbo_cost_uzs', e.target.value)}
+                    className="input input-bordered w-full"
+                    placeholder="Ixtiyoriy"
+                  />
+                </fieldset>
+                <fieldset className="fieldset">
+                  <legend className="fieldset-legend text-xs">Reklama xarajat (so'm)</legend>
+                  <input
+                    type="number"
+                    value={form.ads_spend_uzs}
+                    onChange={(e) => set('ads_spend_uzs', e.target.value)}
+                    className="input input-bordered w-full"
+                    placeholder="Ixtiyoriy"
+                  />
+                </fieldset>
+              </div>
 
-            {/* Buy price + USD rate */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="form-control gap-1">
-                <label className="label py-0">
-                  <span className="label-text text-xs">Xarid narxi ($)</span>
-                </label>
+              <fieldset className="fieldset">
+                <legend className="fieldset-legend text-xs">Soni (dona)</legend>
                 <input
                   type="number"
-                  className="input input-bordered input-sm"
-                  placeholder="masalan: 3.50"
-                  step="0.01"
-                  value={inputs.buy_price_usd}
-                  onChange={(e) => set('buy_price_usd', e.target.value)}
+                  value={form.quantity}
+                  onChange={(e) => set('quantity', e.target.value)}
+                  required
+                  min={1}
+                  className="input input-bordered w-full"
+                  placeholder="100"
                 />
-              </div>
-              <div className="form-control gap-1">
-                <label className="label py-0">
-                  <span className="label-text text-xs">USD/UZS kurs</span>
-                  {loadingRate && (
-                    <span className="loading loading-spinner loading-xs opacity-50" />
-                  )}
-                </label>
-                <input
-                  type="number"
-                  className="input input-bordered input-sm"
-                  value={inputs.usd_rate}
-                  onChange={(e) => set('usd_rate', e.target.value)}
-                />
-              </div>
-            </div>
+              </fieldset>
 
-            {inputs.buy_price_usd && (
-              <p className="text-xs text-base-content/40 -mt-2">
-                ≈ {r.buyPriceUzs.toLocaleString()} so'm / dona
-              </p>
-            )}
+              {error && <p className="text-error text-sm">{error}</p>}
 
-            {/* Commission slider */}
-            <div className="form-control gap-1">
-              <label className="label py-0">
-                <span className="label-text text-xs">Uzum komissiya %</span>
-                <span className="label-text-alt font-bold text-primary text-sm">
-                  {inputs.commission_pct}%
+              <button type="submit" disabled={loading} className="btn btn-primary w-full">
+                {loading && <span className="loading loading-spinner loading-sm" />}
+                {loading ? 'Hisoblanmoqda...' : 'Hisoblash'}
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* Results */}
+        <div className="space-y-4">
+          {result ? (
+            <>
+              {/* Main stats */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className={`stat bg-base-200 rounded-2xl ${result.net_profit > 0 ? '' : 'border border-error/30'}`}>
+                  <div className="stat-title text-xs">Sof foyda</div>
+                  <div className={`stat-value text-xl ${result.net_profit > 0 ? 'text-success' : 'text-error'}`}>
+                    {formatNum(result.net_profit)}
+                  </div>
+                  <div className="stat-desc">so'm</div>
+                </div>
+                <div className="stat bg-base-200/60 border border-base-300/50 rounded-2xl">
+                  <div className="stat-title text-xs">Margin</div>
+                  <div className={`stat-value text-xl ${result.margin_pct > 20 ? 'text-success' : result.margin_pct > 0 ? 'text-warning' : 'text-error'}`}>
+                    {result.margin_pct.toFixed(1)}%
+                  </div>
+                  <div className="stat-desc">sof margin</div>
+                </div>
+                <div className="stat bg-base-200/60 border border-base-300/50 rounded-2xl">
+                  <div className="stat-title text-xs">ROI</div>
+                  <div className={`stat-value text-xl ${result.roi_pct > 50 ? 'text-success' : result.roi_pct > 0 ? 'text-warning' : 'text-error'}`}>
+                    {result.roi_pct.toFixed(1)}%
+                  </div>
+                  <div className="stat-desc">rentabellik</div>
+                </div>
+                <div className="stat bg-base-200/60 border border-base-300/50 rounded-2xl">
+                  <div className="stat-title text-xs">Daromad</div>
+                  <div className="stat-value text-xl">{formatNum(result.revenue)}</div>
+                  <div className="stat-desc">so'm</div>
+                </div>
+              </div>
+
+              {/* Detail card */}
+              <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
+                <div className="card-body p-4">
+                  <h3 className="font-bold text-sm">Batafsil</h3>
+                  <div className="space-y-2 mt-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-base-content/50">Daromad</span>
+                      <span className="font-medium tabular-nums">{formatNum(result.revenue)} so'm</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-base-content/50">Jami xarajat</span>
+                      <span className="font-medium tabular-nums text-error">{formatNum(result.total_cost)} so'm</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-base-content/50">Yalpi foyda</span>
+                      <span className="font-medium tabular-nums">{formatNum(result.gross_profit)} so'm</span>
+                    </div>
+                    <div className="divider my-1" />
+                    <div className="flex justify-between font-bold">
+                      <span>Sof foyda</span>
+                      <span className={result.net_profit > 0 ? 'text-success' : 'text-error'}>
+                        {formatNum(result.net_profit)} so'm
+                      </span>
+                    </div>
+                    <div className="divider my-1" />
+                    <div className="flex justify-between">
+                      <span className="text-base-content/50">Zararsizlik soni</span>
+                      <span className="font-medium tabular-nums">{Math.ceil(result.breakeven_qty)} dona</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-base-content/50">Zararsizlik narxi</span>
+                      <span className="font-medium tabular-nums">{formatNum(result.breakeven_price)} so'm</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Verdict */}
+              <div className={`alert ${result.margin_pct >= 20 ? 'alert-success' : result.margin_pct >= 10 ? 'alert-warning' : 'alert-error'}`}>
+                <span className="text-sm">
+                  {result.margin_pct >= 20
+                    ? "Yaxshi margin! Bu mahsulot foydali ko'rinadi."
+                    : result.margin_pct >= 10
+                    ? "O'rtacha margin. Xarajatlarni optimallashtirish kerak."
+                    : "Past margin yoki zarar. Narx siyosatini qayta ko'ring."}
                 </span>
-              </label>
-              <input
-                type="range"
-                className="range range-primary range-sm"
-                min={5}
-                max={15}
-                step={1}
-                value={inputs.commission_pct}
-                onChange={(e) => set('commission_pct', Number(e.target.value))}
-                aria-label="Uzum komissiya foizi"
-              />
-              <div className="flex justify-between text-xs text-base-content/30 px-1">
-                <span>5%</span>
-                <span>10%</span>
-                <span>15%</span>
+              </div>
+            </>
+          ) : (
+            <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
+              <div className="card-body items-center py-16 text-base-content/40">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75V18m15-8.25l-8.25 4.5m0 0l-8.25-4.5M21 9.75v4.5m0 0l-8.25 4.5m0 0l-8.25-4.5" />
+                </svg>
+                <p>Parametrlarni kiriting va "Hisoblash" tugmasini bosing</p>
               </div>
             </div>
-
-            {/* FBO + Ads */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="form-control gap-1">
-                <label className="label py-0">
-                  <span className="label-text text-xs">FBO xarajati (so'm)</span>
-                </label>
-                <input
-                  type="number"
-                  className="input input-bordered input-sm"
-                  placeholder="ixtiyoriy"
-                  value={inputs.fbo_cost}
-                  onChange={(e) => set('fbo_cost', e.target.value)}
-                />
-              </div>
-              <div className="form-control gap-1">
-                <label className="label py-0">
-                  <span className="label-text text-xs">Reklama xarajati (so'm)</span>
-                </label>
-                <input
-                  type="number"
-                  className="input input-bordered input-sm"
-                  placeholder="ixtiyoriy"
-                  value={inputs.ad_cost}
-                  onChange={(e) => set('ad_cost', e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Quantity */}
-            <div className="form-control gap-1">
-              <label className="label py-0">
-                <span className="label-text text-xs">Miqdor (dona)</span>
-              </label>
-              <input
-                type="number"
-                className="input input-bordered input-sm"
-                placeholder="masalan: 100"
-                min={1}
-                value={inputs.quantity}
-                onChange={(e) => set('quantity', e.target.value)}
-              />
-            </div>
-
-            <div className="divider my-0" />
-
-            <Link to="/sourcing" className="btn btn-outline btn-sm gap-2">
-              🌏 Manba qo'shish (Sourcing)
-            </Link>
-          </div>
+          )}
         </div>
-
-        {/* ── RIGHT: Results ── */}
-        {!hasResult ? (
-          <div className="card bg-base-200 shadow-sm">
-            <div className="card-body items-center justify-center py-20 text-center">
-              <p className="text-5xl mb-3">💰</p>
-              <p className="text-base-content/50 text-sm">
-                Sotuv va xarid narxini kiriting
-              </p>
-              <p className="text-base-content/30 text-xs mt-1">
-                Natija avtomatik hisoblanadi
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="card bg-base-200 shadow-sm">
-              <div className="card-body gap-4">
-                <h2 className="font-semibold text-sm text-base-content/70">Natijalar</h2>
-
-                {/* Total net profit — big number */}
-                <div className="text-center py-2">
-                  <p className="text-xs text-base-content/50 mb-1">Sof foyda (jami)</p>
-                  <p
-                    className={`text-4xl font-bold tabular-nums ${
-                      r.totalProfit >= 0 ? 'text-success' : 'text-error'
-                    }`}
-                  >
-                    {r.totalProfit >= 0 ? '+' : ''}
-                    {Math.round(r.totalProfit).toLocaleString()}
-                  </p>
-                  <p className="text-xs text-base-content/40 mt-1">
-                    so'm · {Number(inputs.quantity).toLocaleString()} donadan
-                  </p>
-                </div>
-
-                <div className="divider my-0" />
-
-                {/* Margin */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-base-content/50">Margin</span>
-                    <span className={`font-bold tabular-nums ${marginColor}`}>
-                      {r.marginPct.toFixed(1)}%
-                      <span className={`badge badge-sm ml-2 ${marginBadge}`}>
-                        {marginLabel}
-                      </span>
-                    </span>
-                  </div>
-                  <progress
-                    className={`progress w-full ${
-                      r.marginPct >= 30
-                        ? 'progress-success'
-                        : r.marginPct >= 15
-                        ? 'progress-warning'
-                        : 'progress-error'
-                    }`}
-                    value={Math.max(0, Math.min(50, r.marginPct))}
-                    max={50}
-                  />
-                  <div className="flex justify-between text-xs text-base-content/20 mt-0.5 px-0.5">
-                    <span>0%</span>
-                    <span className="text-error/60">15%</span>
-                    <span className="text-warning/60">30%</span>
-                    <span>50%+</span>
-                  </div>
-                </div>
-
-                {/* ROI + Breakeven */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-base-300 rounded-xl p-3">
-                    <p className="text-xs text-base-content/50">ROI</p>
-                    <p
-                      className={`text-xl font-bold tabular-nums mt-1 ${
-                        r.roiPct >= 0 ? 'text-primary' : 'text-error'
-                      }`}
-                    >
-                      {r.roiPct >= 0 ? '+' : ''}
-                      {r.roiPct.toFixed(1)}%
-                    </p>
-                  </div>
-                  <div className="bg-base-300 rounded-xl p-3">
-                    <p className="text-xs text-base-content/50">Breakeven</p>
-                    <p className="text-xl font-bold tabular-nums mt-1">
-                      {isFinite(r.breakevenQty) ? `${r.breakevenQty} ta` : '∞'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Cost breakdown */}
-                <div className="bg-base-300 rounded-xl p-3 space-y-2 text-xs">
-                  <p className="font-semibold text-base-content/60 mb-2">Xarajatlar (1 dona)</p>
-                  <div className="flex justify-between">
-                    <span className="text-base-content/50">Xarid narxi</span>
-                    <span className="tabular-nums">{Math.round(r.buyPriceUzs).toLocaleString()} so'm</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-base-content/50">
-                      Komissiya ({inputs.commission_pct}%)
-                    </span>
-                    <span className="tabular-nums">
-                      {Math.round(r.commissionAmount).toLocaleString()} so'm
-                    </span>
-                  </div>
-                  {Number(inputs.fbo_cost) > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-base-content/50">FBO</span>
-                      <span className="tabular-nums">
-                        {Number(inputs.fbo_cost).toLocaleString()} so'm
-                      </span>
-                    </div>
-                  )}
-                  {Number(inputs.ad_cost) > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-base-content/50">Reklama</span>
-                      <span className="tabular-nums">
-                        {Number(inputs.ad_cost).toLocaleString()} so'm
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex justify-between border-t border-base-content/10 pt-2 font-semibold">
-                    <span>Jami xarajat</span>
-                    <span className="tabular-nums">
-                      {Math.round(r.totalCostPerUnit).toLocaleString()} so'm
-                    </span>
-                  </div>
-                  <div className="flex justify-between font-bold">
-                    <span>Foyda / dona</span>
-                    <span
-                      className={`tabular-nums ${
-                        r.profitPerUnit >= 0 ? 'text-success' : 'text-error'
-                      }`}
-                    >
-                      {r.profitPerUnit >= 0 ? '+' : ''}
-                      {Math.round(r.profitPerUnit).toLocaleString()} so'm
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
-
-      {/* ── Breakeven Chart ── */}
-      {hasResult && isFinite(r.breakevenQty) && r.chartData.length > 1 && (
-        <div className="card bg-base-200 shadow-sm">
-          <div className="card-body gap-2">
-            <div>
-              <h2 className="font-semibold text-sm text-base-content/70">
-                Breakeven tahlili
-              </h2>
-              <p className="text-xs text-base-content/40 mt-0.5">
-                Sotilgan dona soni vs pul oqimi — qizil chiziq breakeven nuqtasi
-              </p>
-            </div>
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={r.chartData} margin={{ top: 8, right: 16, left: -8, bottom: 16 }}>
-                <defs>
-                  <linearGradient id="cfGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#22c55e" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis
-                  dataKey="units"
-                  tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.4)' }}
-                  tickLine={false}
-                  axisLine={false}
-                  label={{
-                    value: 'Sotilgan dona',
-                    position: 'insideBottom',
-                    offset: -8,
-                    fontSize: 10,
-                    fill: 'rgba(255,255,255,0.3)',
-                  }}
-                />
-                <YAxis
-                  tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.4)' }}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(v: number) =>
-                    v >= 1_000_000
-                      ? `${(v / 1_000_000).toFixed(1)}M`
-                      : `${(v / 1000).toFixed(0)}k`
-                  }
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: '#1d232a',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                  formatter={(v: number) => [`${v.toLocaleString()} so'm`, 'Pul oqimi']}
-                  labelFormatter={(l: number) => `${l} ta sotildi`}
-                />
-                {/* Zero line */}
-                <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" strokeDasharray="4 2" />
-                {/* Breakeven line */}
-                {r.breakevenQty > 0 && (
-                  <ReferenceLine
-                    x={r.breakevenQty}
-                    stroke="#ef4444"
-                    strokeDasharray="4 2"
-                    label={{
-                      value: `Breakeven: ${r.breakevenQty} ta`,
-                      position: 'insideTopRight',
-                      fontSize: 10,
-                      fill: '#ef4444',
-                    }}
-                  />
-                )}
-                <Area
-                  type="monotone"
-                  dataKey="cashFlow"
-                  stroke="#22c55e"
-                  strokeWidth={2}
-                  fill="url(#cfGrad)"
-                  dot={false}
-                  activeDot={{ r: 4 }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

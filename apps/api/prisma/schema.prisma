@@ -31,6 +31,18 @@ model Account {
   cargo_calculations CargoCalculation[]
   external_search_jobs   ExternalSearchJob[]
   competitor_trackings   CompetitorTracking[]
+  referrals_from         Referral[]  @relation("referrer")
+  referrals_to           Referral[]  @relation("referred")
+  api_keys               ApiKey[]
+  consultant_sessions    Consultation[] @relation("consultant_sessions")
+  client_sessions        Consultation[] @relation("client_sessions")
+  price_tests            PriceTest[]
+  product_checklists     ProductChecklist[]
+  ad_campaigns           AdCampaign[]
+  team_invites           TeamInvite[]
+  custom_reports         CustomReport[]
+  shared_watchlists      SharedWatchlist[]
+  community_insights     CommunityInsight[]
 
   @@map("accounts")
 }
@@ -155,6 +167,7 @@ model Product {
   external_search_jobs ExternalSearchJob[]
   competitors_from     CompetitorTracking[] @relation("product_competitors")
   competitors_of       CompetitorTracking[] @relation("competitor_of")
+  price_tests          PriceTest[]
 
   @@map("products")
 }
@@ -514,4 +527,290 @@ model CompetitorPriceSnapshot {
 
   @@index([tracking_id, snapshot_at])
   @@map("competitor_price_snapshots")
+}
+
+// ============================================================
+// SEASONAL TRENDS
+// ============================================================
+
+model SeasonalTrend {
+  id              String   @id @default(uuid())
+  category_id     BigInt?
+  season_name     String   @db.VarChar(100)
+  season_start    Int      // month (1-12)
+  season_end      Int      // month (1-12)
+  avg_score_boost Decimal? @db.Decimal(4, 2)
+  peak_week       Int?
+  created_at      DateTime @default(now()) @db.Timestamptz
+
+  @@map("seasonal_trends")
+}
+
+// ============================================================
+// REFERRAL SYSTEM
+// ============================================================
+
+model Referral {
+  id                  String         @id @default(uuid())
+  referrer_account_id String
+  referred_account_id String?
+  code                String         @unique @db.VarChar(20)
+  status              ReferralStatus @default(PENDING)
+  reward_days         Int            @default(7)
+  credited_at         DateTime?      @db.Timestamptz
+  created_at          DateTime       @default(now()) @db.Timestamptz
+
+  referrer Account  @relation("referrer", fields: [referrer_account_id], references: [id])
+  referred Account? @relation("referred", fields: [referred_account_id], references: [id])
+
+  @@map("referrals")
+}
+
+enum ReferralStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+}
+
+// ============================================================
+// API KEYS
+// ============================================================
+
+model ApiKey {
+  id             String    @id @default(uuid())
+  account_id     String
+  name           String    @db.VarChar(100)
+  key_prefix     String    @db.VarChar(12)
+  key_hash       String    @db.VarChar(64)
+  daily_limit    Int       @default(1000)
+  requests_today Int       @default(0)
+  last_used_at   DateTime? @db.Timestamptz
+  last_reset_at  DateTime  @default(now()) @db.Timestamptz
+  is_active      Boolean   @default(true)
+  created_at     DateTime  @default(now()) @db.Timestamptz
+
+  account Account @relation(fields: [account_id], references: [id])
+
+  @@map("api_keys")
+}
+
+// ============================================================
+// CONSULTATIONS (Feature 15 — Konsultatsiya Marketplace)
+// ============================================================
+
+model Consultation {
+  id              String             @id @default(uuid())
+  consultant_id   String
+  client_id       String?
+  title           String             @db.VarChar(255)
+  description     String?            @db.Text
+  category        String             @db.VarChar(100)
+  price_uzs       BigInt
+  duration_min    Int                @default(60)
+  status          ConsultationStatus @default(AVAILABLE)
+  scheduled_at    DateTime?          @db.Timestamptz
+  completed_at    DateTime?          @db.Timestamptz
+  rating          Decimal?           @db.Decimal(2, 1)
+  review          String?            @db.Text
+  created_at      DateTime           @default(now()) @db.Timestamptz
+
+  consultant Account  @relation("consultant_sessions", fields: [consultant_id], references: [id])
+  client     Account? @relation("client_sessions", fields: [client_id], references: [id])
+
+  @@map("consultations")
+}
+
+enum ConsultationStatus {
+  AVAILABLE
+  BOOKED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// ============================================================
+// PRICE TESTING (Feature 29 — A/B Price Testing)
+// ============================================================
+
+model PriceTest {
+  id             String          @id @default(uuid())
+  account_id     String
+  product_id     BigInt
+  original_price BigInt
+  test_price     BigInt
+  status         PriceTestStatus @default(PLANNED)
+  start_date     DateTime?       @db.Timestamptz
+  end_date       DateTime?       @db.Timestamptz
+  original_sales Int             @default(0)
+  test_sales     Int             @default(0)
+  original_revenue BigInt        @default(0)
+  test_revenue     BigInt        @default(0)
+  conclusion     String?         @db.Text
+  created_at     DateTime        @default(now()) @db.Timestamptz
+
+  account Account @relation(fields: [account_id], references: [id])
+  product Product @relation(fields: [product_id], references: [id])
+
+  @@map("price_tests")
+}
+
+enum PriceTestStatus {
+  PLANNED
+  RUNNING
+  COMPLETED
+  CANCELLED
+}
+
+// ============================================================
+// PRODUCT CHECKLIST (Feature 28 — Product Launch Checklist)
+// ============================================================
+
+model ProductChecklist {
+  id         String   @id @default(uuid())
+  account_id String
+  product_id BigInt?
+  title      String   @db.VarChar(255)
+  items      Json     @default("[]")
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @updatedAt @db.Timestamptz
+
+  account Account @relation(fields: [account_id], references: [id])
+
+  @@map("product_checklists")
+}
+
+// ============================================================
+// ADS ROI TRACKING (Feature 31 — Uzum Ads ROI Tracker)
+// ============================================================
+
+model AdCampaign {
+  id              String           @id @default(uuid())
+  account_id      String
+  product_id      BigInt?
+  name            String           @db.VarChar(255)
+  platform        String           @db.VarChar(50) @default("uzum")
+  budget_uzs      BigInt           @default(0)
+  spent_uzs       BigInt           @default(0)
+  impressions     Int              @default(0)
+  clicks          Int              @default(0)
+  conversions     Int              @default(0)
+  revenue_uzs     BigInt           @default(0)
+  status          AdCampaignStatus @default(ACTIVE)
+  start_date      DateTime?        @db.Timestamptz
+  end_date        DateTime?        @db.Timestamptz
+  created_at      DateTime         @default(now()) @db.Timestamptz
+  updated_at      DateTime         @updatedAt @db.Timestamptz
+
+  account Account @relation(fields: [account_id], references: [id])
+
+  @@map("ad_campaigns")
+}
+
+enum AdCampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+// ============================================================
+// TEAM COLLABORATION (Feature 33)
+// ============================================================
+
+model TeamInvite {
+  id             String           @id @default(uuid())
+  account_id     String
+  email          String           @db.VarChar(255)
+  role           UserRole         @default(USER)
+  token          String           @unique @db.VarChar(64)
+  status         InviteStatus     @default(PENDING)
+  invited_by     String
+  expires_at     DateTime         @db.Timestamptz
+  created_at     DateTime         @default(now()) @db.Timestamptz
+
+  account Account @relation(fields: [account_id], references: [id])
+
+  @@map("team_invites")
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+}
+
+// ============================================================
+// CUSTOM REPORTS (Feature 34 — Custom Report Builder)
+// ============================================================
+
+model CustomReport {
+  id             String   @id @default(uuid())
+  account_id     String
+  title          String   @db.VarChar(255)
+  description    String?  @db.Text
+  report_type    String   @db.VarChar(50) // "product", "category", "shop", "market"
+  filters        Json     @default("{}")
+  columns        Json     @default("[]")
+  schedule       String?  @db.VarChar(50) // "daily", "weekly", "monthly"
+  last_run_at    DateTime? @db.Timestamptz
+  created_at     DateTime @default(now()) @db.Timestamptz
+  updated_at     DateTime @updatedAt @db.Timestamptz
+
+  account Account @relation(fields: [account_id], references: [id])
+
+  @@map("custom_reports")
+}
+
+// ============================================================
+// SHARED WATCHLIST (Feature 36 — Watchlist Sharing)
+// ============================================================
+
+model SharedWatchlist {
+  id          String   @id @default(uuid())
+  account_id  String
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
+  product_ids Json     @default("[]")
+  is_public   Boolean  @default(false)
+  share_token String?  @unique @db.VarChar(64)
+  views       Int      @default(0)
+  created_at  DateTime @default(now()) @db.Timestamptz
+  updated_at  DateTime @updatedAt @db.Timestamptz
+
+  account Account @relation(fields: [account_id], references: [id])
+
+  @@map("shared_watchlists")
+}
+
+// ============================================================
+// COMMUNITY INTELLIGENCE (Feature 38)
+// ============================================================
+
+model CommunityInsight {
+  id          String   @id @default(uuid())
+  account_id  String
+  title       String   @db.VarChar(255)
+  content     String   @db.Text
+  category    String   @db.VarChar(100)
+  upvotes     Int      @default(0)
+  downvotes   Int      @default(0)
+  created_at  DateTime @default(now()) @db.Timestamptz
+
+  account Account         @relation(fields: [account_id], references: [id])
+  votes   InsightVote[]
+
+  @@map("community_insights")
+}
+
+model InsightVote {
+  id         String   @id @default(uuid())
+  insight_id String
+  account_id String
+  vote       Int      // +1 or -1
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  insight CommunityInsight @relation(fields: [insight_id], references: [id])
+
+  @@unique([insight_id, account_id])
+  @@map("insight_votes")
 }

@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { GlobalLoggerInterceptor } from './common/interceptors/global-logger.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -16,8 +17,14 @@ async function bootstrap() {
     }),
   );
 
+  app.useGlobalInterceptors(new GlobalLoggerInterceptor());
+
   app.enableCors({
-    origin: process.env.NODE_ENV === 'production' ? false : '*',
+    origin: [
+      'http://localhost:5173',
+      process.env.WEB_URL,
+      /^chrome-extension:\/\//,
+    ].filter(Boolean) as (string | RegExp)[],
   });
 
   // Swagger

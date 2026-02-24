@@ -2,18 +2,23 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
+import { ReferralService } from '../referral/referral.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly referralService: ReferralService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -37,6 +42,24 @@ export class AuthService {
         role: 'USER',
       },
     });
+
+    // Apply referral code if provided
+    if (dto.referral_code) {
+      try {
+        await this.referralService.applyReferralCode(
+          dto.referral_code,
+          account.id,
+        );
+        this.logger.log(
+          `Referral code ${dto.referral_code} applied for account ${account.id}`,
+        );
+      } catch (e: any) {
+        this.logger.warn(
+          `Referral code ${dto.referral_code} failed: ${e.message}`,
+        );
+        // Don't block registration if referral code is invalid
+      }
+    }
 
     const token = this.signToken(user.id, account.id, user.role);
     return { access_token: token, account_id: account.id };

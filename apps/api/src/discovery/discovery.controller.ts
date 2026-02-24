@@ -13,8 +13,10 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { DiscoveryService } from './discovery.service';
+import { NicheService } from './niche.service';
 import { RequestLoggerService } from '../common/request-logger.service';
 import { UzumClient } from '../uzum/uzum.client';
+import { PrismaService } from '../prisma/prisma.service';
 
 @ApiTags('discovery')
 @ApiBearerAuth()
@@ -23,19 +25,12 @@ import { UzumClient } from '../uzum/uzum.client';
 export class DiscoveryController {
   constructor(
     private readonly discoveryService: DiscoveryService,
+    private readonly nicheService: NicheService,
     private readonly uzumClient: UzumClient,
     private readonly reqLogger: RequestLoggerService,
+    private readonly prisma: PrismaService,
   ) {}
 
-  /**
-   * Start a new category discovery run.
-   * input: Uzum category URL (any format) or plain numeric ID.
-   *
-   * URL examples:
-   *   https://uzum.uz/ru/category/smartfony--879       ← --ID pattern (fast)
-   *   https://uzum.uz/uz/category/telefonlar           ← no ID → page scrape
-   *   10012                                            ← plain number
-   */
   @Post('run')
   async startRun(
     @CurrentUser('account_id') accountId: string,
@@ -60,7 +55,6 @@ export class DiscoveryController {
 
     this.reqLogger.logDiscovery(accountId, categoryId, body.input.trim());
 
-    // Build category URL for Playwright scraping
     const rawInput = body.input.trim();
     const categoryUrl = rawInput.startsWith('http')
       ? rawInput
@@ -70,13 +64,11 @@ export class DiscoveryController {
     return { run_id: runId, category_id: categoryId, message: 'Discovery run started' };
   }
 
-  /** List all runs for current account */
   @Get('runs')
   listRuns(@CurrentUser('account_id') accountId: string) {
     return this.discoveryService.listRuns(accountId);
   }
 
-  /** Get single run with winners */
   @Get('runs/:id')
   getRun(
     @Param('id') runId: string,
@@ -85,7 +77,6 @@ export class DiscoveryController {
     return this.discoveryService.getRun(runId, accountId);
   }
 
-  /** Latest leaderboard (last completed run) */
   @Get('leaderboard')
   getLeaderboard(
     @CurrentUser('account_id') accountId: string,
@@ -95,5 +86,92 @@ export class DiscoveryController {
       accountId,
       categoryId ? parseInt(categoryId) : undefined,
     );
+  }
+
+  // ============================================================
+  // Feature 04 — Niche Finder
+  // ============================================================
+
+  @Get('niches')
+  getNiches(
+    @CurrentUser('account_id') accountId: string,
+    @Query('category_id') categoryId?: string,
+  ) {
+    return this.nicheService.findNiches(
+      accountId,
+      categoryId ? parseInt(categoryId) : undefined,
+    );
+  }
+
+  @Get('niches/gaps')
+  getNicheGaps(
+    @CurrentUser('account_id') accountId: string,
+    @Query('category_id') categoryId?: string,
+  ) {
+    return this.nicheService.findGaps(
+      accountId,
+      categoryId ? parseInt(categoryId) : undefined,
+    );
+  }
+
+  // ============================================================
+  // Feature 02 — Seasonal Trend Calendar
+  // ============================================================
+
+  @Get('seasonal-calendar')
+  async getSeasonalCalendar() {
+    const trends = await this.prisma.seasonalTrend.findMany({
+      orderBy: { season_start: 'asc' },
+    });
+
+    return {
+      events: trends.map((t) => ({
+        id: t.id,
+        name: t.season_name,
+        start_month: t.season_start,
+        end_month: t.season_end,
+        boost: t.avg_score_boost ? Number(t.avg_score_boost) : null,
+        peak_week: t.peak_week,
+        category_id: t.category_id?.toString() ?? null,
+      })),
+    };
+  }
+
+  @Get('seasonal-calendar/upcoming')
+  async getUpcomingSeasons() {
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1; // 1-12
+    const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+
+    const trends = await this.prisma.seasonalTrend.findMany();
+
+    const upcoming = trends.filter((t) => {
+      if (t.season_start <= t.season_end) {
+        // Normal range (e.g. 3-4)
+        return (
+          (currentMonth >= t.season_start && currentMonth <= t.season_end) ||
+          (nextMonth >= t.season_start && nextMonth <= t.season_end)
+        );
+      }
+      // Wrapping range (e.g. 12-1)
+      return (
+        currentMonth >= t.season_start ||
+        currentMonth <= t.season_end ||
+        nextMonth >= t.season_start ||
+        nextMonth <= t.season_end
+      );
+    });
+
+    return {
+      current_month: currentMonth,
+      events: upcoming.map((t) => ({
+        id: t.id,
+        name: t.season_name,
+        start_month: t.season_start,
+        end_month: t.season_end,
+        boost: t.avg_score_boost ? Number(t.avg_score_boost) : null,
+        peak_week: t.peak_week,
+      })),
+    };
   }
 }

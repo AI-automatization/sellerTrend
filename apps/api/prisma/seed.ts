@@ -111,6 +111,29 @@ async function main() {
     console.log('\n✅ External platformalar allaqachon mavjud');
   }
 
+  // 6. Seasonal trends (O'zbekiston uchun)
+  const trendCount = await prisma.seasonalTrend.count();
+  if (trendCount === 0) {
+    await prisma.seasonalTrend.createMany({
+      data: [
+        { season_name: 'Yangi Yil',           season_start: 12, season_end: 1,  avg_score_boost: 1.35, peak_week: 52 },
+        { season_name: '8-Mart',              season_start: 2,  season_end: 3,  avg_score_boost: 1.20, peak_week: 9 },
+        { season_name: 'Navro\'z',            season_start: 3,  season_end: 3,  avg_score_boost: 1.15, peak_week: 12 },
+        { season_name: 'Ramazon',             season_start: 3,  season_end: 4,  avg_score_boost: 1.25, peak_week: 14 },
+        { season_name: 'Maktab mavsumi',      season_start: 8,  season_end: 9,  avg_score_boost: 1.30, peak_week: 35 },
+        { season_name: 'Qurbon Hayit',        season_start: 6,  season_end: 6,  avg_score_boost: 1.10, peak_week: 24 },
+        { season_name: 'Yoz mavsumi',         season_start: 6,  season_end: 8,  avg_score_boost: 1.10, peak_week: 28 },
+        { season_name: 'Black Friday',        season_start: 11, season_end: 11, avg_score_boost: 1.40, peak_week: 47 },
+        { season_name: '11.11 Mega Sale',     season_start: 11, season_end: 11, avg_score_boost: 1.35, peak_week: 45 },
+        { season_name: 'Valentinlar kuni',    season_start: 2,  season_end: 2,  avg_score_boost: 1.15, peak_week: 6 },
+        { season_name: 'Mustaqillik kuni',    season_start: 9,  season_end: 9,  avg_score_boost: 1.05, peak_week: 36 },
+      ],
+    });
+    console.log('\n✅ Seasonal trends yaratildi (11 ta)');
+  } else {
+    console.log('\n✅ Seasonal trends allaqachon mavjud');
+  }
+
   console.log('\n🎉 Seed yakunlandi!');
 }
 

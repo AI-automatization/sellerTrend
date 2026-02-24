@@ -14,11 +14,29 @@ import { SourcingModule } from './sourcing/sourcing.module';
 import { CompetitorModule } from './competitor/competitor.module';
 import { CommonModule } from './common/common.module';
 import { HealthController } from './common/health.controller';
+// v1.0 MVP modules
+import { ToolsModule } from './tools/tools.module';
+import { LeaderboardModule } from './leaderboard/leaderboard.module';
+import { ShopsModule } from './shops/shops.module';
+import { ReferralModule } from './referral/referral.module';
+import { ApiKeysModule } from './api-keys/api-keys.module';
+import { ExportModule } from './export/export.module';
+// v2.0 modules
+import { ConsultationModule } from './consultation/consultation.module';
+import { GatewayModule } from './common/gateways/gateway.module';
+// v3.0 Signals
+import { SignalsModule } from './signals/signals.module';
+// v4.0 Enterprise
+import { AdsModule } from './ads/ads.module';
+import { TeamModule } from './team/team.module';
+import { ReportsModule } from './reports/reports.module';
+import { WatchlistModule } from './watchlist/watchlist.module';
+import { CommunityModule } from './community/community.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]), // 60 req/min per IP
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
     CommonModule,
     PrismaModule,
     AuthModule,
@@ -30,6 +48,24 @@ import { HealthController } from './common/health.controller';
     AiModule,
     SourcingModule,
     CompetitorModule,
+    // v1.0 MVP
+    ToolsModule,
+    LeaderboardModule,
+    ShopsModule,
+    ReferralModule,
+    ApiKeysModule,
+    ExportModule,
+    // v2.0
+    ConsultationModule,
+    GatewayModule,
+    // v3.0 Signals
+    SignalsModule,
+    // v4.0 Enterprise
+    AdsModule,
+    TeamModule,
+    ReportsModule,
+    WatchlistModule,
+    CommunityModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
   controllers: [HealthController],

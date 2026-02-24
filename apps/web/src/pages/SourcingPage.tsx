@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { sourcingApi } from '../api/client';
 
@@ -117,11 +117,11 @@ export function SourcingPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="w-full space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Sourcing Engine</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold">Sourcing Engine</h1>
           <p className="text-base-content/60 text-sm mt-1">
             Xitoy / Yevropa narxlarini solishtiring, AI orqali eng yaxshi variantni toping
           </p>
@@ -263,7 +263,7 @@ function ImportAnalysis({
   return (
     <div className="space-y-4">
       {/* Search form */}
-      <div className="card bg-base-200">
+      <div className="card bg-base-200/60 border border-base-300/50 rounded-2xl">
         <div className="card-body">
           <h2 className="card-title text-lg">🌍 Import Tahlil — AI orqali global narx qidirish</h2>
           <p className="text-sm text-base-content/60">
@@ -369,7 +369,7 @@ function SourcingResultCard({ result: r }: { result: SourcingResult }) {
   const flag = COUNTRY_FLAGS[r.country] ?? '';
 
   return (
-    <div className="card bg-base-200 hover:bg-base-300 transition-colors">
+    <div className="card bg-base-200/60 border border-base-300/50 rounded-2xl hover:bg-base-300/60 transition-colors">
       <div className="card-body p-4">
         <div className="flex gap-4">
           {/* Image */}
@@ -487,7 +487,7 @@ function JobsList() {
       <div className="space-y-4">
         <button onClick={() => setSelectedJob(null)} className="btn btn-ghost btn-sm">← Orqaga</button>
 
-        <div className="card bg-base-200">
+        <div className="card bg-base-200/60 border border-base-300/50 rounded-2xl">
           <div className="card-body">
             <div className="flex items-center gap-3">
               <StatusBadge status={selectedJob.status} />
@@ -515,7 +515,7 @@ function JobsList() {
   );
 
   return (
-    <div className="card bg-base-200">
+    <div className="card bg-base-200/60 border border-base-300/50 rounded-2xl">
       <div className="card-body">
         <h2 className="card-title text-lg">Qidiruvlar Tarixi</h2>
         <div className="overflow-x-auto">
@@ -618,7 +618,7 @@ function CargoCalculator({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="card bg-base-200">
+      <div className="card bg-base-200/60 border border-base-300/50 rounded-2xl">
         <div className="card-body">
           <h2 className="card-title text-lg">Cargo Xarajatini Hisoblash</h2>
           <form onSubmit={submit} className="space-y-4 mt-2">
@@ -752,7 +752,7 @@ function ResultCard({ result }: { result: CalcResult }) {
 
   return (
     <div className="space-y-4">
-      <div className="card bg-base-200">
+      <div className="card bg-base-200/60 border border-base-300/50 rounded-2xl">
         <div className="card-body">
           <div className="flex items-center justify-between">
             <h2 className="card-title text-lg">Natija</h2>
@@ -827,7 +827,7 @@ function ResultCard({ result }: { result: CalcResult }) {
 
 function ExternalSearch({ initialQuery }: { initialQuery?: string }) {
   const [query, setQuery] = useState(initialQuery ?? '');
-  const [source, setSource] = useState('ALIBABA');
+  const [source, setSource] = useState('BOTH');
   const [results, setResults] = useState<SearchItem[]>([]);
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
@@ -847,7 +847,7 @@ function ExternalSearch({ initialQuery }: { initialQuery?: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="card bg-base-200">
+      <div className="card bg-base-200/60 border border-base-300/50 rounded-2xl">
         <div className="card-body">
           <h2 className="card-title text-lg">Tez Narx Qidirish (Playwright)</h2>
           <p className="text-sm text-base-content/60">
@@ -856,8 +856,9 @@ function ExternalSearch({ initialQuery }: { initialQuery?: string }) {
           <form onSubmit={handleSearch} className="flex gap-2 mt-2 flex-wrap">
             <select className="select select-bordered select-sm" value={source}
               onChange={(e) => setSource(e.target.value)}>
-              <option value="ALIBABA">🇨🇳 Banggood + Shopee</option>
-              <option value="ALIEXPRESS">🛒 Banggood + Shopee</option>
+              <option value="BOTH">🌍 Hammasi (Banggood + Shopee)</option>
+              <option value="ALIBABA">🛍️ Faqat Banggood</option>
+              <option value="ALIEXPRESS">🛒 Faqat Shopee</option>
             </select>
             <input type="text" placeholder="Masalan: wireless earphones"
               className="input input-bordered input-sm flex-1 min-w-48"
@@ -874,7 +875,7 @@ function ExternalSearch({ initialQuery }: { initialQuery?: string }) {
       {results.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {results.map((item, i) => (
-            <div key={i} className="card bg-base-200 hover:bg-base-300 transition-colors">
+            <div key={i} className="card bg-base-200/60 border border-base-300/50 rounded-2xl hover:bg-base-300/60 transition-colors">
               <div className="card-body p-4">
                 {item.image && (
                   <img src={item.image} alt={item.title}
@@ -925,7 +926,7 @@ function CalculationHistory() {
   );
 
   return (
-    <div className="card bg-base-200">
+    <div className="card bg-base-200/60 border border-base-300/50 rounded-2xl">
       <div className="card-body">
         <h2 className="card-title text-lg">Oxirgi Hisoblashlar</h2>
         <div className="overflow-x-auto">

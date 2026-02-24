@@ -9,6 +9,18 @@ import { ProductPage } from './pages/ProductPage';
 import { SourcingPage } from './pages/SourcingPage';
 import { ProfitCalculatorPage } from './pages/ProfitCalculatorPage';
 import { PublicLeaderboardPage } from './pages/PublicLeaderboardPage';
+import { LeaderboardPage } from './pages/LeaderboardPage';
+import { ShopsPage } from './pages/ShopsPage';
+import { ReferralPage } from './pages/ReferralPage';
+import { ApiKeysPage } from './pages/ApiKeysPage';
+// v2.0 pages
+import { DescriptionGeneratorPage } from './pages/DescriptionGeneratorPage';
+import { ElasticityPage } from './pages/ElasticityPage';
+import { ConsultationPage } from './pages/ConsultationPage';
+// v3.0 pages
+import { SignalsPage } from './pages/SignalsPage';
+// v4.0 pages
+import { EnterprisePage } from './pages/EnterprisePage';
 import { Layout } from './components/Layout';
 
 function isAuthenticated() {
@@ -40,6 +52,19 @@ export default function App() {
           <Route path="discovery" element={<DiscoveryPage />} />
           <Route path="sourcing" element={<SourcingPage />} />
           <Route path="tools/profit-calculator" element={<ProfitCalculatorPage />} />
+          <Route path="leaderboard" element={<LeaderboardPage />} />
+          <Route path="calculator" element={<ProfitCalculatorPage />} />
+          <Route path="shops" element={<ShopsPage />} />
+          <Route path="referral" element={<ReferralPage />} />
+          <Route path="api-keys" element={<ApiKeysPage />} />
+          {/* v2.0 */}
+          <Route path="ai-description" element={<DescriptionGeneratorPage />} />
+          <Route path="elasticity" element={<ElasticityPage />} />
+          <Route path="consultation" element={<ConsultationPage />} />
+          {/* v3.0 Signals */}
+          <Route path="signals" element={<SignalsPage />} />
+          {/* v4.0 Enterprise */}
+          <Route path="enterprise" element={<EnterprisePage />} />
           <Route path="admin" element={<AdminPage />} />
         </Route>
       </Routes>

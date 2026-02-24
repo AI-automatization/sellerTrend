@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { forecastEnsemble } from '@uzum/utils';
 
 @Injectable()
 export class ProductsService {
@@ -189,6 +190,37 @@ export class ProductsService {
       trend,
       slope: Number(slope.toFixed(6)),
       snapshots,
+    };
+  }
+
+  /**
+   * ML-enhanced forecast: ensemble of WMA + Holt + Linear with confidence intervals.
+   * Returns forecasts for both score and weekly_bought metrics.
+   */
+  async getAdvancedForecast(productId: bigint) {
+    const rows = await this.prisma.productSnapshot.findMany({
+      where: { product_id: productId },
+      orderBy: { snapshot_at: 'asc' },
+      take: 60,
+      select: { score: true, weekly_bought: true, snapshot_at: true },
+    });
+
+    const scoreValues = rows.map((s) => Number(s.score ?? 0));
+    const wbValues = rows.map((s) => s.weekly_bought ?? 0);
+    const dates = rows.map((s) => s.snapshot_at.toISOString());
+
+    const scoreForecast = forecastEnsemble(scoreValues, dates, 7);
+    const salesForecast = forecastEnsemble(wbValues, dates, 7);
+
+    return {
+      score_forecast: scoreForecast,
+      sales_forecast: salesForecast,
+      snapshots: rows.map((s) => ({
+        date: s.snapshot_at.toISOString(),
+        score: Number(s.score ?? 0),
+        weekly_bought: s.weekly_bought ?? 0,
+      })),
+      data_points: rows.length,
     };
   }
 
