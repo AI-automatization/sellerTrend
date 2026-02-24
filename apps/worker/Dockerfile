@@ -15,6 +15,11 @@ COPY tsconfig.base.json ./
 COPY packages/ ./packages/
 COPY apps/worker/ ./apps/worker/
 COPY apps/api/prisma/ ./apps/worker/prisma/
+# Build shared packages first so @uzum/* resolve to JS at runtime
+WORKDIR /app/packages/types
+RUN pnpm run build
+WORKDIR /app/packages/utils
+RUN pnpm run build
 WORKDIR /app/apps/worker
 RUN pnpm exec prisma generate
 RUN pnpm run build
@@ -57,6 +62,8 @@ RUN pnpm install --frozen-lockfile --prod --filter worker --filter @uzum/types -
 
 COPY --from=builder /app/apps/worker/dist ./apps/worker/dist
 COPY --from=builder /app/apps/worker/prisma ./apps/worker/prisma
+COPY --from=builder /app/packages/types/dist ./packages/types/dist
+COPY --from=builder /app/packages/utils/dist ./packages/utils/dist
 
 WORKDIR /app/apps/worker
 RUN pnpm exec prisma generate
