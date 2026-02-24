@@ -10,6 +10,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
     "@prisma/client": "^6.3.1",
+    "prisma": "^6.3.1",
     "@uzum/types": "workspace:*",
     "@uzum/utils": "workspace:*",
     "bullmq": "^5.42.2",
@@ -20,7 +21,6 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
-    "prisma": "^6.3.1",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3"

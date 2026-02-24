@@ -14,7 +14,9 @@ WORKDIR /app
 COPY tsconfig.base.json ./
 COPY packages/ ./packages/
 COPY apps/bot/ ./apps/bot/
+COPY apps/api/prisma/ ./apps/api/prisma/
 WORKDIR /app/apps/bot
+RUN pnpm exec prisma generate --schema=../api/prisma/schema.prisma
 RUN pnpm run build
 
 FROM node:20-alpine AS runner
@@ -29,7 +31,8 @@ COPY packages/utils/package.json ./packages/utils/
 RUN pnpm install --frozen-lockfile --prod --filter bot --filter @uzum/types --filter @uzum/utils
 
 COPY --from=builder /app/apps/bot/dist ./apps/bot/dist
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 
 WORKDIR /app/apps/bot
-CMD ["node", "dist/main"]
+RUN pnpm exec prisma generate --schema=../api/prisma/schema.prisma
+CMD ["node", "dist/apps/bot/src/main"]
