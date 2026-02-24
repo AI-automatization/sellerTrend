@@ -3,7 +3,7 @@ RUN npm install -g pnpm@10.30.1
 
 FROM base AS deps
 WORKDIR /app
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .pnpmfile.cjs ./
 COPY apps/worker/package.json ./apps/worker/
 COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
@@ -47,7 +47,7 @@ ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium
 WORKDIR /app
 ENV NODE_ENV=production
 
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .pnpmfile.cjs ./
 COPY apps/worker/package.json ./apps/worker/
 COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
