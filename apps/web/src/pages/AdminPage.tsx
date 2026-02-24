@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { adminApi } from '../api/client';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -34,6 +35,9 @@ interface AuditEvent {
   user_email: string | null;
   old_value: any;
   new_value: any;
+  details: any;
+  ip: string | null;
+  source: 'admin' | 'user';
   created_at: string;
 }
 
@@ -97,8 +101,8 @@ function CreateAccountModal({ onClose, onDone }: { onClose: () => void; onDone: 
 
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setError(''); setLoading(true);
-    try { await adminApi.createAccount(form); onDone(); onClose(); }
-    catch (err: any) { setError(err.response?.data?.message ?? 'Xato'); }
+    try { await adminApi.createAccount(form); toast.success('Yangi account yaratildi'); onDone(); onClose(); }
+    catch (err: any) { setError(err.response?.data?.message ?? 'Xato'); toast.error(err.response?.data?.message ?? 'Account yaratib bo\'lmadi'); }
     finally { setLoading(false); }
   }
 
@@ -134,8 +138,8 @@ function DepositModal({ account, onClose, onDone }: { account: Account; onClose:
     const num = parseInt(amount.replace(/\s/g, ''));
     if (!num || num <= 0) { setError("Miqdor noto'g'ri"); return; }
     setLoading(true); setError('');
-    try { await adminApi.deposit(account.id, num, desc || undefined); onDone(); onClose(); }
-    catch (err: any) { setError(err.response?.data?.message ?? 'Xato'); }
+    try { await adminApi.deposit(account.id, num, desc || undefined); toast.success(`${num.toLocaleString()} so'm balansga qo'shildi`); onDone(); onClose(); }
+    catch (err: any) { setError(err.response?.data?.message ?? 'Xato'); toast.error(err.response?.data?.message ?? 'Deposit amalga oshmadi'); }
     finally { setLoading(false); }
   }
 
@@ -261,12 +265,15 @@ export function AdminPage() {
     } else if (activeTab === 'system') {
       adminApi.getSystemHealth().then((r) => setHealth(r.data)).catch(() => {});
     } else if (activeTab === 'feedback') {
-      adminApi.getAdminFeedback().then((r) => setFeedbackTickets(r.data?.items || r.data || [])).catch(() => {});
+      adminApi.getAdminFeedback().then((r) => {
+        const items = r.data?.items ?? r.data;
+        setFeedbackTickets(Array.isArray(items) ? items : []);
+      }).catch(() => {});
       adminApi.getFeedbackStats().then((r) => setFeedbackStats(r.data)).catch(() => {});
     } else if (activeTab === 'deposits') {
       adminApi.getDepositLog(depositLogPage).then((r) => {
-        setDepositLog(r.data?.items || []);
-        setDepositLogTotal(r.data?.total || 0);
+        setDepositLog(Array.isArray(r.data?.items) ? r.data.items : []);
+        setDepositLogTotal(r.data?.total ?? 0);
       }).catch(() => {});
     }
   }, [activeTab]);
@@ -274,40 +281,54 @@ export function AdminPage() {
   async function saveFee(accountId: string) {
     const val = feeInput.trim();
     const fee = val === '' ? null : parseInt(val);
-    try { await adminApi.setFee(accountId, fee); setEditingFee(null);
+    try {
+      await adminApi.setFee(accountId, fee); setEditingFee(null);
       setAccounts((prev) => prev.map((a) => a.id === accountId ? { ...a, daily_fee: fee?.toString() ?? null } : a));
-    } catch { /* empty */ }
+      toast.success(fee ? `Kunlik to'lov ${fee.toLocaleString()} so'm qilindi` : 'Global kunlik to\'lovga qaytarildi');
+    } catch (err: any) { toast.error(err.response?.data?.message ?? 'Kunlik to\'lovni o\'zgartirib bo\'lmadi'); }
   }
 
   async function saveGlobalFee() {
     const fee = parseInt(globalFeeInput);
     if (!fee || fee <= 0) return;
     setSavingGlobalFee(true);
-    try { await adminApi.setGlobalFee(fee); } finally { setSavingGlobalFee(false); }
+    try { await adminApi.setGlobalFee(fee); toast.success(`Global kunlik to'lov ${fee.toLocaleString()} so'm`); }
+    catch (err: any) { toast.error(err.response?.data?.message ?? 'Global to\'lovni o\'zgartirib bo\'lmadi'); }
+    finally { setSavingGlobalFee(false); }
   }
 
   async function handleRoleChange(userId: string, newRole: Role) {
-    try { await adminApi.updateRole(userId, newRole);
+    try {
+      await adminApi.updateRole(userId, newRole);
       setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, role: newRole } : u));
-    } catch { /* empty */ }
+      toast.success(`Rol ${ROLE_META[newRole].label} ga o'zgartirildi`);
+    } catch (err: any) { toast.error(err.response?.data?.message ?? 'Rolni o\'zgartirib bo\'lmadi'); }
   }
 
   async function handleToggleActive(userId: string) {
-    try { const res = await adminApi.toggleActive(userId);
+    try {
+      const res = await adminApi.toggleActive(userId);
       setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, is_active: res.data.is_active } : u));
-    } catch { /* empty */ }
+      toast.success(res.data.is_active ? 'Foydalanuvchi faollashtirildi' : 'Foydalanuvchi bloklandi');
+    } catch (err: any) { toast.error(err.response?.data?.message ?? 'Holatni o\'zgartirib bo\'lmadi'); }
   }
 
   async function handleStatusChange(accountId: string, status: string) {
-    try { await adminApi.updateAccountStatus(accountId, status);
+    try {
+      await adminApi.updateAccountStatus(accountId, status);
       setAccounts((prev) => prev.map((a) => a.id === accountId ? { ...a, status: status as any } : a));
-    } catch { /* empty */ }
+      const labels: Record<string, string> = { ACTIVE: 'faollashtirildi', SUSPENDED: 'bloklandi', PAYMENT_DUE: 'to\'lov kerak' };
+      toast.success(`Account ${labels[status] ?? status}`);
+    } catch (err: any) { toast.error(err.response?.data?.message ?? 'Statusni o\'zgartirib bo\'lmadi'); }
   }
 
   async function handleSearch() {
     if (!searchQuery.trim()) return;
-    try { const r = await adminApi.globalSearch(searchQuery); setSearchResults(r.data); }
-    catch { /* empty */ }
+    try {
+      const r = await adminApi.globalSearch(searchQuery); setSearchResults(r.data);
+      const count = (r.data.users?.length || 0) + (r.data.accounts?.length || 0) + (r.data.products?.length || 0);
+      if (count === 0) toast.info('Hech narsa topilmadi');
+    } catch (err: any) { toast.error(err.response?.data?.message ?? 'Qidiruvda xatolik'); }
   }
 
   async function loadUserDetail(userId: string) {
@@ -328,7 +349,8 @@ export function AdminPage() {
     try {
       await adminApi.sendNotification({ message: notifMsg, type: notifType, target: 'all' });
       setNotifMsg('');
-    } catch { /* empty */ }
+      toast.success('Xabar yuborildi');
+    } catch (err: any) { toast.error(err.response?.data?.message ?? 'Xabar yuborib bo\'lmadi'); }
     setNotifSending(false);
   }
 
@@ -338,14 +360,16 @@ export function AdminPage() {
       await adminApi.deleteDeposit(id);
       setDepositLog((prev) => prev.filter((d: any) => d.id !== id));
       setDepositLogTotal((prev) => prev - 1);
-    } catch { /* empty */ }
+      toast.success('Deposit yozuvi o\'chirildi');
+    } catch (err: any) { toast.error(err.response?.data?.message ?? 'O\'chirib bo\'lmadi'); }
   }
 
   async function handleFeedbackStatus(ticketId: string, status: string) {
     try {
       await adminApi.updateFeedbackStatus(ticketId, status);
       setFeedbackTickets((prev) => prev.map((t: any) => t.id === ticketId ? { ...t, status } : t));
-    } catch { /* empty */ }
+      toast.success(`Feedback statusi ${status} ga o'zgartirildi`);
+    } catch (err: any) { toast.error(err.response?.data?.message ?? 'Statusni o\'zgartirib bo\'lmadi'); }
   }
 
   if (loading) {
@@ -366,7 +390,7 @@ export function AdminPage() {
     system: { title: 'Tizim Salomatligi', desc: 'API, Database, Disk holati' },
     feedback: { title: 'Feedback Boshqaruv', desc: 'Foydalanuvchi murojatlari' },
     notifications: { title: 'Xabarnomalar', desc: 'Barcha foydalanuvchilarga xabar yuborish' },
-    audit: { title: 'Audit Log', desc: 'Barcha o\'zgarishlar tarixi' },
+    audit: { title: 'Audit Log', desc: 'Admin amallar + foydalanuvchi faoliyati tarixi' },
     permissions: { title: 'Ruxsatlar', desc: 'Rol va huquqlar tizimi' },
     deposits: { title: 'Deposit Log', desc: 'Balans to\'ldirish tarixi' },
   };
@@ -432,10 +456,10 @@ export function AdminPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               <StatCard label="Jami accountlar" value={accounts.length} sub={`${activeAccounts} faol / ${dueAccounts} to'lov`} />
               <StatCard label="Jami userlar" value={users.length} sub={`${activeUsers} faol`} />
-              <StatCard label="Bugun aktiv" value={overview?.users?.today_active ?? '-'} color="text-primary" />
-              <StatCard label="Tracked products" value={overview?.products?.tracked_total ?? '-'} />
-              <StatCard label="Bugungi analyze" value={overview?.products?.analyzed_today ?? '-'} color="text-info" />
-              <StatCard label="Discovery runs" value={overview?.discovery?.runs_today ?? '-'} />
+              <StatCard label="Bugun aktiv" value={overview?.today_active_users ?? '-'} color="text-primary" />
+              <StatCard label="Tracked products" value={overview?.total_tracked_products ?? '-'} />
+              <StatCard label="Bugungi analyze" value={overview?.today_analyzes ?? '-'} color="text-info" />
+              <StatCard label="Discovery runs" value={overview?.today_category_runs ?? '-'} />
             </div>
 
             {/* Revenue */}
@@ -476,15 +500,15 @@ export function AdminPage() {
                     <StatCard label="Queue pending" value={realtime.queue_pending ?? 0} />
                     <StatCard label="Xatolar" value={realtime.recent_errors ?? 0} color="text-error" />
                   </div>
-                  {realtime.recent_activity?.length > 0 && (
+                  {realtime.activity_feed?.length > 0 && (
                     <div className="mt-3">
                       <p className="text-xs text-base-content/50 mb-1">So'nggi faoliyat</p>
                       <div className="space-y-1">
-                        {realtime.recent_activity.slice(0, 5).map((a: any, i: number) => (
+                        {realtime.activity_feed.slice(0, 5).map((a: any, i: number) => (
                           <div key={i} className="flex items-center gap-2 text-xs">
                             <span className="badge badge-xs badge-primary">{a.action}</span>
                             <span className="text-base-content/60">{a.user_email}</span>
-                            <span className="text-base-content/30 ml-auto">{a.time_ago}</span>
+                            <span className="text-base-content/30 ml-auto">{new Date(a.created_at).toLocaleTimeString()}</span>
                           </div>
                         ))}
                       </div>
@@ -669,7 +693,7 @@ export function AdminPage() {
                           <td className="font-mono">{i + 1}</td>
                           <td className="text-sm max-w-xs truncate">{p.title || `Product #${p.product_id}`}</td>
                           <td className="font-bold text-primary">{p.tracker_count}</td>
-                          <td>{(p.avg_score ?? 0).toFixed(2)}</td>
+                          <td>{Number(p.avg_score ?? 0).toFixed(2)}</td>
                           <td>{p.weekly_bought ?? '-'}</td>
                         </tr>
                       ))}
@@ -746,10 +770,10 @@ export function AdminPage() {
           <div className="space-y-4">
             {health ? (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <StatCard label="API Status" value={health.api?.status || 'UP'} color="text-success" />
-                <StatCard label="Uptime" value={`${Math.floor((health.api?.uptime_seconds || 0) / 3600)}h`} />
-                <StatCard label="Database" value={health.db?.status || 'OK'} color={health.db?.status === 'connected' ? 'text-success' : 'text-error'} />
-                <StatCard label="Log hajmi" value={`${(health.disk?.log_size_mb ?? 0).toFixed(1)} MB`} />
+                <StatCard label="API Status" value={health.status === 'healthy' ? 'Sog\'lom' : 'Muammo'} color={health.status === 'healthy' ? 'text-success' : 'text-error'} />
+                <StatCard label="Uptime" value={`${Math.floor((health.uptime_seconds || 0) / 3600)}h ${Math.floor(((health.uptime_seconds || 0) % 3600) / 60)}m`} />
+                <StatCard label="Database" value={health.db_connected ? 'Ulangan' : 'Uzilgan'} color={health.db_connected ? 'text-success' : 'text-error'} />
+                <StatCard label="RAM (Heap)" value={`${health.memory?.heap_used_mb ?? 0} / ${health.memory?.heap_total_mb ?? 0} MB`} />
               </div>
             ) : (
               <div className="flex justify-center py-8"><span className="loading loading-spinner" /></div>
@@ -778,11 +802,12 @@ export function AdminPage() {
         {activeTab === 'feedback' && (
           <div className="space-y-4">
             {feedbackStats && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <StatCard label="Ochiq" value={feedbackStats.open ?? 0} color="text-info" />
-                <StatCard label="Jarayonda" value={feedbackStats.in_progress ?? 0} color="text-warning" />
-                <StatCard label="Hal qilindi" value={feedbackStats.resolved ?? 0} color="text-success" />
-                <StatCard label="Yopildi" value={feedbackStats.closed ?? 0} />
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <StatCard label="Jami" value={feedbackStats.total ?? 0} />
+                <StatCard label="Ochiq" value={feedbackStats.by_status?.OPEN ?? 0} color="text-info" />
+                <StatCard label="Jarayonda" value={feedbackStats.by_status?.IN_PROGRESS ?? 0} color="text-warning" />
+                <StatCard label="Hal qilindi" value={feedbackStats.by_status?.RESOLVED ?? 0} color="text-success" />
+                <StatCard label="Yopildi" value={feedbackStats.by_status?.CLOSED ?? 0} />
               </div>
             )}
 
@@ -851,27 +876,43 @@ export function AdminPage() {
         {activeTab === 'audit' && (
           <div className="overflow-x-auto">
             <table className="table table-sm">
-              <thead><tr><th>Vaqt</th><th>Amal</th><th>Account</th><th>Admin</th><th>O'zgarish</th></tr></thead>
+              <thead><tr><th>Vaqt</th><th>Tur</th><th>Amal</th><th>User</th><th>Account</th><th>Tafsilotlar</th><th>IP</th></tr></thead>
               <tbody>
                 {auditLog.map((e) => (
-                  <tr key={e.id}>
+                  <tr key={`${e.source}-${e.id}`} className="hover">
                     <td className="text-xs whitespace-nowrap">{new Date(e.created_at).toLocaleString()}</td>
                     <td>
+                      <span className={`badge badge-xs ${e.source === 'admin' ? 'badge-error' : 'badge-info'}`}>
+                        {e.source === 'admin' ? 'Admin' : 'User'}
+                      </span>
+                    </td>
+                    <td>
                       <span className={`badge badge-xs ${
-                        e.action.includes('CREATED') ? 'badge-success' :
+                        e.action.includes('CREATED') || e.action === 'ANALYZE' || e.action === 'DISCOVERY' ? 'badge-success' :
                         e.action.includes('DEACTIVATED') || e.action.includes('DELETED') ? 'badge-error' :
-                        e.action.includes('CHANGED') || e.action.includes('ROLE') ? 'badge-warning' : 'badge-ghost'
+                        e.action.includes('CHANGED') || e.action.includes('ROLE') ? 'badge-warning' :
+                        e.action === 'LOGIN' || e.action === 'REGISTER' ? 'badge-primary' : 'badge-ghost'
                       }`}>{e.action}</span>
                     </td>
-                    <td className="text-sm">{e.account_name ?? '-'}</td>
-                    <td className="text-xs text-base-content/50">{e.user_email ?? '-'}</td>
-                    <td className="text-xs">
-                      {e.old_value && <span className="text-error/60">{JSON.stringify(e.old_value)}</span>}
-                      {e.old_value && e.new_value && ' -> '}
-                      {e.new_value && <span className="text-success/60">{JSON.stringify(e.new_value)}</span>}
+                    <td className="text-xs text-base-content/60">{e.user_email ?? '-'}</td>
+                    <td className="text-xs text-base-content/50">{e.account_name ?? '-'}</td>
+                    <td className="text-xs max-w-xs truncate">
+                      {e.source === 'admin' ? (
+                        <>
+                          {e.old_value && <span className="text-error/60">{JSON.stringify(e.old_value)}</span>}
+                          {e.old_value && e.new_value && ' → '}
+                          {e.new_value && <span className="text-success/60">{JSON.stringify(e.new_value)}</span>}
+                        </>
+                      ) : (
+                        <span className="text-base-content/40">{e.details ? (typeof e.details === 'string' ? e.details : JSON.stringify(e.details)) : '—'}</span>
+                      )}
                     </td>
+                    <td className="text-xs text-base-content/30 font-mono">{e.ip ?? '—'}</td>
                   </tr>
                 ))}
+                {!auditLog.length && (
+                  <tr><td colSpan={7} className="text-center text-base-content/40 py-8">Audit log bo'sh</td></tr>
+                )}
               </tbody>
             </table>
           </div>

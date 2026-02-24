@@ -536,7 +536,7 @@ function JobsList() {
                   <td className="max-w-48 truncate text-sm">{j.query}</td>
                   <td><StatusBadge status={j.status} /></td>
                   <td>{j.result_count}</td>
-                  <td className="text-xs text-base-content/50">{j.platforms.join(', ')}</td>
+                  <td className="text-xs text-base-content/50">{j.platforms?.join(', ') ?? '—'}</td>
                   <td className="text-xs text-base-content/40">
                     {new Date(j.created_at).toLocaleDateString('ru-RU')}
                   </td>

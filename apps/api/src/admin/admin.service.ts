@@ -2,6 +2,8 @@ import { Injectable, ConflictException, NotFoundException, BadRequestException }
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 
+const SUPER_ADMIN_ACCOUNT_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
+
 @Injectable()
 export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
@@ -303,24 +305,55 @@ export class AdminService {
   }
 
   async getAuditLog(limit = 50) {
-    const events = await this.prisma.auditEvent.findMany({
-      orderBy: { created_at: 'desc' },
-      take: limit,
-      include: {
-        user: { select: { email: true, role: true } },
-        account: { select: { name: true } },
-      },
-    });
+    // Combine admin events + user activity into a unified audit log
+    const [adminEvents, userActivities] = await Promise.all([
+      this.prisma.auditEvent.findMany({
+        orderBy: { created_at: 'desc' },
+        take: limit,
+        include: {
+          user: { select: { email: true, role: true } },
+          account: { select: { name: true } },
+        },
+      }),
+      this.prisma.userActivity.findMany({
+        orderBy: { created_at: 'desc' },
+        take: limit,
+        include: {
+          user: { select: { email: true, role: true } },
+          account: { select: { name: true } },
+        },
+      }),
+    ]);
 
-    return events.map((e) => ({
-      id: e.id,
-      action: e.action,
-      account_name: e.account?.name ?? null,
-      user_email: e.user?.email ?? null,
-      old_value: e.old_value,
-      new_value: e.new_value,
-      created_at: e.created_at,
-    }));
+    const combined = [
+      ...adminEvents.map((e) => ({
+        id: e.id,
+        action: e.action,
+        account_name: e.account?.name ?? null,
+        user_email: e.user?.email ?? null,
+        old_value: e.old_value,
+        new_value: e.new_value,
+        details: null as any,
+        ip: null as string | null,
+        source: 'admin' as const,
+        created_at: e.created_at,
+      })),
+      ...userActivities.map((a) => ({
+        id: a.id,
+        action: a.action,
+        account_name: a.account?.name ?? null,
+        user_email: a.user?.email ?? null,
+        old_value: null,
+        new_value: null,
+        details: a.details,
+        ip: a.ip,
+        source: 'user' as const,
+        created_at: a.created_at,
+      })),
+    ];
+
+    combined.sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
+    return combined.slice(0, limit);
   }
 
   // ============================================================
@@ -343,6 +376,7 @@ export class AdminService {
     ] = await Promise.all([
       this.prisma.account.groupBy({
         by: ['status'],
+        where: { id: { not: SUPER_ADMIN_ACCOUNT_ID } },
         _count: { id: true },
       }),
       this.prisma.user.count(),
@@ -403,10 +437,11 @@ export class AdminService {
         _sum: { amount: true },
       }),
       this.prisma.account.aggregate({
+        where: { id: { not: SUPER_ADMIN_ACCOUNT_ID } },
         _avg: { balance: true },
       }),
       this.prisma.account.count({
-        where: { status: 'PAYMENT_DUE', created_at: { lte: new Date() } },
+        where: { status: 'PAYMENT_DUE', id: { not: SUPER_ADMIN_ACCOUNT_ID } },
       }),
     ]);
 
@@ -422,11 +457,16 @@ export class AdminService {
       amount: amount.toString(),
     }));
 
+    // Calculate today's revenue
+    const todayKey = new Date().toISOString().split('T')[0];
+    const todayRevenue = dailyMap[todayKey] ?? BigInt(0);
+
     return {
       daily: dailyData,
+      today_revenue: todayRevenue.toString(),
       mrr: (mrrResult._sum.amount ?? BigInt(0)).toString(),
       avg_balance: (avgBalance._avg.balance ?? 0).toString(),
-      payment_due_accounts: paymentDueThisMonth,
+      payment_due_count: paymentDueThisMonth,
     };
   }
 
@@ -449,8 +489,8 @@ export class AdminService {
       }),
       this.prisma.user.count({ where: { created_at: { gte: weekAgo } } }),
       this.prisma.user.count({ where: { created_at: { gte: monthAgo } } }),
-      this.prisma.account.count({ where: { status: 'ACTIVE' } }),
-      this.prisma.account.count({ where: { status: 'PAYMENT_DUE' } }),
+      this.prisma.account.count({ where: { status: 'ACTIVE', id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
+      this.prisma.account.count({ where: { status: 'PAYMENT_DUE', id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
     ]);
 
     // Group new users by date
