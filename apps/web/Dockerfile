@@ -16,8 +16,17 @@ COPY apps/web/ ./apps/web/
 WORKDIR /app/apps/web
 RUN pnpm run build
 
+# ── runner (nginx with envsubst for dynamic config) ──
 FROM nginx:alpine AS runner
+
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
-COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
+COPY apps/web/nginx.conf.template /etc/nginx/nginx.conf.template
+
+# Default values (overridden by Railway or docker-compose env vars)
+ENV PORT=80
+ENV API_UPSTREAM=api:3000
+
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+
+# envsubst replaces ONLY $PORT and $API_UPSTREAM, leaving nginx vars ($uri, $host, etc.) intact
+CMD ["/bin/sh", "-c", "envsubst '${PORT} ${API_UPSTREAM}' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
