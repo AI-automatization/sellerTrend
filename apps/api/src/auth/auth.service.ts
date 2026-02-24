@@ -83,6 +83,24 @@ export class AuthService {
     };
   }
 
+  async bootstrapAdmin(email: string): Promise<{ ok: boolean; message: string }> {
+    const existing = await this.prisma.user.findFirst({
+      where: { role: 'SUPER_ADMIN' },
+    });
+    if (existing) {
+      return { ok: false, message: 'SUPER_ADMIN already exists' };
+    }
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return { ok: false, message: 'User not found' };
+    }
+    await this.prisma.user.update({
+      where: { email },
+      data: { role: 'SUPER_ADMIN' },
+    });
+    return { ok: true, message: `${email} promoted to SUPER_ADMIN` };
+  }
+
   private signToken(userId: string, accountId: string, role: string): string {
     return this.jwt.sign({ sub: userId, account_id: accountId, role });
   }
