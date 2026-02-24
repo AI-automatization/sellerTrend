@@ -32,6 +32,10 @@ COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
 RUN pnpm install --frozen-lockfile --prod --filter api --filter @uzum/types --filter @uzum/utils
 
+# Ensure swagger-ui-dist top-level symlink exists for NestJS Swagger static serving
+RUN ln -sf /app/node_modules/.pnpm/swagger-ui-dist@5.17.14/node_modules/swagger-ui-dist \
+    /app/node_modules/swagger-ui-dist
+
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 
