@@ -20,6 +20,8 @@ import { ConsultationPage } from './pages/ConsultationPage';
 import { SignalsPage } from './pages/SignalsPage';
 // v4.0 pages
 import { EnterprisePage } from './pages/EnterprisePage';
+// v5.0 pages
+import { FeedbackPage } from './pages/FeedbackPage';
 import { Layout } from './components/Layout';
 
 function isAuthenticated() {
@@ -62,6 +64,8 @@ export default function App() {
           <Route path="signals" element={<SignalsPage />} />
           {/* v4.0 Enterprise */}
           <Route path="enterprise" element={<EnterprisePage />} />
+          {/* v5.0 Feedback */}
+          <Route path="feedback" element={<FeedbackPage />} />
           <Route path="admin" element={<AdminPage />} />
         </Route>
       </Routes>
