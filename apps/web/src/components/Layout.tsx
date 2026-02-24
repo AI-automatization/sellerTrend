@@ -127,6 +127,103 @@ export function Layout() {
 
           {/* Nav */}
           <ul className="menu menu-sm flex-1 p-3 gap-0.5 overflow-y-auto text-[13px]">
+            {/* === ADMIN PANEL (TOP) === */}
+            {isSuperAdmin && (
+              <>
+                <li className="menu-title mt-1">
+                  <span className="text-error/70 text-[10px] uppercase tracking-wider font-bold">Admin Panel</span>
+                </li>
+                <li>
+                  <NavLink to="/admin" className={linkClass}>
+                    <ShieldIcon className="w-4 h-4" />
+                    Dashboard
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink to="/admin?tab=users" className={({ isActive }) =>
+                    `${isActive && window.location.search.includes('tab=users') ? 'active bg-primary/10 text-primary' : 'hover:bg-base-300/50'}`
+                  }>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-1.997M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                    </svg>
+                    Foydalanuvchilar
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink to="/admin?tab=accounts" className={({ isActive }) =>
+                    `${isActive && window.location.search.includes('tab=accounts') ? 'active bg-primary/10 text-primary' : 'hover:bg-base-300/50'}`
+                  }>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3H21m-3.75 3H21" />
+                    </svg>
+                    Akkauntlar
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink to="/admin?tab=analytics" className={({ isActive }) =>
+                    `${isActive && window.location.search.includes('tab=analytics') ? 'active bg-primary/10 text-primary' : 'hover:bg-base-300/50'}`
+                  }>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                    </svg>
+                    Analitika
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink to="/admin?tab=popular" className={({ isActive }) =>
+                    `${isActive && window.location.search.includes('tab=popular') ? 'active bg-primary/10 text-primary' : 'hover:bg-base-300/50'}`
+                  }>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
+                    </svg>
+                    Mashhur
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink to="/admin?tab=system" className={({ isActive }) =>
+                    `${isActive && window.location.search.includes('tab=system') ? 'active bg-primary/10 text-primary' : 'hover:bg-base-300/50'}`
+                  }>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l1.587 2.1a4.5 4.5 0 01.9 2.7" />
+                    </svg>
+                    Tizim Salomatligi
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink to="/admin?tab=feedback" className={({ isActive }) =>
+                    `${isActive && window.location.search.includes('tab=feedback') ? 'active bg-primary/10 text-primary' : 'hover:bg-base-300/50'}`
+                  }>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                    </svg>
+                    Feedback Boshqaruv
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink to="/admin?tab=notifications" className={({ isActive }) =>
+                    `${isActive && window.location.search.includes('tab=notifications') ? 'active bg-primary/10 text-primary' : 'hover:bg-base-300/50'}`
+                  }>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                    </svg>
+                    Xabarnomalar
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink to="/admin?tab=audit" className={({ isActive }) =>
+                    `${isActive && window.location.search.includes('tab=audit') ? 'active bg-primary/10 text-primary' : 'hover:bg-base-300/50'}`
+                  }>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                    </svg>
+                    Audit Log
+                  </NavLink>
+                </li>
+
+                <div className="divider my-1 h-0 before:bg-base-300/50 after:bg-base-300/50" />
+              </>
+            )}
+
             {/* === ASOSIY === */}
             <li className="menu-title mt-1">
               <span className="text-base-content/40 text-[10px] uppercase tracking-wider">Asosiy</span>
@@ -262,20 +359,6 @@ export function Layout() {
               </NavLink>
             </li>
 
-            {/* === ADMIN === */}
-            {isSuperAdmin && (
-              <>
-                <li className="menu-title mt-3">
-                  <span className="text-base-content/40 text-[10px] uppercase tracking-wider">Admin</span>
-                </li>
-                <li>
-                  <NavLink to="/admin" className={linkClass}>
-                    <ShieldIcon className="w-4 h-4" />
-                    {t('nav.admin')}
-                  </NavLink>
-                </li>
-              </>
-            )}
           </ul>
 
           {/* Language switcher + Logout */}

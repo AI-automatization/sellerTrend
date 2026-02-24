@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { adminApi } from '../api/client';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -173,12 +174,30 @@ type Tab = 'dashboard' | 'users' | 'accounts' | 'popular' | 'analytics' | 'syste
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
+const VALID_TABS: Tab[] = ['dashboard', 'users', 'accounts', 'popular', 'analytics', 'system', 'feedback', 'notifications', 'audit', 'permissions'];
+
 export function AdminPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab') as Tab | null;
+  const initialTab = tabFromUrl && VALID_TABS.includes(tabFromUrl) ? tabFromUrl : 'dashboard';
+
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [auditLog, setAuditLog] = useState<AuditEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+  const [activeTab, setActiveTabState] = useState<Tab>(initialTab);
+
+  function setActiveTab(tab: Tab) {
+    setActiveTabState(tab);
+    setSearchParams(tab === 'dashboard' ? {} : { tab });
+  }
+
+  // Sync tab when URL changes (e.g., sidebar click)
+  useEffect(() => {
+    const t = searchParams.get('tab') as Tab | null;
+    const resolved = t && VALID_TABS.includes(t) ? t : 'dashboard';
+    if (resolved !== activeTab) setActiveTabState(resolved);
+  }, [searchParams]);
 
   // Stats
   const [overview, setOverview] = useState<any>(null);
