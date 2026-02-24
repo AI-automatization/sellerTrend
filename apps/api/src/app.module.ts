@@ -32,6 +32,9 @@ import { TeamModule } from './team/team.module';
 import { ReportsModule } from './reports/reports.module';
 import { WatchlistModule } from './watchlist/watchlist.module';
 import { CommunityModule } from './community/community.module';
+// v5.0 Feedback & Notifications
+import { FeedbackModule } from './feedback/feedback.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
@@ -66,6 +69,9 @@ import { CommunityModule } from './community/community.module';
     ReportsModule,
     WatchlistModule,
     CommunityModule,
+    // v5.0 Feedback & Notifications
+    FeedbackModule,
+    NotificationModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
   controllers: [HealthController],

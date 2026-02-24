@@ -302,4 +302,66 @@ export const adminApi = {
     api.patch(`/admin/users/${userId}/role`, { role }),
   toggleActive: (userId: string) =>
     api.patch(`/admin/users/${userId}/toggle-active`),
+  // v5 Admin Stats
+  getStatsOverview: () => api.get('/admin/stats/overview'),
+  getStatsRevenue: (period = 30) => api.get('/admin/stats/revenue', { params: { period } }),
+  getStatsGrowth: (period = 30) => api.get('/admin/stats/growth', { params: { period } }),
+  getPopularProducts: (limit = 20) => api.get('/admin/stats/popular-products', { params: { limit } }),
+  getPopularCategories: (limit = 10) => api.get('/admin/stats/popular-categories', { params: { limit } }),
+  getRealtimeStats: () => api.get('/admin/stats/realtime'),
+  getProductHeatmap: (period = '30d') => api.get('/admin/stats/product-heatmap', { params: { period } }),
+  getCategoryTrends: (weeks = 8) => api.get('/admin/stats/category-trends', { params: { weeks } }),
+  getTopUsers: (limit = 20) => api.get('/admin/stats/top-users', { params: { limit } }),
+  getSystemHealth: () => api.get('/admin/stats/health'),
+  // v5 User Monitoring
+  getUserActivity: (userId: string, page = 1, limit = 50) =>
+    api.get(`/admin/users/${userId}/activity`, { params: { page, limit } }),
+  getUserTrackedProducts: (userId: string) => api.get(`/admin/users/${userId}/tracked-products`),
+  getUserSessions: (userId: string, limit = 20) =>
+    api.get(`/admin/users/${userId}/sessions`, { params: { limit } }),
+  getUserUsage: (userId: string) => api.get(`/admin/users/${userId}/usage`),
+  getUserPortfolio: (userId: string) => api.get(`/admin/users/${userId}/portfolio-summary`),
+  getUserDiscovery: (userId: string) => api.get(`/admin/users/${userId}/discovery-results`),
+  getUserCampaigns: (userId: string) => api.get(`/admin/users/${userId}/campaigns`),
+  getUserCompetitors: (userId: string) => api.get(`/admin/users/${userId}/competitor-stats`),
+  getAccountTransactions: (accountId: string, page = 1, limit = 50) =>
+    api.get(`/admin/accounts/${accountId}/transactions`, { params: { page, limit } }),
+  // v5 Admin Actions
+  impersonateUser: (userId: string) => api.post(`/admin/users/${userId}/impersonate`),
+  bulkAction: (data: { account_ids: string[]; action: string; params?: any }) =>
+    api.post('/admin/accounts/bulk', data),
+  sendNotification: (data: { message: string; type: string; target: string | string[] }) =>
+    api.post('/notifications/send', data),
+  updateAccountStatus: (accountId: string, status: string) =>
+    api.patch(`/admin/accounts/${accountId}/status`, { status }),
+  globalSearch: (q: string) => api.get('/admin/search', { params: { q } }),
+  // v5 Admin Feedback (routes under /feedback/admin/*)
+  getAdminFeedback: (params?: { status?: string; type?: string; page?: number; limit?: number }) =>
+    api.get('/feedback/admin/tickets', { params }),
+  getFeedbackStats: () => api.get('/feedback/admin/stats'),
+  getFeedbackDetail: (id: string) => api.get(`/feedback/${id}`),
+  updateFeedbackStatus: (id: string, status: string) =>
+    api.patch(`/feedback/admin/tickets/${id}/status`, { status }),
+  sendFeedbackMessage: (id: string, content: string) =>
+    api.post(`/feedback/admin/tickets/${id}/messages`, { content }),
+  // v5 Admin Export
+  exportUsers: () => api.get('/admin/export/users', { responseType: 'blob' }),
+  exportRevenue: (from?: string, to?: string) =>
+    api.get('/admin/export/revenue', { params: { from, to }, responseType: 'blob' }),
+};
+
+// Feedback endpoints (User)
+export const feedbackApi = {
+  create: (data: { subject: string; type: string; priority: string; content: string }) =>
+    api.post('/feedback', data),
+  getMyTickets: () => api.get('/feedback/my'),
+  getTicket: (id: string) => api.get(`/feedback/${id}`),
+  sendMessage: (id: string, content: string) =>
+    api.post(`/feedback/${id}/messages`, { content }),
+};
+
+// Notification endpoints (User)
+export const notificationApi = {
+  getMy: () => api.get('/notifications/my'),
+  markRead: (id: string) => api.patch(`/notifications/${id}/read`),
 };
