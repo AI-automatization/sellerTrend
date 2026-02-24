@@ -87,7 +87,7 @@ export class CompetitorService {
     productId: string,
     competitorProductIds: string[],
   ) {
-    const trackings = [];
+    const trackings: Array<{ id: string; competitor_product_id: string }> = [];
 
     for (const compId of competitorProductIds) {
       // Upsert tracking
