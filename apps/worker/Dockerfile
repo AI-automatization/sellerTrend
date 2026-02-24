@@ -27,7 +27,7 @@ RUN pnpm run build
 # Create a standalone production bundle — pnpm deploy resolves all workspace
 # symlinks into real directory copies so no symlinks exist in the output
 WORKDIR /app
-RUN pnpm --filter=worker deploy --prod /app/worker-deploy
+RUN pnpm --filter=worker deploy --legacy --prod /app/worker-deploy
 # Copy worker compiled output into the bundle
 RUN cp -r /app/apps/worker/dist /app/worker-deploy/
 RUN cp -r /app/apps/worker/prisma /app/worker-deploy/
