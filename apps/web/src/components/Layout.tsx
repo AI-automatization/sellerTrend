@@ -38,6 +38,8 @@ export function Layout() {
   const isSuperAdmin = payload?.role === 'SUPER_ADMIN';
 
   useEffect(() => {
+    // SUPER_ADMIN doesn't have billing
+    if (isSuperAdmin) return;
     billingApi.getBalance().then((r) => {
       if (r.data.status === 'PAYMENT_DUE') {
         setPaymentDue(true);

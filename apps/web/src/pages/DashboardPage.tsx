@@ -16,7 +16,7 @@ import {
   RadialBarChart,
   RadialBar,
 } from 'recharts';
-import { productsApi, billingApi, exportApi } from '../api/client';
+import { productsApi, billingApi, exportApi, getTokenPayload } from '../api/client';
 import {
   FireIcon,
   WalletIcon,
@@ -85,11 +85,17 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
 
+  const isSuperAdmin = getTokenPayload()?.role === 'SUPER_ADMIN';
+
   useEffect(() => {
-    Promise.all([
+    const promises: Promise<any>[] = [
       productsApi.getTracked().then((r) => setProducts(r.data)),
-      billingApi.getBalance().then((r) => setBalance(r.data)),
-    ]).finally(() => setLoading(false));
+    ];
+    // SUPER_ADMIN doesn't have billing
+    if (!isSuperAdmin) {
+      promises.push(billingApi.getBalance().then((r) => setBalance(r.data)));
+    }
+    Promise.all(promises).finally(() => setLoading(false));
   }, []);
 
   if (loading) {
@@ -189,8 +195,8 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* Payment alert */}
-      {paymentDue && (
+      {/* Payment alert — not for admin */}
+      {paymentDue && !isSuperAdmin && (
         <div className="bg-gradient-to-r from-error/10 via-error/5 to-transparent border border-error/20 rounded-2xl px-5 py-3.5 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-error/15 flex items-center justify-center shrink-0">
             <WalletIcon className="w-5 h-5 text-error" />
@@ -205,18 +211,33 @@ export function DashboardPage() {
 
       {/* Stats row — 4 col responsive */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <div className={`rounded-2xl p-4 lg:p-5 transition-all ${paymentDue ? 'bg-gradient-to-br from-error/10 to-error/5 border border-error/20' : 'bg-base-200/60 border border-base-300/50'}`}>
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs text-base-content/40 font-medium uppercase tracking-wider">Balans</span>
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <WalletIcon className="w-4 h-4 text-primary" />
+        {isSuperAdmin ? (
+          <div className="rounded-2xl p-4 lg:p-5 bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs text-base-content/40 font-medium uppercase tracking-wider">Admin</span>
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-primary">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                </svg>
+              </div>
             </div>
+            <p className="text-2xl lg:text-3xl font-bold text-primary">Super</p>
+            <p className="text-xs text-base-content/30 mt-1">billing yo'q</p>
           </div>
-          <p className={`text-2xl lg:text-3xl font-bold tabular-nums ${paymentDue ? 'text-error' : ''}`}>
-            {balance ? Number(balance.balance).toLocaleString() : '—'}
-          </p>
-          <p className="text-xs text-base-content/30 mt-1">so'm · {balance ? Number(balance.daily_fee).toLocaleString() : '—'}/kun</p>
-        </div>
+        ) : (
+          <div className={`rounded-2xl p-4 lg:p-5 transition-all ${paymentDue ? 'bg-gradient-to-br from-error/10 to-error/5 border border-error/20' : 'bg-base-200/60 border border-base-300/50'}`}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs text-base-content/40 font-medium uppercase tracking-wider">Balans</span>
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <WalletIcon className="w-4 h-4 text-primary" />
+              </div>
+            </div>
+            <p className={`text-2xl lg:text-3xl font-bold tabular-nums ${paymentDue ? 'text-error' : ''}`}>
+              {balance ? Number(balance.balance).toLocaleString() : '—'}
+            </p>
+            <p className="text-xs text-base-content/30 mt-1">so'm · {balance ? Number(balance.daily_fee).toLocaleString() : '—'}/kun</p>
+          </div>
+        )}
 
         <div className="rounded-2xl p-4 lg:p-5 bg-base-200/60 border border-base-300/50">
           <div className="flex items-center justify-between mb-3">

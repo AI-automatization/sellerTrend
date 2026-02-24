@@ -18,8 +18,19 @@ export class BillingService {
     const defaultFee = await this.getSystemDailyFee();
     const today = new Date().toISOString().split('T')[0];
 
+    // Find all active accounts, excluding those with SUPER_ADMIN users
+    const adminAccountIds = (
+      await this.prisma.user.findMany({
+        where: { role: 'SUPER_ADMIN' },
+        select: { account_id: true },
+      })
+    ).map((u) => u.account_id);
+
     const accounts = await this.prisma.account.findMany({
-      where: { status: 'ACTIVE' },
+      where: {
+        status: 'ACTIVE',
+        id: { notIn: adminAccountIds },
+      },
     });
 
     let charged = 0;
