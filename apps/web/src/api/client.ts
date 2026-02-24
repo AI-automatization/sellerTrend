@@ -334,6 +334,8 @@ export const adminApi = {
     api.post('/notifications/send', data),
   updateAccountStatus: (accountId: string, status: string) =>
     api.patch(`/admin/accounts/${accountId}/status`, { status }),
+  getDepositLog: (page = 1, limit = 20) => api.get(`/admin/deposit-log?page=${page}&limit=${limit}`),
+  deleteDeposit: (id: string) => api.delete(`/admin/deposit-log/${id}`),
   globalSearch: (q: string) => api.get('/admin/search', { params: { q } }),
   // v5 Admin Feedback (routes under /feedback/admin/*)
   getAdminFeedback: (params?: { status?: string; type?: string; page?: number; limit?: number }) =>

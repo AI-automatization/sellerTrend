@@ -25,7 +25,7 @@ async function main() {
       id:      'aaaaaaaa-0000-0000-0000-000000000001',
       name:    'Super Admin',
       status:  'ACTIVE',
-      balance: BigInt(999_999_999),
+      balance: BigInt(0),
     },
   });
 
@@ -71,6 +71,78 @@ async function main() {
   console.log('   📧 Email:  demo@uzum-trend.uz');
   console.log('   🔑 Parol:  Demo123!');
   console.log('   💰 Balans: 500,000 so\'m');
+
+
+  // ─── 10 Test Users across 5 Companies ───
+  const pw = await bcrypt.hash('Test123!', 12);
+
+  const companies = [
+    { id: 'cccccccc-0000-0000-0000-000000000003', name: 'Toshkent Electronics', balance: 2_500_000 },
+    { id: 'dddddddd-0000-0000-0000-000000000004', name: 'Samarkand Fashion', balance: 1_800_000 },
+    { id: 'eeeeeeee-0000-0000-0000-000000000005', name: 'Buxoro Cosmetics', balance: 3_200_000 },
+    { id: 'ffffffff-0000-0000-0000-000000000006', name: 'Andijon Foods', balance: 900_000 },
+    { id: '11111111-0000-0000-0000-000000000007', name: 'Namangan Tech Hub', balance: 4_100_000 },
+  ];
+
+  for (const c of companies) {
+    await prisma.account.upsert({
+      where: { id: c.id },
+      update: {},
+      create: { id: c.id, name: c.name, status: 'ACTIVE', balance: BigInt(c.balance) },
+    });
+  }
+
+  const testUsers = [
+    { email: 'aziz@toshkent-electronics.uz', account_id: companies[0].id, role: 'ADMIN' },
+    { email: 'malika@toshkent-electronics.uz', account_id: companies[0].id, role: 'USER' },
+    { email: 'jasur@samarkand-fashion.uz', account_id: companies[1].id, role: 'ADMIN' },
+    { email: 'nilufar@samarkand-fashion.uz', account_id: companies[1].id, role: 'MODERATOR' },
+    { email: 'sherzod@buxoro-cosmetics.uz', account_id: companies[2].id, role: 'ADMIN' },
+    { email: 'gulnora@buxoro-cosmetics.uz', account_id: companies[2].id, role: 'USER' },
+    { email: 'bobur@andijon-foods.uz', account_id: companies[3].id, role: 'ADMIN' },
+    { email: 'dilshod@andijon-foods.uz', account_id: companies[3].id, role: 'USER' },
+    { email: 'sardor@namangan-tech.uz', account_id: companies[4].id, role: 'ADMIN' },
+    { email: 'kamola@namangan-tech.uz', account_id: companies[4].id, role: 'USER' },
+  ];
+
+  for (const u of testUsers) {
+    await prisma.user.upsert({
+      where: { email: u.email },
+      update: {},
+      create: {
+        account_id: u.account_id,
+        email: u.email,
+        password_hash: pw,
+        role: u.role as any,
+      },
+    });
+  }
+  console.log('\n✅ 10 test userlar yaratildi (Test123! parol)');
+
+  // ─── Test deposit transactions ───
+  for (const c of companies) {
+    const depositsForCompany = [
+      { amount: Math.floor(c.balance * 0.6), description: 'Birinchi to\'lov' },
+      { amount: Math.floor(c.balance * 0.4), description: 'Ikkinchi to\'lov' },
+    ];
+    let currentBal = BigInt(0);
+    for (const d of depositsForCompany) {
+      const bigAmount = BigInt(d.amount);
+      const newBal = currentBal + bigAmount;
+      await prisma.transaction.create({
+        data: {
+          account_id: c.id,
+          type: 'DEPOSIT',
+          amount: bigAmount,
+          balance_before: currentBal,
+          balance_after: newBal,
+          description: d.description,
+        },
+      });
+      currentBal = newBal;
+    }
+  }
+  console.log('✅ Test deposit tranzaksiyalar yaratildi');
 
   // 4. Cargo providers
   const existing = await prisma.cargoProvider.count();
