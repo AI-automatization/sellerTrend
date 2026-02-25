@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { adminApi } from '../api/client';
@@ -10,6 +10,7 @@ type Role = 'SUPER_ADMIN' | 'ADMIN' | 'MODERATOR' | 'USER';
 interface Account {
   id: string;
   name: string;
+  phone: string | null;
   status: 'ACTIVE' | 'PAYMENT_DUE' | 'SUSPENDED';
   balance: string;
   daily_fee: string | null;
@@ -78,11 +79,11 @@ function StatusBadge({ status }: { status: Account['status'] }) {
 
 // ─── Modals ───────────────────────────────────────────────────────────────────
 
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-      <div className="relative bg-base-200 rounded-2xl p-6 w-full max-w-md shadow-2xl border border-base-300/50" onClick={(e) => e.stopPropagation()}>
+      <div className={`relative bg-base-200 rounded-2xl p-6 w-full ${wide ? 'max-w-lg' : 'max-w-md'} shadow-2xl border border-base-300/50 max-h-[90vh] overflow-y-auto`} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
           <h3 className="font-bold text-lg">{title}</h3>
           <button onClick={onClose} className="btn btn-ghost btn-sm btn-square">X</button>
@@ -160,6 +161,221 @@ function DepositModal({ account, onClose, onDone }: { account: Account; onClose:
   );
 }
 
+function ChangePasswordModal({ user, onClose }: { user: { id: string; email: string }; onClose: () => void }) {
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [show, setShow] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (password.length < 6) { toast.error('Parol kamida 6 ta belgidan iborat bo\'lishi kerak'); return; }
+    if (password !== confirm) { toast.error('Parollar mos kelmadi'); return; }
+    setLoading(true);
+    try {
+      await adminApi.changeUserPassword(user.id, password);
+      toast.success(`${user.email} uchun parol o'zgartirildi`);
+      onClose();
+    } catch (err: any) { toast.error(err.response?.data?.message ?? 'Parolni o\'zgartirib bo\'lmadi'); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <Modal title={`Parol o'zgartirish — ${user.email}`} onClose={onClose}>
+      <form onSubmit={submit} className="space-y-3">
+        <div className="relative">
+          <input className="input input-bordered w-full pr-12" type={show ? 'text' : 'password'}
+            placeholder="Yangi parol (min 6)" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+          <button type="button" className="btn btn-ghost btn-xs absolute right-2 top-1/2 -translate-y-1/2"
+            onClick={() => setShow(!show)}>{show ? 'Yashirish' : 'Ko\'rish'}</button>
+        </div>
+        <input className="input input-bordered w-full" type={show ? 'text' : 'password'}
+          placeholder="Parolni tasdiqlang" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
+        {password && confirm && password !== confirm && (
+          <p className="text-error text-xs">Parollar mos kelmadi</p>
+        )}
+        <div className="flex gap-2 justify-end pt-2">
+          <button type="button" onClick={onClose} className="btn btn-ghost btn-sm">Bekor</button>
+          <button type="submit" disabled={loading || password !== confirm} className="btn btn-primary btn-sm">
+            {loading && <span className="loading loading-spinner loading-xs" />} O'zgartirish
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// ─── Account Detail Drawer ──────────────────────────────────────────────────
+
+function AccountDrawer({ account, users, onClose, onRefresh }: {
+  account: Account;
+  users: User[];
+  onClose: () => void;
+  onRefresh: () => void;
+}) {
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [txLoading, setTxLoading] = useState(true);
+  const [showAddUser, setShowAddUser] = useState(false);
+  const [newUserForm, setNewUserForm] = useState({ email: '', password: '', role: 'USER' });
+  const [addingUser, setAddingUser] = useState(false);
+  const [passwordTarget, setPasswordTarget] = useState<{ id: string; email: string } | null>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  const accountUsers = users.filter((u) => u.account_id === account.id);
+
+  useEffect(() => {
+    setTxLoading(true);
+    adminApi.getAccountTransactions(account.id, 1, 10).then((r) => {
+      setTransactions(r.data?.items ?? r.data ?? []);
+    }).catch(() => {}).finally(() => setTxLoading(false));
+  }, [account.id]);
+
+  async function addUser(e: React.FormEvent) {
+    e.preventDefault();
+    setAddingUser(true);
+    try {
+      await adminApi.createUser(account.id, { email: newUserForm.email, password: newUserForm.password, role: newUserForm.role });
+      toast.success('Foydalanuvchi qo\'shildi');
+      setNewUserForm({ email: '', password: '', role: 'USER' });
+      setShowAddUser(false);
+      onRefresh();
+    } catch (err: any) { toast.error(err.response?.data?.message ?? 'User qo\'shib bo\'lmadi'); }
+    finally { setAddingUser(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end" onClick={(e) => e.target === overlayRef.current && onClose()}>
+      <div ref={overlayRef} className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div className="relative bg-base-200 w-full max-w-xl h-full overflow-y-auto shadow-2xl border-l border-base-300/50 animate-slide-in-right">
+        {/* Header */}
+        <div className="sticky top-0 bg-base-200/95 backdrop-blur border-b border-base-300/50 p-4 flex items-center justify-between z-10">
+          <div>
+            <h2 className="font-bold text-lg">{account.name}</h2>
+            <div className="flex items-center gap-2 mt-0.5">
+              <StatusBadge status={account.status} />
+              <span className="text-xs text-base-content/40">ID: {account.id.slice(0, 8)}...</span>
+            </div>
+          </div>
+          <button onClick={onClose} className="btn btn-ghost btn-sm btn-square">X</button>
+        </div>
+
+        <div className="p-4 space-y-4">
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="bg-base-300/50 rounded-xl p-3 text-center">
+              <p className="text-xs text-base-content/50">Balans</p>
+              <p className="font-bold text-lg tabular-nums">{Number(account.balance).toLocaleString()}</p>
+              <p className="text-[10px] text-base-content/40">so'm</p>
+            </div>
+            <div className="bg-base-300/50 rounded-xl p-3 text-center">
+              <p className="text-xs text-base-content/50">Kunlik</p>
+              <p className="font-bold text-lg tabular-nums">{account.daily_fee ? Number(account.daily_fee).toLocaleString() : 'global'}</p>
+              <p className="text-[10px] text-base-content/40">so'm</p>
+            </div>
+            <div className="bg-base-300/50 rounded-xl p-3 text-center">
+              <p className="text-xs text-base-content/50">Tranzaksiyalar</p>
+              <p className="font-bold text-lg tabular-nums">{account.transaction_count}</p>
+            </div>
+          </div>
+
+          {/* Account details */}
+          <div className="bg-base-300/30 rounded-xl p-3 space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-base-content/50">Telefon</span>
+              <span className="font-mono">{account.phone || '—'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-base-content/50">Yaratilgan</span>
+              <span>{new Date(account.created_at).toLocaleDateString()}</span>
+            </div>
+          </div>
+
+          {/* Users section */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold text-sm">Foydalanuvchilar ({accountUsers.length})</h3>
+              <button className="btn btn-xs btn-primary" onClick={() => setShowAddUser(!showAddUser)}>
+                {showAddUser ? 'Bekor' : '+ User'}
+              </button>
+            </div>
+
+            {showAddUser && (
+              <form onSubmit={addUser} className="bg-base-300/50 rounded-xl p-3 mb-3 space-y-2">
+                <input className="input input-bordered input-sm w-full" type="email" required
+                  placeholder="Email" value={newUserForm.email} onChange={(e) => setNewUserForm((f) => ({ ...f, email: e.target.value }))} />
+                <input className="input input-bordered input-sm w-full" type="password" required minLength={6}
+                  placeholder="Parol (min 6)" value={newUserForm.password} onChange={(e) => setNewUserForm((f) => ({ ...f, password: e.target.value }))} />
+                <div className="flex gap-2">
+                  <select className="select select-bordered select-sm flex-1" value={newUserForm.role}
+                    onChange={(e) => setNewUserForm((f) => ({ ...f, role: e.target.value }))}>
+                    {ROLES.map((r) => <option key={r} value={r}>{ROLE_META[r].label}</option>)}
+                  </select>
+                  <button type="submit" disabled={addingUser} className="btn btn-sm btn-primary">
+                    {addingUser ? <span className="loading loading-spinner loading-xs" /> : 'Qo\'shish'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            <div className="space-y-1.5">
+              {accountUsers.map((u) => (
+                <div key={u.id} className="bg-base-300/40 rounded-xl px-3 py-2.5 flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{u.email}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <RoleBadge role={u.role} />
+                      <span className={`badge badge-xs ${u.is_active ? 'badge-success' : 'badge-error'}`}>
+                        {u.is_active ? 'Faol' : 'Bloklangan'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <button className="btn btn-ghost btn-xs text-warning" onClick={() => setPasswordTarget({ id: u.id, email: u.email })}>
+                      Parol
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {accountUsers.length === 0 && (
+                <p className="text-xs text-base-content/40 text-center py-3">User yo'q</p>
+              )}
+            </div>
+          </div>
+
+          {/* Recent Transactions */}
+          <div>
+            <h3 className="font-semibold text-sm mb-2">So'nggi tranzaksiyalar</h3>
+            {txLoading ? (
+              <div className="flex justify-center py-4"><span className="loading loading-spinner loading-sm" /></div>
+            ) : transactions.length > 0 ? (
+              <div className="space-y-1">
+                {transactions.slice(0, 8).map((tx: any) => (
+                  <div key={tx.id} className="flex items-center gap-2 text-xs bg-base-300/30 rounded-lg px-2.5 py-1.5">
+                    <span className={`badge badge-xs ${tx.type === 'DEPOSIT' ? 'badge-success' : tx.type === 'CHARGE' ? 'badge-error' : 'badge-info'}`}>
+                      {tx.type}
+                    </span>
+                    <span className={`font-bold tabular-nums ${tx.type === 'DEPOSIT' ? 'text-success' : 'text-error'}`}>
+                      {tx.type === 'DEPOSIT' ? '+' : '-'}{Number(tx.amount).toLocaleString()}
+                    </span>
+                    <span className="text-base-content/40 truncate flex-1">{tx.description || '—'}</span>
+                    <span className="text-base-content/30 whitespace-nowrap">{new Date(tx.created_at).toLocaleDateString()}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-base-content/40 text-center py-3">Tranzaksiya yo'q</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {passwordTarget && (
+        <ChangePasswordModal user={passwordTarget} onClose={() => setPasswordTarget(null)} />
+      )}
+    </div>
+  );
+}
+
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 
 function StatCard({ label, value, sub, color }: { label: string; value: string | number; sub?: string; color?: string }) {
@@ -174,11 +390,11 @@ function StatCard({ label, value, sub, color }: { label: string; value: string |
 
 // ─── Tab type ─────────────────────────────────────────────────────────────────
 
-type Tab = 'dashboard' | 'users' | 'accounts' | 'popular' | 'analytics' | 'system' | 'feedback' | 'notifications' | 'audit' | 'permissions' | 'deposits';
+type Tab = 'dashboard' | 'accounts' | 'analytics' | 'system' | 'feedback' | 'notifications' | 'audit' | 'permissions' | 'deposits';
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-const VALID_TABS: Tab[] = ['dashboard', 'users', 'accounts', 'popular', 'analytics', 'system', 'feedback', 'notifications', 'audit', 'permissions', 'deposits'];
+const VALID_TABS: Tab[] = ['dashboard', 'accounts', 'analytics', 'system', 'feedback', 'notifications', 'audit', 'permissions', 'deposits'];
 
 export function AdminPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -195,11 +411,14 @@ export function AdminPage() {
     setActiveTabState(tab);
     setSearchParams(tab === 'dashboard' ? {} : { tab });
   }
-  void setActiveTab; // used by sidebar URL navigation, keep for future inline tab switches
+  void setActiveTab;
 
-  // Sync tab when URL changes (e.g., sidebar click)
+  // Sync tab when URL changes
   useEffect(() => {
     const t = searchParams.get('tab') as Tab | null;
+    // Backwards compat: redirect old tab names
+    if (t === 'users' as any) { setSearchParams({ tab: 'accounts' }); return; }
+    if (t === 'popular' as any) { setSearchParams({ tab: 'analytics' }); return; }
     const resolved = t && VALID_TABS.includes(t) ? t : 'dashboard';
     if (resolved !== activeTab) setActiveTabState(resolved);
   }, [searchParams]);
@@ -228,13 +447,32 @@ export function AdminPage() {
   const [feeInput, setFeeInput] = useState('');
   const [globalFeeInput, setGlobalFeeInput] = useState('');
   const [savingGlobalFee, setSavingGlobalFee] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [userDetail, setUserDetail] = useState<any>(null);
+  const [drawerAccount, setDrawerAccount] = useState<Account | null>(null);
+  const [passwordTarget, setPasswordTarget] = useState<{ id: string; email: string } | null>(null);
 
   // Notifications
   const [notifMsg, setNotifMsg] = useState('');
   const [notifType, setNotifType] = useState('info');
   const [notifSending, setNotifSending] = useState(false);
+  const [notifTarget, setNotifTarget] = useState<'all' | 'selected'>('all');
+  const [notifSelectedAccounts, setNotifSelectedAccounts] = useState<string[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [newTmplName, setNewTmplName] = useState('');
+  const [newTmplMsg, setNewTmplMsg] = useState('');
+  const [newTmplType, setNewTmplType] = useState('info');
+
+  // Phone editing
+  const [editingPhone, setEditingPhone] = useState<string | null>(null);
+  const [phoneInput, setPhoneInput] = useState('');
+
+  // AI Usage + System Errors (System tab v6)
+  const [aiUsage, setAiUsage] = useState<any>(null);
+  const [systemErrors, setSystemErrors] = useState<any>(null);
+  const [errorsPage, setErrorsPage] = useState(1);
+
+  // Accounts tab filter + search
+  const [accountFilter, setAccountFilter] = useState<'all' | 'active' | 'due' | 'suspended'>('all');
+  const [accountSearch, setAccountSearch] = useState('');
 
   async function load() {
     setLoading(true);
@@ -257,13 +495,16 @@ export function AdminPage() {
       adminApi.getStatsRevenue().then((r) => setRevenue(r.data)).catch(() => {});
       adminApi.getStatsGrowth().then((r) => setGrowth(r.data)).catch(() => {});
       adminApi.getRealtimeStats().then((r) => setRealtime(r.data)).catch(() => {});
-    } else if (activeTab === 'popular') {
+    } else if (activeTab === 'analytics') {
       adminApi.getPopularProducts().then((r) => setPopularProducts(r.data || [])).catch(() => {});
       adminApi.getPopularCategories().then((r) => setPopularCategories(r.data || [])).catch(() => {});
-    } else if (activeTab === 'analytics') {
       adminApi.getTopUsers().then((r) => setTopUsers(r.data || [])).catch(() => {});
     } else if (activeTab === 'system') {
       adminApi.getSystemHealth().then((r) => setHealth(r.data)).catch(() => {});
+      adminApi.getAiUsageStats().then((r) => setAiUsage(r.data)).catch(() => {});
+      adminApi.getSystemErrors({ page: 1, limit: 50, period: 7 }).then((r) => setSystemErrors(r.data)).catch(() => {});
+    } else if (activeTab === 'notifications') {
+      adminApi.listNotificationTemplates().then((r) => setTemplates(Array.isArray(r.data) ? r.data : [])).catch(() => {});
     } else if (activeTab === 'feedback') {
       adminApi.getAdminFeedback().then((r) => {
         const items = r.data?.items ?? r.data;
@@ -331,27 +572,52 @@ export function AdminPage() {
     } catch (err: any) { toast.error(err.response?.data?.message ?? 'Qidiruvda xatolik'); }
   }
 
-  async function loadUserDetail(userId: string) {
-    setSelectedUserId(userId);
-    try {
-      const [portfolio, activity, sessions] = await Promise.all([
-        adminApi.getUserPortfolio(userId).catch(() => ({ data: null })),
-        adminApi.getUserActivity(userId, 1, 10).catch(() => ({ data: { items: [] } })),
-        adminApi.getUserSessions(userId, 5).catch(() => ({ data: [] })),
-      ]);
-      setUserDetail({ portfolio: portfolio.data, activity: activity.data, sessions: sessions.data });
-    } catch { /* empty */ }
-  }
-
   async function sendNotification() {
     if (!notifMsg.trim()) return;
     setNotifSending(true);
     try {
-      await adminApi.sendNotification({ message: notifMsg, type: notifType, target: 'all' });
-      setNotifMsg('');
+      const target = notifTarget === 'all' ? 'all' as const : notifSelectedAccounts;
+      if (notifTarget === 'selected' && notifSelectedAccounts.length === 0) {
+        toast.error('Kamida bitta account tanlang'); setNotifSending(false); return;
+      }
+      await adminApi.sendNotificationAdvanced({ message: notifMsg, type: notifType, target });
+      setNotifMsg(''); setNotifSelectedAccounts([]);
       toast.success('Xabar yuborildi');
     } catch (err: any) { toast.error(err.response?.data?.message ?? 'Xabar yuborib bo\'lmadi'); }
     setNotifSending(false);
+  }
+
+  async function savePhone(accountId: string) {
+    const val = phoneInput.trim() || null;
+    try {
+      await adminApi.updateAccountPhone(accountId, val);
+      setEditingPhone(null);
+      setAccounts((prev) => prev.map((a) => a.id === accountId ? { ...a, phone: val } : a));
+      toast.success(val ? `Telefon raqam saqlandi: ${val}` : 'Telefon raqam o\'chirildi');
+    } catch (err: any) { toast.error(err.response?.data?.message ?? 'Telefon raqamni saqlab bo\'lmadi'); }
+  }
+
+  async function createTemplate() {
+    if (!newTmplName.trim() || !newTmplMsg.trim()) return;
+    try {
+      const r = await adminApi.createNotificationTemplate({ name: newTmplName, message: newTmplMsg, type: newTmplType });
+      setTemplates((prev) => [r.data, ...prev]);
+      setNewTmplName(''); setNewTmplMsg(''); setNewTmplType('info');
+      toast.success('Shablon yaratildi');
+    } catch (err: any) { toast.error(err.response?.data?.message ?? 'Shablon yaratib bo\'lmadi'); }
+  }
+
+  async function deleteTemplate(id: string) {
+    try {
+      await adminApi.deleteNotificationTemplate(id);
+      setTemplates((prev) => prev.filter((t) => t.id !== id));
+      toast.success('Shablon o\'chirildi');
+    } catch (err: any) { toast.error(err.response?.data?.message ?? 'Shablonni o\'chirib bo\'lmadi'); }
+  }
+
+  async function loadErrorsPage(page: number) {
+    setErrorsPage(page);
+    adminApi.getSystemErrors({ page, limit: 50, period: 7 }).then((r) => setSystemErrors(r.data)).catch(() => {});
   }
 
   async function handleDeleteDeposit(id: string) {
@@ -378,18 +644,31 @@ export function AdminPage() {
 
   const activeAccounts = accounts.filter((a) => a.status === 'ACTIVE').length;
   const dueAccounts = accounts.filter((a) => a.status === 'PAYMENT_DUE').length;
+  const suspendedAccounts = accounts.filter((a) => a.status === 'SUSPENDED').length;
   const totalBalance = accounts.reduce((s, a) => s + Number(a.balance), 0);
   const activeUsers = users.filter((u) => u.is_active).length;
 
+  // Filtered accounts
+  const filteredAccounts = accounts.filter((a) => {
+    if (accountFilter === 'active' && a.status !== 'ACTIVE') return false;
+    if (accountFilter === 'due' && a.status !== 'PAYMENT_DUE') return false;
+    if (accountFilter === 'suspended' && a.status !== 'SUSPENDED') return false;
+    if (accountSearch) {
+      const q = accountSearch.toLowerCase();
+      return a.name.toLowerCase().includes(q) ||
+        a.phone?.toLowerCase().includes(q) ||
+        a.users.some((u) => u.email.toLowerCase().includes(q));
+    }
+    return true;
+  });
+
   const TAB_TITLES: Record<Tab, { title: string; desc: string }> = {
     dashboard: { title: 'Dashboard', desc: 'Umumiy statistika va real-time ko\'rsatkichlar' },
-    users: { title: 'Foydalanuvchilar', desc: `${users.length} foydalanuvchi, ${activeUsers} faol` },
-    accounts: { title: 'Akkauntlar', desc: `${accounts.length} akkaunt, ${activeAccounts} faol` },
-    popular: { title: 'Mashhur', desc: 'Top mahsulotlar va kategoriyalar' },
-    analytics: { title: 'Analitika', desc: 'Top foydalanuvchilar va faollik' },
-    system: { title: 'Tizim Salomatligi', desc: 'API, Database, Disk holati' },
+    accounts: { title: 'Akkauntlar & Foydalanuvchilar', desc: `${accounts.length} akkaunt, ${users.length} user, ${activeUsers} faol` },
+    analytics: { title: 'Analitika & Mashhur', desc: 'Top mahsulotlar, kategoriyalar va foydalanuvchilar' },
+    system: { title: 'Tizim', desc: 'API, Database, AI xarajatlari, xatolar' },
     feedback: { title: 'Feedback Boshqaruv', desc: 'Foydalanuvchi murojatlari' },
-    notifications: { title: 'Xabarnomalar', desc: 'Barcha foydalanuvchilarga xabar yuborish' },
+    notifications: { title: 'Xabarnomalar', desc: 'Shablon yoki custom xabar yuborish' },
     audit: { title: 'Audit Log', desc: 'Admin amallar + foydalanuvchi faoliyati tarixi' },
     permissions: { title: 'Ruxsatlar', desc: 'Rol va huquqlar tizimi' },
     deposits: { title: 'Deposit Log', desc: 'Balans to\'ldirish tarixi' },
@@ -520,105 +799,22 @@ export function AdminPage() {
           </div>
         )}
 
-        {/* ═══════════════ USERS TAB ═══════════════ */}
-        {activeTab === 'users' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-base-content/50">{users.length} foydalanuvchi, {activeUsers} faol</p>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {/* Users list */}
-              <div className="lg:col-span-2 overflow-x-auto">
-                <table className="table table-sm">
-                  <thead><tr><th>Email</th><th>Account</th><th>Rol</th><th>Holat</th><th>Amal</th></tr></thead>
-                  <tbody>
-                    {users.map((u) => (
-                      <tr key={u.id} className={`hover cursor-pointer ${selectedUserId === u.id ? 'bg-primary/10' : ''}`}
-                        onClick={() => loadUserDetail(u.id)}>
-                        <td className="text-sm">{u.email}</td>
-                        <td className="text-xs text-base-content/50">{u.account_name}</td>
-                        <td>
-                          <select className="select select-bordered select-xs"
-                            value={u.role} onChange={(e) => { e.stopPropagation(); handleRoleChange(u.id, e.target.value as Role); }}>
-                            {ROLES.map((r) => <option key={r} value={r}>{ROLE_META[r].label}</option>)}
-                          </select>
-                        </td>
-                        <td>
-                          <span className={`badge badge-xs ${u.is_active ? 'badge-success' : 'badge-error'}`}>
-                            {u.is_active ? 'Faol' : 'Bloklangan'}
-                          </span>
-                        </td>
-                        <td>
-                          <button className="btn btn-ghost btn-xs" onClick={(e) => { e.stopPropagation(); handleToggleActive(u.id); }}>
-                            {u.is_active ? 'Bloklash' : 'Faollashtirish'}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* User detail sidebar */}
-              <div className="space-y-3">
-                {selectedUserId && userDetail ? (
-                  <>
-                    <div className="card bg-base-200 p-4">
-                      <h3 className="font-semibold text-sm mb-2">Portfolio (D1)</h3>
-                      {userDetail.portfolio ? (
-                        <div className="grid grid-cols-2 gap-2">
-                          <StatCard label="Tracked" value={userDetail.portfolio.tracked_count ?? 0} />
-                          <StatCard label="O'rtacha score" value={(userDetail.portfolio.avg_score ?? 0).toFixed(2)} />
-                          <StatCard label="Haftalik sotuv" value={userDetail.portfolio.total_weekly_sales ?? 0} />
-                          <StatCard label="Trend" value={`${userDetail.portfolio.trends?.up ?? 0}/${userDetail.portfolio.trends?.flat ?? 0}/${userDetail.portfolio.trends?.down ?? 0}`} sub="up/flat/down" />
-                        </div>
-                      ) : <p className="text-xs text-base-content/40">Ma'lumot yo'q</p>}
-                    </div>
-
-                    <div className="card bg-base-200 p-4">
-                      <h3 className="font-semibold text-sm mb-2">So'nggi faoliyat (B1)</h3>
-                      <div className="space-y-1">
-                        {(userDetail.activity?.items || []).slice(0, 8).map((a: any) => (
-                          <div key={a.id} className="flex items-center gap-2 text-xs">
-                            <span className="badge badge-xs badge-info">{a.action}</span>
-                            <span className="text-base-content/40">{new Date(a.created_at).toLocaleString()}</span>
-                          </div>
-                        ))}
-                        {!(userDetail.activity?.items?.length) && <p className="text-xs text-base-content/40">Faoliyat yo'q</p>}
-                      </div>
-                    </div>
-
-                    <div className="card bg-base-200 p-4">
-                      <h3 className="font-semibold text-sm mb-2">Sessionlar (B3)</h3>
-                      <div className="space-y-1">
-                        {(userDetail.sessions || []).slice(0, 5).map((s: any) => (
-                          <div key={s.id} className="flex items-center gap-2 text-xs">
-                            <span className="text-base-content/60">{s.ip || '-'}</span>
-                            <span className="text-base-content/40">{s.device_type || '-'}</span>
-                            <span className="text-base-content/30 ml-auto">{new Date(s.logged_in_at).toLocaleDateString()}</span>
-                          </div>
-                        ))}
-                        {!(userDetail.sessions?.length) && <p className="text-xs text-base-content/40">Session yo'q</p>}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="card bg-base-200 p-8 text-center">
-                    <p className="text-base-content/40 text-sm">User tanlang</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ═══════════════ ACCOUNTS TAB ═══════════════ */}
+        {/* ═══════════════ ACCOUNTS & USERS TAB (MERGED) ═══════════════ */}
         {activeTab === 'accounts' && (
           <div className="space-y-4">
+            {/* Summary stats */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <StatCard label="Jami akkauntlar" value={accounts.length} />
+              <StatCard label="Faol" value={activeAccounts} color="text-success" />
+              <StatCard label="To'lov kerak" value={dueAccounts} color="text-error" />
+              <StatCard label="Bloklangan" value={suspendedAccounts} />
+              <StatCard label="Jami balans" value={totalBalance.toLocaleString()} sub="so'm" color="text-primary" />
+            </div>
+
+            {/* Toolbar */}
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-2 bg-base-200 rounded-xl px-3 py-2 border border-base-300/50">
-                <span className="text-xs text-base-content/40">Global:</span>
+                <span className="text-xs text-base-content/40">Global to'lov:</span>
                 <input className="input input-xs input-bordered w-20 text-right bg-transparent"
                   value={globalFeeInput} onChange={(e) => setGlobalFeeInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && saveGlobalFee()} />
@@ -627,24 +823,60 @@ export function AdminPage() {
                   {savingGlobalFee ? <span className="loading loading-spinner loading-xs" /> : 'OK'}
                 </button>
               </div>
-              <button onClick={() => setShowCreateAccount(true)} className="btn btn-primary btn-sm">+ Account</button>
+              <button onClick={() => setShowCreateAccount(true)} className="btn btn-primary btn-sm">+ Yangi Account</button>
+              <div className="flex-1" />
+              {/* Filters */}
+              <div className="join">
+                {(['all', 'active', 'due', 'suspended'] as const).map((f) => (
+                  <button key={f} className={`join-item btn btn-xs ${accountFilter === f ? 'btn-primary' : 'btn-ghost'}`}
+                    onClick={() => setAccountFilter(f)}>
+                    {{ all: 'Barchasi', active: 'Faol', due: "To'lov", suspended: 'Bloklangan' }[f]}
+                  </button>
+                ))}
+              </div>
+              <input className="input input-bordered input-xs w-40" placeholder="Qidirish..."
+                value={accountSearch} onChange={(e) => setAccountSearch(e.target.value)} />
             </div>
 
+            {/* Accounts table */}
             <div className="overflow-x-auto">
               <table className="table table-sm">
                 <thead>
-                  <tr><th>Kompaniya</th><th>Holat</th><th>Balans</th><th>Kunlik</th><th>Userlar</th><th>Amal</th></tr>
+                  <tr>
+                    <th>Kompaniya</th>
+                    <th>Telefon</th>
+                    <th>Holat</th>
+                    <th>Balans</th>
+                    <th>Kunlik to'lov</th>
+                    <th>Foydalanuvchilar</th>
+                    <th>Tranz.</th>
+                    <th>Amallar</th>
+                  </tr>
                 </thead>
                 <tbody>
-                  {accounts.map((a) => (
-                    <tr key={a.id} className="hover">
+                  {filteredAccounts.map((a) => (
+                    <tr key={a.id} className="hover cursor-pointer" onClick={() => setDrawerAccount(a)}>
                       <td>
                         <div className="font-medium text-sm">{a.name}</div>
                         <div className="text-xs text-base-content/40">{new Date(a.created_at).toLocaleDateString()}</div>
                       </td>
-                      <td><StatusBadge status={a.status} /></td>
-                      <td className="font-mono text-sm">{Number(a.balance).toLocaleString()}</td>
                       <td>
+                        {editingPhone === a.id ? (
+                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <input className="input input-xs input-bordered w-28" value={phoneInput} placeholder="+998..."
+                              onChange={(e) => setPhoneInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && savePhone(a.id)} />
+                            <button className="btn btn-xs btn-primary" onClick={() => savePhone(a.id)}>OK</button>
+                            <button className="btn btn-xs btn-ghost" onClick={() => setEditingPhone(null)}>X</button>
+                          </div>
+                        ) : (
+                          <button className="btn btn-ghost btn-xs font-mono" onClick={(e) => { e.stopPropagation(); setEditingPhone(a.id); setPhoneInput(a.phone ?? ''); }}>
+                            {a.phone || '—'}
+                          </button>
+                        )}
+                      </td>
+                      <td><StatusBadge status={a.status} /></td>
+                      <td className="font-mono text-sm tabular-nums">{Number(a.balance).toLocaleString()}</td>
+                      <td onClick={(e) => e.stopPropagation()}>
                         {editingFee === a.id ? (
                           <div className="flex items-center gap-1">
                             <input className="input input-xs input-bordered w-20" value={feeInput}
@@ -658,10 +890,22 @@ export function AdminPage() {
                           </button>
                         )}
                       </td>
-                      <td className="text-xs">{a.users.map((u) => u.email).join(', ')}</td>
                       <td>
+                        <div className="flex flex-wrap gap-1">
+                          {a.users.map((u) => (
+                            <span key={u.id} className="flex items-center gap-1">
+                              <span className="text-xs truncate max-w-[100px]">{u.email.split('@')[0]}</span>
+                              <RoleBadge role={u.role} />
+                            </span>
+                          ))}
+                          {a.users.length === 0 && <span className="text-xs text-base-content/30">—</span>}
+                        </div>
+                      </td>
+                      <td className="text-xs tabular-nums">{a.transaction_count}</td>
+                      <td onClick={(e) => e.stopPropagation()}>
                         <div className="flex gap-1">
                           <button className="btn btn-ghost btn-xs" onClick={() => setDepositTarget(a)}>Deposit</button>
+                          <button className="btn btn-ghost btn-xs text-warning" onClick={() => setDrawerAccount(a)}>Batafsil</button>
                           {a.status === 'ACTIVE' && (
                             <button className="btn btn-ghost btn-xs text-error" onClick={() => handleStatusChange(a.id, 'SUSPENDED')}>Suspend</button>
                           )}
@@ -672,54 +916,55 @@ export function AdminPage() {
                       </td>
                     </tr>
                   ))}
+                  {filteredAccounts.length === 0 && (
+                    <tr><td colSpan={8} className="text-center text-base-content/40 py-8">
+                      {accountSearch ? 'Qidiruvga mos account topilmadi' : 'Account yo\'q'}
+                    </td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
 
-        {/* ═══════════════ POPULAR TAB ═══════════════ */}
-        {activeTab === 'popular' && (
-          <div className="space-y-4">
+            {/* All Users table (below) */}
             <div className="card bg-base-200">
               <div className="card-body p-4">
-                <h3 className="font-semibold text-sm">Top-20 Mashhur Mahsulotlar (A4)</h3>
-                <div className="overflow-x-auto mt-2">
-                  <table className="table table-sm">
-                    <thead><tr><th>#</th><th>Mahsulot</th><th>Track qilganlar</th><th>O'rtacha score</th><th>Haftalik sotuv</th></tr></thead>
-                    <tbody>
-                      {popularProducts.map((p: any, i: number) => (
-                        <tr key={p.product_id || i}>
-                          <td className="font-mono">{i + 1}</td>
-                          <td className="text-sm max-w-xs truncate">{p.title || `Product #${p.product_id}`}</td>
-                          <td className="font-bold text-primary">{p.tracker_count}</td>
-                          <td>{Number(p.avg_score ?? 0).toFixed(2)}</td>
-                          <td>{p.weekly_bought ?? '-'}</td>
-                        </tr>
-                      ))}
-                      {!popularProducts.length && <tr><td colSpan={5} className="text-center text-base-content/40">Ma'lumot yo'q</td></tr>}
-                    </tbody>
-                  </table>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-sm">Barcha foydalanuvchilar ({users.length})</h3>
                 </div>
-              </div>
-            </div>
-
-            <div className="card bg-base-200">
-              <div className="card-body p-4">
-                <h3 className="font-semibold text-sm">Top Kategoriyalar (A5)</h3>
-                <div className="overflow-x-auto mt-2">
+                <div className="overflow-x-auto">
                   <table className="table table-sm">
-                    <thead><tr><th>Kategoriya ID</th><th>Discovery runlar</th><th>Winnerlar</th><th>Oxirgi run</th></tr></thead>
+                    <thead>
+                      <tr><th>Email</th><th>Account</th><th>Rol</th><th>Holat</th><th>Yaratilgan</th><th>Amallar</th></tr>
+                    </thead>
                     <tbody>
-                      {popularCategories.map((c: any, i: number) => (
-                        <tr key={c.category_id || i}>
-                          <td className="font-mono">{c.category_id}</td>
-                          <td className="font-bold">{c.run_count}</td>
-                          <td>{c.winner_count ?? '-'}</td>
-                          <td className="text-xs text-base-content/50">{c.last_run_at ? new Date(c.last_run_at).toLocaleDateString() : '-'}</td>
+                      {users.map((u) => (
+                        <tr key={u.id} className="hover">
+                          <td className="text-sm font-medium">{u.email}</td>
+                          <td className="text-xs text-base-content/50">{u.account_name}</td>
+                          <td>
+                            <select className="select select-bordered select-xs"
+                              value={u.role} onChange={(e) => handleRoleChange(u.id, e.target.value as Role)}>
+                              {ROLES.map((r) => <option key={r} value={r}>{ROLE_META[r].label}</option>)}
+                            </select>
+                          </td>
+                          <td>
+                            <span className={`badge badge-xs ${u.is_active ? 'badge-success' : 'badge-error'}`}>
+                              {u.is_active ? 'Faol' : 'Bloklangan'}
+                            </span>
+                          </td>
+                          <td className="text-xs text-base-content/40">{new Date(u.created_at).toLocaleDateString()}</td>
+                          <td>
+                            <div className="flex gap-1">
+                              <button className="btn btn-ghost btn-xs" onClick={() => handleToggleActive(u.id)}>
+                                {u.is_active ? 'Bloklash' : 'Faollashtirish'}
+                              </button>
+                              <button className="btn btn-ghost btn-xs text-warning" onClick={() => setPasswordTarget({ id: u.id, email: u.email })}>
+                                Parol
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                       ))}
-                      {!popularCategories.length && <tr><td colSpan={4} className="text-center text-base-content/40">Ma'lumot yo'q</td></tr>}
                     </tbody>
                   </table>
                 </div>
@@ -728,12 +973,13 @@ export function AdminPage() {
           </div>
         )}
 
-        {/* ═══════════════ ANALYTICS TAB ═══════════════ */}
+        {/* ═══════════════ ANALYTICS & POPULAR TAB (MERGED) ═══════════════ */}
         {activeTab === 'analytics' && (
           <div className="space-y-4">
+            {/* Top Users */}
             <div className="card bg-base-200">
               <div className="card-body p-4">
-                <h3 className="font-semibold text-sm">Top Foydalanuvchilar (D5)</h3>
+                <h3 className="font-semibold text-sm">Top Foydalanuvchilar</h3>
                 <div className="overflow-x-auto mt-2">
                   <table className="table table-sm">
                     <thead><tr><th>#</th><th>Email</th><th>Account</th><th>Tracked</th><th>Avg Score</th><th>Haftalik</th><th>Discovery</th><th>Faollik</th></tr></thead>
@@ -762,12 +1008,61 @@ export function AdminPage() {
                 </div>
               </div>
             </div>
+
+            {/* Popular Products + Categories side by side */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="card bg-base-200">
+                <div className="card-body p-4">
+                  <h3 className="font-semibold text-sm">Top-20 Mashhur Mahsulotlar</h3>
+                  <div className="overflow-x-auto mt-2">
+                    <table className="table table-sm">
+                      <thead><tr><th>#</th><th>Mahsulot</th><th>Track</th><th>Score</th><th>Haftalik</th></tr></thead>
+                      <tbody>
+                        {popularProducts.map((p: any, i: number) => (
+                          <tr key={p.product_id || i}>
+                            <td className="font-mono">{i + 1}</td>
+                            <td className="text-sm max-w-xs truncate">{p.title || `Product #${p.product_id}`}</td>
+                            <td className="font-bold text-primary">{p.tracker_count}</td>
+                            <td>{Number(p.avg_score ?? 0).toFixed(2)}</td>
+                            <td>{p.weekly_bought ?? '-'}</td>
+                          </tr>
+                        ))}
+                        {!popularProducts.length && <tr><td colSpan={5} className="text-center text-base-content/40">Ma'lumot yo'q</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card bg-base-200">
+                <div className="card-body p-4">
+                  <h3 className="font-semibold text-sm">Top Kategoriyalar</h3>
+                  <div className="overflow-x-auto mt-2">
+                    <table className="table table-sm">
+                      <thead><tr><th>Kategoriya ID</th><th>Discovery runlar</th><th>Winnerlar</th><th>Oxirgi run</th></tr></thead>
+                      <tbody>
+                        {popularCategories.map((c: any, i: number) => (
+                          <tr key={c.category_id || i}>
+                            <td className="font-mono">{c.category_id}</td>
+                            <td className="font-bold">{c.run_count}</td>
+                            <td>{c.winner_count ?? '-'}</td>
+                            <td className="text-xs text-base-content/50">{c.last_run_at ? new Date(c.last_run_at).toLocaleDateString() : '-'}</td>
+                          </tr>
+                        ))}
+                        {!popularCategories.length && <tr><td colSpan={4} className="text-center text-base-content/40">Ma'lumot yo'q</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
         {/* ═══════════════ SYSTEM TAB ═══════════════ */}
         {activeTab === 'system' && (
           <div className="space-y-4">
+            {/* System Health */}
             {health ? (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <StatCard label="API Status" value={health.status === 'healthy' ? 'Sog\'lom' : 'Muammo'} color={health.status === 'healthy' ? 'text-success' : 'text-error'} />
@@ -779,19 +1074,132 @@ export function AdminPage() {
               <div className="flex justify-center py-8"><span className="loading loading-spinner" /></div>
             )}
 
-            {health?.recent_errors?.length > 0 && (
+            {/* AI Usage Stats */}
+            {aiUsage && (
               <div className="card bg-base-200">
                 <div className="card-body p-4">
-                  <h3 className="font-semibold text-sm text-error">So'nggi xatolar</h3>
-                  <div className="space-y-1 mt-2">
-                    {health.recent_errors.map((e: any, i: number) => (
-                      <div key={i} className="flex items-center gap-2 text-xs">
-                        <span className="text-base-content/40">{e.time}</span>
-                        <span className="badge badge-xs badge-error">{e.endpoint}</span>
-                        <span className="text-base-content/60">{e.message}</span>
-                      </div>
-                    ))}
+                  <h3 className="font-semibold text-sm">AI Xarajatlari (Anthropic Claude)</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+                    <StatCard label="Bugungi chaqiruvlar" value={aiUsage.today?.calls ?? 0} color="text-primary" />
+                    <StatCard label="Bugungi tokenlar" value={((aiUsage.today?.input_tokens ?? 0) + (aiUsage.today?.output_tokens ?? 0)).toLocaleString()} sub={`in: ${(aiUsage.today?.input_tokens ?? 0).toLocaleString()} / out: ${(aiUsage.today?.output_tokens ?? 0).toLocaleString()}`} />
+                    <StatCard label="Bugungi xarajat" value={`$${aiUsage.today?.cost_usd ?? '0.0000'}`} color="text-warning" />
+                    <StatCard label="30 kunlik xarajat" value={`$${aiUsage.period?.cost_usd ?? '0.0000'}`} sub={`${aiUsage.period?.calls ?? 0} chaqiruv`} color="text-error" />
                   </div>
+
+                  {/* By Method */}
+                  {aiUsage.by_method?.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-xs text-base-content/50 mb-2">Metod bo'yicha</p>
+                      <div className="overflow-x-auto">
+                        <table className="table table-xs">
+                          <thead><tr><th>Metod</th><th>Chaqiruvlar</th><th>Input tok.</th><th>Output tok.</th><th>Xarajat ($)</th><th>O'rt. vaqt</th></tr></thead>
+                          <tbody>
+                            {aiUsage.by_method.map((m: any) => (
+                              <tr key={m.method}>
+                                <td className="font-mono text-xs">{m.method}</td>
+                                <td className="font-bold">{m.calls}</td>
+                                <td className="tabular-nums">{m.input_tokens.toLocaleString()}</td>
+                                <td className="tabular-nums">{m.output_tokens.toLocaleString()}</td>
+                                <td className="text-warning tabular-nums">${m.cost_usd}</td>
+                                <td className="text-base-content/50">{m.avg_duration_ms}ms</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* AI Errors */}
+                  {aiUsage.recent_errors?.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-xs text-error mb-1">AI xatolar</p>
+                      <div className="space-y-1">
+                        {aiUsage.recent_errors.slice(0, 10).map((e: any) => (
+                          <div key={e.id} className="flex items-center gap-2 text-xs">
+                            <span className="text-base-content/40">{new Date(e.created_at).toLocaleString()}</span>
+                            <span className="badge badge-xs badge-error">{e.method}</span>
+                            <span className="text-error/70 truncate max-w-xs">{e.error}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* System Errors */}
+            {systemErrors && (
+              <div className="card bg-base-200">
+                <div className="card-body p-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-sm text-error">Tizim xatolari (so'nggi 7 kun)</h3>
+                    <span className="badge badge-sm badge-error">{systemErrors.total ?? 0} ta</span>
+                  </div>
+
+                  {/* Error summary by status and endpoint */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                    {systemErrors.by_status?.length > 0 && (
+                      <div>
+                        <p className="text-xs text-base-content/50 mb-1">Status bo'yicha</p>
+                        <div className="flex flex-wrap gap-2">
+                          {systemErrors.by_status.map((s: any) => (
+                            <span key={s.status} className={`badge badge-sm ${s.status >= 500 ? 'badge-error' : 'badge-warning'}`}>
+                              {s.status}: {s.count}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {systemErrors.by_endpoint?.length > 0 && (
+                      <div>
+                        <p className="text-xs text-base-content/50 mb-1">Top endpointlar</p>
+                        <div className="space-y-1">
+                          {systemErrors.by_endpoint.slice(0, 5).map((e: any) => (
+                            <div key={e.endpoint} className="flex items-center gap-2 text-xs">
+                              <span className="badge badge-xs badge-error">{e.count}</span>
+                              <span className="font-mono truncate">{e.endpoint}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Error list */}
+                  {systemErrors.items?.length > 0 && (
+                    <div className="overflow-x-auto mt-3">
+                      <table className="table table-xs">
+                        <thead><tr><th>Vaqt</th><th>Status</th><th>Metod</th><th>Endpoint</th><th>Xato</th><th>Account</th></tr></thead>
+                        <tbody>
+                          {systemErrors.items.map((e: any) => (
+                            <tr key={e.id}>
+                              <td className="text-xs whitespace-nowrap">{new Date(e.created_at).toLocaleString()}</td>
+                              <td><span className={`badge badge-xs ${e.status >= 500 ? 'badge-error' : 'badge-warning'}`}>{e.status}</span></td>
+                              <td className="text-xs font-mono">{e.method}</td>
+                              <td className="text-xs font-mono max-w-[200px] truncate">{e.endpoint}</td>
+                              <td className="text-xs text-error/70 max-w-xs truncate">{e.message}</td>
+                              <td className="text-xs text-base-content/40">{e.account_id ? e.account_id.slice(0, 8) + '...' : '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Pagination */}
+                  {(systemErrors.pages ?? 1) > 1 && (
+                    <div className="flex justify-center gap-2 mt-2">
+                      <button className="btn btn-ghost btn-xs" disabled={errorsPage <= 1} onClick={() => loadErrorsPage(errorsPage - 1)}>Oldingi</button>
+                      <span className="btn btn-ghost btn-xs no-animation">{errorsPage} / {systemErrors.pages}</span>
+                      <button className="btn btn-ghost btn-xs" disabled={errorsPage >= (systemErrors.pages ?? 1)} onClick={() => loadErrorsPage(errorsPage + 1)}>Keyingi</button>
+                    </div>
+                  )}
+
+                  {!systemErrors.items?.length && (
+                    <p className="text-xs text-base-content/40 text-center mt-3">Xatolar yo'q</p>
+                  )}
                 </div>
               </div>
             )}
@@ -852,21 +1260,92 @@ export function AdminPage() {
         {/* ═══════════════ NOTIFICATIONS TAB ═══════════════ */}
         {activeTab === 'notifications' && (
           <div className="space-y-4">
+            {/* Xabar yuborish */}
             <div className="card bg-base-200">
               <div className="card-body p-4">
-                <h3 className="font-semibold text-sm">Xabar yuborish (E3)</h3>
-                <div className="flex flex-col md:flex-row gap-3 mt-2">
-                  <input className="input input-bordered input-sm flex-1" placeholder="Xabar matni..."
+                <h3 className="font-semibold text-sm">Xabar yuborish</h3>
+                <div className="space-y-3 mt-2">
+                  <textarea className="textarea textarea-bordered w-full text-sm" rows={3} placeholder="Xabar matni..."
                     value={notifMsg} onChange={(e) => setNotifMsg(e.target.value)} />
-                  <select className="select select-bordered select-sm w-32" value={notifType} onChange={(e) => setNotifType(e.target.value)}>
+                  <div className="flex flex-col md:flex-row gap-3">
+                    <select className="select select-bordered select-sm w-32" value={notifType} onChange={(e) => setNotifType(e.target.value)}>
+                      <option value="info">Info</option>
+                      <option value="warning">Warning</option>
+                      <option value="error">Error</option>
+                      <option value="success">Success</option>
+                    </select>
+                    <select className="select select-bordered select-sm w-40" value={notifTarget} onChange={(e) => setNotifTarget(e.target.value as any)}>
+                      <option value="all">Barchaga</option>
+                      <option value="selected">Tanlangan accountlar</option>
+                    </select>
+                    <button className="btn btn-primary btn-sm" onClick={sendNotification} disabled={notifSending}>
+                      {notifSending ? <span className="loading loading-spinner loading-xs" /> : 'Yuborish'}
+                    </button>
+                  </div>
+
+                  {notifTarget === 'selected' && (
+                    <div className="bg-base-300/50 rounded-lg p-3 max-h-40 overflow-y-auto">
+                      <p className="text-xs text-base-content/50 mb-2">Accountlarni tanlang:</p>
+                      <div className="space-y-1">
+                        {accounts.map((a) => (
+                          <label key={a.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="checkbox" className="checkbox checkbox-xs checkbox-primary"
+                              checked={notifSelectedAccounts.includes(a.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) setNotifSelectedAccounts((p) => [...p, a.id]);
+                                else setNotifSelectedAccounts((p) => p.filter((x) => x !== a.id));
+                              }} />
+                            <span>{a.name}</span>
+                            {a.phone && <span className="text-xs text-base-content/40 font-mono">{a.phone}</span>}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Shablonlar */}
+            <div className="card bg-base-200">
+              <div className="card-body p-4">
+                <h3 className="font-semibold text-sm">Xabar shablonlari</h3>
+
+                {/* Yangi shablon yaratish */}
+                <div className="flex flex-col md:flex-row gap-2 mt-2">
+                  <input className="input input-bordered input-sm flex-1" placeholder="Shablon nomi"
+                    value={newTmplName} onChange={(e) => setNewTmplName(e.target.value)} />
+                  <input className="input input-bordered input-sm flex-[2]" placeholder="Xabar matni"
+                    value={newTmplMsg} onChange={(e) => setNewTmplMsg(e.target.value)} />
+                  <select className="select select-bordered select-sm w-24" value={newTmplType} onChange={(e) => setNewTmplType(e.target.value)}>
                     <option value="info">Info</option>
                     <option value="warning">Warning</option>
                     <option value="error">Error</option>
+                    <option value="success">Success</option>
                   </select>
-                  <button className="btn btn-primary btn-sm" onClick={sendNotification} disabled={notifSending}>
-                    {notifSending ? <span className="loading loading-spinner loading-xs" /> : 'Barchaga yuborish'}
-                  </button>
+                  <button className="btn btn-sm btn-primary" onClick={createTemplate}>+ Shablon</button>
                 </div>
+
+                {/* Shablonlar ro'yxati */}
+                {templates.length > 0 ? (
+                  <div className="space-y-2 mt-3">
+                    {templates.map((t: any) => (
+                      <div key={t.id} className="flex items-center gap-2 bg-base-300/50 rounded-lg px-3 py-2">
+                        <span className={`badge badge-xs ${t.type === 'error' ? 'badge-error' : t.type === 'warning' ? 'badge-warning' : t.type === 'success' ? 'badge-success' : 'badge-info'}`}>{t.type}</span>
+                        <span className="font-semibold text-sm">{t.name}</span>
+                        <span className="text-xs text-base-content/50 flex-1 truncate">{t.message}</span>
+                        <button className="btn btn-ghost btn-xs text-primary" onClick={() => { setNotifMsg(t.message); setNotifType(t.type); }}>
+                          Ishlat
+                        </button>
+                        <button className="btn btn-ghost btn-xs text-error" onClick={() => deleteTemplate(t.id)}>
+                          X
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-base-content/40 mt-2">Shablonlar yo'q</p>
+                )}
               </div>
             </div>
           </div>
@@ -890,7 +1369,7 @@ export function AdminPage() {
                       <span className={`badge badge-xs ${
                         e.action.includes('CREATED') || e.action === 'ANALYZE' || e.action === 'DISCOVERY' ? 'badge-success' :
                         e.action.includes('DEACTIVATED') || e.action.includes('DELETED') ? 'badge-error' :
-                        e.action.includes('CHANGED') || e.action.includes('ROLE') ? 'badge-warning' :
+                        e.action.includes('CHANGED') || e.action.includes('ROLE') || e.action.includes('PASSWORD') ? 'badge-warning' :
                         e.action === 'LOGIN' || e.action === 'REGISTER' ? 'badge-primary' : 'badge-ghost'
                       }`}>{e.action}</span>
                     </td>
@@ -988,6 +1467,28 @@ export function AdminPage() {
       {/* Modals */}
       {showCreateAccount && <CreateAccountModal onClose={() => setShowCreateAccount(false)} onDone={load} />}
       {depositTarget && <DepositModal account={depositTarget} onClose={() => setDepositTarget(null)} onDone={load} />}
+      {passwordTarget && <ChangePasswordModal user={passwordTarget} onClose={() => setPasswordTarget(null)} />}
+
+      {/* Account Detail Drawer */}
+      {drawerAccount && (
+        <AccountDrawer
+          account={drawerAccount}
+          users={users}
+          onClose={() => setDrawerAccount(null)}
+          onRefresh={load}
+        />
+      )}
+
+      {/* Slide-in animation */}
+      <style>{`
+        @keyframes slideInRight {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+        .animate-slide-in-right {
+          animation: slideInRight 0.25s ease-out;
+        }
+      `}</style>
     </>
   );
 }

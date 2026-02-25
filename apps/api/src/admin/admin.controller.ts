@@ -126,6 +126,16 @@ export class AdminController {
     );
   }
 
+  /** Change user password (admin action) */
+  @Patch('users/:id/password')
+  changePassword(
+    @Param('id') userId: string,
+    @Body() body: { password: string },
+    @CurrentUser('id') adminUserId: string,
+  ) {
+    return this.adminService.changeUserPassword(userId, body.password, adminUserId);
+  }
+
   /** Change user role */
   @Patch('users/:id/role')
   updateRole(
@@ -425,6 +435,93 @@ export class AdminController {
   deleteDepositLog(@Param('id') id: string) {
     return this.adminService.deleteDepositLog(id);
   }
+  // ============================================================
+  // ACCOUNT PHONE
+  // ============================================================
+
+  /** Update account phone number */
+  @Patch('accounts/:id/phone')
+  updateAccountPhone(
+    @Param('id') accountId: string,
+    @Body() body: { phone: string | null },
+    @CurrentUser('id') adminUserId: string,
+  ) {
+    return this.adminService.updateAccountPhone(accountId, body.phone, adminUserId);
+  }
+
+  // ============================================================
+  // NOTIFICATION TEMPLATES
+  // ============================================================
+
+  /** List all notification templates */
+  @Get('notification-templates')
+  listNotificationTemplates() {
+    return this.adminService.listNotificationTemplates();
+  }
+
+  /** Create notification template */
+  @Post('notification-templates')
+  createNotificationTemplate(
+    @Body() body: { name: string; message: string; type: string },
+    @CurrentUser('id') adminUserId: string,
+  ) {
+    return this.adminService.createNotificationTemplate(body.name, body.message, body.type, adminUserId);
+  }
+
+  /** Delete notification template */
+  @Delete('notification-templates/:id')
+  deleteNotificationTemplate(@Param('id') id: string) {
+    return this.adminService.deleteNotificationTemplate(id);
+  }
+
+  /** Send notification (advanced — template or custom, targeted or broadcast) */
+  @Post('notifications/send')
+  sendNotificationAdvanced(
+    @Body() body: { message: string; type: string; target: 'all' | string[] },
+    @CurrentUser('id') adminUserId: string,
+  ) {
+    return this.adminService.sendNotificationAdvanced({
+      message: body.message,
+      type: body.type,
+      target: body.target,
+      adminUserId,
+    });
+  }
+
+  // ============================================================
+  // AI USAGE STATS
+  // ============================================================
+
+  /** AI usage statistics (tokens, costs) */
+  @Get('stats/ai-usage')
+  getAiUsageStats(@Query('period') period?: string) {
+    return this.adminService.getAiUsageStats(period ? parseInt(period) : 30);
+  }
+
+  // ============================================================
+  // SYSTEM ERRORS
+  // ============================================================
+
+  /** System errors list with filters */
+  @Get('system-errors')
+  getSystemErrors(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('endpoint') endpoint?: string,
+    @Query('status_gte') statusGte?: string,
+    @Query('account_id') accountId?: string,
+    @Query('period') period?: string,
+  ) {
+    return this.adminService.getSystemErrors({
+      page: page ? parseInt(page) : 1,
+      limit: limit ? parseInt(limit) : 50,
+      endpoint,
+      status_gte: statusGte ? parseInt(statusGte) : undefined,
+      account_id: accountId,
+      period: period ? parseInt(period) : 7,
+    });
+  }
+
   // ============================================================
   // LOG VIEWING ENDPOINTS
   // ============================================================

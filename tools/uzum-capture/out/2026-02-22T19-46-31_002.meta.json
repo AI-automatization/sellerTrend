@@ -1,0 +1,54 @@
+{
+  "n": 2,
+  "responseUrl": "https://graphql.uzum.uz/",
+  "status": 200,
+  "method": "POST",
+  "requestHeaders": {
+    "sec-ch-ua-platform": "\"Windows\"",
+    "authorization": "Bearer eyJraWQiOiIwcE9oTDBBVXlWSXF1V0w1U29NZTdzcVNhS2FqYzYzV1N5THZYb0ZhWXRNIiwiYWxnIjoiRWREU0EiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJVenVtIElEIiwiaWF0IjoxNzcxNzg5NTk3LCJzdWIiOiJmMGU4ZTNmYy1jYWRiLTQzOWQtYmZiYS0yZjNjMDg0MjAxNTciLCJhdWQiOlsidXp1bV9hcHBzIiwibWFya2V0L3dlYiJdLCJldmVudHMiOnt9LCJleHAiOjE3NzE4MzI3OTd9.x3Em0npbYkh3pfgfzNnltKZ4W84RPGRFu5CQ5kJXV6b5SDaOvy3XS_M9v0g8sTRi4S1zPYu7ZgkrvTc4v7_gCw",
+    "x-iid": "3ded4a4d-b806-461d-8e6a-fed4d670ab61",
+    "referer": "https://uzum.uz/",
+    "accept-language": "ru-RU,ru;q=0.9,en;q=0.8",
+    "sec-ch-ua": "\"Not:A-Brand\";v=\"99\", \"HeadlessChrome\";v=\"145\", \"Chromium\";v=\"145\"",
+    "sec-ch-ua-mobile": "?0",
+    "baggage": "sentry-environment=production,sentry-release=uzum-market%401.63.2,sentry-public_key=948fdc05a99a018e8d3ab003bee4b5a3,sentry-trace_id=54fe118fb9cc4da392f7485ecfb2a4c1,sentry-sample_rate=0.01,sentry-sampled=false",
+    "sentry-trace": "54fe118fb9cc4da392f7485ecfb2a4c1-aa8f7eef7b50ef7c-0",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "accept": "*/*",
+    "apollographql-client-version": "1.63.2",
+    "content-type": "application/json",
+    "apollographql-client-name": "web-customers"
+  },
+  "responseHeaders": {
+    "access-control-allow-origin": "*",
+    "content-encoding": "gzip",
+    "date": "Sun, 22 Feb 2026 19:46:37 GMT",
+    "content-type": "application/json",
+    "vary": "origin",
+    "server": "ycalb"
+  },
+  "postData": {
+    "operationName": "getMakeSearch",
+    "variables": {
+      "queryInput": {
+        "offerCategoryId": "-10091",
+        "showAdultContent": "NONE",
+        "filters": [],
+        "sort": "BY_RELEVANCE_DESC",
+        "pagination": {
+          "offset": 0,
+          "limit": 48
+        },
+        "correctQuery": false,
+        "getFastCategories": true,
+        "fastCategoriesLimit": 11,
+        "fastCategoriesLevelOffset": 2,
+        "getPromotionItems": true,
+        "getFastFacets": false,
+        "fastFacetsLimit": 0
+      }
+    },
+    "query": "query getMakeSearch($queryInput: MakeSearchQueryInput!) {\n  makeSearch(query: $queryInput) {\n    id\n    queryId\n    queryText\n    category {\n      ...CategoryShortFragment\n      __typename\n    }\n    items {\n      adMarker {\n        marker\n        __typename\n      }\n      catalogCard {\n        __typename\n        ...SkuGroupCardFragment\n        discount {\n          discountAmount\n          discountPrice\n          fullDiscountPercent\n          modalHeader\n          modalText\n          paymentOptionKey\n          priceText\n          sellDiscountPercent\n          __typename\n        }\n      }\n      bidId\n      __typename\n    }\n    facets {\n      ...FacetFragment\n      __typename\n    }\n    fastFacets {\n      ...FacetFragment\n      __typename\n    }\n    total\n    mayHaveAdultContent\n    categoryFullMatch\n    offerCategory {\n      title\n      title_ru\n      title_uz\n      id\n      __typename\n    }\n    correctedQueryText\n    categoryWasPredicted\n    fastCategories {\n      category {\n        ...FastCategoryFragment\n        __typename\n      }\n      total\n      __typename\n    }\n    permanentLinkSeo {\n      id\n      seoHeader\n      seoMetaTag\n      seoTitle\n      link {\n        ru\n        uz\n        __typename\n      }\n      __typename\n    }\n    token\n    todayDealOfferSelectors {\n      endDate\n      offerId\n      startDate\n      title\n      category {\n        id\n        title_uz\n        title_ru\n        title\n        adult\n        icon\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n\nfragment FacetFragment on Facet {\n  filter {\n    id\n    title\n    type\n    measurementUnit\n    description\n    __typename\n  }\n  buckets {\n    filterValue {\n      id\n      description\n      image\n      name\n      __typename\n    }\n    total\n    __typename\n  }\n  range {\n    min\n    max\n    __typename\n  }\n  __typename\n}\n\nfragment CategoryShortFragment on Category {\n  id\n  parent {\n    id\n    title\n    title_ru\n    title_uz\n    __typename\n  }\n  seo {\n    permanentLinksSeo {\n      id\n      seoHeader\n      seoMetaTag\n      seoTitle\n      link {\n        ru\n        uz\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n  title\n  title_ru\n  title_uz\n  __typename\n}\n\nfragment FastCategoryFragment on Category {\n  id\n  parent {\n    id\n    title\n    __typename\n  }\n  title\n  seo {\n    header\n    metaTag\n    __typename\n  }\n  __typename\n}\n\nfragment SkuGroupCardFragment on SkuGroupCard {\n  ...DefaultCardFragment\n  carrierCode\n  infoLabel {\n    color\n    title\n    __typename\n  }\n  photos {\n    key\n    link(trans: PRODUCT_540) {\n      high\n      low\n      __typename\n    }\n    previewLink: link(trans: PRODUCT_240) {\n      high\n      low\n      __typename\n    }\n    __typename\n  }\n  badges {\n    ... on BottomTextBadge {\n      __typename\n      backgroundColor\n      description\n      id\n      link\n      text\n      textColor\n    }\n    ... on UzumInstallmentTitleBadge {\n      __typename\n      backgroundColor\n      text\n      id\n      textColor\n    }\n    ... on BottomIconTextBadge {\n      __typename\n      backgroundColor\n      text\n      id\n      textColor\n      iconLink\n    }\n    __typename\n  }\n  characteristicValues {\n    id\n    value\n    title\n    characteristic {\n      values {\n        id\n        title\n        value\n        __typename\n      }\n      title\n      id\n      __typename\n    }\n    __typename\n  }\n  __typename\n}\n\nfragment DefaultCardFragment on CatalogCard {\n  discount {\n    discountPrice\n    discountAmount\n    paymentOptionKey\n    sellDiscountPercent\n    __typename\n  }\n  adult\n  feedbackQuantity\n  id\n  minFullPrice\n  minSellPrice\n  offer {\n    due\n    icon\n    text\n    textColor\n    __typename\n  }\n  badges {\n    id\n    backgroundColor\n    text\n    textColor\n    ... on BottomIconTextBadge {\n      iconLink\n      __typename\n    }\n    __typename\n  }\n  discountInfo {\n    text\n    textColor\n    backgroundColor\n    __typename\n  }\n  ordersQuantity\n  productId\n  rating\n  title\n  buyingOptions {\n    defaultSkuId\n    isBestPrice\n    isSingleSku\n    priceBlock {\n      ...PriceBlockFragment\n      __typename\n    }\n    deliveryOptions {\n      shortDate\n      stockType\n      textDeliveryWithDate\n      __typename\n    }\n    __typename\n  }\n  __typename\n}\n\nfragment PriceBlockFragment on PriceBlock {\n  badges {\n    id\n    text\n    textColor\n    backgroundColor\n    __typename\n  }\n  sellPrice {\n    ...priceFragment\n    __typename\n  }\n  finalPrice {\n    ...priceFragment\n    __typename\n  }\n  fullPrice {\n    ...priceFragment\n    __typename\n  }\n  sellerPrice {\n    ...priceFragment\n    __typename\n  }\n  icon\n  __typename\n}\n\nfragment priceFragment on Price {\n  amountColor\n  amount\n  description\n  descriptionColor\n  __typename\n}"
+  },
+  "capturedAt": "2026-02-22T19:46:38.255Z"
+}

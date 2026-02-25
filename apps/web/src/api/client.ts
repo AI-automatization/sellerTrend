@@ -306,6 +306,8 @@ export const adminApi = {
     api.post(`/admin/accounts/${accountId}/users`, data),
   updateRole: (userId: string, role: string) =>
     api.patch(`/admin/users/${userId}/role`, { role }),
+  changeUserPassword: (userId: string, password: string) =>
+    api.patch(`/admin/users/${userId}/password`, { password }),
   toggleActive: (userId: string) =>
     api.patch(`/admin/users/${userId}/toggle-active`),
   // v5 Admin Stats
@@ -356,6 +358,21 @@ export const adminApi = {
   exportUsers: () => api.get('/admin/export/users', { responseType: 'blob' }),
   exportRevenue: (from?: string, to?: string) =>
     api.get('/admin/export/revenue', { params: { from, to }, responseType: 'blob' }),
+  // v6 Account Phone
+  updateAccountPhone: (accountId: string, phone: string | null) =>
+    api.patch(`/admin/accounts/${accountId}/phone`, { phone }),
+  // v6 Notification Templates
+  listNotificationTemplates: () => api.get('/admin/notification-templates'),
+  createNotificationTemplate: (data: { name: string; message: string; type: string }) =>
+    api.post('/admin/notification-templates', data),
+  deleteNotificationTemplate: (id: string) => api.delete(`/admin/notification-templates/${id}`),
+  sendNotificationAdvanced: (data: { message: string; type: string; target: 'all' | string[] }) =>
+    api.post('/admin/notifications/send', data),
+  // v6 AI Usage Stats
+  getAiUsageStats: (period = 30) => api.get('/admin/stats/ai-usage', { params: { period } }),
+  // v6 System Errors
+  getSystemErrors: (params?: { page?: number; limit?: number; endpoint?: string; status_gte?: number; account_id?: string; period?: number }) =>
+    api.get('/admin/system-errors', { params }),
 };
 
 // Feedback endpoints (User)

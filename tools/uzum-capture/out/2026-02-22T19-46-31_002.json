@@ -1,0 +1,66 @@
+{
+  "data": {
+    "makeSearch": {
+      "id": "9df56af7-e139-4f68-bcbc-8d6a19603d61",
+      "queryId": "410ab597-46c2-4e0a-a243-3d1a14142dce",
+      "queryText": "",
+      "category": null,
+      "items": [],
+      "facets": [
+        {
+          "filter": {
+            "id": 0,
+            "title": "Цена",
+            "type": "RANGED_VALUE",
+            "measurementUnit": "сум",
+            "description": null,
+            "__typename": "Filter"
+          },
+          "buckets": null,
+          "range": {
+            "min": 0,
+            "max": 0,
+            "__typename": "FacetRange"
+          },
+          "__typename": "Facet"
+        }
+      ],
+      "fastFacets": [],
+      "total": 0,
+      "mayHaveAdultContent": false,
+      "categoryFullMatch": false,
+      "offerCategory": null,
+      "correctedQueryText": "",
+      "categoryWasPredicted": false,
+      "fastCategories": [],
+      "permanentLinkSeo": null,
+      "token": "",
+      "todayDealOfferSelectors": [],
+      "__typename": "MakeSearchResult"
+    }
+  },
+  "errors": [
+    {
+      "message": "Entity fetcher returned null or completed empty",
+      "path": [
+        "makeSearch",
+        "offerCategory"
+      ],
+      "extensions": {
+        "classification": "DataFetchingException",
+        "service": "discovery"
+      }
+    }
+  ],
+  "extensions": {
+    "valueCompletion": [
+      {
+        "message": "Cannot return null for non-nullable field Category.title",
+        "path": [
+          "makeSearch",
+          "offerCategory"
+        ]
+      }
+    ]
+  }
+}

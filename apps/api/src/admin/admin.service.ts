@@ -19,6 +19,32 @@ export class AdminService {
   // EXISTING METHODS (unchanged)
   // ============================================================
 
+  /** Change user password (admin action) */
+  async changeUserPassword(userId: string, newPassword: string, adminUserId: string) {
+    if (!newPassword || newPassword.length < 6) {
+      throw new BadRequestException('Parol kamida 6 ta belgidan iborat bo\'lishi kerak');
+    }
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Foydalanuvchi topilmadi');
+
+    const password_hash = await bcrypt.hash(newPassword, 12);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password_hash },
+    });
+
+    await this.prisma.auditEvent.create({
+      data: {
+        account_id: user.account_id,
+        user_id: adminUserId,
+        action: 'PASSWORD_CHANGED',
+        new_value: { target_user_id: userId, target_email: user.email },
+      },
+    });
+
+    return { success: true, message: 'Parol o\'zgartirildi' };
+  }
+
   async listAccounts() {
     const accounts = await this.prisma.account.findMany({
       orderBy: { created_at: 'desc' },
@@ -31,6 +57,7 @@ export class AdminService {
     return accounts.map((a) => ({
       id: a.id,
       name: a.name,
+      phone: a.phone ?? null,
       status: a.status,
       balance: a.balance.toString(),
       daily_fee: a.daily_fee?.toString() ?? null,
@@ -55,6 +82,7 @@ export class AdminService {
     return {
       id: account.id,
       name: account.name,
+      phone: (account as any).phone ?? null,
       status: account.status,
       balance: account.balance.toString(),
       daily_fee: account.daily_fee?.toString() ?? null,
@@ -1902,11 +1930,257 @@ export class AdminService {
     });
     if (!tx) throw new NotFoundException('Transaction topilmadi');
     if (tx.type !== 'DEPOSIT') throw new BadRequestException('Faqat DEPOSIT turidagi tranzaksiyalarni o\'chirish mumkin');
-    
+
     await this.prisma.transaction.delete({
       where: { id: transactionId },
     });
-    
+
     return { deleted: true };
+  }
+
+  // ============================================================
+  // H. ACCOUNT PHONE (Admin v6)
+  // ============================================================
+
+  /** Update account phone number */
+  async updateAccountPhone(accountId: string, phone: string | null, adminUserId: string) {
+    const account = await this.prisma.account.findUniqueOrThrow({
+      where: { id: accountId },
+      select: { phone: true },
+    });
+
+    await this.prisma.$transaction([
+      this.prisma.account.update({
+        where: { id: accountId },
+        data: { phone },
+      }),
+      this.prisma.auditEvent.create({
+        data: {
+          account_id: accountId,
+          user_id: adminUserId,
+          action: 'ACCOUNT_PHONE_CHANGED',
+          old_value: { phone: account.phone },
+          new_value: { phone },
+        },
+      }),
+    ]);
+
+    return { id: accountId, phone };
+  }
+
+  // ============================================================
+  // I. NOTIFICATION TEMPLATES (Admin v6)
+  // ============================================================
+
+  /** List all notification templates */
+  async listNotificationTemplates() {
+    return this.prisma.notificationTemplate.findMany({
+      orderBy: { created_at: 'desc' },
+    });
+  }
+
+  /** Create notification template */
+  async createNotificationTemplate(
+    name: string,
+    message: string,
+    type: string,
+    adminUserId: string,
+  ) {
+    return this.prisma.notificationTemplate.create({
+      data: { name, message, type, created_by: adminUserId },
+    });
+  }
+
+  /** Delete notification template */
+  async deleteNotificationTemplate(id: string) {
+    const tmpl = await this.prisma.notificationTemplate.findUnique({ where: { id } });
+    if (!tmpl) throw new NotFoundException('Shablon topilmadi');
+    await this.prisma.notificationTemplate.delete({ where: { id } });
+    return { deleted: true };
+  }
+
+  /** Send notification with template or custom message */
+  async sendNotificationAdvanced(opts: {
+    message: string;
+    type: string;
+    target: 'all' | string[];
+    adminUserId: string;
+  }) {
+    if (opts.target === 'all') {
+      await this.prisma.notification.create({
+        data: {
+          account_id: null,
+          message: opts.message,
+          type: opts.type,
+          created_by: opts.adminUserId,
+        },
+      });
+      return { sent: 1, target: 'all' };
+    }
+
+    const data = opts.target.map((accountId) => ({
+      account_id: accountId,
+      message: opts.message,
+      type: opts.type,
+      created_by: opts.adminUserId,
+    }));
+
+    await this.prisma.notification.createMany({ data });
+    return { sent: opts.target.length, target: 'specific_accounts' };
+  }
+
+  // ============================================================
+  // J. AI USAGE STATS (Admin v6)
+  // ============================================================
+
+  /** Get AI usage stats for the system page */
+  async getAiUsageStats(period = 30) {
+    const since = new Date();
+    since.setDate(since.getDate() - period);
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const [totalLogs, todayLogs, byMethod, byDay, recentErrors] = await Promise.all([
+      this.prisma.aiUsageLog.aggregate({
+        where: { created_at: { gte: since } },
+        _sum: { input_tokens: true, output_tokens: true, cost_usd: true },
+        _count: { id: true },
+      }),
+      this.prisma.aiUsageLog.aggregate({
+        where: { created_at: { gte: todayStart } },
+        _sum: { input_tokens: true, output_tokens: true, cost_usd: true },
+        _count: { id: true },
+      }),
+      this.prisma.aiUsageLog.groupBy({
+        by: ['method'],
+        where: { created_at: { gte: since } },
+        _sum: { input_tokens: true, output_tokens: true, cost_usd: true },
+        _count: { id: true },
+        _avg: { duration_ms: true },
+      }),
+      this.prisma.aiUsageLog.findMany({
+        where: { created_at: { gte: since } },
+        select: { input_tokens: true, output_tokens: true, cost_usd: true, created_at: true },
+        orderBy: { created_at: 'asc' },
+      }),
+      this.prisma.aiUsageLog.findMany({
+        where: { error: { not: null }, created_at: { gte: since } },
+        orderBy: { created_at: 'desc' },
+        take: 20,
+        select: { id: true, method: true, error: true, created_at: true },
+      }),
+    ]);
+
+    // Group by day
+    const dailyMap: Record<string, { calls: number; input: number; output: number; cost: number }> = {};
+    for (const log of byDay) {
+      const dateKey = log.created_at.toISOString().split('T')[0];
+      if (!dailyMap[dateKey]) dailyMap[dateKey] = { calls: 0, input: 0, output: 0, cost: 0 };
+      dailyMap[dateKey].calls++;
+      dailyMap[dateKey].input += log.input_tokens;
+      dailyMap[dateKey].output += log.output_tokens;
+      dailyMap[dateKey].cost += Number(log.cost_usd);
+    }
+
+    const daily = Object.entries(dailyMap).map(([date, data]) => ({
+      date,
+      calls: data.calls,
+      input_tokens: data.input,
+      output_tokens: data.output,
+      cost_usd: Number(data.cost.toFixed(6)),
+    }));
+
+    return {
+      period: {
+        calls: totalLogs._count.id,
+        input_tokens: totalLogs._sum.input_tokens ?? 0,
+        output_tokens: totalLogs._sum.output_tokens ?? 0,
+        cost_usd: Number(totalLogs._sum.cost_usd ?? 0).toFixed(4),
+      },
+      today: {
+        calls: todayLogs._count.id,
+        input_tokens: todayLogs._sum.input_tokens ?? 0,
+        output_tokens: todayLogs._sum.output_tokens ?? 0,
+        cost_usd: Number(todayLogs._sum.cost_usd ?? 0).toFixed(4),
+      },
+      by_method: byMethod.map((m) => ({
+        method: m.method,
+        calls: m._count.id,
+        input_tokens: m._sum.input_tokens ?? 0,
+        output_tokens: m._sum.output_tokens ?? 0,
+        cost_usd: Number(m._sum.cost_usd ?? 0).toFixed(4),
+        avg_duration_ms: Math.round(m._avg.duration_ms ?? 0),
+      })),
+      daily,
+      recent_errors: recentErrors,
+    };
+  }
+
+  // ============================================================
+  // K. SYSTEM ERRORS (Admin v6)
+  // ============================================================
+
+  /** Get system errors for error tracking */
+  async getSystemErrors(opts: {
+    page?: number;
+    limit?: number;
+    endpoint?: string;
+    status_gte?: number;
+    account_id?: string;
+    period?: number;
+  }) {
+    const page = opts.page ?? 1;
+    const limit = opts.limit ?? 50;
+    const since = new Date();
+    since.setDate(since.getDate() - (opts.period ?? 7));
+
+    const where: any = { created_at: { gte: since } };
+    if (opts.endpoint) where.endpoint = { contains: opts.endpoint };
+    if (opts.status_gte) where.status = { gte: opts.status_gte };
+    if (opts.account_id) where.account_id = opts.account_id;
+
+    const [items, total, byEndpoint, byStatus] = await Promise.all([
+      this.prisma.systemError.findMany({
+        where,
+        orderBy: { created_at: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.systemError.count({ where }),
+      this.prisma.systemError.groupBy({
+        by: ['endpoint'],
+        where: { created_at: { gte: since } },
+        _count: { id: true },
+        orderBy: { _count: { id: 'desc' } },
+        take: 20,
+      }),
+      this.prisma.systemError.groupBy({
+        by: ['status'],
+        where: { created_at: { gte: since } },
+        _count: { id: true },
+        orderBy: { _count: { id: 'desc' } },
+      }),
+    ]);
+
+    return {
+      items: items.map((e) => ({
+        id: e.id,
+        endpoint: e.endpoint,
+        method: e.method,
+        status: e.status,
+        message: e.message,
+        stack: e.stack,
+        account_id: e.account_id,
+        user_id: e.user_id,
+        ip: e.ip,
+        created_at: e.created_at,
+      })),
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+      by_endpoint: byEndpoint.map((e) => ({ endpoint: e.endpoint, count: e._count.id })),
+      by_status: byStatus.map((s) => ({ status: s.status, count: s._count.id })),
+    };
   }
 }

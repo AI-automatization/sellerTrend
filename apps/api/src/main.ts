@@ -1,8 +1,10 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, HttpAdapterHost } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { GlobalLoggerInterceptor } from './common/interceptors/global-logger.interceptor';
+import { ErrorTrackerFilter } from './common/filters/error-tracker.filter';
+import { PrismaService } from './prisma/prisma.service';
 
 const SWAGGER_HTML = `<!DOCTYPE html>
 <html>
@@ -45,6 +47,11 @@ async function bootstrap() {
   );
 
   app.useGlobalInterceptors(new GlobalLoggerInterceptor());
+
+  // Error tracker — saves 4xx/5xx errors to system_errors table
+  const { httpAdapter } = app.get(HttpAdapterHost);
+  const prisma = app.get(PrismaService);
+  app.useGlobalFilters(new ErrorTrackerFilter(httpAdapter, prisma));
 
   app.enableCors({
     origin: [

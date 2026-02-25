@@ -1,0 +1,54 @@
+{
+  "n": 3,
+  "responseUrl": "https://graphql.uzum.uz/",
+  "status": 200,
+  "method": "POST",
+  "requestHeaders": {
+    "sec-ch-ua-platform": "\"Windows\"",
+    "authorization": "Bearer eyJraWQiOiIwcE9oTDBBVXlWSXF1V0w1U29NZTdzcVNhS2FqYzYzV1N5THZYb0ZhWXRNIiwiYWxnIjoiRWREU0EiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJVenVtIElEIiwiaWF0IjoxNzcxNzg5NTk3LCJzdWIiOiJmMGU4ZTNmYy1jYWRiLTQzOWQtYmZiYS0yZjNjMDg0MjAxNTciLCJhdWQiOlsidXp1bV9hcHBzIiwibWFya2V0L3dlYiJdLCJldmVudHMiOnt9LCJleHAiOjE3NzE4MzI3OTd9.x3Em0npbYkh3pfgfzNnltKZ4W84RPGRFu5CQ5kJXV6b5SDaOvy3XS_M9v0g8sTRi4S1zPYu7ZgkrvTc4v7_gCw",
+    "x-iid": "3ded4a4d-b806-461d-8e6a-fed4d670ab61",
+    "referer": "https://uzum.uz/",
+    "accept-language": "ru-RU,ru;q=0.9,en;q=0.8",
+    "sec-ch-ua": "\"Not:A-Brand\";v=\"99\", \"HeadlessChrome\";v=\"145\", \"Chromium\";v=\"145\"",
+    "sec-ch-ua-mobile": "?0",
+    "baggage": "sentry-environment=production,sentry-release=uzum-market%401.63.2,sentry-public_key=948fdc05a99a018e8d3ab003bee4b5a3,sentry-trace_id=54fe118fb9cc4da392f7485ecfb2a4c1,sentry-sample_rate=0.01,sentry-sampled=false",
+    "sentry-trace": "54fe118fb9cc4da392f7485ecfb2a4c1-8d07d8820c58225b-0",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "accept": "*/*",
+    "apollographql-client-version": "1.63.2",
+    "content-type": "application/json",
+    "apollographql-client-name": "web-customers"
+  },
+  "responseHeaders": {
+    "access-control-allow-origin": "*",
+    "content-encoding": "gzip",
+    "date": "Sun, 22 Feb 2026 19:46:38 GMT",
+    "content-type": "application/json",
+    "vary": "origin",
+    "server": "ycalb"
+  },
+  "postData": {
+    "operationName": "getMakeSearch",
+    "variables": {
+      "queryInput": {
+        "offerCategoryId": "-10091",
+        "showAdultContent": "NONE",
+        "filters": [],
+        "sort": "BY_RELEVANCE_DESC",
+        "pagination": {
+          "offset": 0,
+          "limit": 48
+        },
+        "correctQuery": false,
+        "getFastCategories": true,
+        "fastCategoriesLimit": 11,
+        "fastCategoriesLevelOffset": 2,
+        "getPromotionItems": true,
+        "getFastFacets": false,
+        "fastFacetsLimit": 0
+      }
+    },
+    "query": "query getMakeSearch($queryInput: MakeSearchQueryInput!) {\n  makeSearch(query: $queryInput) {\n    categoryTree {\n      category {\n        ...CategoryFragment\n        __typename\n      }\n      total\n      __typename\n    }\n    __typename\n  }\n}\n\nfragment CategoryFragment on Category {\n  id\n  icon\n  parent {\n    id\n    __typename\n  }\n  seo {\n    header\n    metaTag\n    headerLocalized {\n      title_ru\n      title_uz\n      __typename\n    }\n    metaTagLocalized {\n      title_ru\n      title_uz\n      __typename\n    }\n    __typename\n  }\n  title\n  title_ru\n  title_uz\n  adult\n  __typename\n}"
+  },
+  "capturedAt": "2026-02-22T19:46:38.397Z"
+}

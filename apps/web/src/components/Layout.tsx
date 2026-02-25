@@ -158,21 +158,13 @@ export function Layout() {
                 <li><NavLink to="/admin" end className={() => adminLinkClass()}>
                   <ShieldCheckIcon className="w-4 h-4" /> Dashboard
                 </NavLink></li>
-                <li><NavLink to="/admin?tab=users" className={() => adminLinkClass('users')}>
-                  <UsersIcon className="w-4 h-4" />
-                  Foydalanuvchilar
-                </NavLink></li>
                 <li><NavLink to="/admin?tab=accounts" className={() => adminLinkClass('accounts')}>
                   <BuildingOffice2Icon className="w-4 h-4" />
-                  Akkauntlar
+                  Akkauntlar & Userlar
                 </NavLink></li>
                 <li><NavLink to="/admin?tab=analytics" className={() => adminLinkClass('analytics')}>
                   <ChartBarIcon className="w-4 h-4" />
-                  Analitika
-                </NavLink></li>
-                <li><NavLink to="/admin?tab=popular" className={() => adminLinkClass('popular')}>
-                  <FireIcon className="w-4 h-4" />
-                  Mashhur
+                  Analitika & Mashhur
                 </NavLink></li>
                 <li><NavLink to="/admin?tab=system" className={() => adminLinkClass('system')}>
                   <ServerStackIcon className="w-4 h-4" />
