@@ -36,13 +36,14 @@
 
 ---
 
-## ARXITEKTURA TUZATISHLARI (3 ta)
+## ARXITEKTURA TUZATISHLARI (4 ta)
 
 | # | Vazifa | Holat |
 |---|--------|-------|
 | DEEP-006 | Service Worker ventra-v3 + 4 strategiya + manifest.json VENTRA | DONE |
 | DEEP-011 | Branding — manifest, SW cache, UI Layout/Login/Register → VENTRA | QISMAN (CLAUDE.md + email qoldi) |
 | DEEP-012 | Dark Theme — useTheme hook, sun/moon toggle ishlaydi | DONE |
+| T-009 | Redis persistence — docker-compose da `redis_data:/data` volume allaqachon mavjud | DONE (risk audit aniqladi) |
 
 ---
 

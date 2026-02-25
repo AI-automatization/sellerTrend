@@ -1,7 +1,7 @@
 # VENTRA — BARCHA OCHIQ VAZIFALAR
-# Manba: DEEP_ANALYSIS + DEVOPS_AUDIT + FRONTEND_TODO
+# Manba: DEEP_ANALYSIS + DEVOPS_AUDIT + FRONTEND_TODO + GPT_AUDIT
 # Yangilangan: 2026-02-26
-# Jami: 55 ta vazifa | P0: 10 | P1: 13 | P2: 14 | P3: 18
+# Jami: 60 ta vazifa | P0: 9 | P1: 15 | P2: 17 | P3: 19
 
 ---
 
@@ -18,16 +18,15 @@
 
 | # | Kategoriya | Vazifa | Mas'ul | Vaqt |
 |---|-----------|--------|--------|------|
-| T-001 | BACKEND | BigInt global serializer — `BigInt.prototype.toJSON` main.ts ga qo'shish | Bekzod | 30m |
-| T-002 | BACKEND | BillingMiddleware o'chirish — faqat BillingGuard qoldirish (dublikat, bypass xavfi) | Bekzod | 15m |
-| T-003 | FRONTEND | 402 handler — Axios interceptor da 402 → billing state yangilash (hozir silent fail) | Sardor | 1s |
-| T-004 | FRONTEND | Error Boundary — bitta component crash → butun sahifa oq ekran bo'lmasin | Sardor | 1-2s |
-| T-005 | BACKEND | Database indexlar qo'shish — products(category_id), snapshots(product_id,snapshot_at), flash_sales(started_at) | Bekzod | 30m |
-| T-006 | DEVOPS | Nginx security headers — X-Frame-Options, HSTS, CSP, Referrer-Policy, Permissions-Policy | Bekzod | 30m |
-| T-007 | DEVOPS | .dockerignore yaratish — node_modules, .git, dist, .env*, docs, *.md | Bekzod | 15m |
-| T-008 | DEVOPS | Health endpoint — Redis ping + queue depth qo'shish (hozir faqat Postgres) | Bekzod | 30m |
-| T-009 | DEVOPS | Redis persistence — `appendonly yes` + volume mount | Bekzod | 15m |
-| T-010 | DEVOPS | Secretlarni rotate — JWT_SECRET, ANTHROPIC_API_KEY, BOT_TOKEN (git tarixida exposed) | Bekzod | 1s |
+| T-001 | BACKEND | BigInt serialization — qolgan .toString() yo'q joylarni topib tuzatish (⚠️ prototype pollution EMAS, explicit approach) | Bekzod | 1s |
+| T-002 | BACKEND | BillingMiddleware o'chirish — hech qayerda import/register yo'q, 0 reference, xavfsiz delete | Bekzod | 15m |
+| T-003 | FRONTEND | 402 handler — Axios interceptor da 402 → window.dispatchEvent('payment-due') → Layout listen (401 bilan conflict yo'q) | Sardor | 1s |
+| T-004 | FRONTEND | Error Boundary — har route da alohida wrap (⚠️ T-003 dan KEYIN, async xatolarni tutmaydi) | Sardor | 1-2s |
+| T-005 | BACKEND | Database indexlar — products(category_id,is_active) xavfsiz; snapshots(product_id,snapshot_at) CONCURRENTLY kerak; ~~flash_sales~~ jadval yo'q | Bekzod | 30m |
+| T-006 | DEVOPS | Nginx security headers — ⚠️ CSP: script-src 'self' 'unsafe-inline' (index.html da 2 ta inline script bor!) | Bekzod | 30m |
+| T-007 | DEVOPS | .dockerignore yaratish — hech bir Dockerfile excluded fayllarga bog'liq emas, xavfsiz | Bekzod | 15m |
+| T-008 | DEVOPS | Health endpoint — Redis ping + queue depth (⚠️ Redis client health module da inject qilinmagan, yangi service kerak) | Bekzod | 30m |
+| T-010 | DEVOPS | Secretlarni rotate — kodda hardcoded secret YO'Q, faqat env rotate + docs yozish | Bekzod | 1s |
 
 ---
 
@@ -48,6 +47,8 @@
 | T-021 | DEVOPS | Git hooks — husky + lint-staged (eslint, .env block) | Bekzod | 1s |
 | T-022 | DEVOPS | Dependency vulnerability scan — pnpm audit CI ga + Dependabot enable | Bekzod | 30m |
 | T-023 | FRONTEND | Skeleton komponentlar — SkeletonCard, SkeletonTable, SkeletonStat (loading state) | Sardor | 2s |
+| T-056 | BACKEND | Brute force himoya — login attempt tracking, 5x failed → 15min lockout, progressive delay | Bekzod | 2-3s |
+| T-057 | BACKEND | AI per-user budget — account_id bo'yicha oylik token limit, budget alert, hard cap | Bekzod | 2-3s |
 
 ---
 
@@ -69,6 +70,9 @@
 | T-035 | DEVOPS | Docker image tagging — git SHA yoki semver tag, latest dan voz kechish | Bekzod | 1s |
 | T-036 | FRONTEND | Login Page emoji → icons — professional SVG iconlar yoki Heroicons | Sardor | 1s |
 | T-037 | DEVOPS | Log aggregation — stdout + Loki/Grafana yoki Railway logs, request ID tracing | Bekzod | 4-8s |
+| T-058 | BACKEND | Domain unit testlar — jest/vitest setup + signals, billing, scoring algorithm testlar (hozir 0 ta unit test) | Bekzod | 6-8s |
+| T-059 | IKKALASI | Monorepo boundary lint — eslint-plugin-boundaries + no-restricted-imports (apps/ cross-import taqiqlash) | Ikkalasi | 2s |
+| T-060 | BACKEND | Feature usage telemetry — qaysi feature qancha ishlatiladi (CAC/LTV/funnel hisoblash uchun asos) | Bekzod | 4-6s |
 
 ---
 
@@ -101,11 +105,11 @@
 
 | Prioritet | Soni | Taxminiy vaqt | Mas'ul taqsimoti |
 |-----------|------|--------------|-----------------|
-| P0 KRITIK | 10 | ~5 soat | Bekzod: 8, Sardor: 2 |
-| P1 MUHIM | 13 | ~35 soat | Bekzod: 7, Sardor: 4, Ikkalasi: 2 |
-| P2 O'RTA | 14 | ~55 soat | Bekzod: 7, Sardor: 5, Devops: 2 |
-| P3 PAST | 18 | ~55 soat | Bekzod: 5, Sardor: 8, Ikkalasi: 5 |
-| **JAMI** | **55** | **~150 soat** | |
+| P0 KRITIK | 9 | ~5 soat | Bekzod: 7, Sardor: 2 |
+| P1 MUHIM | 15 | ~45 soat | Bekzod: 9, Sardor: 4, Ikkalasi: 2 |
+| P2 O'RTA | 17 | ~75 soat | Bekzod: 10, Sardor: 5, Ikkalasi: 2 |
+| P3 PAST | 19 | ~60 soat | Bekzod: 5, Sardor: 9, Ikkalasi: 5 |
+| **JAMI** | **60** | **~185 soat** | |
 
 ---
 
