@@ -160,7 +160,7 @@ export function Layout() {
                 </NavLink></li>
                 <li><NavLink to="/admin?tab=accounts" className={() => adminLinkClass('accounts')}>
                   <BuildingOffice2Icon className="w-4 h-4" />
-                  Akkauntlar & Userlar
+                  Akkauntlar
                 </NavLink></li>
                 <li><NavLink to="/admin?tab=analytics" className={() => adminLinkClass('analytics')}>
                   <ChartBarIcon className="w-4 h-4" />
