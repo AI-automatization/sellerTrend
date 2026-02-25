@@ -164,7 +164,7 @@ export function Layout() {
                 </NavLink></li>
                 <li><NavLink to="/admin?tab=analytics" className={() => adminLinkClass('analytics')}>
                   <ChartBarIcon className="w-4 h-4" />
-                  Analitika & Mashhur
+                  Analitika
                 </NavLink></li>
                 <li><NavLink to="/admin?tab=system" className={() => adminLinkClass('system')}>
                   <ServerStackIcon className="w-4 h-4" />
