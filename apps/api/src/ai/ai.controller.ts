@@ -18,9 +18,11 @@ export class AiController {
   /** Get cached AI attributes for a product */
   @Get('attributes/:productId')
   async getAttributes(@Param('productId') productId: string) {
-    return this.prisma.productAiAttribute.findUnique({
+    const attr = await this.prisma.productAiAttribute.findUnique({
       where: { product_id: BigInt(productId) },
     });
+    if (!attr) return null;
+    return { ...attr, product_id: attr.product_id.toString() };
   }
 
   /** Trigger attribute extraction for a product (idempotent) */

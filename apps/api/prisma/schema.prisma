@@ -177,6 +177,7 @@ model Product {
   competitors_of       CompetitorTracking[] @relation("competitor_of")
   price_tests          PriceTest[]
 
+  @@index([category_id, is_active])
   @@map("products")
 }
 
@@ -208,6 +209,7 @@ model ProductSnapshot {
   product         Product                @relation(fields: [product_id], references: [id])
   ai_explanations ProductAiExplanation[]
 
+  @@index([product_id, snapshot_at])
   @@map("product_snapshots")
 }
 

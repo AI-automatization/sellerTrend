@@ -1,0 +1,46 @@
+# Git
+.git
+.gitignore
+
+# Dependencies (re-installed in Docker)
+node_modules
+**/node_modules
+
+# Build artifacts
+**/dist
+**/build
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Tests
+**/*.test.ts
+**/*.spec.ts
+coverage/
+.playwright/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Claude
+.claude/
+
+# Misc
+*.log
+*.tgz
+tmp/

@@ -1,7 +1,7 @@
 # VENTRA — BARCHA OCHIQ VAZIFALAR
 # Manba: DEEP_ANALYSIS + DEVOPS_AUDIT + FRONTEND_TODO + GPT_AUDIT
 # Yangilangan: 2026-02-26
-# Jami: 60 ta vazifa | P0: 9 | P1: 15 | P2: 17 | P3: 19
+# Jami: 51 ta vazifa | P0: ✅ DONE (9/9) | P1: 15 | P2: 17 | P3: 19
 
 ---
 
@@ -14,19 +14,7 @@
 
 ---
 
-# P0 — KRITIK (deploy oldin) ~5 soat
-
-| # | Kategoriya | Vazifa | Mas'ul | Vaqt |
-|---|-----------|--------|--------|------|
-| T-001 | BACKEND | BigInt serialization — qolgan .toString() yo'q joylarni topib tuzatish (⚠️ prototype pollution EMAS, explicit approach) | Bekzod | 1s |
-| T-002 | BACKEND | BillingMiddleware o'chirish — hech qayerda import/register yo'q, 0 reference, xavfsiz delete | Bekzod | 15m |
-| T-003 | FRONTEND | 402 handler — Axios interceptor da 402 → window.dispatchEvent('payment-due') → Layout listen (401 bilan conflict yo'q) | Sardor | 1s |
-| T-004 | FRONTEND | Error Boundary — har route da alohida wrap (⚠️ T-003 dan KEYIN, async xatolarni tutmaydi) | Sardor | 1-2s |
-| T-005 | BACKEND | Database indexlar — products(category_id,is_active) xavfsiz; snapshots(product_id,snapshot_at) CONCURRENTLY kerak; ~~flash_sales~~ jadval yo'q | Bekzod | 30m |
-| T-006 | DEVOPS | Nginx security headers — ⚠️ CSP: script-src 'self' 'unsafe-inline' (index.html da 2 ta inline script bor!) | Bekzod | 30m |
-| T-007 | DEVOPS | .dockerignore yaratish — hech bir Dockerfile excluded fayllarga bog'liq emas, xavfsiz | Bekzod | 15m |
-| T-008 | DEVOPS | Health endpoint — Redis ping + queue depth (⚠️ Redis client health module da inject qilinmagan, yangi service kerak) | Bekzod | 30m |
-| T-010 | DEVOPS | Secretlarni rotate — kodda hardcoded secret YO'Q, faqat env rotate + docs yozish | Bekzod | 1s |
+# P0 — ✅ BAJARILDI (9/9) → docs/Done.md ga ko'chirildi
 
 ---
 

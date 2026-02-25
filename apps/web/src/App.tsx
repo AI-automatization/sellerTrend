@@ -25,6 +25,7 @@ import { EnterprisePage } from './pages/EnterprisePage';
 // v5.0 pages
 import { FeedbackPage } from './pages/FeedbackPage';
 import { Layout } from './components/Layout';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 function isAuthenticated() {
   return !!localStorage.getItem('access_token');
@@ -50,27 +51,27 @@ export default function App() {
             </PrivateRoute>
           }
         >
-          <Route index element={<DashboardPage />} />
-          <Route path="analyze" element={<AnalyzePage />} />
-          <Route path="products/:id" element={<ProductPage />} />
-          <Route path="discovery" element={<DiscoveryPage />} />
-          <Route path="sourcing" element={<SourcingPage />} />
-          <Route path="leaderboard" element={<LeaderboardPage />} />
-          <Route path="calculator" element={<ProfitCalculatorPage />} />
-          <Route path="shops" element={<ShopsPage />} />
-          <Route path="referral" element={<ReferralPage />} />
-          <Route path="api-keys" element={<ApiKeysPage />} />
+          <Route index element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
+          <Route path="analyze" element={<ErrorBoundary><AnalyzePage /></ErrorBoundary>} />
+          <Route path="products/:id" element={<ErrorBoundary><ProductPage /></ErrorBoundary>} />
+          <Route path="discovery" element={<ErrorBoundary><DiscoveryPage /></ErrorBoundary>} />
+          <Route path="sourcing" element={<ErrorBoundary><SourcingPage /></ErrorBoundary>} />
+          <Route path="leaderboard" element={<ErrorBoundary><LeaderboardPage /></ErrorBoundary>} />
+          <Route path="calculator" element={<ErrorBoundary><ProfitCalculatorPage /></ErrorBoundary>} />
+          <Route path="shops" element={<ErrorBoundary><ShopsPage /></ErrorBoundary>} />
+          <Route path="referral" element={<ErrorBoundary><ReferralPage /></ErrorBoundary>} />
+          <Route path="api-keys" element={<ErrorBoundary><ApiKeysPage /></ErrorBoundary>} />
           {/* v2.0 */}
-          <Route path="ai-description" element={<DescriptionGeneratorPage />} />
-          <Route path="elasticity" element={<ElasticityPage />} />
-          <Route path="consultation" element={<ConsultationPage />} />
+          <Route path="ai-description" element={<ErrorBoundary><DescriptionGeneratorPage /></ErrorBoundary>} />
+          <Route path="elasticity" element={<ErrorBoundary><ElasticityPage /></ErrorBoundary>} />
+          <Route path="consultation" element={<ErrorBoundary><ConsultationPage /></ErrorBoundary>} />
           {/* v3.0 Signals */}
-          <Route path="signals" element={<SignalsPage />} />
+          <Route path="signals" element={<ErrorBoundary><SignalsPage /></ErrorBoundary>} />
           {/* v4.0 Enterprise */}
-          <Route path="enterprise" element={<EnterprisePage />} />
+          <Route path="enterprise" element={<ErrorBoundary><EnterprisePage /></ErrorBoundary>} />
           {/* v5.0 Feedback */}
-          <Route path="feedback" element={<FeedbackPage />} />
-          <Route path="admin" element={<AdminPage />} />
+          <Route path="feedback" element={<ErrorBoundary><FeedbackPage /></ErrorBoundary>} />
+          <Route path="admin" element={<ErrorBoundary><AdminPage /></ErrorBoundary>} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -17,13 +17,21 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 → redirect to login
+// Handle 401 → redirect to login, 402 → payment due event
 api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
       localStorage.removeItem('access_token');
       window.location.href = '/login';
+    }
+    if (err.response?.status === 402) {
+      window.dispatchEvent(new CustomEvent('payment-due', {
+        detail: {
+          message: err.response?.data?.message ?? "To'lov muddati o'tgan",
+          balance: err.response?.data?.balance,
+        },
+      }));
     }
     return Promise.reject(err);
   },

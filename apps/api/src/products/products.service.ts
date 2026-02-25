@@ -165,7 +165,7 @@ export class ProductsService {
   }
 
   async trackProduct(accountId: string, productId: bigint) {
-    return this.prisma.trackedProduct.upsert({
+    const tp = await this.prisma.trackedProduct.upsert({
       where: {
         account_id_product_id: {
           account_id: accountId,
@@ -178,6 +178,7 @@ export class ProductsService {
         product_id: productId,
       },
     });
+    return { ...tp, product_id: tp.product_id.toString() };
   }
 
   async getProductSnapshots(productId: bigint, limit = 30) {

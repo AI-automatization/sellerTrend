@@ -288,13 +288,14 @@ export class SignalsService {
     });
 
     if (existing) {
-      return this.prisma.productChecklist.update({
+      const c = await this.prisma.productChecklist.update({
         where: { id: existing.id },
         data: { title, items: items as any },
       });
+      return { ...c, product_id: c.product_id?.toString() ?? null };
     }
 
-    return this.prisma.productChecklist.create({
+    const c = await this.prisma.productChecklist.create({
       data: {
         account_id: accountId,
         product_id: productId,
@@ -302,6 +303,7 @@ export class SignalsService {
         items: items as any,
       },
     });
+    return { ...c, product_id: c.product_id?.toString() ?? null };
   }
 
   /** Feature 29 — A/B Price Testing */
@@ -310,7 +312,7 @@ export class SignalsService {
     original_price: number;
     test_price: number;
   }) {
-    return this.prisma.priceTest.create({
+    const t = await this.prisma.priceTest.create({
       data: {
         account_id: accountId,
         product_id: BigInt(data.product_id),
@@ -318,6 +320,14 @@ export class SignalsService {
         test_price: BigInt(data.test_price),
       },
     });
+    return {
+      ...t,
+      product_id: t.product_id.toString(),
+      original_price: Number(t.original_price),
+      test_price: Number(t.test_price),
+      original_revenue: Number(t.original_revenue),
+      test_revenue: Number(t.test_revenue),
+    };
   }
 
   async listPriceTests(accountId: string) {
@@ -376,10 +386,18 @@ export class SignalsService {
     }
     if (data.conclusion) updateData.conclusion = data.conclusion;
 
-    return this.prisma.priceTest.update({
+    const t = await this.prisma.priceTest.update({
       where: { id: testId },
       data: updateData,
     });
+    return {
+      ...t,
+      product_id: t.product_id.toString(),
+      original_price: Number(t.original_price),
+      test_price: Number(t.test_price),
+      original_revenue: Number(t.original_revenue),
+      test_revenue: Number(t.test_revenue),
+    };
   }
 
   /** Feature 30 — Replenishment Planner */

@@ -71,6 +71,17 @@ export function Layout() {
     }).catch(() => {});
   }, []);
 
+  // Listen for 402 Payment Due from Axios interceptor
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setPaymentDue(true);
+      if (detail?.balance) setBalance(detail.balance);
+    };
+    window.addEventListener('payment-due', handler);
+    return () => window.removeEventListener('payment-due', handler);
+  }, []);
+
   useEffect(() => {
     notificationApi.getMy().then((r) => {
       const unread = (r.data || []).filter((n: any) => !n.is_read).length;
