@@ -1,4 +1,4 @@
-const CACHE_NAME = 'uzum-trend-v1';
+const CACHE_NAME = 'ventra-v2';
 const STATIC_ASSETS = ['/', '/manifest.json'];
 
 self.addEventListener('install', (event) => {
@@ -18,11 +18,9 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Network-first for API calls
+  // API calls: always go to network, never cache
   if (event.request.url.includes('/api/')) {
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match(event.request))
-    );
+    event.respondWith(fetch(event.request));
     return;
   }
   // Cache-first for static assets

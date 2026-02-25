@@ -34,7 +34,7 @@ async function bootstrap() {
   console.log('  - reanalysis-queue');
   console.log('Daily billing cron scheduled at 00:00');
   console.log('Competitor snapshot cron scheduled every 6h');
-  console.log('Product reanalysis cron scheduled daily at 03:00 UTC');
+  console.log('Product reanalysis cron scheduled every 6 hours');
 
   // Graceful shutdown
   process.on('SIGTERM', async () => {

@@ -37,6 +37,10 @@ export class GlobalLoggerInterceptor implements NestInterceptor {
     // Set request ID header for tracing
     res.setHeader('X-Request-Id', requestId);
 
+    // Prevent browser from caching API responses (stale data fix)
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+
     const method: string = req.method;
     const url: string = req.originalUrl || req.url;
     const ip: string = req.ip || req.connection?.remoteAddress || '-';

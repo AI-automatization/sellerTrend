@@ -14,6 +14,34 @@ import {
 export class SignalsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Recalculate weekly_bought from consecutive snapshot orders_quantity deltas.
+   * Old snapshots stored ordersAmount (cumulative total) as weekly_bought — this fixes that.
+   * Snapshots MUST be ordered by snapshot_at ASC.
+   */
+  private recalcWeeklyBought(
+    snapshots: Array<{ orders_quantity: bigint | null; weekly_bought: number | null; snapshot_at: Date }>,
+  ): number[] {
+    const MAX_REASONABLE = 5000;
+    return snapshots.map((snap, i) => {
+      const stored = snap.weekly_bought ?? 0;
+      if (i > 0) {
+        const prev = snapshots[i - 1];
+        if (snap.orders_quantity != null && prev.orders_quantity != null) {
+          const curr = Number(snap.orders_quantity);
+          const prevVal = Number(prev.orders_quantity);
+          const daysDiff =
+            (snap.snapshot_at.getTime() - prev.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
+          if (daysDiff > 0.01 && curr >= prevVal) {
+            return Math.round(((curr - prevVal) * 7) / daysDiff);
+          }
+        }
+      }
+      // First snapshot or missing orders_quantity: use stored but cap unreasonable values
+      return stored > MAX_REASONABLE ? 0 : stored;
+    });
+  }
+
   /** Feature 21 — Cannibalization Alert */
   async getCannibalization(accountId: string) {
     const tracked = await this.prisma.trackedProduct.findMany({
@@ -21,20 +49,25 @@ export class SignalsService {
       include: {
         product: {
           include: {
-            snapshots: { orderBy: { snapshot_at: 'desc' }, take: 1 },
+            snapshots: { orderBy: { snapshot_at: 'desc' }, take: 2 },
           },
         },
       },
     });
 
-    const products = tracked.map((t) => ({
-      id: t.product.id.toString(),
-      title: t.product.title,
-      category_id: t.product.category_id ? Number(t.product.category_id) : null,
-      score: t.product.snapshots[0]?.score ? Number(t.product.snapshots[0].score) : 0,
-      weekly_bought: t.product.snapshots[0]?.weekly_bought ?? 0,
-      shop_id: t.product.shop_id?.toString() ?? null,
-    }));
+    const products = tracked.map((t) => {
+      const snaps = [...t.product.snapshots].reverse(); // ASC order
+      const weeklyValues = this.recalcWeeklyBought(snaps);
+      const latest = snaps[snaps.length - 1];
+      return {
+        id: t.product.id.toString(),
+        title: t.product.title,
+        category_id: t.product.category_id ? Number(t.product.category_id) : null,
+        score: latest?.score ? Number(latest.score) : 0,
+        weekly_bought: weeklyValues[weeklyValues.length - 1] ?? 0,
+        shop_id: t.product.shop_id?.toString() ?? null,
+      };
+    });
 
     return detectCannibalization(products);
   }
@@ -54,9 +87,10 @@ export class SignalsService {
 
     return tracked
       .map((t) => {
-        const snaps = t.product.snapshots.map((s) => ({
+        const weeklyValues = this.recalcWeeklyBought(t.product.snapshots);
+        const snaps = t.product.snapshots.map((s, i) => ({
           score: Number(s.score ?? 0),
-          weekly_bought: s.weekly_bought ?? 0,
+          weekly_bought: weeklyValues[i],
           date: s.snapshot_at.toISOString(),
         }));
         return predictDeadStock(snaps, t.product.id.toString(), t.product.title);
@@ -70,15 +104,20 @@ export class SignalsService {
     const products = await this.prisma.product.findMany({
       where: { category_id: BigInt(categoryId), is_active: true },
       include: {
-        snapshots: { orderBy: { snapshot_at: 'desc' }, take: 1 },
+        snapshots: { orderBy: { snapshot_at: 'desc' }, take: 2 },
       },
     });
 
-    const data = products.map((p) => ({
-      score: p.snapshots[0]?.score ? Number(p.snapshots[0].score) : 0,
-      weekly_bought: p.snapshots[0]?.weekly_bought ?? 0,
-      shop_id: p.shop_id?.toString() ?? null,
-    }));
+    const data = products.map((p) => {
+      const snaps = [...p.snapshots].reverse(); // ASC
+      const weeklyValues = this.recalcWeeklyBought(snaps);
+      const latest = snaps[snaps.length - 1];
+      return {
+        score: latest?.score ? Number(latest.score) : 0,
+        weekly_bought: weeklyValues[weeklyValues.length - 1] ?? 0,
+        shop_id: p.shop_id?.toString() ?? null,
+      };
+    });
 
     return calculateSaturation(data, categoryId);
   }
@@ -133,16 +172,19 @@ export class SignalsService {
       },
     });
 
-    const products = tracked.map((t) => ({
-      product_id: t.product.id.toString(),
-      title: t.product.title,
-      created_at: t.product.created_at.toISOString(),
-      snapshots: t.product.snapshots.map((s) => ({
-        score: Number(s.score ?? 0),
-        weekly_bought: s.weekly_bought ?? 0,
-        date: s.snapshot_at.toISOString(),
-      })),
-    }));
+    const products = tracked.map((t) => {
+      const weeklyValues = this.recalcWeeklyBought(t.product.snapshots);
+      return {
+        product_id: t.product.id.toString(),
+        title: t.product.title,
+        created_at: t.product.created_at.toISOString(),
+        snapshots: t.product.snapshots.map((s, i) => ({
+          score: Number(s.score ?? 0),
+          weekly_bought: weeklyValues[i],
+          date: s.snapshot_at.toISOString(),
+        })),
+      };
+    });
 
     return detectEarlySignals(products);
   }
@@ -160,16 +202,21 @@ export class SignalsService {
       },
     });
 
-    const products = tracked.map((t) => ({
-      product_id: t.product.id.toString(),
-      title: t.product.title,
-      weekly_bought: t.product.snapshots[0]?.weekly_bought ?? 0,
-      orders_quantity: Number(t.product.orders_quantity ?? 0),
-      snapshots: t.product.snapshots.map((s) => ({
-        weekly_bought: s.weekly_bought ?? 0,
-        date: s.snapshot_at.toISOString(),
-      })).reverse(),
-    }));
+    const products = tracked.map((t) => {
+      const snaps = [...t.product.snapshots].reverse(); // ASC order
+      const weeklyValues = this.recalcWeeklyBought(snaps);
+      return {
+        product_id: t.product.id.toString(),
+        title: t.product.title,
+        weekly_bought: weeklyValues[weeklyValues.length - 1] ?? 0,
+        orders_quantity: Number(t.product.orders_quantity ?? 0),
+        // total_available_amount not in schema yet — rely on orders_quantity heuristic
+        snapshots: snaps.map((s, i) => ({
+          weekly_bought: weeklyValues[i],
+          date: s.snapshot_at.toISOString(),
+        })),
+      };
+    });
 
     return detectStockCliff(products);
   }
@@ -340,17 +387,21 @@ export class SignalsService {
       include: {
         product: {
           include: {
-            snapshots: { orderBy: { snapshot_at: 'desc' }, take: 1 },
+            snapshots: { orderBy: { snapshot_at: 'desc' }, take: 2 },
           },
         },
       },
     });
 
-    const products = tracked.map((t) => ({
-      product_id: t.product.id.toString(),
-      title: t.product.title,
-      weekly_bought: t.product.snapshots[0]?.weekly_bought ?? 0,
-    }));
+    const products = tracked.map((t) => {
+      const snaps = [...t.product.snapshots].reverse(); // ASC
+      const weeklyValues = this.recalcWeeklyBought(snaps);
+      return {
+        product_id: t.product.id.toString(),
+        title: t.product.title,
+        weekly_bought: weeklyValues[weeklyValues.length - 1] ?? 0,
+      };
+    });
 
     return planReplenishment(products, leadTimeDays);
   }

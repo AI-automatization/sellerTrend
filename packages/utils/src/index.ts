@@ -678,11 +678,15 @@ export function detectEarlySignals(
     const firstScore = scores[0] || 0;
     const lastScore = scores[scores.length - 1] || 0;
     const scoreGrowth = firstScore > 0 ? (lastScore - firstScore) / firstScore : lastScore > 0 ? 1 : 0;
-    const avgSales = sales.reduce((a, b) => a + b, 0) / sales.length;
-    const salesVelocity = ageDays > 0 ? avgSales / ageDays * 7 : avgSales;
+
+    // weekly_bought is already a WEEKLY rate (ordersAmount snapshot delta * 7 / daysDiff)
+    // salesVelocity = latest weekly rate (most recent snapshot), NOT divided by ageDays
+    const latestSales = sales[sales.length - 1] || 0;
+    const salesVelocity = latestSales;
 
     // Momentum = weighted combo of growth + velocity
-    const momentum = 0.5 * Math.min(1, scoreGrowth) + 0.5 * Math.min(1, salesVelocity / 50);
+    // Normalize velocity: 500/week = strong signal for Uzum products
+    const momentum = 0.5 * Math.min(1, scoreGrowth) + 0.5 * Math.min(1, salesVelocity / 500);
 
     if (momentum > 0.2) {
       results.push({
@@ -717,6 +721,7 @@ export function detectStockCliff(
     title: string;
     weekly_bought: number;
     orders_quantity: number;
+    total_available_amount?: number;
     snapshots: Array<{ weekly_bought: number; date: string }>;
   }>,
 ): StockCliffResult[] {
@@ -725,22 +730,20 @@ export function detectStockCliff(
     const recentSales = p.snapshots.slice(-7);
     if (recentSales.length < 2) continue;
 
-    // Calculate daily velocity
-    const totalRecent = recentSales.reduce((s, snap) => s + snap.weekly_bought, 0);
-    const velocity = totalRecent / (recentSales.length * 7); // per day
+    // weekly_bought is already weekly rate — average across recent snapshots, then /7 for daily
+    const avgWeekly = recentSales.reduce((s, snap) => s + snap.weekly_bought, 0) / recentSales.length;
+    const velocity = avgWeekly / 7; // per day
 
-    // Estimate remaining stock heuristic: if recent weekly_bought is high but dropping...
-    const latest = recentSales[recentSales.length - 1]?.weekly_bought ?? 0;
-    const prev = recentSales[0]?.weekly_bought ?? 0;
-    const dropRate = prev > 0 ? (prev - latest) / prev : 0;
+    if (velocity <= 0) continue;
 
-    // If sales are accelerating but supply pressure signs exist
-    const estDaysLeft = velocity > 0 ? Math.max(0, Math.round(30 * (1 - dropRate))) : 999;
+    // Use real stock if available, otherwise estimate from orders_quantity heuristic
+    const stock = p.total_available_amount ?? Math.max(0, p.orders_quantity * 0.1);
+    const estDaysLeft = stock > 0 ? Math.round(stock / velocity) : 999;
 
     let severity: StockCliffResult['severity'] = 'ok';
-    if (estDaysLeft < 7 || (dropRate > 0.5 && velocity > 1)) {
+    if (estDaysLeft < 7) {
       severity = 'critical';
-    } else if (estDaysLeft < 14 || dropRate > 0.3) {
+    } else if (estDaysLeft < 14) {
       severity = 'warning';
     }
 

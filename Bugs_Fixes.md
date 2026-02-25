@@ -246,6 +246,49 @@
 
 ---
 
+### BUG-017: Barcha signal algoritmlari va prognozlar noto'g'ri — corrupted weekly_bought
+- **Sana:** 2026-02-25
+- **Tur:** backend (critical)
+- **Fayllar:**
+  - `apps/api/src/signals/signals.service.ts` — barcha 7 ta signal metodi
+  - `apps/api/src/products/products.service.ts` — getAdvancedForecast, getTrackedProducts, getProductById
+  - `packages/utils/src/index.ts` — detectEarlySignals, detectStockCliff formulalari
+- **Xato:** Signallar sahifasida sotuv tezligi 44500/hafta ko'rsatiladi (Svetocopy ECO). Aslida haftalik sotuv ~529. Barcha algoritmlar (Dead Stock, Stock Cliff, Replenishment, Early Signals, ML Forecast) noto'g'ri natija beradi.
+- **Sabab:** BUG-012 da snapshot yaratish kodi tuzatilgan, lekin **eski snapshotlarda** `weekly_bought` = `ordersAmount` (kumulyativ jami ~44871) saqlangan holda qolgan. Signal algoritmlari eski snapshotlardan `weekly_bought` ni to'g'ridan-to'g'ri o'qib, corrupted qiymat oladi.
+- **Yechim:**
+  1. `signals.service.ts`: `recalcWeeklyBought()` helper qo'shildi — ketma-ket snapshotlarning `orders_quantity` deltasidan on-the-fly hisoblaydi: `(curr - prev) * 7 / daysDiff`
+  2. Barcha 7 ta signal metodi (`getCannibalization`, `getDeadStockRisk`, `getSaturation`, `getEarlySignals`, `getStockCliffs`, `getReplenishmentPlan`, `getFlashSales` ✓) yangilandi
+  3. `getAdvancedForecast()`: `orders_quantity` select qo'shildi + recalculation
+  4. `getTrackedProducts()` va `getProductById()`: 2 ta snapshot olish + delta recalculation
+  5. MAX_REASONABLE = 5000 sanity cap — birinchi snapshotda yoki orders_quantity null bo'lganda
+  6. `detectEarlySignals`: salesVelocity = latest snapshot (double normalization bug fix)
+  7. `detectStockCliff`: stock / velocity formula (arbitrary heuristic o'rniga)
+- **Status:** FIXED
+
+---
+
+### BUG-018: detectEarlySignals salesVelocity double normalization
+- **Sana:** 2026-02-25
+- **Tur:** backend (algorithm)
+- **Fayl:** `packages/utils/src/index.ts`
+- **Xato:** Early Signals sotuv tezligi juda kichik yoki nolga yaqin ko'rsatiladi
+- **Sabab:** `salesVelocity = avgSales / ageDays * 7` — weekly_bought allaqachon haftalik rate, yana ageDays ga bo'lish double normalization. momentum_score `/50` threshold ham past (500/hafta normal Uzum mahsulot uchun).
+- **Yechim:** `salesVelocity = latestSales` (oxirgi snapshot haftalik rate). Momentum threshold `/50` → `/500`.
+- **Status:** FIXED
+
+---
+
+### BUG-019: detectStockCliff arbitrary heuristic, real stock ishlatilmaydi
+- **Sana:** 2026-02-25
+- **Tur:** backend (algorithm)
+- **Fayl:** `packages/utils/src/index.ts`
+- **Xato:** Stock cliff estimated_days_left `30 * (1 - dropRate)` — real stock va velocity bilan bog'liq emas
+- **Sabab:** Eski formula: `estDaysLeft = 30 * (1 - dropRate)` faqat sotuv pasayish tezligiga qaraydi, haqiqiy stock miqdorini hisobga olmaydi
+- **Yechim:** `estDaysLeft = stock / velocity` — `total_available_amount` (agar bor bo'lsa) yoki `orders_quantity * 0.1` fallback. `velocity = avgWeekly / 7` kunlik sotuv tezligi.
+- **Status:** FIXED
+
+---
+
 ### FEATURE: VENTRA UI Redesign
 - **Sana:** 2026-02-25
 - **Tur:** frontend (design system)
@@ -261,3 +304,31 @@
 - **Ranglar:** bg-0 #0B0F1A, bg-1 #121826, bg-2 #1A2233, accent #4C7DFF, text #E5E7EB
 - **Fontlar:** Inter (UI) + Space Grotesk (h1-h6, brand)
 - **Status:** DONE
+
+---
+
+### BUG-020: Boshqa sahifalarda stale data — browser HTTP cache
+- **Sana:** 2026-02-25
+- **Tur:** frontend + backend
+- **Fayllar:**
+  - `apps/api/src/common/interceptors/global-logger.interceptor.ts` — `Cache-Control: no-store` header qo'shildi
+  - `apps/web/src/api/client.ts` — GET request larga `_t=timestamp` cache-buster qo'shildi
+  - `apps/web/public/sw.js` — cache nomi `ventra-v2` ga yangilandi, API uchun `.catch()` fallback olib tashlandi
+- **Xato:** Boshqa sahifalarga navigatsiya qilganda (Signals, Discovery, etc.) eski ma'lumotlar ko'rsatilardi. Faqat ProductPage dan qaytganda Dashboard yangilanardi.
+- **Sabab:** NestJS default holatda API response larga `Cache-Control` header qo'ymaydi. Browser GET so'rovlarni heuristic caching bilan cache qiladi. SW ham eski `uzum-trend-v1` cache nomi bilan ishlardi.
+- **Yechim:**
+  1. Backend: Barcha API response larga `Cache-Control: no-store, no-cache, must-revalidate` + `Pragma: no-cache` header
+  2. Frontend: Axios interceptor da GET request larga `?_t=timestamp` cache-buster
+  3. SW: Cache nomi `ventra-v2` ga yangilandi, API request lar uchun faqat network (cache fallback yo'q)
+- **Status:** FIXED
+
+---
+
+### BUG-021: Reanalysis cron 24 soatda 1 marta — juda kam
+- **Sana:** 2026-02-25
+- **Tur:** worker
+- **Fayl:** `apps/worker/src/jobs/reanalysis.job.ts`
+- **Xato:** Kuzatuvdagi mahsulotlar 24 soatda 1 marta yangilanardi (03:00 UTC). Foydalanuvchilar tez-tez eski ma'lumotlar ko'rishardi.
+- **Sabab:** Cron pattern `0 3 * * *` (kuniga 1 marta)
+- **Yechim:** Cron pattern `0 */6 * * *` ga o'zgartirildi (har 6 soatda: 00:00, 06:00, 12:00, 18:00 UTC)
+- **Status:** FIXED

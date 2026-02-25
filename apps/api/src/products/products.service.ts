@@ -42,6 +42,19 @@ export class ProductsService {
             : 'flat'
           : null;
 
+      // Recalculate weekly_bought from orders_quantity delta (fix corrupted old data)
+      let weeklyBought = latest?.weekly_bought ?? null;
+      if (latest && prev && latest.orders_quantity != null && prev.orders_quantity != null) {
+        const curr = Number(latest.orders_quantity);
+        const prevVal = Number(prev.orders_quantity);
+        const daysDiff =
+          (latest.snapshot_at.getTime() - prev.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
+        if (daysDiff > 0.01 && curr >= prevVal) {
+          weeklyBought = Math.round(((curr - prevVal) * 7) / daysDiff);
+        }
+      }
+      if ((weeklyBought ?? 0) > 5000) weeklyBought = 0;
+
       return {
         product_id: t.product.id.toString(),
         title: t.product.title,
@@ -51,7 +64,7 @@ export class ProductsService {
         score: latestScore,
         prev_score: prevScore,
         trend,
-        weekly_bought: latest?.weekly_bought,
+        weekly_bought: weeklyBought,
         sell_price: sku?.min_sell_price ? Number(sku.min_sell_price) : null,
         tracked_since: t.created_at,
       };
@@ -64,7 +77,7 @@ export class ProductsService {
       include: {
         snapshots: {
           orderBy: { snapshot_at: 'desc' },
-          take: 1,
+          take: 2,
           include: {
             ai_explanations: {
               orderBy: { created_at: 'desc' },
@@ -84,6 +97,7 @@ export class ProductsService {
     if (!product) return null;
 
     const latest = product.snapshots[0];
+    const prev = product.snapshots[1];
     const sku = product.skus[0];
     const aiRaw = latest?.ai_explanations[0]?.explanation;
     let ai_explanation: string[] | null = null;
@@ -95,6 +109,19 @@ export class ProductsService {
       }
     }
 
+    // Recalculate weekly_bought from orders_quantity delta (fix corrupted old data)
+    let weeklyBought = latest?.weekly_bought ?? null;
+    if (latest && prev && latest.orders_quantity != null && prev.orders_quantity != null) {
+      const curr = Number(latest.orders_quantity);
+      const prevVal = Number(prev.orders_quantity);
+      const daysDiff =
+        (latest.snapshot_at.getTime() - prev.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
+      if (daysDiff > 0.01 && curr >= prevVal) {
+        weeklyBought = Math.round(((curr - prevVal) * 7) / daysDiff);
+      }
+    }
+    if ((weeklyBought ?? 0) > 5000) weeklyBought = 0;
+
     return {
       product_id: product.id.toString(),
       title: product.title,
@@ -103,7 +130,7 @@ export class ProductsService {
       orders_quantity: product.orders_quantity?.toString(),
       shop_name: (product.shop as any)?.name ?? null,
       score: latest?.score ? Number(latest.score) : null,
-      weekly_bought: latest?.weekly_bought ?? null,
+      weekly_bought: weeklyBought,
       sell_price: sku?.min_sell_price ? Number(sku.min_sell_price) : null,
       stock_type: sku?.stock_type ?? null,
       ai_explanation,
@@ -202,11 +229,30 @@ export class ProductsService {
       where: { product_id: productId },
       orderBy: { snapshot_at: 'asc' },
       take: 60,
-      select: { score: true, weekly_bought: true, snapshot_at: true },
+      select: { score: true, weekly_bought: true, orders_quantity: true, snapshot_at: true },
     });
 
     const scoreValues = rows.map((s) => Number(s.score ?? 0));
-    const wbValues = rows.map((s) => s.weekly_bought ?? 0);
+
+    // Recalculate weekly_bought from orders_quantity deltas (fix for corrupted old data)
+    const MAX_REASONABLE = 5000;
+    const wbValues = rows.map((s, i) => {
+      const stored = s.weekly_bought ?? 0;
+      if (i > 0) {
+        const prev = rows[i - 1];
+        if (s.orders_quantity != null && prev.orders_quantity != null) {
+          const curr = Number(s.orders_quantity);
+          const prevVal = Number(prev.orders_quantity);
+          const daysDiff =
+            (s.snapshot_at.getTime() - prev.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
+          if (daysDiff > 0.01 && curr >= prevVal) {
+            return Math.round(((curr - prevVal) * 7) / daysDiff);
+          }
+        }
+      }
+      return stored > MAX_REASONABLE ? 0 : stored;
+    });
+
     const dates = rows.map((s) => s.snapshot_at.toISOString());
 
     const scoreForecast = forecastEnsemble(scoreValues, dates, 7);
@@ -215,10 +261,10 @@ export class ProductsService {
     return {
       score_forecast: scoreForecast,
       sales_forecast: salesForecast,
-      snapshots: rows.map((s) => ({
+      snapshots: rows.map((s, i) => ({
         date: s.snapshot_at.toISOString(),
         score: Number(s.score ?? 0),
-        weekly_bought: s.weekly_bought ?? 0,
+        weekly_bought: wbValues[i],
       })),
       data_points: rows.length,
     };

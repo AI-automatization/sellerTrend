@@ -4,11 +4,15 @@ export const api = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL ?? ''}/api/v1`,
 });
 
-// Attach JWT token to every request
+// Attach JWT token + cache-busting to every request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  // Prevent browser HTTP cache from serving stale API responses
+  if (config.method === 'get') {
+    config.params = { ...config.params, _t: Date.now() };
   }
   return config;
 });
