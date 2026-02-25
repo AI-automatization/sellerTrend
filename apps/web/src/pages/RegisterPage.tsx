@@ -17,6 +17,7 @@ export function RegisterPage() {
     try {
       const res = await authApi.register(form.email, form.password, form.company_name, form.referral_code || undefined);
       localStorage.setItem('access_token', res.data.access_token);
+      if (res.data.refresh_token) localStorage.setItem('refresh_token', res.data.refresh_token);
       navigate('/');
     } catch (err: any) {
       setError(err.response?.data?.message ?? "Ro'yxatdan o'tish xatosi");

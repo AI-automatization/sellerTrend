@@ -1,31 +1,31 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
+import { Suspense, lazy } from 'react';
 import 'react-toastify/dist/ReactToastify.css';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { AnalyzePage } from './pages/AnalyzePage';
-import { DiscoveryPage } from './pages/DiscoveryPage';
-import { AdminPage } from './pages/AdminPage';
-import { ProductPage } from './pages/ProductPage';
-import { SourcingPage } from './pages/SourcingPage';
-import { LeaderboardPage } from './pages/LeaderboardPage';
-import { ProfitCalculatorPage } from './pages/ProfitCalculatorPage';
-import { ShopsPage } from './pages/ShopsPage';
-import { ReferralPage } from './pages/ReferralPage';
-import { ApiKeysPage } from './pages/ApiKeysPage';
-// v2.0 pages
-import { DescriptionGeneratorPage } from './pages/DescriptionGeneratorPage';
-import { ElasticityPage } from './pages/ElasticityPage';
-import { ConsultationPage } from './pages/ConsultationPage';
-// v3.0 pages
-import { SignalsPage } from './pages/SignalsPage';
-// v4.0 pages
-import { EnterprisePage } from './pages/EnterprisePage';
-// v5.0 pages
-import { FeedbackPage } from './pages/FeedbackPage';
 import { Layout } from './components/Layout';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { PageSkeleton } from './components/skeletons';
+
+// Lazy-loaded pages (code splitting)
+const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
+const AnalyzePage = lazy(() => import('./pages/AnalyzePage').then(m => ({ default: m.AnalyzePage })));
+const ProductPage = lazy(() => import('./pages/ProductPage').then(m => ({ default: m.ProductPage })));
+const DiscoveryPage = lazy(() => import('./pages/DiscoveryPage').then(m => ({ default: m.DiscoveryPage })));
+const SourcingPage = lazy(() => import('./pages/SourcingPage').then(m => ({ default: m.SourcingPage })));
+const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage').then(m => ({ default: m.LeaderboardPage })));
+const ProfitCalculatorPage = lazy(() => import('./pages/ProfitCalculatorPage').then(m => ({ default: m.ProfitCalculatorPage })));
+const ShopsPage = lazy(() => import('./pages/ShopsPage').then(m => ({ default: m.ShopsPage })));
+const ReferralPage = lazy(() => import('./pages/ReferralPage').then(m => ({ default: m.ReferralPage })));
+const ApiKeysPage = lazy(() => import('./pages/ApiKeysPage').then(m => ({ default: m.ApiKeysPage })));
+const DescriptionGeneratorPage = lazy(() => import('./pages/DescriptionGeneratorPage').then(m => ({ default: m.DescriptionGeneratorPage })));
+const ElasticityPage = lazy(() => import('./pages/ElasticityPage').then(m => ({ default: m.ElasticityPage })));
+const ConsultationPage = lazy(() => import('./pages/ConsultationPage').then(m => ({ default: m.ConsultationPage })));
+const SignalsPage = lazy(() => import('./pages/SignalsPage').then(m => ({ default: m.SignalsPage })));
+const EnterprisePage = lazy(() => import('./pages/EnterprisePage').then(m => ({ default: m.EnterprisePage })));
+const FeedbackPage = lazy(() => import('./pages/FeedbackPage').then(m => ({ default: m.FeedbackPage })));
+const AdminPage = lazy(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })));
 
 function isAuthenticated() {
   return !!localStorage.getItem('access_token');
@@ -33,6 +33,16 @@ function isAuthenticated() {
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   return isAuthenticated() ? <>{children}</> : <Navigate to="/login" replace />;
+}
+
+function LazyRoute({ children }: { children: React.ReactNode }) {
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<PageSkeleton />}>
+        {children}
+      </Suspense>
+    </ErrorBoundary>
+  );
 }
 
 export default function App() {
@@ -51,27 +61,23 @@ export default function App() {
             </PrivateRoute>
           }
         >
-          <Route index element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
-          <Route path="analyze" element={<ErrorBoundary><AnalyzePage /></ErrorBoundary>} />
-          <Route path="products/:id" element={<ErrorBoundary><ProductPage /></ErrorBoundary>} />
-          <Route path="discovery" element={<ErrorBoundary><DiscoveryPage /></ErrorBoundary>} />
-          <Route path="sourcing" element={<ErrorBoundary><SourcingPage /></ErrorBoundary>} />
-          <Route path="leaderboard" element={<ErrorBoundary><LeaderboardPage /></ErrorBoundary>} />
-          <Route path="calculator" element={<ErrorBoundary><ProfitCalculatorPage /></ErrorBoundary>} />
-          <Route path="shops" element={<ErrorBoundary><ShopsPage /></ErrorBoundary>} />
-          <Route path="referral" element={<ErrorBoundary><ReferralPage /></ErrorBoundary>} />
-          <Route path="api-keys" element={<ErrorBoundary><ApiKeysPage /></ErrorBoundary>} />
-          {/* v2.0 */}
-          <Route path="ai-description" element={<ErrorBoundary><DescriptionGeneratorPage /></ErrorBoundary>} />
-          <Route path="elasticity" element={<ErrorBoundary><ElasticityPage /></ErrorBoundary>} />
-          <Route path="consultation" element={<ErrorBoundary><ConsultationPage /></ErrorBoundary>} />
-          {/* v3.0 Signals */}
-          <Route path="signals" element={<ErrorBoundary><SignalsPage /></ErrorBoundary>} />
-          {/* v4.0 Enterprise */}
-          <Route path="enterprise" element={<ErrorBoundary><EnterprisePage /></ErrorBoundary>} />
-          {/* v5.0 Feedback */}
-          <Route path="feedback" element={<ErrorBoundary><FeedbackPage /></ErrorBoundary>} />
-          <Route path="admin" element={<ErrorBoundary><AdminPage /></ErrorBoundary>} />
+          <Route index element={<LazyRoute><DashboardPage /></LazyRoute>} />
+          <Route path="analyze" element={<LazyRoute><AnalyzePage /></LazyRoute>} />
+          <Route path="products/:id" element={<LazyRoute><ProductPage /></LazyRoute>} />
+          <Route path="discovery" element={<LazyRoute><DiscoveryPage /></LazyRoute>} />
+          <Route path="sourcing" element={<LazyRoute><SourcingPage /></LazyRoute>} />
+          <Route path="leaderboard" element={<LazyRoute><LeaderboardPage /></LazyRoute>} />
+          <Route path="calculator" element={<LazyRoute><ProfitCalculatorPage /></LazyRoute>} />
+          <Route path="shops" element={<LazyRoute><ShopsPage /></LazyRoute>} />
+          <Route path="referral" element={<LazyRoute><ReferralPage /></LazyRoute>} />
+          <Route path="api-keys" element={<LazyRoute><ApiKeysPage /></LazyRoute>} />
+          <Route path="ai-description" element={<LazyRoute><DescriptionGeneratorPage /></LazyRoute>} />
+          <Route path="elasticity" element={<LazyRoute><ElasticityPage /></LazyRoute>} />
+          <Route path="consultation" element={<LazyRoute><ConsultationPage /></LazyRoute>} />
+          <Route path="signals" element={<LazyRoute><SignalsPage /></LazyRoute>} />
+          <Route path="enterprise" element={<LazyRoute><EnterprisePage /></LazyRoute>} />
+          <Route path="feedback" element={<LazyRoute><FeedbackPage /></LazyRoute>} />
+          <Route path="admin" element={<LazyRoute><AdminPage /></LazyRoute>} />
         </Route>
       </Routes>
     </BrowserRouter>

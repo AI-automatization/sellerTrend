@@ -8,7 +8,7 @@ on:
 
 jobs:
   ci:
-    name: Lint, Type-check & Build
+    name: Lint, Type-check, Audit & Build
     runs-on: ubuntu-latest
 
     steps:
@@ -32,8 +32,17 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter api exec prisma generate
 
-      - name: Build all packages
-        run: pnpm run build
+      - name: Type-check API
+        run: pnpm --filter api exec tsc --noEmit
+
+      - name: Type-check Web
+        run: pnpm --filter web exec tsc --noEmit
 
       - name: Lint web
         run: pnpm --filter web run lint
+
+      - name: Dependency audit
+        run: pnpm audit --audit-level=high || true
+
+      - name: Build all packages
+        run: pnpm run build

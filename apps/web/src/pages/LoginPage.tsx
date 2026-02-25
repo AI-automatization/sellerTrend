@@ -16,6 +16,7 @@ export function LoginPage() {
     try {
       const res = await authApi.login(email, password);
       localStorage.setItem('access_token', res.data.access_token);
+      if (res.data.refresh_token) localStorage.setItem('refresh_token', res.data.refresh_token);
       navigate('/');
     } catch (err: any) {
       setError(err.response?.data?.message ?? 'Login xatosi');

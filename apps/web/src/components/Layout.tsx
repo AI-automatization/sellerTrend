@@ -90,7 +90,15 @@ export function Layout() {
   }, []);
 
   function logout() {
+    const rt = localStorage.getItem('refresh_token');
+    if (rt) {
+      // Fire-and-forget server-side revocation
+      import('../api/client').then(({ authApi }) =>
+        authApi.logout(rt).catch(() => {}),
+      );
+    }
     localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
     navigate('/login');
   }
 
@@ -136,8 +144,26 @@ export function Layout() {
           </div>
         )}
 
-        <main className="flex-1 p-4 lg:p-6 ventra-main-bg">
+        <main className="flex-1 p-4 lg:p-6 ventra-main-bg relative">
           <Outlet />
+          {/* 402 PAYMENT_DUE overlay — blocks non-essential pages */}
+          {paymentDue && !['/', '/admin'].includes(location.pathname) && (
+            <div className="absolute inset-0 bg-base-100/80 backdrop-blur-sm z-30 flex items-center justify-center">
+              <div className="card bg-base-200 shadow-xl border border-error/30 max-w-md mx-4">
+                <div className="card-body items-center text-center gap-4">
+                  <WalletIcon className="w-12 h-12 text-error" />
+                  <h3 className="text-lg font-bold">To'lov muddati o'tgan</h3>
+                  <p className="text-base-content/60 text-sm">
+                    Balansingiz: <strong>{Number(balance).toLocaleString()} so'm</strong>.
+                    Platformadan foydalanish uchun hisobingizni to'ldiring.
+                  </p>
+                  <button className="btn btn-primary btn-sm" onClick={() => navigate('/')}>
+                    Bosh sahifaga qaytish
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </main>
       </div>
 
@@ -163,156 +189,185 @@ export function Layout() {
             {/* === ADMIN PANEL (TOP) === */}
             {isSuperAdmin && (
               <>
-                <li className="menu-title mt-1">
-                  <span className="text-error/70 text-[10px] uppercase tracking-wider font-bold">Admin Panel</span>
+                <li>
+                  <details open={location.pathname === '/admin'}>
+                    <summary className="text-error/70 text-[10px] uppercase tracking-wider font-bold">
+                      Admin Panel
+                    </summary>
+                    <ul>
+                      <li><NavLink to="/admin" end className={() => adminLinkClass()}>
+                        <ShieldCheckIcon className="w-4 h-4" /> Dashboard
+                      </NavLink></li>
+                      <li><NavLink to="/admin?tab=accounts" className={() => adminLinkClass('accounts')}>
+                        <BuildingOffice2Icon className="w-4 h-4" />
+                        Akkauntlar
+                      </NavLink></li>
+                      <li><NavLink to="/admin?tab=analytics" className={() => adminLinkClass('analytics')}>
+                        <ChartBarIcon className="w-4 h-4" />
+                        Analitika
+                      </NavLink></li>
+                      <li><NavLink to="/admin?tab=system" className={() => adminLinkClass('system')}>
+                        <ServerStackIcon className="w-4 h-4" />
+                        Tizim
+                      </NavLink></li>
+                      <li><NavLink to="/admin?tab=feedback" className={() => adminLinkClass('feedback')}>
+                        <ChatBubbleBottomCenterTextIcon className="w-4 h-4" />
+                        Feedback
+                      </NavLink></li>
+                      <li><NavLink to="/admin?tab=notifications" className={() => adminLinkClass('notifications')}>
+                        <BellIcon className="w-4 h-4" />
+                        Xabarnomalar
+                      </NavLink></li>
+                      <li><NavLink to="/admin?tab=audit" className={() => adminLinkClass('audit')}>
+                        <DocumentTextIcon className="w-4 h-4" />
+                        Audit Log
+                      </NavLink></li>
+                      <li><NavLink to="/admin?tab=deposits" className={() => adminLinkClass('deposits')}>
+                        <BanknotesIcon className="w-4 h-4" />
+                        Deposit Log
+                      </NavLink></li>
+                    </ul>
+                  </details>
                 </li>
-                <li><NavLink to="/admin" end className={() => adminLinkClass()}>
-                  <ShieldCheckIcon className="w-4 h-4" /> Dashboard
-                </NavLink></li>
-                <li><NavLink to="/admin?tab=accounts" className={() => adminLinkClass('accounts')}>
-                  <BuildingOffice2Icon className="w-4 h-4" />
-                  Akkauntlar
-                </NavLink></li>
-                <li><NavLink to="/admin?tab=analytics" className={() => adminLinkClass('analytics')}>
-                  <ChartBarIcon className="w-4 h-4" />
-                  Analitika
-                </NavLink></li>
-                <li><NavLink to="/admin?tab=system" className={() => adminLinkClass('system')}>
-                  <ServerStackIcon className="w-4 h-4" />
-                  Tizim
-                </NavLink></li>
-                <li><NavLink to="/admin?tab=feedback" className={() => adminLinkClass('feedback')}>
-                  <ChatBubbleBottomCenterTextIcon className="w-4 h-4" />
-                  Feedback
-                </NavLink></li>
-                <li><NavLink to="/admin?tab=notifications" className={() => adminLinkClass('notifications')}>
-                  <BellIcon className="w-4 h-4" />
-                  Xabarnomalar
-                </NavLink></li>
-                <li><NavLink to="/admin?tab=audit" className={() => adminLinkClass('audit')}>
-                  <DocumentTextIcon className="w-4 h-4" />
-                  Audit Log
-                </NavLink></li>
-                <li><NavLink to="/admin?tab=deposits" className={() => adminLinkClass('deposits')}>
-                  <BanknotesIcon className="w-4 h-4" />
-                  Deposit Log
-                </NavLink></li>
-
                 <div className="divider my-1 h-0" />
               </>
             )}
 
             {/* === ASOSIY === */}
-            <li className="menu-title mt-1">
-              <span className="text-base-content/50 text-[10px] uppercase tracking-wider font-bold">Asosiy</span>
-            </li>
             <li>
-              <NavLink to="/" end className={linkClass}>
-                <HomeIcon className="w-4 h-4" />
-                {isSuperAdmin ? 'Home' : t('nav.dashboard')}
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/analyze" className={linkClass}>
-                <MagnifyingGlassIcon className="w-4 h-4" />
-                {t('nav.analyze')}
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/discovery" className={linkClass}>
-                <ArrowTrendingUpIcon className="w-4 h-4" />
-                {t('nav.discovery')}
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/sourcing" className={linkClass}>
-                <GlobeAltIcon className="w-4 h-4" />
-                {t('nav.sourcing')}
-              </NavLink>
+              <details open={['/', '/analyze', '/discovery', '/sourcing'].some(p => p === '/' ? location.pathname === '/' : location.pathname.startsWith(p))}>
+                <summary className="text-base-content/50 text-[10px] uppercase tracking-wider font-bold">
+                  Asosiy
+                </summary>
+                <ul>
+                  <li>
+                    <NavLink to="/" end className={linkClass}>
+                      <HomeIcon className="w-4 h-4" />
+                      {isSuperAdmin ? 'Home' : t('nav.dashboard')}
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink to="/analyze" className={linkClass}>
+                      <MagnifyingGlassIcon className="w-4 h-4" />
+                      {t('nav.analyze')}
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink to="/discovery" className={linkClass}>
+                      <ArrowTrendingUpIcon className="w-4 h-4" />
+                      {t('nav.discovery')}
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink to="/sourcing" className={linkClass}>
+                      <GlobeAltIcon className="w-4 h-4" />
+                      {t('nav.sourcing')}
+                    </NavLink>
+                  </li>
+                </ul>
+              </details>
             </li>
 
             {/* === MAHSULOT === */}
-            <li className="menu-title mt-3">
-              <span className="text-base-content/50 text-[10px] uppercase tracking-wider font-bold">Mahsulot</span>
-            </li>
             <li>
-              <NavLink to="/shops" className={linkClass}>
-                <StorefrontIcon className="w-4 h-4" />
-                {t('nav.shops')}
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/signals" className={linkClass}>
-                <SignalIcon className="w-4 h-4" />
-                {t('nav.signals')}
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/leaderboard" className={linkClass}>
-                <TrophyIcon className="w-4 h-4" />
-                {t('nav.leaderboard')}
-              </NavLink>
+              <details open={['/shops', '/signals', '/leaderboard'].some(p => location.pathname.startsWith(p))}>
+                <summary className="text-base-content/50 text-[10px] uppercase tracking-wider font-bold">
+                  Mahsulot
+                </summary>
+                <ul>
+                  <li>
+                    <NavLink to="/shops" className={linkClass}>
+                      <StorefrontIcon className="w-4 h-4" />
+                      {t('nav.shops')}
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink to="/signals" className={linkClass}>
+                      <SignalIcon className="w-4 h-4" />
+                      {t('nav.signals')}
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink to="/leaderboard" className={linkClass}>
+                      <TrophyIcon className="w-4 h-4" />
+                      {t('nav.leaderboard')}
+                    </NavLink>
+                  </li>
+                </ul>
+              </details>
             </li>
 
             {/* === ASBOBLAR === */}
-            <li className="menu-title mt-3">
-              <span className="text-base-content/50 text-[10px] uppercase tracking-wider font-bold">{t('nav.tools')}</span>
-            </li>
             <li>
-              <NavLink to="/calculator" className={linkClass}>
-                <CalculatorIcon className="w-4 h-4" />
-                {t('nav.calculator')}
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/elasticity" className={linkClass}>
-                <ScaleIcon className="w-4 h-4" />
-                {t('nav.elasticity')}
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/ai-description" className={linkClass}>
-                <SparklesIcon className="w-4 h-4" />
-                {t('nav.description')}
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/consultation" className={linkClass}>
-                <ChatBubbleLeftRightIcon className="w-4 h-4" />
-                {t('nav.consultation')}
-              </NavLink>
+              <details open={['/calculator', '/elasticity', '/ai-description', '/consultation'].some(p => location.pathname.startsWith(p))}>
+                <summary className="text-base-content/50 text-[10px] uppercase tracking-wider font-bold">
+                  {t('nav.tools')}
+                </summary>
+                <ul>
+                  <li>
+                    <NavLink to="/calculator" className={linkClass}>
+                      <CalculatorIcon className="w-4 h-4" />
+                      {t('nav.calculator')}
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink to="/elasticity" className={linkClass}>
+                      <ScaleIcon className="w-4 h-4" />
+                      {t('nav.elasticity')}
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink to="/ai-description" className={linkClass}>
+                      <SparklesIcon className="w-4 h-4" />
+                      {t('nav.description')}
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink to="/consultation" className={linkClass}>
+                      <ChatBubbleLeftRightIcon className="w-4 h-4" />
+                      {t('nav.consultation')}
+                    </NavLink>
+                  </li>
+                </ul>
+              </details>
             </li>
 
             {/* === BIZNES === */}
-            <li className="menu-title mt-3">
-              <span className="text-base-content/50 text-[10px] uppercase tracking-wider font-bold">Biznes</span>
-            </li>
             <li>
-              <NavLink to="/enterprise" className={linkClass}>
-                <BuildingOfficeIcon className="w-4 h-4" />
-                {t('nav.enterprise')}
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/referral" className={linkClass}>
-                <UserGroupIcon className="w-4 h-4" />
-                {t('nav.referral')}
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/api-keys" className={linkClass}>
-                <KeyIcon className="w-4 h-4" />
-                {t('nav.apiKeys')}
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/feedback" className={linkClass}>
-                <ChatBubbleBottomCenterTextIcon className="w-4 h-4" />
-                Feedback
-                {unreadCount > 0 && (
-                  <span className="badge badge-error badge-xs ml-auto">{unreadCount}</span>
-                )}
-              </NavLink>
+              <details open={['/enterprise', '/referral', '/api-keys', '/feedback'].some(p => location.pathname.startsWith(p))}>
+                <summary className="text-base-content/50 text-[10px] uppercase tracking-wider font-bold">
+                  Biznes
+                </summary>
+                <ul>
+                  <li>
+                    <NavLink to="/enterprise" className={linkClass}>
+                      <BuildingOfficeIcon className="w-4 h-4" />
+                      {t('nav.enterprise')}
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink to="/referral" className={linkClass}>
+                      <UserGroupIcon className="w-4 h-4" />
+                      {t('nav.referral')}
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink to="/api-keys" className={linkClass}>
+                      <KeyIcon className="w-4 h-4" />
+                      {t('nav.apiKeys')}
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink to="/feedback" className={linkClass}>
+                      <ChatBubbleBottomCenterTextIcon className="w-4 h-4" />
+                      Feedback
+                      {unreadCount > 0 && (
+                        <span className="badge badge-error badge-xs ml-auto">{unreadCount}</span>
+                      )}
+                    </NavLink>
+                  </li>
+                </ul>
+              </details>
             </li>
 
           </ul>

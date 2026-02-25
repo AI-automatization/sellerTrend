@@ -2,6 +2,7 @@ import { Controller, Post, Get, Param, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AiService } from './ai.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -25,9 +26,13 @@ export class AiController {
     return { ...attr, product_id: attr.product_id.toString() };
   }
 
-  /** Trigger attribute extraction for a product (idempotent) */
+  /** Trigger attribute extraction for a product (idempotent, quota-checked) */
   @Post('attributes/:productId/extract')
-  async extractAttributes(@Param('productId') productId: string) {
+  async extractAttributes(
+    @Param('productId') productId: string,
+    @CurrentUser('account_id') accountId: string,
+  ) {
+    await this.aiService.checkAiQuota(accountId);
     const product = await this.prisma.product.findUniqueOrThrow({
       where: { id: BigInt(productId) },
       select: { id: true, title: true },
@@ -48,5 +53,11 @@ export class AiController {
       product_id: r.product_id.toString(),
       bullets: r.explanation ? (() => { try { return JSON.parse(r.explanation!); } catch { return [r.explanation]; } })() : [],
     }));
+  }
+
+  /** Get current month AI usage for the account */
+  @Get('usage')
+  async getUsage(@CurrentUser('account_id') accountId: string) {
+    return this.aiService.getAiUsage(accountId);
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
 import Anthropic from '@anthropic-ai/sdk';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -15,6 +15,69 @@ export class AiService {
     this.client = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
     });
+  }
+
+  /**
+   * Check if an account has exceeded its monthly AI budget.
+   * Throws ForbiddenException if over limit. No-op if limit is NULL (unlimited).
+   */
+  async checkAiQuota(accountId: string): Promise<void> {
+    const account = await this.prisma.account.findUnique({
+      where: { id: accountId },
+      select: { ai_monthly_limit_usd: true },
+    });
+    if (!account?.ai_monthly_limit_usd) return; // unlimited
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const usage = await this.prisma.aiUsageLog.aggregate({
+      where: { account_id: accountId, created_at: { gte: monthStart } },
+      _sum: { cost_usd: true },
+    });
+
+    const usedUsd = Number(usage._sum.cost_usd ?? 0);
+    const limitUsd = Number(account.ai_monthly_limit_usd);
+
+    if (usedUsd >= limitUsd) {
+      throw new ForbiddenException(
+        `AI oylik budget tugagan: $${usedUsd.toFixed(4)} / $${limitUsd.toFixed(2)}. Keyingi oyda yangilanadi.`,
+      );
+    }
+  }
+
+  /**
+   * Get current month AI usage for an account.
+   */
+  async getAiUsage(accountId: string): Promise<{
+    used_usd: number;
+    limit_usd: number | null;
+    remaining_usd: number | null;
+    calls_this_month: number;
+  }> {
+    const account = await this.prisma.account.findUnique({
+      where: { id: accountId },
+      select: { ai_monthly_limit_usd: true },
+    });
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const usage = await this.prisma.aiUsageLog.aggregate({
+      where: { account_id: accountId, created_at: { gte: monthStart } },
+      _sum: { cost_usd: true },
+      _count: true,
+    });
+
+    const usedUsd = Number(usage._sum.cost_usd ?? 0);
+    const limitUsd = account?.ai_monthly_limit_usd ? Number(account.ai_monthly_limit_usd) : null;
+
+    return {
+      used_usd: usedUsd,
+      limit_usd: limitUsd,
+      remaining_usd: limitUsd !== null ? Math.max(0, limitUsd - usedUsd) : null,
+      calls_this_month: usage._count ?? 0,
+    };
   }
 
   /** Log AI usage to database for cost tracking */

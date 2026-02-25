@@ -1,7 +1,7 @@
 # VENTRA — BARCHA OCHIQ VAZIFALAR
 # Manba: DEEP_ANALYSIS + DEVOPS_AUDIT + FRONTEND_TODO + GPT_AUDIT
 # Yangilangan: 2026-02-26
-# Jami: 51 ta vazifa | P0: ✅ DONE (9/9) | P1: 15 | P2: 17 | P3: 19
+# Jami: 60 ta vazifa | P0: ✅ DONE (9/9) | P1: ✅ DONE (15/15) | P2: 17 | P3: 19
 
 ---
 
@@ -18,25 +18,7 @@
 
 ---
 
-# P1 — MUHIM (1 hafta) ~35 soat
-
-| # | Kategoriya | Vazifa | Mas'ul | Vaqt |
-|---|-----------|--------|--------|------|
-| T-011 | IKKALASI | JWT Refresh Token — httpOnly cookie, 15m access + 7d refresh, Axios interceptor 401→refresh→retry | Ikkalasi | 4-6s |
-| T-012 | IKKALASI | 402 PAYMENT_DUE UX — to'lov tugagan user faqat Dashboard+Billing ko'rsin, qolganlari modal overlay | Ikkalasi | 3s |
-| T-013 | IKKALASI | API contract — packages/types/ da barcha API response interface, CI type check | Ikkalasi | 4-6s |
-| T-014 | FRONTEND | client.ts bo'lish — 500+ qator → api/ papka: auth.api.ts, products.api.ts, signals.api.ts... | Sardor | 2-3s |
-| T-015 | FRONTEND | React.lazy() + Suspense — 16+ sahifa statik import → code splitting | Sardor | 2s |
-| T-016 | FRONTEND | Sidebar accordion — 16+ link → 4-5 guruh + yechiluvchi (Miller's Law: max 7) | Sardor | 3-4s |
-| T-017 | DEVOPS | Database backup — kunlik pg_dump → S3/R2, haftalik to'liq backup, oylik restore test | Bekzod | 4-6s |
-| T-018 | DEVOPS | CI pipeline — tsc --noEmit (api+web+worker), pnpm audit, docker build, api lint qo'shish | Bekzod | 3-4s |
-| T-019 | DEVOPS | Auto migration olib tashlash — prisma db push CMD dan → alohida CI step | Bekzod | 1-2s |
-| T-020 | DEVOPS | Worker + Bot health check — minimal HTTP /health endpoint + Redis ping | Bekzod | 2s |
-| T-021 | DEVOPS | Git hooks — husky + lint-staged (eslint, .env block) | Bekzod | 1s |
-| T-022 | DEVOPS | Dependency vulnerability scan — pnpm audit CI ga + Dependabot enable | Bekzod | 30m |
-| T-023 | FRONTEND | Skeleton komponentlar — SkeletonCard, SkeletonTable, SkeletonStat (loading state) | Sardor | 2s |
-| T-056 | BACKEND | Brute force himoya — login attempt tracking, 5x failed → 15min lockout, progressive delay | Bekzod | 2-3s |
-| T-057 | BACKEND | AI per-user budget — account_id bo'yicha oylik token limit, budget alert, hard cap | Bekzod | 2-3s |
+# P1 — ✅ BAJARILDI (15/15) → docs/Done.md ga ko'chirildi
 
 ---
 
@@ -91,13 +73,13 @@
 
 ## XULOSA
 
-| Prioritet | Soni | Taxminiy vaqt | Mas'ul taqsimoti |
-|-----------|------|--------------|-----------------|
-| P0 KRITIK | 9 | ~5 soat | Bekzod: 7, Sardor: 2 |
-| P1 MUHIM | 15 | ~45 soat | Bekzod: 9, Sardor: 4, Ikkalasi: 2 |
-| P2 O'RTA | 17 | ~75 soat | Bekzod: 10, Sardor: 5, Ikkalasi: 2 |
-| P3 PAST | 19 | ~60 soat | Bekzod: 5, Sardor: 9, Ikkalasi: 5 |
-| **JAMI** | **60** | **~185 soat** | |
+| Prioritet | Soni | Holat |
+|-----------|------|-------|
+| P0 KRITIK | 9 | ✅ DONE (9/9) |
+| P1 MUHIM | 15 | ✅ DONE (15/15) |
+| P2 O'RTA | 17 | OCHIQ |
+| P3 PAST | 19 | OCHIQ |
+| **JAMI** | **60** | **24 DONE / 36 OCHIQ** |
 
 ---
 

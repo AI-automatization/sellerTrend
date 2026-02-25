@@ -2,24 +2,43 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  ForbiddenException,
   Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReferralService } from '../referral/referral.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
+const ACCESS_TOKEN_TTL = '15m';
+const REFRESH_TOKEN_DAYS = 30;
+
+interface LoginAttempt {
+  count: number;
+  lockedUntil: number | null;
+  lastAttempt: number;
+}
+
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
+const WINDOW_MS = 15 * 60 * 1000;  // 15 minute window
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+  private readonly loginAttempts = new Map<string, LoginAttempt>();
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly referralService: ReferralService,
-  ) {}
+  ) {
+    // Clean up old entries every 30 minutes
+    setInterval(() => this.cleanupAttempts(), 30 * 60 * 1000);
+  }
 
   async register(dto: RegisterDto) {
     const existing = await this.prisma.user.findUnique({
@@ -57,30 +76,80 @@ export class AuthService {
         this.logger.warn(
           `Referral code ${dto.referral_code} failed: ${e.message}`,
         );
-        // Don't block registration if referral code is invalid
       }
     }
 
-    const token = this.signToken(user.id, account.id, user.role);
-    return { access_token: token, account_id: account.id };
+    const access_token = this.signAccessToken(user.id, account.id, user.role);
+    const refresh_token = await this.createRefreshToken(user.id);
+    return { access_token, refresh_token, account_id: account.id };
   }
 
   async login(dto: LoginDto) {
+    const key = dto.email.toLowerCase();
+
+    // Check if locked out
+    this.checkLockout(key);
+
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
       include: { account: true },
     });
 
     if (!user || !(await bcrypt.compare(dto.password, user.password_hash))) {
+      this.recordFailedAttempt(key);
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const token = this.signToken(user.id, user.account_id, user.role);
+    // Successful login — reset attempts
+    this.loginAttempts.delete(key);
+
+    const access_token = this.signAccessToken(user.id, user.account_id, user.role);
+    const refresh_token = await this.createRefreshToken(user.id);
     return {
-      access_token: token,
+      access_token,
+      refresh_token,
       account_id: user.account_id,
       status: user.account.status,
     };
+  }
+
+  async refresh(refreshToken: string) {
+    const hash = this.hashToken(refreshToken);
+    const session = await this.prisma.userSession.findFirst({
+      where: { refresh_token_hash: hash, revoked_at: null },
+      include: { user: { include: { account: true } } },
+    });
+
+    if (!session || !session.expires_at || session.expires_at < new Date()) {
+      throw new UnauthorizedException('Refresh token expired or invalid');
+    }
+
+    if (!session.user.is_active) {
+      throw new ForbiddenException('Account deactivated');
+    }
+
+    // Rotate: revoke old, issue new refresh token
+    await this.prisma.userSession.update({
+      where: { id: session.id },
+      data: { revoked_at: new Date() },
+    });
+
+    const access_token = this.signAccessToken(
+      session.user.id,
+      session.user.account_id,
+      session.user.role,
+    );
+    const refresh_token = await this.createRefreshToken(session.user.id);
+    return { access_token, refresh_token };
+  }
+
+  async logout(refreshToken: string) {
+    const hash = this.hashToken(refreshToken);
+    await this.prisma.userSession.updateMany({
+      where: { refresh_token_hash: hash, revoked_at: null },
+      data: { revoked_at: new Date() },
+    });
+    return { ok: true };
   }
 
   async bootstrapAdmin(email: string): Promise<{ ok: boolean; message: string }> {
@@ -101,7 +170,76 @@ export class AuthService {
     return { ok: true, message: `${email} promoted to SUPER_ADMIN` };
   }
 
-  private signToken(userId: string, accountId: string, role: string): string {
-    return this.jwt.sign({ sub: userId, account_id: accountId, role });
+  private signAccessToken(userId: string, accountId: string, role: string): string {
+    return this.jwt.sign(
+      { sub: userId, account_id: accountId, role },
+      { expiresIn: ACCESS_TOKEN_TTL },
+    );
+  }
+
+  private async createRefreshToken(userId: string): Promise<string> {
+    const raw = crypto.randomBytes(40).toString('hex');
+    const hash = this.hashToken(raw);
+    const expires = new Date();
+    expires.setDate(expires.getDate() + REFRESH_TOKEN_DAYS);
+
+    await this.prisma.userSession.create({
+      data: {
+        user_id: userId,
+        refresh_token_hash: hash,
+        expires_at: expires,
+      },
+    });
+
+    return raw;
+  }
+
+  private hashToken(token: string): string {
+    return crypto.createHash('sha256').update(token).digest('hex');
+  }
+
+  private checkLockout(key: string): void {
+    const attempt = this.loginAttempts.get(key);
+    if (!attempt) return;
+
+    if (attempt.lockedUntil && Date.now() < attempt.lockedUntil) {
+      const remainSec = Math.ceil((attempt.lockedUntil - Date.now()) / 1000);
+      this.logger.warn(`Login locked for ${key}, ${remainSec}s remaining`);
+      throw new ForbiddenException(
+        `Juda ko'p urinish. ${Math.ceil(remainSec / 60)} daqiqadan keyin qayta urinib ko'ring.`,
+      );
+    }
+
+    // Reset if lockout expired
+    if (attempt.lockedUntil && Date.now() >= attempt.lockedUntil) {
+      this.loginAttempts.delete(key);
+    }
+  }
+
+  private recordFailedAttempt(key: string): void {
+    const now = Date.now();
+    const attempt = this.loginAttempts.get(key);
+
+    if (!attempt || (now - attempt.lastAttempt) > WINDOW_MS) {
+      this.loginAttempts.set(key, { count: 1, lockedUntil: null, lastAttempt: now });
+      return;
+    }
+
+    attempt.count++;
+    attempt.lastAttempt = now;
+
+    if (attempt.count >= MAX_ATTEMPTS) {
+      attempt.lockedUntil = now + LOCKOUT_MS;
+      this.logger.warn(`Account locked: ${key} after ${attempt.count} failed attempts`);
+    }
+  }
+
+  private cleanupAttempts(): void {
+    const now = Date.now();
+    for (const [key, attempt] of this.loginAttempts) {
+      if ((now - attempt.lastAttempt) > WINDOW_MS && (!attempt.lockedUntil || now > attempt.lockedUntil)) {
+        this.loginAttempts.delete(key);
+      }
+    }
   }
 }
