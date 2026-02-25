@@ -1,3 +1,13 @@
+  Super Admin:
+    📧 Email:  admin@uzum-trend.uz
+    🔑 Parol:  Admin123!
+
+  Demo User:
+    📧 Email:  demo@uzum-trend.uz
+    🔑 Parol:  Demo123!
+    💰 Balans: 500,000 so'm
+
+
 # UZUM TREND FINDER — TO'LIQ LOYIHA TAVSIFI (Claude CLI uchun)
 
 > Bu hujjat Claude CLI ga loyihani to'liq tushuntirish va davom ettirish uchun tayyorlangan.

@@ -368,3 +368,12 @@
 - **Sabab:** 1) Frontend billing API chaqirardi va Balans card ko'rsatardi. 2) Worker `billing.processor.ts` da SUPER_ADMIN exclusion yo'q edi (BillingService da bor, worker da yo'q). 3) DB da Super Admin balansi 999M edi.
 - **Yechim:** 1) Frontend: Super Admin uchun billing API chaqirilmaydi, Balans card yashirildi. 2) Worker: SUPER_ADMIN accountlar `notIn` bilan exclude qilindi. 3) DB: `UPDATE accounts SET balance = 0` Super Admin uchun. 4) BillingGuard/Middleware allaqachon SUPER_ADMIN bypass qilardi (o'zgarishsiz).
 - **Status:** FIXED
+
+### BUG-026: API 19 ta TS error — prisma generate qilinmagan
+- **Sana:** 2026-02-25
+- **Tur:** build
+- **Fayl:** `apps/api/src/admin/admin.service.ts`, `apps/api/src/ai/ai.service.ts`, `apps/api/src/common/filters/error-tracker.filter.ts`
+- **Xato:** `Property 'notificationTemplate' does not exist on type 'PrismaService'`, `Property 'aiUsageLog' does not exist`, `Property 'systemError' does not exist`, `Property 'phone' does not exist` — webpack 19 ta error bilan compile bo'lmadi
+- **Sabab:** v6 da qo'shilgan modellar (`NotificationTemplate`, `AiUsageLog`, `SystemError`) va `Account.phone` field schema.prisma da bor edi, lekin `prisma generate` qilinmagan — Prisma client eski holda qolgan
+- **Yechim:** `npx prisma generate` + `npx prisma db push` — client va DB sinxronlandi. 0 error bilan compile bo'ldi
+- **Status:** FIXED
