@@ -1,7 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { adminApi } from '../api/client';
+import {
+  AreaChart, Area, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+} from 'recharts';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -470,6 +474,10 @@ export function AdminPage() {
   const [systemErrors, setSystemErrors] = useState<any>(null);
   const [errorsPage, setErrorsPage] = useState(1);
 
+  // Analytics charts data
+  const [categoryTrends, setCategoryTrends] = useState<any[]>([]);
+  const [productHeatmap, setProductHeatmap] = useState<any[]>([]);
+
   // Accounts tab filter + search
   const [accountFilter, setAccountFilter] = useState<'all' | 'active' | 'due' | 'suspended'>('all');
   const [accountSearch, setAccountSearch] = useState('');
@@ -500,6 +508,10 @@ export function AdminPage() {
       adminApi.getPopularProducts().then((r) => setPopularProducts(r.data || [])).catch(() => {});
       adminApi.getPopularCategories().then((r) => setPopularCategories(r.data || [])).catch(() => {});
       adminApi.getTopUsers().then((r) => setTopUsers(r.data || [])).catch(() => {});
+      adminApi.getStatsRevenue(30).then((r) => setRevenue(r.data)).catch(() => {});
+      adminApi.getStatsGrowth(30).then((r) => setGrowth(r.data)).catch(() => {});
+      adminApi.getCategoryTrends(8).then((r) => setCategoryTrends(r.data || [])).catch(() => {});
+      adminApi.getProductHeatmap('30d').then((r) => setProductHeatmap(r.data || [])).catch(() => {});
     } else if (activeTab === 'system') {
       adminApi.getSystemHealth().then((r) => setHealth(r.data)).catch(() => {});
       adminApi.getAiUsageStats().then((r) => setAiUsage(r.data)).catch(() => {});
@@ -991,7 +1003,77 @@ export function AdminPage() {
         )}
 
         {/* ═══════════════ ANALYTICS & POPULAR TAB (MERGED) ═══════════════ */}
-        {activeTab === 'analytics' && (
+        {activeTab === 'analytics' && (() => {
+          const CHART_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#8b5cf6', '#14b8a6'];
+
+          // Revenue chart data
+          const revenueData = (revenue?.daily || []).map((d: any) => ({
+            date: new Date(d.date).toLocaleDateString('uz', { day: '2-digit', month: 'short' }),
+            daromad: Number(d.amount || 0),
+          }));
+
+          // Growth chart data
+          const growthData = (growth?.daily_new_users || []).map((d: any) => ({
+            date: new Date(d.date).toLocaleDateString('uz', { day: '2-digit', month: 'short' }),
+            yangi: d.count,
+          }));
+
+          // User activity top 8 bar chart
+          const userActivityData = topUsers.slice(0, 8).map((u: any) => ({
+            name: u.email?.split('@')[0] || '?',
+            faollik: u.activity_score ?? 0,
+            tracked: u.tracked_products ?? 0,
+            discovery: u.discovery_runs ?? 0,
+          }));
+
+          // Score distribution pie
+          const scoreRanges = [
+            { name: '5+ A\'lo', range: [5, 99], fill: '#22c55e' },
+            { name: '3-5 Yaxshi', range: [3, 5], fill: '#f59e0b' },
+            { name: '1-3 O\'rta', range: [1, 3], fill: '#3b82f6' },
+            { name: '0-1 Past', range: [0, 1], fill: '#94a3b8' },
+          ];
+          const scorePieData = scoreRanges.map((r) => ({
+            name: r.name,
+            value: popularProducts.filter((p: any) => {
+              const s = Number(p.avg_score ?? 0);
+              return s >= r.range[0] && s < r.range[1];
+            }).length,
+            fill: r.fill,
+          })).filter((d) => d.value > 0);
+
+          // Category heatmap bar
+          const heatmapData = productHeatmap.slice(0, 10).map((h: any) => ({
+            category: `#${h.category_id}`,
+            mahsulotlar: h.count,
+            score: Number(h.avg_score ?? 0),
+          }));
+
+          // Category trends line chart
+          const trendLineData = (() => {
+            if (!categoryTrends.length) return [];
+            const reversed = [...categoryTrends].reverse();
+            return reversed.map((w: any) => {
+              const point: any = {
+                hafta: new Date(w.week).toLocaleDateString('uz', { day: '2-digit', month: 'short' }),
+              };
+              if (w.categories) {
+                Object.entries(w.categories).forEach(([catId, val]: any) => {
+                  point[`#${catId}`] = val.runs || 0;
+                });
+              }
+              return point;
+            });
+          })();
+          const trendCategoryIds = (() => {
+            const ids = new Set<string>();
+            categoryTrends.forEach((w: any) => {
+              if (w.categories) Object.keys(w.categories).forEach((id) => ids.add(`#${id}`));
+            });
+            return Array.from(ids).slice(0, 6);
+          })();
+
+          return (
           <div className="space-y-5">
             {/* ── Summary Stats ── */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1001,7 +1083,192 @@ export function AdminPage() {
               <StatCard label="Eng faol" value={topUsers[0]?.email?.split('@')[0] || '—'} sub={topUsers[0] ? `${topUsers[0].activity_score ?? 0} ball` : ''} color="text-primary" />
             </div>
 
-            {/* ── Top Foydalanuvchilar ── */}
+            {/* ── CHARTS ROW 1: Revenue + Growth ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {/* Revenue Area Chart */}
+              <div className="bg-base-200 rounded-2xl border border-base-300/50 overflow-hidden">
+                <div className="px-4 py-3 border-b border-base-300/30 flex items-center justify-between">
+                  <h3 className="font-semibold text-sm">Kunlik Daromad (30 kun)</h3>
+                  {revenue && (
+                    <span className="text-xs font-mono text-success">{Number(revenue.mrr || 0).toLocaleString()} so'm MRR</span>
+                  )}
+                </div>
+                <div className="p-4" style={{ height: 260 }}>
+                  {revenueData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={revenueData}>
+                        <defs>
+                          <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#6366f1" stopOpacity={0.3} />
+                            <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.7 0 0 / 0.1)" />
+                        <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="oklch(0.6 0 0 / 0.5)" />
+                        <YAxis tick={{ fontSize: 11 }} stroke="oklch(0.6 0 0 / 0.5)" tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+                        <Tooltip contentStyle={{ borderRadius: 12, fontSize: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }} formatter={(v: number) => [`${v.toLocaleString()} so'm`, 'Daromad']} />
+                        <Area type="monotone" dataKey="daromad" stroke="#6366f1" strokeWidth={2} fill="url(#revenueGrad)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-base-content/30 text-sm">Ma'lumot yo'q</div>
+                  )}
+                </div>
+              </div>
+
+              {/* User Growth Bar Chart */}
+              <div className="bg-base-200 rounded-2xl border border-base-300/50 overflow-hidden">
+                <div className="px-4 py-3 border-b border-base-300/30 flex items-center justify-between">
+                  <h3 className="font-semibold text-sm">Yangi Foydalanuvchilar (30 kun)</h3>
+                  {growth && (
+                    <div className="flex items-center gap-3 text-xs">
+                      <span className="text-success font-medium">Hafta: +{growth.week_new ?? 0}</span>
+                      <span className="text-primary font-medium">Oy: +{growth.month_new ?? 0}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="p-4" style={{ height: 260 }}>
+                  {growthData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={growthData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.7 0 0 / 0.1)" />
+                        <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="oklch(0.6 0 0 / 0.5)" />
+                        <YAxis allowDecimals={false} tick={{ fontSize: 11 }} stroke="oklch(0.6 0 0 / 0.5)" />
+                        <Tooltip contentStyle={{ borderRadius: 12, fontSize: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }} />
+                        <Bar dataKey="yangi" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-base-content/30 text-sm">Ma'lumot yo'q</div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ── CHARTS ROW 2: User Activity + Score Distribution ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              {/* User Activity Bar */}
+              <div className="lg:col-span-2 bg-base-200 rounded-2xl border border-base-300/50 overflow-hidden">
+                <div className="px-4 py-3 border-b border-base-300/30">
+                  <h3 className="font-semibold text-sm">Top 8 — Foydalanuvchi Faolligi</h3>
+                </div>
+                <div className="p-4" style={{ height: 280 }}>
+                  {userActivityData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={userActivityData} layout="vertical" margin={{ left: 10 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.7 0 0 / 0.1)" />
+                        <XAxis type="number" tick={{ fontSize: 11 }} stroke="oklch(0.6 0 0 / 0.5)" />
+                        <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11 }} stroke="oklch(0.6 0 0 / 0.5)" />
+                        <Tooltip contentStyle={{ borderRadius: 12, fontSize: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }} />
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                        <Bar dataKey="faollik" fill="#6366f1" radius={[0, 4, 4, 0]} name="Faollik" />
+                        <Bar dataKey="tracked" fill="#22c55e" radius={[0, 4, 4, 0]} name="Tracked" />
+                        <Bar dataKey="discovery" fill="#f59e0b" radius={[0, 4, 4, 0]} name="Discovery" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-base-content/30 text-sm">Ma'lumot yo'q</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Score Distribution Donut */}
+              <div className="bg-base-200 rounded-2xl border border-base-300/50 overflow-hidden">
+                <div className="px-4 py-3 border-b border-base-300/30">
+                  <h3 className="font-semibold text-sm">Score Taqsimoti</h3>
+                </div>
+                <div className="p-4 flex flex-col items-center" style={{ height: 280 }}>
+                  {scorePieData.length > 0 ? (
+                    <>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <PieChart>
+                          <Pie
+                            data={scorePieData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={50}
+                            outerRadius={80}
+                            paddingAngle={3}
+                            dataKey="value"
+                          >
+                            {scorePieData.map((entry, idx) => (
+                              <Cell key={idx} fill={entry.fill} />
+                            ))}
+                          </Pie>
+                          <Tooltip contentStyle={{ borderRadius: 12, fontSize: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-1">
+                        {scorePieData.map((d, i) => (
+                          <div key={i} className="flex items-center gap-1.5 text-[11px]">
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ background: d.fill }} />
+                            <span className="text-base-content/60">{d.name}</span>
+                            <span className="font-bold">{d.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-base-content/30 text-sm">Ma'lumot yo'q</div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ── CHARTS ROW 3: Category Trends + Category Heatmap ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {/* Category Trends Line Chart */}
+              <div className="bg-base-200 rounded-2xl border border-base-300/50 overflow-hidden">
+                <div className="px-4 py-3 border-b border-base-300/30">
+                  <h3 className="font-semibold text-sm">Kategoriya Trendlari (8 hafta)</h3>
+                </div>
+                <div className="p-4" style={{ height: 280 }}>
+                  {trendLineData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={trendLineData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.7 0 0 / 0.1)" />
+                        <XAxis dataKey="hafta" tick={{ fontSize: 11 }} stroke="oklch(0.6 0 0 / 0.5)" />
+                        <YAxis allowDecimals={false} tick={{ fontSize: 11 }} stroke="oklch(0.6 0 0 / 0.5)" />
+                        <Tooltip contentStyle={{ borderRadius: 12, fontSize: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }} />
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                        {trendCategoryIds.map((id, i) => (
+                          <Line key={id} type="monotone" dataKey={id} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={2} dot={{ r: 3 }} />
+                        ))}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-base-content/30 text-sm">Ma'lumot yo'q</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Category Heatmap Bar */}
+              <div className="bg-base-200 rounded-2xl border border-base-300/50 overflow-hidden">
+                <div className="px-4 py-3 border-b border-base-300/30">
+                  <h3 className="font-semibold text-sm">Kategoriya — Tracked Mahsulotlar</h3>
+                </div>
+                <div className="p-4" style={{ height: 280 }}>
+                  {heatmapData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={heatmapData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.7 0 0 / 0.1)" />
+                        <XAxis dataKey="category" tick={{ fontSize: 10 }} stroke="oklch(0.6 0 0 / 0.5)" />
+                        <YAxis allowDecimals={false} tick={{ fontSize: 11 }} stroke="oklch(0.6 0 0 / 0.5)" />
+                        <Tooltip contentStyle={{ borderRadius: 12, fontSize: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }} formatter={(v: number, name: string) => {
+                          if (name === 'score') return [v.toFixed(2), 'Avg Score'];
+                          return [v, 'Mahsulotlar'];
+                        }} />
+                        <Bar dataKey="mahsulotlar" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-base-content/30 text-sm">Ma'lumot yo'q</div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ── Top Foydalanuvchilar Table ── */}
             <div className="bg-base-200 rounded-2xl border border-base-300/50 overflow-hidden">
               <div className="px-4 py-3 border-b border-base-300/30 flex items-center justify-between">
                 <h3 className="font-semibold text-sm">Top Foydalanuvchilar</h3>
@@ -1151,7 +1418,8 @@ export function AdminPage() {
               </div>
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* ═══════════════ SYSTEM TAB ═══════════════ */}
         {activeTab === 'system' && (
