@@ -91,8 +91,10 @@ export function DashboardPage() {
     const promises: Promise<any>[] = [
       productsApi.getTracked().then((r) => setProducts(r.data)),
     ];
-    // Load balance for all users (including SUPER_ADMIN)
-    promises.push(billingApi.getBalance().then((r) => setBalance(r.data)).catch(() => {}));
+    // SUPER_ADMIN has no billing — skip balance call
+    if (!isSuperAdmin) {
+      promises.push(billingApi.getBalance().then((r) => setBalance(r.data)).catch(() => {}));
+    }
     Promise.all(promises).finally(() => setLoading(false));
   }, []);
 
@@ -209,18 +211,20 @@ export function DashboardPage() {
 
       {/* Stats row — 4 col responsive */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <div className={`rounded-2xl p-4 lg:p-5 transition-all ${paymentDue ? 'bg-gradient-to-br from-error/10 to-error/5 border border-error/20' : 'bg-base-200/60 border border-base-300/50'}`}>
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs text-base-content/40 font-medium uppercase tracking-wider">Balans</span>
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <WalletIcon className="w-4 h-4 text-primary" />
+        {!isSuperAdmin && (
+          <div className={`rounded-2xl p-4 lg:p-5 transition-all ${paymentDue ? 'bg-gradient-to-br from-error/10 to-error/5 border border-error/20' : 'bg-base-200/60 border border-base-300/50'}`}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs text-base-content/40 font-medium uppercase tracking-wider">Balans</span>
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <WalletIcon className="w-4 h-4 text-primary" />
+              </div>
             </div>
+            <p className={`text-2xl lg:text-3xl font-bold tabular-nums ${paymentDue ? 'text-error' : ''}`}>
+              {balance ? Number(balance.balance).toLocaleString() : '—'}
+            </p>
+            <p className="text-xs text-base-content/30 mt-1">so'm · {balance ? Number(balance.daily_fee).toLocaleString() : '—'}/kun</p>
           </div>
-          <p className={`text-2xl lg:text-3xl font-bold tabular-nums ${paymentDue ? 'text-error' : ''}`}>
-            {balance ? Number(balance.balance).toLocaleString() : '—'}
-          </p>
-          <p className="text-xs text-base-content/30 mt-1">so'm · {balance ? Number(balance.daily_fee).toLocaleString() : '—'}/kun</p>
-        </div>
+        )}
 
         <div className="rounded-2xl p-4 lg:p-5 bg-base-200/60 border border-base-300/50">
           <div className="flex items-center justify-between mb-3">

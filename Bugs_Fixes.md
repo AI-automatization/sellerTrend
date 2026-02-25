@@ -360,11 +360,11 @@
 - **Yechim:** `take: 20` ga oshirildi. Yangi logika: eng oxirgi snapshotdan kamida 1 soat farq bo'lgan birinchi "prev" snapshotni topadi, shunda haqiqiy orders delta hisoblanadi.
 - **Status:** FIXED
 
-### BUG-025: Super Admin Home Dashboard — admin stats ko'rinyapti
+### BUG-025: Super Admin billing logikasi to'liq ajratish
 - **Sana:** 2026-02-25
-- **Tur:** frontend
-- **Fayl:** `apps/web/src/pages/DashboardPage.tsx`
-- **Xato:** Super Admin kirganda Home Dashboard'da "Tushum", "MRR", "Faol akkauntlar", "To'lov kutmoqda" admin panelga tegishli ma'lumotlar ko'rsatilardi.
-- **Sabab:** `isSuperAdmin` bo'lsa balance o'rniga admin stats API chaqirilardi va alohida admin stats blok ko'rsatilardi.
-- **Yechim:** Admin stats (`adminApi.getStatsOverview`, `adminApi.getStatsRevenue`) Home Dashboard'dan olib tashlandi. Super Admin ham oddiy foydalanuvchi sifatida "Balans" ko'radi. Admin stats faqat `/admin` sahifada.
+- **Tur:** frontend + backend + worker
+- **Fayl:** `DashboardPage.tsx`, `billing.processor.ts`, DB
+- **Xato:** Super Admin Dashboard'da Balans ko'rinardi, worker cron SUPER_ADMIN ni charge qilardi.
+- **Sabab:** 1) Frontend billing API chaqirardi va Balans card ko'rsatardi. 2) Worker `billing.processor.ts` da SUPER_ADMIN exclusion yo'q edi (BillingService da bor, worker da yo'q). 3) DB da Super Admin balansi 999M edi.
+- **Yechim:** 1) Frontend: Super Admin uchun billing API chaqirilmaydi, Balans card yashirildi. 2) Worker: SUPER_ADMIN accountlar `notIn` bilan exclude qilindi. 3) DB: `UPDATE accounts SET balance = 0` Super Admin uchun. 4) BillingGuard/Middleware allaqachon SUPER_ADMIN bypass qilardi (o'zgarishsiz).
 - **Status:** FIXED

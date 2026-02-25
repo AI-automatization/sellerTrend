@@ -10,8 +10,16 @@ async function chargeAllActiveAccounts() {
   const defaultFee = BigInt(setting?.value ?? '50000');
   const today = new Date().toISOString().split('T')[0];
 
+  // Exclude SUPER_ADMIN accounts from daily charges
+  const adminAccountIds = (
+    await prisma.user.findMany({
+      where: { role: 'SUPER_ADMIN' },
+      select: { account_id: true },
+    })
+  ).map((u) => u.account_id);
+
   const accounts = await prisma.account.findMany({
-    where: { status: 'ACTIVE' },
+    where: { status: 'ACTIVE', id: { notIn: adminAccountIds } },
   });
 
   let charged = 0;
