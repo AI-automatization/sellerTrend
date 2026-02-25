@@ -26,19 +26,19 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex" data-theme="night">
+    <div className="min-h-screen flex">
       {/* Left — branding panel (hidden on mobile) */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-secondary/20 via-base-300 to-primary/20 items-center justify-center p-12">
-        <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-secondary/10 blur-3xl" />
-        <div className="absolute -bottom-32 -left-32 w-[30rem] h-[30rem] rounded-full bg-primary/10 blur-3xl" />
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-base-200 items-center justify-center p-12">
+        <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
+        <div className="absolute -bottom-32 -left-32 w-[30rem] h-[30rem] rounded-full bg-primary/3 blur-3xl" />
 
         <div className="relative z-10 max-w-md space-y-8">
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25">
-              <span className="text-primary-content font-black text-2xl">U</span>
+              <span className="text-primary-content font-black text-2xl font-heading">V</span>
             </div>
             <div>
-              <h1 className="text-3xl font-black tracking-tight">Uzum Trend</h1>
+              <h1 className="text-3xl font-black tracking-tight font-heading">VENTRA</h1>
               <p className="text-base-content/40 text-sm">Analytics Platform</p>
             </div>
           </div>
@@ -67,7 +67,7 @@ export function RegisterPage() {
           </div>
 
           <p className="text-xs text-base-content/25">
-            43+ funksiya — v1.0 dan v4.0 gacha
+            VENTRA v5.1 — 43+ funksiya
           </p>
         </div>
       </div>
@@ -83,14 +83,14 @@ export function RegisterPage() {
           {/* Mobile logo */}
           <div className="flex flex-col items-center lg:hidden mb-4">
             <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25 mb-3">
-              <span className="text-primary-content font-black text-2xl">U</span>
+              <span className="text-primary-content font-black text-2xl font-heading">V</span>
             </div>
-            <h1 className="text-2xl font-black">Uzum Trend</h1>
+            <h1 className="text-2xl font-black font-heading tracking-tight">VENTRA</h1>
             <p className="text-base-content/40 text-sm">Yangi hisob yaratish</p>
           </div>
 
           {/* Form card */}
-          <div className="rounded-2xl bg-base-100/80 backdrop-blur-lg border border-base-300/50 shadow-2xl p-6 lg:p-8">
+          <div className="rounded-2xl bg-base-100 border border-base-300 shadow-xl p-6 lg:p-8">
             <div className="hidden lg:block mb-6">
               <h2 className="text-xl font-bold">Ro'yxatdan o'tish</h2>
               <p className="text-base-content/50 text-sm mt-1">Yangi hisob yarating va boshlang</p>

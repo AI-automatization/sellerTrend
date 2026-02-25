@@ -25,21 +25,20 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex" data-theme="night">
+    <div className="min-h-screen flex">
       {/* Left — branding panel (hidden on mobile) */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-primary/20 via-base-300 to-secondary/20 items-center justify-center p-12">
-        {/* Decorative circles */}
-        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -bottom-32 -right-32 w-[30rem] h-[30rem] rounded-full bg-secondary/10 blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-accent/5 blur-2xl" />
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-base-200 items-center justify-center p-12">
+        {/* Subtle atmosphere */}
+        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
+        <div className="absolute -bottom-32 -right-32 w-[30rem] h-[30rem] rounded-full bg-primary/3 blur-3xl" />
 
         <div className="relative z-10 max-w-md space-y-8">
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25">
-              <span className="text-primary-content font-black text-2xl">U</span>
+              <span className="text-primary-content font-black text-2xl font-heading">V</span>
             </div>
             <div>
-              <h1 className="text-3xl font-black tracking-tight">Uzum Trend</h1>
+              <h1 className="text-3xl font-black tracking-tight font-heading">VENTRA</h1>
               <p className="text-base-content/40 text-sm">Analytics Platform</p>
             </div>
           </div>
@@ -62,7 +61,7 @@ export function LoginPage() {
           </div>
 
           <p className="text-xs text-base-content/25">
-            Uzum Trend Finder v4.0 — SaaS Analytics
+            VENTRA v5.1 — Premium Analytics
           </p>
         </div>
       </div>
@@ -79,14 +78,14 @@ export function LoginPage() {
           {/* Mobile logo */}
           <div className="flex flex-col items-center lg:hidden mb-4">
             <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25 mb-3">
-              <span className="text-primary-content font-black text-2xl">U</span>
+              <span className="text-primary-content font-black text-2xl font-heading">V</span>
             </div>
-            <h1 className="text-2xl font-black">Uzum Trend</h1>
+            <h1 className="text-2xl font-black font-heading tracking-tight">VENTRA</h1>
             <p className="text-base-content/40 text-sm">Analytics Platform</p>
           </div>
 
           {/* Form card */}
-          <div className="rounded-2xl bg-base-100/80 backdrop-blur-lg border border-base-300/50 shadow-2xl p-6 lg:p-8">
+          <div className="rounded-2xl bg-base-100 border border-base-300 shadow-xl p-6 lg:p-8">
             <div className="hidden lg:block mb-6">
               <h2 className="text-xl font-bold">Xush kelibsiz!</h2>
               <p className="text-base-content/50 text-sm mt-1">Hisobingizga kiring</p>
@@ -152,7 +151,7 @@ export function LoginPage() {
           </div>
 
           <p className="text-center text-xs text-base-content/20">
-            Demo: demo@uzum-trend.uz / Demo123!
+            Demo: demo@ventra.uz / Demo123!
           </p>
         </div>
       </div>

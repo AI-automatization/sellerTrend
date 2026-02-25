@@ -69,12 +69,13 @@ function scoreColor(score: number | null) {
 }
 
 const tooltipStyle = {
-  background: 'rgba(15,23,42,0.95)',
-  border: '1px solid rgba(255,255,255,0.06)',
+  background: 'var(--chart-tooltip-bg)',
+  border: '1px solid var(--chart-tooltip-border)',
+  color: 'var(--chart-tooltip-text)',
   borderRadius: 12,
   fontSize: 12,
   backdropFilter: 'blur(8px)',
-  boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
 };
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -179,7 +180,7 @@ export function DashboardPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight font-heading">Dashboard</h1>
           <p className="text-base-content/40 text-sm mt-0.5">Portfolio analitikasi va monitoring</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -334,10 +335,10 @@ export function DashboardPage() {
                       <stop offset="100%" stopColor="#22c55e" stopOpacity={0.9} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.2)' }} tickLine={false} axisLine={false} domain={[0, 10]} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.45)' }} tickLine={false} axisLine={false} width={130} />
-                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [v.toFixed(2), 'Score']} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} domain={[0, 10]} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} width={130} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [v.toFixed(2), 'Score']} cursor={{ fill: 'var(--chart-cursor)' }} />
                   <Bar dataKey="score" radius={[0, 6, 6, 0]} barSize={16}>
                     {scoreChartData.map((entry) => (
                       <Cell key={entry.id} fill={scoreColor(entry.score)} fillOpacity={0.85} />
@@ -384,7 +385,7 @@ export function DashboardPage() {
               <div className="flex items-center gap-4">
                 <ResponsiveContainer width={80} height={80}>
                   <RadialBarChart cx="50%" cy="50%" innerRadius="60%" outerRadius="100%" barSize={8} data={scoreRadialData} startAngle={180} endAngle={0}>
-                    <RadialBar background={{ fill: 'rgba(255,255,255,0.04)' }} dataKey="value" cornerRadius={10} />
+                    <RadialBar background={{ fill: 'var(--chart-grid)' }} dataKey="value" cornerRadius={10} />
                   </RadialBarChart>
                 </ResponsiveContainer>
                 <div>
@@ -416,9 +417,9 @@ export function DashboardPage() {
                   <stop offset="100%" stopColor="#34d399" stopOpacity={0.02} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
-              <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} tickLine={false} axisLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.25)' }} tickLine={false} axisLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+              <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
               <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [v.toLocaleString(), 'Haftalik sotuvlar']} />
               <Area type="monotone" dataKey="faollik" stroke="#34d399" strokeWidth={2} fill="url(#activityGrad)" />
             </AreaChart>

@@ -17,6 +17,7 @@ import { chromium, BrowserContext } from 'playwright';
 import Anthropic from '@anthropic-ai/sdk';
 import { redisConnection } from '../redis';
 import { prisma } from '../prisma';
+import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -606,14 +607,15 @@ export function createSourcingWorker() {
     'sourcing-search',
     async (job: Job<SourcingSearchJobData>) => {
       const { query } = job.data;
-      console.log(`[Sourcing] Processing: "${query}" (full=${!!job.data.jobId})`);
+      const start = Date.now();
+      logJobStart('sourcing-search', job.id ?? '-', job.name, { query, full: !!job.data.jobId });
 
       try {
         const results = await runFullPipeline(job.data);
-        console.log(`[Sourcing] Done: ${results.length} total results`);
+        logJobDone('sourcing-search', job.id ?? '-', job.name, Date.now() - start, { resultCount: results.length });
         return results;
       } catch (err) {
-        console.error('[Sourcing] Pipeline failed:', err);
+        logJobError('sourcing-search', job.id ?? '-', job.name, err, Date.now() - start);
         // Mark job as failed if full mode
         if (job.data.jobId) {
           await prisma.externalSearchJob.update({

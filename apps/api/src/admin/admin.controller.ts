@@ -426,6 +426,48 @@ export class AdminController {
     return this.adminService.deleteDepositLog(id);
   }
   // ============================================================
+  // LOG VIEWING ENDPOINTS
+  // ============================================================
+
+  /** L1 — API Logs (NDJSON file-based) */
+  @Get('logs')
+  getLogs(
+    @Query('date') date?: string,
+    @Query('status') status?: string,
+    @Query('status_gte') statusGte?: string,
+    @Query('endpoint') endpoint?: string,
+    @Query('method') method?: string,
+    @Query('min_ms') minMs?: string,
+    @Query('account_id') accountId?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    return this.adminService.getLogs({
+      date,
+      status: status ? parseInt(status) : undefined,
+      status_gte: statusGte ? parseInt(statusGte) : undefined,
+      endpoint,
+      method,
+      min_ms: minMs ? parseInt(minMs) : undefined,
+      account_id: accountId,
+      limit: limit ? Math.min(parseInt(limit), 500) : 200,
+      offset: offset ? parseInt(offset) : 0,
+    });
+  }
+
+  /** L2 — Performance Metrics */
+  @Get('logs/performance')
+  getLogsPerformance(
+    @Query('date') date?: string,
+    @Query('top') top?: string,
+  ) {
+    return this.adminService.getLogsPerformance(
+      date,
+      top ? parseInt(top) : 20,
+    );
+  }
+
+  // ============================================================
   // EXPORT ENDPOINTS
   // ============================================================
 

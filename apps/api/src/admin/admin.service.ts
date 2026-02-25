@@ -1,6 +1,13 @@
 import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
+import * as path from 'path';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  readLogFile,
+  getAvailableDates,
+  computePerformance,
+  type LogFilter,
+} from '../common/logger/file-logger';
 
 const SUPER_ADMIN_ACCOUNT_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
 
@@ -379,8 +386,8 @@ export class AdminService {
         where: { id: { not: SUPER_ADMIN_ACCOUNT_ID } },
         _count: { id: true },
       }),
-      this.prisma.user.count(),
-      this.prisma.user.count({ where: { is_active: true } }),
+      this.prisma.user.count({ where: { account_id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
+      this.prisma.user.count({ where: { is_active: true, account_id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
       this.prisma.userSession.count({
         where: { logged_in_at: { gte: todayStart } },
       }),
@@ -483,12 +490,12 @@ export class AdminService {
 
     const [newUsers, weekNew, monthNew, activeAccounts, paymentDueAccounts] = await Promise.all([
       this.prisma.user.findMany({
-        where: { created_at: { gte: since } },
+        where: { created_at: { gte: since }, account_id: { not: SUPER_ADMIN_ACCOUNT_ID } },
         select: { created_at: true },
         orderBy: { created_at: 'asc' },
       }),
-      this.prisma.user.count({ where: { created_at: { gte: weekAgo } } }),
-      this.prisma.user.count({ where: { created_at: { gte: monthAgo } } }),
+      this.prisma.user.count({ where: { created_at: { gte: weekAgo }, account_id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
+      this.prisma.user.count({ where: { created_at: { gte: monthAgo }, account_id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
       this.prisma.account.count({ where: { status: 'ACTIVE', id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
       this.prisma.account.count({ where: { status: 'PAYMENT_DUE', id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
     ]);
@@ -1687,6 +1694,64 @@ export class AdminService {
     });
 
     return { id: notificationId, is_read: true };
+  }
+
+  // ============================================================
+  // G. LOG VIEWING METHODS
+  // ============================================================
+
+  private get logDir() {
+    return path.join(process.cwd(), 'logs');
+  }
+
+  /** L1 — API Logs from NDJSON files */
+  async getLogs(params: {
+    date?: string;
+    status?: number;
+    status_gte?: number;
+    endpoint?: string;
+    method?: string;
+    min_ms?: number;
+    account_id?: string;
+    limit: number;
+    offset: number;
+  }) {
+    const date = params.date || new Date().toISOString().split('T')[0];
+    const filters: LogFilter = {
+      status: params.status,
+      status_gte: params.status_gte,
+      endpoint: params.endpoint,
+      method: params.method,
+      min_ms: params.min_ms,
+      account_id: params.account_id,
+    };
+
+    const { entries, total } = await readLogFile(
+      this.logDir,
+      'api',
+      date,
+      filters,
+      params.limit,
+      params.offset,
+    );
+
+    const availableDates = getAvailableDates(this.logDir, 'api');
+
+    return {
+      date,
+      entries,
+      total,
+      limit: params.limit,
+      offset: params.offset,
+      available_dates: availableDates,
+    };
+  }
+
+  /** L2 — Performance Metrics */
+  async getLogsPerformance(date?: string, top = 20) {
+    const targetDate = date || new Date().toISOString().split('T')[0];
+    const perf = await computePerformance(this.logDir, 'api', targetDate, top);
+    return { date: targetDate, ...perf };
   }
 
   // ============================================================

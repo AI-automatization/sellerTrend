@@ -221,3 +221,43 @@
   6. Dinamik maslahat: o'sish, tushish, barqaror holatga qarab tavsiya
   7. Ombor stok kartasi: `totalAvailableAmount` (per-order limit emas)
 - **Status:** DONE
+
+---
+
+### BUG-015: Super Admin statistikada user count ga ta'sir qiladi
+- **Sana:** 2026-02-25
+- **Tur:** backend
+- **Fayl:** `apps/api/src/admin/admin.service.ts`
+- **Xato:** Dashboard'da totalUsers va activeUsers super admin accountini ham hisoblaydi. Growth stats'da newUsers, weekNew, monthNew ham filter yo'q
+- **Sabab:** `getStatsOverview()` dagi `user.count()` va `getStatsGrowth()` dagi user so'rovlarida `SUPER_ADMIN_ACCOUNT_ID` filter qo'shilmagan edi
+- **Yechim:** Barcha user count/findMany so'rovlariga `account_id: { not: SUPER_ADMIN_ACCOUNT_ID }` filter qo'shildi (5 ta so'rov)
+- **Status:** FIXED
+
+---
+
+### BUG-016: Super admin sidebar'da 2 ta Dashboard
+- **Sana:** 2026-02-25
+- **Tur:** frontend
+- **Fayl:** `apps/web/src/components/Layout.tsx`
+- **Xato:** Super admin accounti sidebar'da "Admin Panel > Dashboard" va "Asosiy > Dashboard" ko'rinadi — 2 ta Dashboard
+- **Sabab:** Admin Dashboard (`/admin`) va asosiy Dashboard (`/`) ikkalasi ham ko'rsatilgan, super admin uchun farqlanmagan
+- **Yechim:** Asosiy Dashboard (`/`) ni `{!isSuperAdmin && ...}` shart bilan yashirildi — super admin faqat Admin Dashboard'ni ko'radi
+- **Status:** FIXED
+
+---
+
+### FEATURE: VENTRA UI Redesign
+- **Sana:** 2026-02-25
+- **Tur:** frontend (design system)
+- **Fayllar:**
+  - `apps/web/src/index.css` — VENTRA custom theme (oklch color tokens, Inter + Space Grotesk fonts, scrollbar, card hover)
+  - `apps/web/src/App.css` — tozalandi (Vite default olib tashlandi)
+  - `apps/web/index.html` — title "VENTRA", theme-color #0B0F1A, meta description
+  - `apps/web/src/components/Layout.tsx` — brand "VENTRA", V mark, sidebar border/hover style
+  - `apps/web/src/pages/LoginPage.tsx` — VENTRA branding, subtle bg, no gradients
+  - `apps/web/src/pages/RegisterPage.tsx` — VENTRA branding
+  - `apps/web/src/pages/DashboardPage.tsx` — font-heading
+  - `apps/web/src/config/branding.ts` — default app name "VENTRA"
+- **Ranglar:** bg-0 #0B0F1A, bg-1 #121826, bg-2 #1A2233, accent #4C7DFF, text #E5E7EB
+- **Fontlar:** Inter (UI) + Space Grotesk (h1-h6, brand)
+- **Status:** DONE

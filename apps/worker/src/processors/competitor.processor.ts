@@ -2,19 +2,20 @@ import { Worker, Job } from 'bullmq';
 import { redisConnection } from '../redis';
 import { prisma } from '../prisma';
 import { fetchProductDetail } from './uzum-scraper';
+import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
 
 const BATCH_SIZE = 5;
 const BATCH_DELAY_MS = 500;
 const PRICE_DROP_THRESHOLD_PCT = 10;
 
-async function processCompetitorSnapshots() {
+async function processCompetitorSnapshots(jobId: string, jobName: string) {
   // 1. Get all active trackings
   const trackings = await prisma.competitorTracking.findMany({
     where: { is_active: true },
   });
 
   if (trackings.length === 0) {
-    console.log('[competitor] No active trackings');
+    logJobInfo('competitor-queue', jobId, jobName, 'No active trackings');
     return { total: 0, snapshots: 0, alerts: 0 };
   }
 
@@ -23,9 +24,7 @@ async function processCompetitorSnapshots() {
     ...new Set(trackings.map((t) => Number(t.competitor_product_id))),
   ];
 
-  console.log(
-    `[competitor] ${trackings.length} trackings, ${uniqueProductIds.length} unique products`,
-  );
+  logJobInfo('competitor-queue', jobId, jobName, `${trackings.length} trackings, ${uniqueProductIds.length} unique products`);
 
   // 3. Fetch product details in batches
   const productDetails = new Map<number, Awaited<ReturnType<typeof fetchProductDetail>>>();
@@ -49,9 +48,7 @@ async function processCompetitorSnapshots() {
     }
   }
 
-  console.log(
-    `[competitor] Fetched ${productDetails.size}/${uniqueProductIds.length} product details`,
-  );
+  logJobInfo('competitor-queue', jobId, jobName, `Fetched ${productDetails.size}/${uniqueProductIds.length} product details`);
 
   // 4. Create snapshots and check for price drops
   let snapshotCount = 0;
@@ -107,9 +104,7 @@ async function processCompetitorSnapshots() {
                 },
               });
               alertCount++;
-              console.log(
-                `[competitor] PRICE_DROP alert: product ${tracking.product_id}, competitor ${tracking.competitor_product_id}, drop ${dropPct.toFixed(1)}%`,
-              );
+              logJobInfo('competitor-queue', jobId, jobName, `PRICE_DROP alert: product ${tracking.product_id}, competitor ${tracking.competitor_product_id}, drop ${dropPct.toFixed(1)}%`);
             }
           }
         }
@@ -124,10 +119,16 @@ export function createCompetitorWorker() {
   return new Worker(
     'competitor-queue',
     async (job: Job) => {
-      console.log(`[competitor] Processing job: ${job.name}`);
-      const result = await processCompetitorSnapshots();
-      console.log(`[competitor] Done:`, result);
-      return result;
+      const start = Date.now();
+      logJobStart('competitor-queue', job.id ?? '-', job.name);
+      try {
+        const result = await processCompetitorSnapshots(job.id ?? '-', job.name);
+        logJobDone('competitor-queue', job.id ?? '-', job.name, Date.now() - start, result);
+        return result;
+      } catch (err) {
+        logJobError('competitor-queue', job.id ?? '-', job.name, err, Date.now() - start);
+        throw err;
+      }
     },
     { ...redisConnection, concurrency: 1 },
   );

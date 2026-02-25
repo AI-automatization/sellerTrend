@@ -91,13 +91,14 @@ const MAX_SCORE = 10;
 
 const glassTooltip = {
   contentStyle: {
-    background: 'rgba(30,35,42,0.85)',
+    background: 'var(--chart-tooltip-bg)',
     backdropFilter: 'blur(8px)',
-    border: '1px solid rgba(255,255,255,0.08)',
+    border: '1px solid var(--chart-tooltip-border)',
     borderRadius: 12,
     fontSize: 12,
+    color: 'var(--chart-tooltip-text)',
   },
-  labelStyle: { color: 'rgba(255,255,255,0.5)' },
+  labelStyle: { color: 'var(--chart-tick)' },
 };
 
 function ScoreRadial({ score }: { score: number }) {
@@ -451,9 +452,9 @@ export function ProductPage() {
                       <stop offset="95%" stopColor="#a78bfa" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
                   <Tooltip {...glassTooltip} />
                   <Area type="monotone" dataKey="score" stroke="#a78bfa" strokeWidth={2} fill="url(#scoreGrad)" dot={false} />
                 </AreaChart>
@@ -527,21 +528,21 @@ export function ProductPage() {
               <p className="text-xs text-base-content/50 mb-2">Kunlik sotuv (taxminiy)</p>
               <ResponsiveContainer width="100%" height={160}>
                 <BarChart data={weeklyTrend.daily_breakdown} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                   <XAxis
                     dataKey="date"
-                    tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }}
+                    tick={{ fontSize: 10, fill: 'var(--chart-tick)' }}
                     tickFormatter={(v) => { const d = new Date(v); return `${d.getDate()}/${d.getMonth() + 1}`; }}
                     tickLine={false} axisLine={false}
                   />
-                  <YAxis tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
                   <Tooltip
                     {...glassTooltip}
                     labelFormatter={(v) => new Date(v).toLocaleDateString('uz-UZ', { weekday: 'short', day: 'numeric', month: 'short' })}
                     formatter={(value: number) => [`${value} ta`, 'Kunlik sotuv']}
                   />
                   <Bar dataKey="daily_sold" radius={[4, 4, 0, 0]} name="Kunlik sotuv">
-                    {weeklyTrend.daily_breakdown.map((entry, i) => (
+                    {weeklyTrend.daily_breakdown.map((_entry, i) => (
                       <rect key={i} fill={
                         i === weeklyTrend.daily_breakdown.length - 1 ? '#a78bfa' : '#34d399'
                       } />
@@ -657,9 +658,9 @@ export function ProductPage() {
                           <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                      <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} tickLine={false} axisLine={false} />
-                      <YAxis tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                      <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
+                      <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
                       <Tooltip {...glassTooltip} />
                       <Area type="monotone" dataKey="score" stroke="#a78bfa" strokeWidth={2} fill="none" dot={false} />
                       <Area type="monotone" dataKey="upper" stroke="none" fill="url(#confGrad)" dot={false} />
@@ -711,9 +712,9 @@ export function ProductPage() {
             <h2 className="font-bold text-sm text-base-content/70 mb-3">Haftalik sotuvlar tarixi</h2>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={snapshots.slice(-15)} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} tickLine={false} axisLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
                 <Tooltip {...glassTooltip} />
                 <Bar dataKey="orders" fill="#34d399" radius={[4, 4, 0, 0]} name="Haftalik sotuvlar" />
               </BarChart>
