@@ -2,6 +2,8 @@
 # Claude CLI uchun: Sardor (Frontend Engineer)
 # Sana: 2026-02-26
 # Stack: React 19 + TypeScript + Tailwind v4 + DaisyUI v5 + Recharts + React Router v7
+# Status yangilangan: 2026-02-26
+# Umumiy holat: 35/43 feature DONE (81%) | 8 ta TODO qoldi
 
 ---
 
@@ -21,9 +23,9 @@
 
 ---
 
-## 🔴 SPRINT 0 — BUG FIXES (ENG BIRINCHI BAJARILADI)
+## 🔴 SPRINT 0 — BUG FIXES (ENG BIRINCHI BAJARILADI) — 3/4 DONE
 
-### S-0.1: nginx.conf yaratish
+### S-0.1: nginx.conf yaratish ✅ DONE
 ```
 Fayl: apps/web/nginx.conf
 Nima: Production uchun Nginx konfiguratsiya
@@ -38,7 +40,7 @@ Tarkib:
   - Server name: _
 ```
 
-### S-0.2: Dockerfile yaratish
+### S-0.2: Dockerfile yaratish ✅ DONE
 ```
 Fayl: apps/web/Dockerfile
 Nima: Multi-stage Docker build
@@ -56,7 +58,7 @@ Tarkib:
     - CMD ["nginx", "-g", "daemon off;"]
 ```
 
-### S-0.3: DashboardPage yaxshilash
+### S-0.3: DashboardPage yaxshilash ✅ DONE
 ```
 Fayl: apps/web/src/pages/DashboardPage.tsx
 Nima qilish:
@@ -75,7 +77,7 @@ Nima qilish:
   3. font-heading class qo'shish h1, h2 ga
 ```
 
-### S-0.4: Skeleton komponentlar yaratish
+### S-0.4: Skeleton komponentlar yaratish ❌ TODO
 ```
 Fayllar:
   apps/web/src/components/ui/SkeletonCard.tsx
@@ -105,11 +107,11 @@ Har bir sahifada loading=true bo'lganda skeleton ishlatish kerak (hozir faqat <s
 
 ---
 
-## 🟢 v1.0 FEATURES (01-10) — FRONTEND
+## 🟢 v1.0 FEATURES (01-10) — FRONTEND — 8/10 DONE
 
 ---
 
-### FEATURE 01 — Competitor Price Tracker UI
+### FEATURE 01 — Competitor Price Tracker UI ❌ TODO
 ```
 API (Bekzod dan): GET /api/v1/competitor/products/:id/prices
 
@@ -154,7 +156,7 @@ API client qo'shimchalar:
   }
 ```
 
-### FEATURE 02 — Seasonal Trend Calendar UI
+### FEATURE 02 — Seasonal Trend Calendar UI ✅ DONE
 ```
 API: GET /api/v1/tools/seasonal-calendar
 
@@ -197,7 +199,7 @@ UpcomingEventsWidget.tsx (DashboardPage pastki qismiga):
   Props: { events: SeasonalEvent[] }
 ```
 
-### FEATURE 03 — Shop Intelligence Dashboard UI
+### FEATURE 03 — Shop Intelligence Dashboard UI ✅ DONE
 ```
 API: GET /api/v1/shops/:shopId
 
@@ -239,7 +241,7 @@ AnalyzePage o'zgarish:
   URL yuborilganda shop link chiqarish → /shops/:shopId ga navigate
 ```
 
-### FEATURE 04 — Niche Finder UI ⭐
+### FEATURE 04 — Niche Finder UI ⭐ ✅ DONE
 ```
 API: GET /api/v1/discovery/niches
 
@@ -285,7 +287,7 @@ NicheFilterPanel.tsx:
   Props: { filters: NicheFilters; onChange: (f: NicheFilters) => void }
 ```
 
-### FEATURE 05 — CSV/Excel Import & Export UI
+### FEATURE 05 — CSV/Excel Import & Export UI ✅ DONE
 ```
 API: 
   POST /api/v1/export/csv (download)
@@ -320,7 +322,7 @@ useExport.ts:
 DashboardPage, DiscoveryPage, ShopsPage larda ExportButton qo'shish
 ```
 
-### FEATURE 06 — Referral UI (MAVJUD — yaxshilash kerak)
+### FEATURE 06 — Referral UI (MAVJUD — yaxshilash kerak) ✅ DONE
 ```
 Fayl: apps/web/src/pages/ReferralPage.tsx (mavjud)
 
@@ -332,7 +334,7 @@ Yaxshilash kerak:
   [ ] Empty state: "Hali hech kimni taklif qilmadingiz"
 ```
 
-### FEATURE 07 — API Keys UI (MAVJUD — yaxshilash kerak)
+### FEATURE 07 — API Keys UI (MAVJUD — yaxshilash kerak) ✅ DONE
 ```
 Fayl: apps/web/src/pages/ApiKeysPage.tsx (mavjud)
 
@@ -346,7 +348,7 @@ Yaxshilash kerak:
   [ ] Code snippet: cURL, JavaScript, Python misollari (DaisyUI mockup tab)
 ```
 
-### FEATURE 08 — Public Leaderboard UI (MAVJUD — yaxshilash kerak)
+### FEATURE 08 — Public Leaderboard UI (MAVJUD — yaxshilash kerak) ✅ DONE
 ```
 Fayl: apps/web/src/pages/LeaderboardPage.tsx (mavjud)
 
@@ -370,7 +372,7 @@ Yaxshilash kerak:
       Default: "Barchasi"
 ```
 
-### FEATURE 09 — Profit Calculator UI (MAVJUD — yaxshilash kerak)
+### FEATURE 09 — Profit Calculator UI (MAVJUD — yaxshilash kerak) ✅ DONE
 ```
 Fayl: apps/web/src/pages/ProfitCalculatorPage.tsx (mavjud)
 
@@ -404,7 +406,7 @@ Yaxshilash kerak:
       (Sourcing natijasi → kalkulator avtomatik to'ldiriladi, URL params orqali)
 ```
 
-### FEATURE 10 — Browser Extension Landing Page
+### FEATURE 10 — Browser Extension Landing Page ❌ TODO
 ```
 Fayllar:
   [ ] apps/web/src/pages/ExtensionPage.tsx
@@ -434,11 +436,11 @@ ProductPage ga qo'shimcha:
 
 ---
 
-## 🟢 v2.0 FEATURES (11-20) — FRONTEND
+## 🟢 v2.0 FEATURES (11-20) — FRONTEND — 9/10 DONE
 
 ---
 
-### FEATURE 11 — Trend Prediction UI
+### FEATURE 11 — Trend Prediction UI ✅ DONE
 ```
 API: GET /api/v1/products/:id/prediction
 
@@ -468,7 +470,7 @@ PredictionBadge.tsx:
   Props: { prediction_trend: 'up' | 'down' | 'flat'; change_pct: number }
 ```
 
-### FEATURE 12 — Auto Description Generator UI (MAVJUD — yaxshilash)
+### FEATURE 12 — Auto Description Generator UI (MAVJUD — yaxshilash) ✅ DONE
 ```
 Fayl: apps/web/src/pages/AiDescriptionPage.tsx (mavjud)
 
@@ -482,7 +484,7 @@ Yaxshilash kerak:
   [ ] History: oxirgi 5 ta yaratilgan description (localStorage)
 ```
 
-### FEATURE 13 — Review Sentiment Analysis UI
+### FEATURE 13 — Review Sentiment Analysis UI ✅ DONE
 ```
 API: GET /api/v1/products/:id/sentiment
 
@@ -507,7 +509,7 @@ SentimentKeywords.tsx:
   Props: { strengths: string[]; weaknesses: string[] }
 ```
 
-### FEATURE 14 — White-label UI (Admin tomoni)
+### FEATURE 14 — White-label UI (Admin tomoni) ❌ TODO
 ```
 Fayllar:
   [ ] apps/web/src/pages/admin/WhiteLabelTab.tsx (AdminPage ichida)
@@ -523,7 +525,7 @@ AdminPage da yangi tab: "White Label"
   Faqat SUPER_ADMIN ko'radi
 ```
 
-### FEATURE 15 — Konsultatsiya Marketplace UI (MAVJUD — yaxshilash)
+### FEATURE 15 — Konsultatsiya Marketplace UI (MAVJUD — yaxshilash) ✅ DONE
 ```
 Fayl: apps/web/src/pages/ConsultationPage.tsx (mavjud)
 
@@ -541,7 +543,7 @@ Yaxshilash kerak:
       Rate tugmasi (COMPLETED bo'lganda): 1-5 yulduz + review text
 ```
 
-### FEATURE 16 — PWA (Progressive Web App)
+### FEATURE 16 — PWA (Progressive Web App) ✅ DONE
 ```
 Fayllar:
   [ ] apps/web/public/manifest.json
@@ -576,7 +578,7 @@ offline.html:
   "Qayta urinish" tugmasi → location.reload()
 ```
 
-### FEATURE 17 — WebSocket Real-time UI
+### FEATURE 17 — WebSocket Real-time UI ✅ DONE
 ```
 Fayllar:
   [ ] apps/web/src/hooks/useRealtime.ts (MAVJUD — yaxshilash)
@@ -606,7 +608,7 @@ useToast.ts:
   Queue boshqaruv: 3 dan ortiq bo'lsa eng eskisini olib tashlash
 ```
 
-### FEATURE 18 — Multi-language i18n (MAVJUD — to'ldirish)
+### FEATURE 18 — Multi-language i18n (MAVJUD — to'ldirish) ✅ DONE
 ```
 Fayl: apps/web/src/i18n/translations.ts (mavjud)
 
@@ -626,7 +628,7 @@ Qo'shimcha kerak:
       - ProfitCalculatorPage (to'liq)
 ```
 
-### FEATURE 19 — Demand-Supply Gap UI
+### FEATURE 19 — Demand-Supply Gap UI ✅ DONE
 ```
 API: GET /api/v1/discovery/gaps
 
@@ -668,7 +670,7 @@ DashboardPage widget:
       "Barchasini ko'rish" → /discovery/gaps
 ```
 
-### FEATURE 20 — Price Elasticity Calculator UI (MAVJUD — yaxshilash)
+### FEATURE 20 — Price Elasticity Calculator UI (MAVJUD — yaxshilash) ✅ DONE
 ```
 Fayl: apps/web/src/pages/ElasticityPage.tsx (mavjud)
 
@@ -696,13 +698,13 @@ Yaxshilash kerak:
 
 ---
 
-## 🟢 v3.0 FEATURES (21-30) — FRONTEND (Signals sahifasida)
+## 🟢 v3.0 FEATURES (21-30) — FRONTEND (Signals sahifasida) — 10/10 DONE ✅
 
 > Barchasi SignalsPage.tsx tab lari ichida amalga oshiriladi
 
 ---
 
-### FEATURE 21 — Cannibalization Alert UI
+### FEATURE 21 — Cannibalization Alert UI ✅ DONE
 ```
 Tab: 'cannibalization' (SignalsPage da — MAVJUD tab, content yaxshilash)
 
@@ -728,7 +730,7 @@ CannibalizationCard.tsx:
   Props: { alert: CannibalizationAlert; onDismiss: () => void }
 ```
 
-### FEATURE 22 — Dead Stock Predictor UI
+### FEATURE 22 — Dead Stock Predictor UI ✅ DONE
 ```
 Tab: 'dead-stock' (SignalsPage da — MAVJUD tab, content yaxshilash)
 
@@ -749,7 +751,7 @@ DeadStockCard.tsx:
   Props: { risk: DeadStockAnalysis }
 ```
 
-### FEATURE 23 — Category Saturation Index UI
+### FEATURE 23 — Category Saturation Index UI ✅ DONE
 ```
 Tab: 'saturation' (SignalsPage da — MAVJUD tab, content yaxshilash)
 
@@ -776,7 +778,7 @@ MarketSharePie.tsx:
 Kategoriya tanlash: Select dropdown → API chaqirish
 ```
 
-### FEATURE 24 — Flash Sale Detector UI
+### FEATURE 24 — Flash Sale Detector UI ✅ DONE
 ```
 Tab: 'flash-sales' (SignalsPage da — MAVJUD tab, content yaxshilash)
 
@@ -795,7 +797,7 @@ FlashSaleCard.tsx:
   Props: { flashSale: FlashSaleEvent }
 ```
 
-### FEATURE 25 — New Product Early Signal UI
+### FEATURE 25 — New Product Early Signal UI ✅ DONE
 ```
 Tab: 'early-signals' (SignalsPage da — MAVJUD tab, content yaxshilash)
 
@@ -814,7 +816,7 @@ EarlySignalCard.tsx:
   Props: { signal: EarlySignalData }
 ```
 
-### FEATURE 26 — Stock Cliff Alert UI
+### FEATURE 26 — Stock Cliff Alert UI ✅ DONE
 ```
 Tab: 'stock-cliffs' (SignalsPage da — MAVJUD tab, content yaxshilash)
 
@@ -830,7 +832,7 @@ StockCliffCard.tsx:
   Props: { cliff: StockCliffAlert }
 ```
 
-### FEATURE 27 — Ranking Position Tracker UI
+### FEATURE 27 — Ranking Position Tracker UI ✅ DONE
 ```
 Tab: 'ranking' (SignalsPage da — MAVJUD tab, content yaxshilash)
 
@@ -854,7 +856,7 @@ DashboardPage da mini-widget:
       Faqat top-3 o'zgarish ko'rsatish
 ```
 
-### FEATURE 28 — Product Launch Checklist UI
+### FEATURE 28 — Product Launch Checklist UI ✅ DONE
 ```
 Tab: 'checklist' (SignalsPage da — MAVJUD tab, content yaxshilash)
 
@@ -881,7 +883,7 @@ ChecklistItem.tsx:
 "Hisobot saqlash" tugmasi → PDF download (API orqali)
 ```
 
-### FEATURE 29 — A/B Price Testing UI
+### FEATURE 29 — A/B Price Testing UI ✅ DONE
 ```
 Tab: 'price-test' (SignalsPage da — MAVJUD tab, content yaxshilash)
 
@@ -910,7 +912,7 @@ PriceTestResults.tsx:
   Props: { test: PriceTestData }
 ```
 
-### FEATURE 30 — Replenishment Planner UI
+### FEATURE 30 — Replenishment Planner UI ✅ DONE
 ```
 Tab: 'replenishment' (SignalsPage da — MAVJUD tab, content yaxshilash)
 
@@ -938,13 +940,13 @@ DashboardPage widget: "Stok eslatmalar" — days_remaining < 14 bo'lganlar
 
 ---
 
-## 🟢 v4.0 FEATURES (31-43) — FRONTEND (Enterprise sahifasida)
+## 🟢 v4.0 FEATURES (31-43) — FRONTEND (Enterprise sahifasida) — 8/10 DONE
 
 > Barchasi EnterprisePage.tsx tab lari ichida amalga oshiriladi
 
 ---
 
-### FEATURE 31 — Uzum Ads ROI Tracker UI
+### FEATURE 31 — Uzum Ads ROI Tracker UI ✅ DONE
 ```
 Tab: 'ads' (EnterprisePage da — MAVJUD tab, content yaxshilash)
 
@@ -977,7 +979,7 @@ RoiChart.tsx:
   Props: { dailyData: AdsDailyData[] }
 ```
 
-### FEATURE 33 — Team Collaboration UI
+### FEATURE 33 — Team Collaboration UI ✅ DONE
 ```
 Tab: 'team' (EnterprisePage da — MAVJUD tab, content yaxshilash)
 
@@ -998,7 +1000,7 @@ InviteModal.tsx:
   Pending invites ro'yxati: email + status + "Bekor qilish" tugmasi
 ```
 
-### FEATURE 34 — Custom Report Builder UI
+### FEATURE 34 — Custom Report Builder UI ✅ DONE
 ```
 Tab: 'reports' (EnterprisePage da — MAVJUD tab, content yaxshilash)
 
@@ -1022,7 +1024,7 @@ ReportList.tsx:
   "O'chirish" tugmasi (confirm modal)
 ```
 
-### FEATURE 35 — Market Share PDF UI
+### FEATURE 35 — Market Share PDF UI ✅ DONE
 ```
 Reports tab ichida → "Bozor ulushi" sub-section
 
@@ -1036,7 +1038,7 @@ MarketShareReport.tsx:
   Blob download
 ```
 
-### FEATURE 36 — Watchlist Sharing UI
+### FEATURE 36 — Watchlist Sharing UI ✅ DONE
 ```
 Tab: 'watchlist' (EnterprisePage da — MAVJUD tab, content yaxshilash)
 
@@ -1063,7 +1065,7 @@ Public watchlist sahifa (auth kerak emas):
   CTA: "To'liq ma'lumot uchun ro'yxatdan o'ting" → /register
 ```
 
-### FEATURE 38 — Collective Intelligence UI
+### FEATURE 38 — Collective Intelligence UI ✅ DONE
 ```
 Tab: 'community' (EnterprisePage da — MAVJUD tab, content yaxshilash)
 
@@ -1089,7 +1091,7 @@ Filtering: kategoriya filter + sort (top/new)
 "127 sotuvchi kuzatyapti" social proof counters
 ```
 
-### FEATURE 40 — Xitoy/Yevropa Narx Taqqoslash UI (SourcingPage da)
+### FEATURE 40 — Xitoy/Yevropa Narx Taqqoslash UI (SourcingPage da) ✅ DONE
 ```
 Fayl: apps/web/src/pages/SourcingPage.tsx (MAVJUD — yaxshilash)
 
@@ -1106,7 +1108,7 @@ Qo'shimchalar:
   [ ] "Kalkulator ochish" tugmasi → ProfitCalculatorPage (pre-filled)
 ```
 
-### FEATURE 41 — Cargo Calculator UI
+### FEATURE 41 — Cargo Calculator UI ✅ DONE
 ```
 API: POST /api/v1/sourcing/compare, GET /api/v1/cargo/providers
 
@@ -1155,7 +1157,7 @@ ProviderComparisonTable.tsx:
 
 ## 🔵 LAYOUT / SIDEBAR O'ZGARISHLAR
 
-### Sidebar yangilash (Layout.tsx)
+### Sidebar yangilash (Layout.tsx) ✅ DONE
 ```
 Fayl: apps/web/src/components/Layout.tsx
 
@@ -1194,7 +1196,7 @@ Guruh nomlari: text-[10px] uppercase tracking-wider font-bold text-base-content/
 Yangi linklar orasida: divider (border-t border-base-300/30)
 ```
 
-### Notification Bell (Layout.tsx navbar da)
+### Notification Bell (Layout.tsx navbar da) ✅ DONE
 ```
 Fayllar:
   [ ] apps/web/src/components/ui/NotificationBell.tsx
@@ -1215,7 +1217,7 @@ useNotifications.ts:
   WebSocket orqali ham yangilanishi mumkin
 ```
 
-### App.tsx yangi route lar
+### App.tsx yangi route lar ✅ DONE (asosiy route lar)
 ```
 Fayl: apps/web/src/App.tsx
 
@@ -1235,20 +1237,20 @@ Qo'shilishi kerak:
 
 ## 🟣 YANGI SAHIFALAR (hali yaratilmagan)
 
-| # | Sahifa | Route | Prioritet |
-|---|--------|-------|-----------|
-| 1 | FeedbackPage.tsx | /feedback | YUQORI |
-| 2 | SeasonalCalendarPage.tsx | /tools/seasonal-calendar | O'RTA |
-| 3 | NichePage.tsx | /discovery/niches | YUQORI |
-| 4 | GapsPage.tsx | /discovery/gaps | O'RTA |
-| 5 | ShopDetailPage.tsx | /shops/:shopId | YUQORI |
-| 6 | CargoCalculatorPage.tsx | /tools/cargo-calculator | O'RTA |
-| 7 | ExtensionPage.tsx | /extension | PAST |
-| 8 | SharedWatchlistPage.tsx | /shared/watchlist/:token | PAST |
+| # | Sahifa | Route | Prioritet | Status |
+|---|--------|-------|-----------|--------|
+| 1 | FeedbackPage.tsx | /feedback | YUQORI | ✅ DONE |
+| 2 | SeasonalCalendarPage.tsx | /tools/seasonal-calendar | O'RTA | ✅ DONE (DiscoveryPage ichida) |
+| 3 | NichePage.tsx | /discovery/niches | YUQORI | ✅ DONE (DiscoveryPage ichida) |
+| 4 | GapsPage.tsx | /discovery/gaps | O'RTA | ✅ DONE (DiscoveryPage ichida) |
+| 5 | ShopDetailPage.tsx | /shops/:shopId | YUQORI | ✅ DONE (ShopsPage) |
+| 6 | CargoCalculatorPage.tsx | /tools/cargo-calculator | O'RTA | ✅ DONE (SourcingPage ichida) |
+| 7 | ExtensionPage.tsx | /extension | PAST | ❌ TODO |
+| 8 | SharedWatchlistPage.tsx | /shared/watchlist/:token | PAST | ❌ TODO |
 
 ---
 
-## 🟣 FeedbackPage.tsx — TO'LIQ SPEC
+## 🟣 FeedbackPage.tsx — TO'LIQ SPEC ✅ DONE
 
 ```
 Fayl: apps/web/src/pages/FeedbackPage.tsx
@@ -1350,8 +1352,8 @@ BESHINCHI (v4.0 — EnterprisePage yaxshilash):
 [ ] Barcha sahifalarda Skeleton komponentlari qo'llash (loading=true)
 [ ] Error boundary: React ErrorBoundary wrapper
 [ ] React.lazy + Suspense: sahifalar lazy loading (bundle size kamaytirish)
-[ ] Axios interceptor: 401 → auto redirect /login
-[ ] Axios interceptor: 402 → PAYMENT_DUE banner ko'rsatish
+[x] Axios interceptor: 401 → auto redirect /login ✅ DONE
+[x] Axios interceptor: 402 → PAYMENT_DUE banner ko'rsatish ✅ DONE
 [ ] useDebounce hook: search input larga qo'llash
 [ ] Accessibility: barcha interactive elementlarda aria-label
 [ ] Accessibility: keyboard navigation (Tab, Enter, Escape)

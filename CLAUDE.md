@@ -125,7 +125,7 @@ refactor(discovery): replace Playwright with REST pagination
 
 ## 🐛 BUG TRACKING (MAJBURIY)
 
-**Claude har qanday bug yoki error tuzatganda `Bugs_Fixes.md` faylga AVTOMATIK yozishi SHART:**
+**Claude har qanday bug yoki error tuzatganda `docs/Bugs_Fixes.md` faylga AVTOMATIK yozishi SHART:**
 
 1. Console error (frontend) — `.map is not a function`, `undefined`, 404, 500, etc.
 2. API error (backend) — NestJS exception, Prisma error, 4xx/5xx
@@ -147,7 +147,7 @@ refactor(discovery): replace Playwright with REST pagination
 
 **Qoidalar:**
 - Bug topilgan paytda DARHOL yoziladi, keyin emas
-- Har bir sessiyada avval `Bugs_Fixes.md` o'qib, raqamni davom ettirish
+- Har bir sessiyada avval `docs/Bugs_Fixes.md` o'qib, raqamni davom ettirish
 - Playwright test natijalarini ham yozish
 - Takroriy buglar uchun yangi yozuv yaratmaslik, mavjudini yangilash
 
