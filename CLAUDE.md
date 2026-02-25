@@ -123,33 +123,29 @@ refactor(discovery): replace Playwright with REST pagination
 
 ---
 
-## 🐛 BUG TRACKING (MAJBURIY)
+## 📋 TASK TRACKING (MAJBURIY)
 
-**Claude har qanday bug yoki error tuzatganda `docs/Bugs_Fixes.md` faylga AVTOMATIK yozishi SHART:**
+**Loyiha vazifalari 2 ta faylda boshqariladi:**
 
-1. Console error (frontend) — `.map is not a function`, `undefined`, 404, 500, etc.
-2. API error (backend) — NestJS exception, Prisma error, 4xx/5xx
-3. TypeScript error — `tsc --noEmit` da chiqqan xatolar
-4. Playwright/test error — route test'larda topilgan xatolar
-5. Build/config error — Vite, Webpack, dependency muammolari
+| Fayl | Vazifasi |
+|------|----------|
+| `docs/Tasks.md` | Barcha ochiq vazifalar — bug, error, feature, arxitektura, devops |
+| `docs/Done.md` | Bajarilgan ishlar arxivi — fix, feature, test natijalari |
 
-**Format (har bir bug uchun):**
-```markdown
-### BUG-[raqam]: [qisqa sarlavha]
-- **Sana:** YYYY-MM-DD
-- **Tur:** frontend | backend | config | build
-- **Fayl:** [o'zgargan fayl path]
-- **Xato:** [error message]
-- **Sabab:** [root cause]
-- **Yechim:** [nima qilindi]
-- **Status:** FIXED
-```
+**Yangi bug/error/task topilganda `docs/Tasks.md` ga qo'shiladi:**
+
+Format: `T-XXX | [KATEGORIYA] | Sarlavha | Mas'ul | Vaqt`
+- Kategoriyalar: BACKEND, FRONTEND, DEVOPS, IKKALASI
+- Prioritetlar: P0 (kritik), P1 (muhim), P2 (o'rta), P3 (past)
+
+**Fix bo'lgandan keyin:**
+1. `docs/Tasks.md` dan o'chiriladi
+2. `docs/Done.md` ga ko'chiriladi (sana + qisqa yechim)
 
 **Qoidalar:**
-- Bug topilgan paytda DARHOL yoziladi, keyin emas
-- Har bir sessiyada avval `docs/Bugs_Fixes.md` o'qib, raqamni davom ettirish
-- Playwright test natijalarini ham yozish
-- Takroriy buglar uchun yangi yozuv yaratmaslik, mavjudini yangilash
+- Bug/task topilgan paytda DARHOL yoziladi
+- Har sessiyada avval `docs/Tasks.md` o'qib, T-raqamni davom ettirish
+- Takroriy task yaratmaslik, mavjudini yangilash
 
 ---
 
