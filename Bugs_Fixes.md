@@ -332,3 +332,12 @@
 - **Sabab:** Cron pattern `0 3 * * *` (kuniga 1 marta)
 - **Yechim:** Cron pattern `0 */6 * * *` ga o'zgartirildi (har 6 soatda: 00:00, 06:00, 12:00, 18:00 UTC)
 - **Status:** FIXED
+
+### BUG-022: /products/:id/snapshots endpoint 500 — BigInt serialization
+- **Sana:** 2026-02-25
+- **Tur:** backend
+- **Fayl:** `apps/api/src/products/products.service.ts`
+- **Xato:** `GET /products/803436/snapshots` → 500 Internal Server Error. `JSON.stringify` BigInt qiymatlarni serialize qila olmaydi.
+- **Sabab:** `getProductSnapshots()` Prisma natijasini to'g'ridan-to'g'ri qaytarardi. `orders_quantity` (BigInt) va `score`/`rating` (Decimal) turlarini JSON ga aylantirish mumkin emas.
+- **Yechim:** Har bir snapshotni `.map()` bilan `Number()` ga convert qilib qaytarish qo'shildi.
+- **Status:** FIXED

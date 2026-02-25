@@ -158,7 +158,7 @@ export class ProductsService {
   }
 
   async getProductSnapshots(productId: bigint, limit = 30) {
-    return this.prisma.productSnapshot.findMany({
+    const rows = await this.prisma.productSnapshot.findMany({
       where: { product_id: productId },
       orderBy: { snapshot_at: 'desc' },
       take: limit,
@@ -170,6 +170,14 @@ export class ProductsService {
         snapshot_at: true,
       },
     });
+
+    return rows.map((s) => ({
+      score: s.score ? Number(s.score) : null,
+      weekly_bought: s.weekly_bought,
+      orders_quantity: s.orders_quantity ? Number(s.orders_quantity) : null,
+      rating: s.rating ? Number(s.rating) : null,
+      snapshot_at: s.snapshot_at,
+    }));
   }
 
   /**
