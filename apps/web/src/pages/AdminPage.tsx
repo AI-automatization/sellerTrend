@@ -992,84 +992,161 @@ export function AdminPage() {
 
         {/* ═══════════════ ANALYTICS & POPULAR TAB (MERGED) ═══════════════ */}
         {activeTab === 'analytics' && (
-          <div className="space-y-4">
-            {/* Top Users */}
-            <div className="card bg-base-200">
-              <div className="card-body p-4">
+          <div className="space-y-5">
+            {/* ── Summary Stats ── */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <StatCard label="Top userlar" value={topUsers.length} />
+              <StatCard label="Mashhur mahsulotlar" value={popularProducts.length} />
+              <StatCard label="Kategoriyalar" value={popularCategories.length} />
+              <StatCard label="Eng faol" value={topUsers[0]?.email?.split('@')[0] || '—'} sub={topUsers[0] ? `${topUsers[0].activity_score ?? 0} ball` : ''} color="text-primary" />
+            </div>
+
+            {/* ── Top Foydalanuvchilar ── */}
+            <div className="bg-base-200 rounded-2xl border border-base-300/50 overflow-hidden">
+              <div className="px-4 py-3 border-b border-base-300/30 flex items-center justify-between">
                 <h3 className="font-semibold text-sm">Top Foydalanuvchilar</h3>
-                <div className="overflow-x-auto mt-2">
-                  <table className="table table-sm">
-                    <thead><tr><th>#</th><th>Email</th><th>Account</th><th>Tracked</th><th>Avg Score</th><th>Haftalik</th><th>Discovery</th><th>Faollik</th></tr></thead>
+                <span className="text-xs text-base-content/40">{topUsers.length} ta</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="table table-sm w-full">
+                  <thead>
+                    <tr className="bg-base-300/40 text-xs uppercase tracking-wider text-base-content/50">
+                      <th className="w-12 text-center">#</th>
+                      <th>Foydalanuvchi</th>
+                      <th className="text-center">Tracked</th>
+                      <th className="text-center">Avg Score</th>
+                      <th className="text-center">Haftalik</th>
+                      <th className="text-center">Discovery</th>
+                      <th className="text-center">Faollik</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {topUsers.map((u: any, i: number) => (
+                      <tr key={u.user_id || i} className="hover:bg-base-300/30 transition-colors">
+                        <td className="text-center">
+                          {i < 3 ? (
+                            <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${
+                              i === 0 ? 'bg-amber-500/15 text-amber-500 ring-1 ring-amber-500/20' :
+                              i === 1 ? 'bg-base-content/10 text-base-content/60 ring-1 ring-base-content/10' :
+                              'bg-orange-400/10 text-orange-400 ring-1 ring-orange-400/20'
+                            }`}>
+                              {i + 1}
+                            </span>
+                          ) : <span className="text-base-content/40 text-xs">{i + 1}</span>}
+                        </td>
+                        <td>
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-[11px] font-bold text-primary uppercase">
+                              {u.email?.[0] || '?'}
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium">{u.email}</div>
+                              <div className="text-[11px] text-base-content/35">{u.account_name}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="text-center font-bold">{u.tracked_products ?? 0}</td>
+                        <td className="text-center">
+                          <span className={`text-sm font-mono ${Number(u.avg_score ?? 0) >= 4 ? 'text-success' : Number(u.avg_score ?? 0) >= 2 ? 'text-warning' : 'text-base-content/50'}`}>
+                            {Number(u.avg_score ?? 0).toFixed(2)}
+                          </span>
+                        </td>
+                        <td className="text-center tabular-nums">{u.total_weekly ?? 0}</td>
+                        <td className="text-center tabular-nums">{u.discovery_runs ?? 0}</td>
+                        <td className="text-center">
+                          <span className="inline-flex items-center justify-center min-w-[2rem] px-1.5 py-0.5 rounded-lg bg-primary/10 text-primary text-xs font-bold tabular-nums">
+                            {u.activity_score ?? 0}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                    {!topUsers.length && <tr><td colSpan={7} className="text-center text-base-content/40 py-8">Ma'lumot yo'q</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* ── Products + Categories side by side ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {/* Top Mahsulotlar */}
+              <div className="bg-base-200 rounded-2xl border border-base-300/50 overflow-hidden">
+                <div className="px-4 py-3 border-b border-base-300/30 flex items-center justify-between">
+                  <h3 className="font-semibold text-sm">Top Mahsulotlar</h3>
+                  <span className="text-xs text-base-content/40">{popularProducts.length} ta</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="table table-sm w-full">
+                    <thead>
+                      <tr className="bg-base-300/40 text-xs uppercase tracking-wider text-base-content/50">
+                        <th className="w-10 text-center">#</th>
+                        <th>Mahsulot</th>
+                        <th className="text-center">Track</th>
+                        <th className="text-center">Score</th>
+                        <th className="text-right">Haftalik</th>
+                      </tr>
+                    </thead>
                     <tbody>
-                      {topUsers.map((u: any, i: number) => (
-                        <tr key={u.user_id || i}>
+                      {popularProducts.map((p: any, i: number) => (
+                        <tr key={p.product_id || i} className="hover:bg-base-300/30 transition-colors">
+                          <td className="text-center text-xs text-base-content/40 font-mono">{i + 1}</td>
                           <td>
-                            {i < 3 ? (
-                              <span className={`badge badge-sm ${i === 0 ? 'badge-warning' : i === 1 ? 'badge-ghost' : 'badge-info'}`}>
-                                {i === 0 ? 'I' : i === 1 ? 'II' : 'III'}
-                              </span>
-                            ) : i + 1}
+                            <div className="text-sm max-w-[260px] truncate" title={p.title || `Product #${p.product_id}`}>
+                              {p.title || `Product #${p.product_id}`}
+                            </div>
                           </td>
-                          <td className="text-sm">{u.email}</td>
-                          <td className="text-xs text-base-content/50">{u.account_name}</td>
-                          <td className="font-bold">{u.tracked_products ?? 0}</td>
-                          <td>{(u.avg_score ?? 0).toFixed(2)}</td>
-                          <td>{u.total_weekly ?? 0}</td>
-                          <td>{u.discovery_runs ?? 0}</td>
-                          <td className="font-mono text-primary">{u.activity_score ?? 0}</td>
+                          <td className="text-center">
+                            <span className="inline-flex items-center justify-center min-w-[1.5rem] px-1.5 py-0.5 rounded-lg bg-primary/10 text-primary text-xs font-bold">
+                              {p.tracker_count}
+                            </span>
+                          </td>
+                          <td className="text-center">
+                            <span className={`text-sm font-mono ${Number(p.avg_score ?? 0) >= 5 ? 'text-success' : Number(p.avg_score ?? 0) >= 3 ? 'text-warning' : 'text-base-content/50'}`}>
+                              {Number(p.avg_score ?? 0).toFixed(2)}
+                            </span>
+                          </td>
+                          <td className="text-right tabular-nums font-mono text-sm">{p.weekly_bought ?? '—'}</td>
                         </tr>
                       ))}
-                      {!topUsers.length && <tr><td colSpan={8} className="text-center text-base-content/40">Ma'lumot yo'q</td></tr>}
+                      {!popularProducts.length && <tr><td colSpan={5} className="text-center text-base-content/40 py-8">Ma'lumot yo'q</td></tr>}
                     </tbody>
                   </table>
                 </div>
               </div>
-            </div>
 
-            {/* Popular Products + Categories side by side */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="card bg-base-200">
-                <div className="card-body p-4">
-                  <h3 className="font-semibold text-sm">Top-20 Mashhur Mahsulotlar</h3>
-                  <div className="overflow-x-auto mt-2">
-                    <table className="table table-sm">
-                      <thead><tr><th>#</th><th>Mahsulot</th><th>Track</th><th>Score</th><th>Haftalik</th></tr></thead>
-                      <tbody>
-                        {popularProducts.map((p: any, i: number) => (
-                          <tr key={p.product_id || i}>
-                            <td className="font-mono">{i + 1}</td>
-                            <td className="text-sm max-w-xs truncate">{p.title || `Product #${p.product_id}`}</td>
-                            <td className="font-bold text-primary">{p.tracker_count}</td>
-                            <td>{Number(p.avg_score ?? 0).toFixed(2)}</td>
-                            <td>{p.weekly_bought ?? '-'}</td>
-                          </tr>
-                        ))}
-                        {!popularProducts.length && <tr><td colSpan={5} className="text-center text-base-content/40">Ma'lumot yo'q</td></tr>}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-
-              <div className="card bg-base-200">
-                <div className="card-body p-4">
+              {/* Top Kategoriyalar */}
+              <div className="bg-base-200 rounded-2xl border border-base-300/50 overflow-hidden">
+                <div className="px-4 py-3 border-b border-base-300/30 flex items-center justify-between">
                   <h3 className="font-semibold text-sm">Top Kategoriyalar</h3>
-                  <div className="overflow-x-auto mt-2">
-                    <table className="table table-sm">
-                      <thead><tr><th>Kategoriya ID</th><th>Discovery runlar</th><th>Winnerlar</th><th>Oxirgi run</th></tr></thead>
-                      <tbody>
-                        {popularCategories.map((c: any, i: number) => (
-                          <tr key={c.category_id || i}>
-                            <td className="font-mono">{c.category_id}</td>
-                            <td className="font-bold">{c.run_count}</td>
-                            <td>{c.winner_count ?? '-'}</td>
-                            <td className="text-xs text-base-content/50">{c.last_run_at ? new Date(c.last_run_at).toLocaleDateString() : '-'}</td>
-                          </tr>
-                        ))}
-                        {!popularCategories.length && <tr><td colSpan={4} className="text-center text-base-content/40">Ma'lumot yo'q</td></tr>}
-                      </tbody>
-                    </table>
-                  </div>
+                  <span className="text-xs text-base-content/40">{popularCategories.length} ta</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="table table-sm w-full">
+                    <thead>
+                      <tr className="bg-base-300/40 text-xs uppercase tracking-wider text-base-content/50">
+                        <th>Kategoriya ID</th>
+                        <th className="text-center">Discovery</th>
+                        <th className="text-center">Winnerlar</th>
+                        <th className="text-right">Oxirgi run</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {popularCategories.map((c: any, i: number) => (
+                        <tr key={c.category_id || i} className="hover:bg-base-300/30 transition-colors">
+                          <td>
+                            <span className="font-mono text-sm bg-base-300/50 px-2 py-0.5 rounded-md">{c.category_id}</span>
+                          </td>
+                          <td className="text-center font-bold">{c.run_count}</td>
+                          <td className="text-center">
+                            <span className="inline-flex items-center justify-center min-w-[1.5rem] px-1.5 py-0.5 rounded-lg bg-success/10 text-success text-xs font-bold">
+                              {c.winner_count ?? 0}
+                            </span>
+                          </td>
+                          <td className="text-right text-xs text-base-content/50">{c.last_run_at ? new Date(c.last_run_at).toLocaleDateString() : '—'}</td>
+                        </tr>
+                      ))}
+                      {!popularCategories.length && <tr><td colSpan={4} className="text-center text-base-content/40 py-8">Ma'lumot yo'q</td></tr>}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
