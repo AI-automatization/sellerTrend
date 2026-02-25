@@ -2,6 +2,7 @@ import { Worker, Job } from 'bullmq';
 import { redisConnection } from '../redis';
 import { prisma } from '../prisma';
 import { parseUzumProductId, calculateScore, getSupplyPressure, sleep } from '@uzum/utils';
+import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
 
 interface ImportBatchJobData {
   accountId: string;
@@ -23,17 +24,17 @@ async function fetchProductDetail(productId: number) {
   return json?.payload?.data ?? null;
 }
 
-async function processUrl(url: string, accountId: string) {
+async function processUrl(url: string, accountId: string, jobId: string, jobName: string) {
   const productId = parseUzumProductId(url);
   if (!productId) {
-    console.log(`[import] Skip invalid URL: ${url}`);
+    logJobInfo('import-batch', jobId, jobName, `Skip invalid URL: ${url}`);
     return null;
   }
 
   try {
     const detail = await fetchProductDetail(productId);
     if (!detail) {
-      console.log(`[import] API failed for product ${productId}`);
+      logJobInfo('import-batch', jobId, jobName, `API failed for product ${productId}`);
       return null;
     }
 
@@ -42,22 +43,19 @@ async function processUrl(url: string, accountId: string) {
 
     // Upsert shop
     if (shopId && shopData) {
+      const shopOrders = shopData.orders ?? shopData.ordersCount ?? null;
       await prisma.shop.upsert({
         where: { id: shopId },
         update: {
           title: shopData.title || shopData.name,
           rating: shopData.rating ?? null,
-          orders_quantity: shopData.ordersCount
-            ? BigInt(shopData.ordersCount)
-            : null,
+          orders_quantity: shopOrders ? BigInt(shopOrders) : null,
         },
         create: {
           id: shopId,
           title: shopData.title || shopData.name,
           rating: shopData.rating ?? null,
-          orders_quantity: shopData.ordersCount
-            ? BigInt(shopData.ordersCount)
-            : null,
+          orders_quantity: shopOrders ? BigInt(shopOrders) : null,
         },
       });
     }
@@ -74,9 +72,9 @@ async function processUrl(url: string, accountId: string) {
       update: {
         title,
         rating: detail.rating ?? null,
-        feedback_quantity: detail.feedbackQuantity ?? 0,
-        orders_quantity: detail.ordersQuantity
-          ? BigInt(detail.ordersQuantity)
+        feedback_quantity: detail.reviewsAmount ?? 0,
+        orders_quantity: detail.ordersAmount
+          ? BigInt(detail.ordersAmount)
           : BigInt(0),
         shop_id: shopId,
         category_id: detail.category?.id
@@ -87,9 +85,9 @@ async function processUrl(url: string, accountId: string) {
         id: pid,
         title,
         rating: detail.rating ?? null,
-        feedback_quantity: detail.feedbackQuantity ?? 0,
-        orders_quantity: detail.ordersQuantity
-          ? BigInt(detail.ordersQuantity)
+        feedback_quantity: detail.reviewsAmount ?? 0,
+        orders_quantity: detail.ordersAmount
+          ? BigInt(detail.ordersAmount)
           : BigInt(0),
         shop_id: shopId,
         category_id: detail.category?.id
@@ -99,14 +97,32 @@ async function processUrl(url: string, accountId: string) {
     });
 
     // Create snapshot
-    const weeklyBought = detail.rOrdersAmount ?? 0;
-    const stockType = detail.skuList?.[0]?.deliveryOptions?.[0]?.stockType;
+    // rOrdersAmount = ROUNDED total orders (haftalik EMAS!) → delta hisob kerak
+    const currentOrders = detail.ordersAmount ?? 0;
+    let weeklyBought: number | null = null;
+
+    const prevSnapshot = await prisma.productSnapshot.findFirst({
+      where: { product_id: pid },
+      orderBy: { snapshot_at: 'desc' },
+      select: { orders_quantity: true, snapshot_at: true },
+    });
+
+    if (prevSnapshot && prevSnapshot.orders_quantity != null) {
+      const daysDiff =
+        (Date.now() - prevSnapshot.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
+      const ordersDiff = currentOrders - Number(prevSnapshot.orders_quantity);
+      if (daysDiff > 0 && ordersDiff >= 0) {
+        weeklyBought = Math.round((ordersDiff * 7) / daysDiff);
+      }
+    }
+
+    const stockType = detail.skuList?.[0]?.stock?.type;
     const supplyPressure = getSupplyPressure(
       stockType === 'FBO' ? 'FBO' : 'FBS',
     );
     const score = calculateScore({
       weekly_bought: weeklyBought,
-      orders_quantity: detail.ordersQuantity ?? 0,
+      orders_quantity: currentOrders,
       rating: detail.rating ?? 0,
       supply_pressure: supplyPressure,
     });
@@ -114,9 +130,7 @@ async function processUrl(url: string, accountId: string) {
     await prisma.productSnapshot.create({
       data: {
         product_id: pid,
-        orders_quantity: detail.ordersQuantity
-          ? BigInt(detail.ordersQuantity)
-          : null,
+        orders_quantity: currentOrders ? BigInt(currentOrders) : null,
         weekly_bought: weeklyBought,
         rating: detail.rating ?? null,
         score,
@@ -140,7 +154,7 @@ async function processUrl(url: string, accountId: string) {
 
     return productId;
   } catch (err: any) {
-    console.error(`[import] Error for ${url}: ${err.message}`);
+    logJobInfo('import-batch', jobId, jobName, `Error for ${url}: ${err.message}`);
     return null;
   }
 }
@@ -150,30 +164,35 @@ export function createImportWorker() {
     'import-batch',
     async (job: Job<ImportBatchJobData>) => {
       const { accountId, urls } = job.data;
-      console.log(
-        `[import] Processing batch: ${urls.length} URLs for account ${accountId}`,
-      );
+      const start = Date.now();
+      logJobStart('import-batch', job.id ?? '-', job.name, { accountId, urlCount: urls.length });
 
-      let success = 0;
-      let failed = 0;
+      try {
+        let success = 0;
+        let failed = 0;
 
-      // Process 5 at a time with rate limiting
-      const BATCH_SIZE = 5;
-      for (let i = 0; i < urls.length; i += BATCH_SIZE) {
-        const batch = urls.slice(i, i + BATCH_SIZE);
-        const results = await Promise.all(
-          batch.map((url) => processUrl(url, accountId)),
-        );
-        success += results.filter(Boolean).length;
-        failed += results.filter((r) => r === null).length;
+        // Process 5 at a time with rate limiting
+        const BATCH_SIZE = 5;
+        for (let i = 0; i < urls.length; i += BATCH_SIZE) {
+          const batch = urls.slice(i, i + BATCH_SIZE);
+          const results = await Promise.all(
+            batch.map((url) => processUrl(url, accountId, job.id ?? '-', job.name)),
+          );
+          success += results.filter(Boolean).length;
+          failed += results.filter((r) => r === null).length;
 
-        if (i + BATCH_SIZE < urls.length) {
-          await sleep(1000); // rate limit
+          if (i + BATCH_SIZE < urls.length) {
+            await sleep(1000); // rate limit
+          }
         }
-      }
 
-      console.log(`[import] Done: ${success} success, ${failed} failed`);
-      return { success, failed, total: urls.length };
+        const result = { success, failed, total: urls.length };
+        logJobDone('import-batch', job.id ?? '-', job.name, Date.now() - start, result);
+        return result;
+      } catch (err) {
+        logJobError('import-batch', job.id ?? '-', job.name, err, Date.now() - start);
+        throw err;
+      }
     },
     { ...redisConnection, concurrency: 1 },
   );

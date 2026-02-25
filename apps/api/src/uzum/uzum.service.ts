@@ -1,10 +1,9 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UzumClient } from './uzum.client';
 import { AiService } from '../ai/ai.service';
 import {
   parseUzumProductId,
-  parseWeeklyBought,
   calculateScore,
   getSupplyPressure,
   sleep,
@@ -12,6 +11,8 @@ import {
 
 @Injectable()
 export class UzumService {
+  private readonly logger = new Logger(UzumService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly uzumClient: UzumClient,
@@ -75,13 +76,37 @@ export class UzumService {
       },
     });
 
-    // 4. Parse weekly_bought
-    // Prefer recentOrdersAmount (rOrdersAmount from REST API) over actions text parsing
-    const actionsText = detail.actions?.text ?? '';
-    const weeklyBought =
-      detail.recentOrdersAmount != null
-        ? detail.recentOrdersAmount
-        : parseWeeklyBought(actionsText);
+    // 4. Calculate weekly_bought from ordersAmount delta (snapshot tarixidan)
+    // ESLATMA: rOrdersAmount = rounded total orders (haftalik EMAS!)
+    // actions.text = Uzum API dan olib tashlangan (undefined)
+    // Yechim: oxirgi snapshot'dagi ordersAmount bilan hozirgi ordersAmount farqi
+    const currentOrders = detail.ordersQuantity ?? 0;
+    let weeklyBought: number | null = null;
+
+    const prevSnapshot = await this.prisma.productSnapshot.findFirst({
+      where: { product_id: BigInt(productId) },
+      orderBy: { snapshot_at: 'desc' },
+      select: { orders_quantity: true, snapshot_at: true },
+    });
+
+    if (prevSnapshot && prevSnapshot.orders_quantity != null) {
+      const daysDiff =
+        (Date.now() - prevSnapshot.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
+      const ordersDiff = currentOrders - Number(prevSnapshot.orders_quantity);
+
+      if (daysDiff > 0 && ordersDiff >= 0) {
+        // Normalize to 7-day period
+        weeklyBought = Math.round((ordersDiff * 7) / daysDiff);
+      }
+      this.logger.log(
+        `weekly_bought delta: current=${currentOrders}, prev=${prevSnapshot.orders_quantity}, ` +
+        `daysDiff=${daysDiff.toFixed(1)}, ordersDiff=${ordersDiff}, weeklyBought=${weeklyBought}`,
+      );
+    } else {
+      this.logger.log(
+        `weekly_bought: no previous snapshot for product ${productId}, first analysis`,
+      );
+    }
 
     // 5. Upsert SKUs
     const skuList = detail.skuList ?? [];
@@ -181,6 +206,7 @@ export class UzumService {
       score: scoreNum,
       snapshot_id: snapshot.id,
       sell_price: primarySku?.sellPrice,
+      total_available_amount: detail.totalAvailableAmount ?? 0,
       ai_explanation: aiExplanation,
     };
   }

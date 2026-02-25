@@ -24,8 +24,21 @@ interface AnalyzeResult {
   weekly_bought: number | null;
   score: number;
   sell_price: number | null;
+  total_available_amount?: number;
   ai_explanation: string[] | null;
   snapshot_id?: string;
+}
+
+interface WeeklyTrend {
+  weekly_sold: number | null;
+  prev_weekly_sold: number | null;
+  delta: number | null;
+  delta_pct: number | null;
+  trend: 'up' | 'flat' | 'down';
+  daily_breakdown: Array<{ date: string; orders: number; daily_sold: number }>;
+  advice: { type: string; title: string; message: string; urgency: 'high' | 'medium' | 'low' };
+  score_change: number | null;
+  last_updated: string | null;
 }
 
 interface Forecast {
@@ -171,6 +184,9 @@ export function ProductPage() {
   const [trendAnalysis, setTrendAnalysis] = useState<any>(null);
   const [mlLoading, setMlLoading] = useState(false);
 
+  // Weekly trend state
+  const [weeklyTrend, setWeeklyTrend] = useState<WeeklyTrend | null>(null);
+
   async function loadData(showRefreshing = false) {
     if (!id) return;
     if (showRefreshing) setRefreshing(true);
@@ -209,16 +225,18 @@ export function ProductPage() {
       .catch(() => {});
   }, []);
 
-  // Load ML forecast when product is loaded
+  // Load ML forecast + weekly trend when product is loaded
   useEffect(() => {
     if (!id || !result) return;
     setMlLoading(true);
     Promise.all([
       productsApi.getMlForecast(id).catch(() => ({ data: null })),
       productsApi.getTrendAnalysis(id).catch(() => ({ data: null })),
-    ]).then(([mlRes, trendRes]) => {
+      productsApi.getWeeklyTrend(id).catch(() => ({ data: null })),
+    ]).then(([mlRes, trendRes, weeklyRes]) => {
       if (mlRes.data) setMlForecast(mlRes.data);
       if (trendRes.data) setTrendAnalysis(trendRes.data);
+      if (weeklyRes.data) setWeeklyTrend(weeklyRes.data);
     }).finally(() => setMlLoading(false));
   }, [id, result?.product_id]);
 
@@ -328,12 +346,37 @@ export function ProductPage() {
           sub="barcha vaqt uchun" accent="text-primary"
           icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>}
         />
-        <StatCard
-          label="Haftalik faollik"
-          value={result.weekly_bought != null ? result.weekly_bought.toLocaleString() : '—'}
-          sub="oxirgi 7 kun" accent={result.weekly_bought ? 'text-success' : 'text-base-content/30'}
-          icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>}
-        />
+        <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 lg:p-4">
+          <div className="flex items-start justify-between mb-1">
+            <p className="text-xs text-base-content/50">Haftalik sotuv</p>
+            <svg className="w-4 h-4 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <p className={`font-bold text-lg tabular-nums leading-tight ${
+              weeklyTrend?.weekly_sold ? 'text-success' : result.weekly_bought ? 'text-success' : 'text-base-content/30'
+            }`}>
+              {weeklyTrend?.weekly_sold != null
+                ? weeklyTrend.weekly_sold.toLocaleString()
+                : result.weekly_bought != null
+                  ? result.weekly_bought.toLocaleString()
+                  : '—'}
+            </p>
+            {weeklyTrend?.delta != null && weeklyTrend.delta !== 0 && (
+              <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
+                weeklyTrend.delta > 0
+                  ? 'bg-success/20 text-success'
+                  : 'bg-error/20 text-error'
+              }`}>
+                {weeklyTrend.delta > 0 ? '+' : ''}{weeklyTrend.delta} ta
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-base-content/40 mt-0.5">
+            {weeklyTrend?.delta_pct != null
+              ? `7 kun ichida ${weeklyTrend.delta_pct > 0 ? '+' : ''}${weeklyTrend.delta_pct}%`
+              : 'oxirgi 7 kun'}
+          </p>
+        </div>
         <StatCard
           label="Reyting"
           value={result.rating != null ? `${result.rating}` : '—'}
@@ -349,9 +392,12 @@ export function ProductPage() {
           />
         )}
         <StatCard
-          label="Sharhlar"
-          value={result.feedback_quantity != null ? result.feedback_quantity.toLocaleString() : '—'}
-          sub="xaridorlar fikri" accent="text-secondary"
+          label="Ombor stok"
+          value={result.total_available_amount != null && result.total_available_amount > 0
+            ? result.total_available_amount.toLocaleString() + ' dona'
+            : '—'}
+          sub="jami mavjud" accent={result.total_available_amount && result.total_available_amount > 100 ? 'text-success' : 'text-warning'}
+          icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>}
         />
         <StatCard
           label="Conversion"
@@ -412,6 +458,123 @@ export function ProductPage() {
                   <Area type="monotone" dataKey="score" stroke="#a78bfa" strokeWidth={2} fill="url(#scoreGrad)" dot={false} />
                 </AreaChart>
               </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Weekly Trend Card — Haftalik sotuv trendi + maslahat */}
+      {weeklyTrend && (
+        <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-6 space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h2 className="font-bold text-base lg:text-lg flex items-center gap-2">
+              <svg className="w-5 h-5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+              7 kunlik sotuv dinamikasi
+            </h2>
+            {weeklyTrend.last_updated && (
+              <span className="text-xs text-base-content/40">
+                Yangilangan: {new Date(weeklyTrend.last_updated).toLocaleString('uz-UZ')}
+              </span>
+            )}
+          </div>
+
+          {/* Summary row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 text-center">
+              <p className="text-xs text-base-content/50">Bu hafta</p>
+              <p className="font-bold text-xl tabular-nums text-success">
+                {weeklyTrend.weekly_sold != null ? weeklyTrend.weekly_sold.toLocaleString() : '—'}
+              </p>
+              <p className="text-xs text-base-content/40">sotuv</p>
+            </div>
+            <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 text-center">
+              <p className="text-xs text-base-content/50">O'tgan hafta</p>
+              <p className="font-bold text-xl tabular-nums">
+                {weeklyTrend.prev_weekly_sold != null ? weeklyTrend.prev_weekly_sold.toLocaleString() : '—'}
+              </p>
+              <p className="text-xs text-base-content/40">sotuv</p>
+            </div>
+            <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 text-center">
+              <p className="text-xs text-base-content/50">Farq</p>
+              <p className={`font-bold text-xl tabular-nums ${
+                weeklyTrend.delta != null && weeklyTrend.delta > 0 ? 'text-success' :
+                weeklyTrend.delta != null && weeklyTrend.delta < 0 ? 'text-error' : ''
+              }`}>
+                {weeklyTrend.delta != null
+                  ? `${weeklyTrend.delta > 0 ? '+' : ''}${weeklyTrend.delta}`
+                  : '—'}
+              </p>
+              <p className="text-xs text-base-content/40">
+                {weeklyTrend.delta_pct != null ? `${weeklyTrend.delta_pct > 0 ? '+' : ''}${weeklyTrend.delta_pct}%` : 'sotuv'}
+              </p>
+            </div>
+            <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 text-center">
+              <p className="text-xs text-base-content/50">Trend</p>
+              <div className="flex justify-center mt-1">
+                <TrendBadge trend={weeklyTrend.trend} />
+              </div>
+              {weeklyTrend.score_change != null && (
+                <p className={`text-xs mt-1 ${weeklyTrend.score_change > 0 ? 'text-success' : weeklyTrend.score_change < 0 ? 'text-error' : 'text-base-content/40'}`}>
+                  Score {weeklyTrend.score_change > 0 ? '+' : ''}{weeklyTrend.score_change.toFixed(2)}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Daily sales chart */}
+          {weeklyTrend.daily_breakdown.length > 1 && (
+            <div>
+              <p className="text-xs text-base-content/50 mb-2">Kunlik sotuv (taxminiy)</p>
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={weeklyTrend.daily_breakdown} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }}
+                    tickFormatter={(v) => { const d = new Date(v); return `${d.getDate()}/${d.getMonth() + 1}`; }}
+                    tickLine={false} axisLine={false}
+                  />
+                  <YAxis tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    {...glassTooltip}
+                    labelFormatter={(v) => new Date(v).toLocaleDateString('uz-UZ', { weekday: 'short', day: 'numeric', month: 'short' })}
+                    formatter={(value: number) => [`${value} ta`, 'Kunlik sotuv']}
+                  />
+                  <Bar dataKey="daily_sold" radius={[4, 4, 0, 0]} name="Kunlik sotuv">
+                    {weeklyTrend.daily_breakdown.map((entry, i) => (
+                      <rect key={i} fill={
+                        i === weeklyTrend.daily_breakdown.length - 1 ? '#a78bfa' : '#34d399'
+                      } />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Seller advice */}
+          {weeklyTrend.advice && (
+            <div className={`rounded-xl p-4 border ${
+              weeklyTrend.advice.urgency === 'high'
+                ? 'bg-error/10 border-error/30'
+                : weeklyTrend.advice.urgency === 'medium'
+                  ? 'bg-warning/10 border-warning/30'
+                  : 'bg-info/10 border-info/30'
+            }`}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg">
+                  {weeklyTrend.advice.type === 'growth' ? '📈' :
+                   weeklyTrend.advice.type === 'decline' ? '📉' :
+                   weeklyTrend.advice.type === 'stable' ? '📊' :
+                   weeklyTrend.advice.type === 'success' ? '✅' :
+                   weeklyTrend.advice.type === 'low' ? '⚠️' : 'ℹ️'}
+                </span>
+                <h3 className="font-bold text-sm">{weeklyTrend.advice.title}</h3>
+                {weeklyTrend.advice.urgency === 'high' && (
+                  <span className="badge badge-error badge-xs">Shoshilinch</span>
+                )}
+              </div>
+              <p className="text-sm text-base-content/80">{weeklyTrend.advice.message}</p>
             </div>
           )}
         </div>

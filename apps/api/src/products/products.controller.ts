@@ -53,6 +53,12 @@ export class ProductsController {
     return this.productsService.getAdvancedForecast(BigInt(productId));
   }
 
+  /** Weekly trend: 7-day delta, daily breakdown, seller advice */
+  @Get(':id/weekly-trend')
+  weeklyTrend(@Param('id') productId: string) {
+    return this.productsService.getWeeklyTrend(BigInt(productId));
+  }
+
   /** AI-powered trend analysis */
   @Get(':id/trend-analysis')
   async trendAnalysis(@Param('id') productId: string) {

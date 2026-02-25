@@ -161,3 +161,63 @@
 | 26 | `/admin?tab=deposits` | ✅ |
 
 **Natija: 27/27 route — 0 error**
+
+---
+
+### BUG-012: weekly_bought (Haftalik Faollik) noto'g'ri raqam ko'rsatadi
+- **Sana:** 2026-02-25
+- **Tur:** backend
+- **Fayl:** `apps/api/src/uzum/uzum.client.ts`, `apps/api/src/uzum/uzum.service.ts`, `apps/worker/src/processors/discovery.processor.ts`, `apps/worker/src/processors/import.processor.ts`
+- **Xato:** Haftalik Faollik = 44500 ko'rsatiladi, Uzum saytda esa 499 (Бумага Svetocopy mahsuloti)
+- **Sabab:** `rOrdersAmount` (44500) = **ROUNDED jami buyurtmalar**, haftalik ko'rsatkich **EMAS**. Uzum API `actions.text` field'ini olib tashlagan (undefined), shuning uchun `parseWeeklyBought()` ham ishlamaydi. `ordersAmount=44870`, `rOrdersAmount=44500` — farq atigi 0.8%, ya'ni `rOrdersAmount` shunchaki yaxlitlangan total.
+- **Yechim:**
+  1. `rOrdersAmount` ni `weekly_bought` sifatida ishlatish TO'XTATILDI
+  2. `weekly_bought` endi snapshot tarixidan `ordersAmount` delta sifatida hisoblanadi: `(currentOrders - prevOrders) * 7 / daysDiff`
+  3. Birinchi tahlilda (tarix yo'q) `weekly_bought = null` qaytariladi
+  4. Barcha 3 joyda tuzatildi: uzum.service.ts, discovery.processor.ts, import.processor.ts
+- **Status:** FIXED
+
+---
+
+### BUG-013: Stock holati — availableAmount per-order limit, actual stock emas
+- **Sana:** 2026-02-25
+- **Tur:** backend
+- **Fayl:** `apps/api/src/uzum/uzum.client.ts`
+- **Xato:** `sku.availableAmount=5` stock sifatida ko'rsatiladi, aslida bu per-order limit
+- **Sabab:** Uzum API `sku.availableAmount` = bitta buyurtmada max sotib olish limiti ("Можно купить 5 шт"). `totalAvailableAmount=2659` = haqiqiy jami ombor stoki. `sku.restriction.restrictedAmount=5` ham shu limitni tasdiqlaydi
+- **Yechim:** `totalAvailableAmount` field'i API response'ga qo'shildi (uzum.client.ts va uzum-scraper.ts). Frontend'ga `total_available_amount` qaytariladi
+- **Status:** FIXED
+
+---
+
+### BUG-014: import.processor.ts noto'g'ri API field nomlari
+- **Sana:** 2026-02-25
+- **Tur:** backend
+- **Fayl:** `apps/worker/src/processors/import.processor.ts`
+- **Xato:** Import qilinganda `orders_quantity=0` va `feedback_quantity=0` bo'lib saqlanardi
+- **Sabab:** Raw Uzum API javobida `ordersAmount` va `reviewsAmount` bor, lekin kod `ordersQuantity` va `feedbackQuantity` ishlatgan (mavjud emas → undefined → 0). Shuningdek `deliveryOptions[0].stockType` noto'g'ri yo'l — to'g'risi `stock.type`
+- **Yechim:** Field nomlar to'g'rilandi: `ordersQuantity`→`ordersAmount`, `feedbackQuantity`→`reviewsAmount`, `deliveryOptions[0].stockType`→`stock.type`, `ordersCount`→`orders ?? ordersCount`
+- **Status:** FIXED
+
+---
+
+### FEATURE: Auto Re-analysis + Weekly Trend System
+- **Sana:** 2026-02-25
+- **Tur:** feature (backend + frontend)
+- **Fayllar:**
+  - `apps/worker/src/jobs/reanalysis.job.ts` — yangi cron job (har 24 soatda, 03:00 UTC)
+  - `apps/worker/src/processors/reanalysis.processor.ts` — tracked products avtomatik qayta tahlil
+  - `apps/worker/src/main.ts` — reanalysis worker + cron ro'yxatdan o'tkazildi
+  - `apps/api/src/products/products.service.ts` — `getWeeklyTrend()` yangi metod
+  - `apps/api/src/products/products.controller.ts` — `GET /products/:id/weekly-trend` endpoint
+  - `apps/web/src/api/client.ts` — `productsApi.getWeeklyTrend()` qo'shildi
+  - `apps/web/src/pages/ProductPage.tsx` — Weekly trend UI: delta badge, 7-kun chart, maslahat
+- **Xususiyatlar:**
+  1. Tracked mahsulotlar har 24 soatda avtomatik qayta tahlil qilinadi (BullMQ cron)
+  2. Haftalik sotuv = ordersAmount snapshot delta (rOrdersAmount EMAS)
+  3. 7-kunlik trend: bu hafta vs o'tgan hafta sotuv taqqoslash
+  4. "+70 ta sotuv" badge — UI da delta ko'rsatiladi
+  5. Kunlik sotuv bar chart — 7 kunlik vizualizatsiya
+  6. Dinamik maslahat: o'sish, tushish, barqaror holatga qarab tavsiya
+  7. Ombor stok kartasi: `totalAvailableAmount` (per-order limit emas)
+- **Status:** DONE

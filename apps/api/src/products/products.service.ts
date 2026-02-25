@@ -268,4 +268,244 @@ export class ProductsService {
       })),
     });
   }
+
+  /**
+   * 7-day weekly trend: orders delta, sales velocity, dynamic seller advice.
+   * Calculates actual weekly_bought from ordersAmount delta between snapshots.
+   */
+  async getWeeklyTrend(productId: bigint): Promise<{
+    weekly_sold: number | null;
+    prev_weekly_sold: number | null;
+    delta: number | null;
+    delta_pct: number | null;
+    trend: 'up' | 'flat' | 'down';
+    daily_breakdown: Array<{ date: string; orders: number; daily_sold: number }>;
+    advice: { type: string; title: string; message: string; urgency: 'high' | 'medium' | 'low' };
+    score_change: number | null;
+    last_updated: string | null;
+  }> {
+    // Get last 14 days of snapshots for comparison
+    const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+    const snapshots = await this.prisma.productSnapshot.findMany({
+      where: {
+        product_id: productId,
+        snapshot_at: { gte: twoWeeksAgo },
+      },
+      orderBy: { snapshot_at: 'asc' },
+      select: {
+        orders_quantity: true,
+        weekly_bought: true,
+        score: true,
+        snapshot_at: true,
+      },
+    });
+
+    if (snapshots.length < 2) {
+      return {
+        weekly_sold: null,
+        prev_weekly_sold: null,
+        delta: null,
+        delta_pct: null,
+        trend: 'flat',
+        daily_breakdown: [],
+        advice: {
+          type: 'info',
+          title: 'Birinchi tahlil',
+          message: "Hali yetarli ma'lumot yo'q. 24 soatdan keyin avtomatik yangilanadi va haftalik trend ko'rsatiladi.",
+          urgency: 'low',
+        },
+        score_change: null,
+        last_updated: snapshots[snapshots.length - 1]?.snapshot_at?.toISOString() ?? null,
+      };
+    }
+
+    const latest = snapshots[snapshots.length - 1];
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    // Find the snapshot closest to 7 days ago
+    let weekAgoSnapshot = snapshots[0];
+    for (const snap of snapshots) {
+      if (snap.snapshot_at <= sevenDaysAgo) {
+        weekAgoSnapshot = snap;
+      }
+    }
+
+    // Calculate current week's orders delta
+    const latestOrders = Number(latest.orders_quantity ?? 0);
+    const weekAgoOrders = Number(weekAgoSnapshot.orders_quantity ?? 0);
+    const daysSinceWeekAgo =
+      (latest.snapshot_at.getTime() - weekAgoSnapshot.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
+
+    let weeklySold: number | null = null;
+    if (daysSinceWeekAgo > 0 && latestOrders >= weekAgoOrders) {
+      weeklySold = Math.round(((latestOrders - weekAgoOrders) * 7) / daysSinceWeekAgo);
+    }
+
+    // Find the snapshot closest to 14 days ago for prev week comparison
+    const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+    let twoWeekAgoSnapshot = snapshots[0];
+    for (const snap of snapshots) {
+      if (snap.snapshot_at <= fourteenDaysAgo) {
+        twoWeekAgoSnapshot = snap;
+      }
+    }
+
+    let prevWeeklySold: number | null = null;
+    const twoWeekOrders = Number(twoWeekAgoSnapshot.orders_quantity ?? 0);
+    const daysBetweenWeeks =
+      (weekAgoSnapshot.snapshot_at.getTime() - twoWeekAgoSnapshot.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
+
+    if (daysBetweenWeeks > 0 && weekAgoOrders >= twoWeekOrders) {
+      prevWeeklySold = Math.round(((weekAgoOrders - twoWeekOrders) * 7) / daysBetweenWeeks);
+    }
+
+    // Delta
+    const delta = weeklySold != null && prevWeeklySold != null
+      ? weeklySold - prevWeeklySold
+      : null;
+    const deltaPct = delta != null && prevWeeklySold != null && prevWeeklySold > 0
+      ? Number(((delta / prevWeeklySold) * 100).toFixed(1))
+      : null;
+
+    // Trend
+    const trend: 'up' | 'flat' | 'down' =
+      delta != null && delta > 5 ? 'up' :
+      delta != null && delta < -5 ? 'down' : 'flat';
+
+    // Daily breakdown from snapshots
+    const dailyBreakdown = snapshots.slice(-8).map((snap, i, arr) => {
+      const prevOrders = i > 0 ? Number(arr[i - 1].orders_quantity ?? 0) : Number(snap.orders_quantity ?? 0);
+      const currOrders = Number(snap.orders_quantity ?? 0);
+      const prevTime = i > 0 ? arr[i - 1].snapshot_at.getTime() : snap.snapshot_at.getTime();
+      const currTime = snap.snapshot_at.getTime();
+      const daysDiff = Math.max(0.5, (currTime - prevTime) / (1000 * 60 * 60 * 24));
+      const dailySold = i > 0 ? Math.round((currOrders - prevOrders) / daysDiff) : 0;
+
+      return {
+        date: snap.snapshot_at.toISOString().split('T')[0],
+        orders: currOrders,
+        daily_sold: Math.max(0, dailySold),
+      };
+    });
+
+    // Score change
+    const latestScore = Number(latest.score ?? 0);
+    const weekAgoScore = Number(weekAgoSnapshot.score ?? 0);
+    const scoreChange = latestScore - weekAgoScore;
+
+    // Dynamic seller advice
+    const advice = generateSellerAdvice(weeklySold, prevWeeklySold, delta, deltaPct, trend, latestScore);
+
+    return {
+      weekly_sold: weeklySold,
+      prev_weekly_sold: prevWeeklySold,
+      delta,
+      delta_pct: deltaPct,
+      trend,
+      daily_breakdown: dailyBreakdown.slice(1), // Skip first (no delta)
+      advice,
+      score_change: scoreChange !== 0 ? Number(scoreChange.toFixed(4)) : null,
+      last_updated: latest.snapshot_at.toISOString(),
+    };
+  }
+}
+
+/**
+ * Generate dynamic seller advice based on weekly trend data.
+ */
+function generateSellerAdvice(
+  weeklySold: number | null,
+  prevWeeklySold: number | null,
+  delta: number | null,
+  deltaPct: number | null,
+  trend: 'up' | 'flat' | 'down',
+  score: number,
+): { type: string; title: string; message: string; urgency: 'high' | 'medium' | 'low' } {
+
+  // Strong growth
+  if (trend === 'up' && delta != null && delta > 50) {
+    return {
+      type: 'growth',
+      title: "Kuchli o'sish!",
+      message: `Haftalik sotuv +${delta} ta o'sdi (${deltaPct != null ? deltaPct + '%' : ''}). Bu mahsulotga talab oshmoqda. Stokni ko'paytiring va narxni biroz oshirishni ko'rib chiqing — talab yuqori bo'lganda margin yaxshilash imkoniyati.`,
+      urgency: 'high',
+    };
+  }
+
+  // Moderate growth
+  if (trend === 'up' && delta != null && delta > 10) {
+    return {
+      type: 'growth',
+      title: 'Sotuv o\'smoqda',
+      message: `Haftalik sotuv +${delta} ta. Barqaror o'sish ko'rsatmoqda. Reklama xarajatlarini oshirib, o'sishni tezlashtirish mumkin. FBO ombori bo'lsa, stok yetarliligini tekshiring.`,
+      urgency: 'medium',
+    };
+  }
+
+  // Stable sales
+  if (trend === 'flat' && weeklySold != null && weeklySold > 20) {
+    return {
+      type: 'stable',
+      title: 'Barqaror sotuv',
+      message: `Haftalik ${weeklySold} ta sotuv — barqaror darajada. Raqobatchilarga e'tibor bering: agar ular narx tushirsa, siz ham moslashishingiz kerak bo'ladi.`,
+      urgency: 'low',
+    };
+  }
+
+  // Declining sales
+  if (trend === 'down' && delta != null && delta < -20) {
+    return {
+      type: 'decline',
+      title: 'Sotuv tushmoqda!',
+      message: `Haftalik sotuv ${delta} ta kamaydi (${deltaPct != null ? deltaPct + '%' : ''}). Shoshilinch: narxni qayta ko'rib chiqing, rasm va tavsifni yangilang, yoki aksiya e'lon qiling. Raqiblar narx tushirgan bo'lishi mumkin.`,
+      urgency: 'high',
+    };
+  }
+
+  // Moderate decline
+  if (trend === 'down') {
+    return {
+      type: 'decline',
+      title: 'Sekinlashish',
+      message: `Sotuv biroz kamaymoqda. Raqiblar narxini tekshiring va mahsulot rasmlarini yangilang. Mavsumiy o'zgarish bo'lishi ham mumkin.`,
+      urgency: 'medium',
+    };
+  }
+
+  // Low sales
+  if (weeklySold != null && weeklySold < 5) {
+    return {
+      type: 'low',
+      title: 'Past sotuv',
+      message: `Haftalik faqat ${weeklySold} ta sotuv. Narxni pasaytiring, SEO sarlavhani optimallang, yoki Uzum reklamasini yoqing. Raqobatli kategoriyada bo'lsangiz niche topishga harakat qiling.`,
+      urgency: 'medium',
+    };
+  }
+
+  // First analysis / not enough data
+  if (weeklySold == null) {
+    return {
+      type: 'info',
+      title: "Ma'lumot to'planmoqda",
+      message: "Tizim 24 soatdan keyin avtomatik qayta tahlil qiladi. Shu vaqtda haftalik trend va maslahatlar paydo bo'ladi.",
+      urgency: 'low',
+    };
+  }
+
+  // Default: high score product
+  if (score >= 5) {
+    return {
+      type: 'success',
+      title: 'Yaxshi natija',
+      message: `Mahsulot yaxshi ko'rsatkich ko'rsatmoqda. Hozirgi strategiyani davom ettiring va stokni nazorat qiling.`,
+      urgency: 'low',
+    };
+  }
+
+  return {
+    type: 'info',
+    title: 'Tahlil davom etmoqda',
+    message: 'Tizim har 24 soatda mahsulotni qayta tahlil qiladi. Trend ma\'lumotlari to\'planmoqda.',
+    urgency: 'low',
+  };
 }

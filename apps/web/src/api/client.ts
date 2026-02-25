@@ -58,6 +58,8 @@ export const productsApi = {
     api.get(`/products/${productId}/ml-forecast`),
   getTrendAnalysis: (productId: string) =>
     api.get(`/products/${productId}/trend-analysis`),
+  getWeeklyTrend: (productId: string) =>
+    api.get(`/products/${productId}/weekly-trend`),
 };
 
 // Uzum endpoints

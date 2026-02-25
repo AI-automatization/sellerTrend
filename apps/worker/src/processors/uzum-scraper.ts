@@ -148,7 +148,9 @@ export interface ProductDetail {
   title: string;
   rating: number;
   ordersAmount: number;
-  rOrdersAmount: number | null; // recent/weekly orders
+  // rOrdersAmount = ROUNDED total orders (NOT weekly!) — faqat display uchun
+  rOrdersAmount: number | null;
+  totalAvailableAmount: number;
   feedbackQuantity: number;
   sellPrice: bigint | null;
   stockType: 'FBO' | 'FBS';
@@ -188,6 +190,7 @@ export async function fetchProductDetail(
       rating: p.rating ?? 0,
       ordersAmount: p.ordersAmount ?? 0,
       rOrdersAmount: p.rOrdersAmount ?? null,
+      totalAvailableAmount: p.totalAvailableAmount ?? 0,
       feedbackQuantity: p.reviewsAmount ?? p.feedbackQuantity ?? 0,
       sellPrice,
       stockType,
