@@ -33,11 +33,13 @@ export class SignalsService {
           const daysDiff =
             (snap.snapshot_at.getTime() - prev.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
           if (daysDiff > 0.01 && curr >= prevVal) {
-            return Math.round(((curr - prevVal) * 7) / daysDiff);
+            const calculated = Math.round(((curr - prevVal) * 7) / daysDiff);
+            // If snapshots are too close, extrapolation gives wild numbers — keep stored value
+            if (calculated <= MAX_REASONABLE) return calculated;
           }
         }
       }
-      // First snapshot or missing orders_quantity: use stored but cap unreasonable values
+      // First snapshot, missing data, or extrapolation unreasonable: use stored but cap
       return stored > MAX_REASONABLE ? 0 : stored;
     });
   }

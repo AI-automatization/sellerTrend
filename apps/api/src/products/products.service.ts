@@ -50,7 +50,9 @@ export class ProductsService {
         const daysDiff =
           (latest.snapshot_at.getTime() - prev.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
         if (daysDiff > 0.01 && curr >= prevVal) {
-          weeklyBought = Math.round(((curr - prevVal) * 7) / daysDiff);
+          const calculated = Math.round(((curr - prevVal) * 7) / daysDiff);
+          if (calculated <= 5000) weeklyBought = calculated;
+          // If extrapolation > 5000 (snapshots too close), keep stored value
         }
       }
       if ((weeklyBought ?? 0) > 5000) weeklyBought = 0;
@@ -117,7 +119,8 @@ export class ProductsService {
       const daysDiff =
         (latest.snapshot_at.getTime() - prev.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
       if (daysDiff > 0.01 && curr >= prevVal) {
-        weeklyBought = Math.round(((curr - prevVal) * 7) / daysDiff);
+        const calculated = Math.round(((curr - prevVal) * 7) / daysDiff);
+        if (calculated <= 5000) weeklyBought = calculated;
       }
     }
     if ((weeklyBought ?? 0) > 5000) weeklyBought = 0;
@@ -246,7 +249,8 @@ export class ProductsService {
           const daysDiff =
             (s.snapshot_at.getTime() - prev.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
           if (daysDiff > 0.01 && curr >= prevVal) {
-            return Math.round(((curr - prevVal) * 7) / daysDiff);
+            const calculated = Math.round(((curr - prevVal) * 7) / daysDiff);
+            if (calculated <= MAX_REASONABLE) return calculated;
           }
         }
       }
