@@ -749,7 +749,7 @@ export function AdminPage() {
                           </td>
                           <td className="text-sm">{u.email}</td>
                           <td className="text-xs text-base-content/50">{u.account_name}</td>
-                          <td className="font-bold">{u.tracked_count}</td>
+                          <td className="font-bold">{u.tracked_products ?? 0}</td>
                           <td>{(u.avg_score ?? 0).toFixed(2)}</td>
                           <td>{u.total_weekly ?? 0}</td>
                           <td>{u.discovery_runs ?? 0}</td>

@@ -823,13 +823,15 @@ export class AdminService {
       email: string;
       account_name: string;
       tracked_products: number;
+      avg_score: number;
+      total_weekly: number;
       discovery_runs: number;
       activity_count: number;
       activity_score: number;
     }[] = [];
 
     for (const user of users) {
-      const [trackedCount, discoveryRuns, activityCount] = await Promise.all([
+      const [trackedCount, discoveryRuns, activityCount, trackedProducts] = await Promise.all([
         this.prisma.trackedProduct.count({
           where: { account_id: user.account_id },
         }),
@@ -839,7 +841,29 @@ export class AdminService {
         this.prisma.userActivity.count({
           where: { user_id: user.id, created_at: { gte: since } },
         }),
+        this.prisma.trackedProduct.findMany({
+          where: { account_id: user.account_id, is_active: true },
+          include: {
+            product: {
+              include: { snapshots: { orderBy: { snapshot_at: 'desc' }, take: 1 } },
+            },
+          },
+        }),
       ]);
+
+      // Calculate avg_score and total_weekly from tracked products
+      let totalScore = 0;
+      let totalWeekly = 0;
+      let scoreCount = 0;
+      for (const tp of trackedProducts) {
+        const snap = tp.product.snapshots[0];
+        if (snap) {
+          const score = Number(snap.score ?? 0);
+          totalScore += score;
+          totalWeekly += snap.weekly_bought ?? 0;
+          scoreCount++;
+        }
+      }
 
       // Weighted composite score
       const activityScore = activityCount * 1 + discoveryRuns * 5 + trackedCount * 3;
@@ -849,6 +873,8 @@ export class AdminService {
         email: user.email,
         account_name: user.account.name,
         tracked_products: trackedCount,
+        avg_score: scoreCount > 0 ? totalScore / scoreCount : 0,
+        total_weekly: totalWeekly,
         discovery_runs: discoveryRuns,
         activity_count: activityCount,
         activity_score: activityScore,

@@ -341,3 +341,12 @@
 - **Sabab:** `getProductSnapshots()` Prisma natijasini to'g'ridan-to'g'ri qaytarardi. `orders_quantity` (BigInt) va `score`/`rating` (Decimal) turlarini JSON ga aylantirish mumkin emas.
 - **Yechim:** Har bir snapshotni `.map()` bilan `Number()` ga convert qilib qaytarish qo'shildi.
 - **Status:** FIXED
+
+### BUG-023: Admin Analitika — Tracked ustuni bo'sh, Avg Score va Haftalik 0
+- **Sana:** 2026-02-25
+- **Tur:** frontend + backend
+- **Fayl:** `apps/web/src/pages/AdminPage.tsx`, `apps/api/src/admin/admin.service.ts`
+- **Xato:** Admin → Analitika tabida "Tracked" ustuni bo'sh, "Avg Score" 0.00, "Haftalik" 0 ko'rsatardi.
+- **Sabab:** 1) Frontend `u.tracked_count` ishlatardi, backend `tracked_products` qaytarardi (field mismatch). 2) Backend `getTopUsers()` `avg_score` va `total_weekly` fieldlarni umuman qaytarmasdi.
+- **Yechim:** 1) Frontend: `tracked_count` → `tracked_products`. 2) Backend: `getTopUsers()` ga tracked productlar snapshot'idan `avg_score` va `total_weekly` hisoblash qo'shildi.
+- **Status:** FIXED
