@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { ActivityAction } from '../common/decorators/activity-action.decorator';
 import { ProductsService } from './products.service';
 import { AiService } from '../ai/ai.service';
 
@@ -29,6 +30,7 @@ export class ProductsController {
   }
 
   @Post(':id/track')
+  @ActivityAction('PRODUCT_TRACK')
   track(
     @CurrentUser('account_id') accountId: string,
     @Param('id') productId: string,
@@ -61,6 +63,7 @@ export class ProductsController {
 
   /** AI-powered trend analysis */
   @Get(':id/trend-analysis')
+  @ActivityAction('PRODUCT_TREND_ANALYSIS')
   async trendAnalysis(@Param('id') productId: string) {
     const forecast = await this.productsService.getAdvancedForecast(BigInt(productId));
     const product = await this.productsService.getProductById(BigInt(productId));

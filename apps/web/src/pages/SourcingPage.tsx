@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { sourcingApi } from '../api/client';
+import { getErrorMessage } from '../utils/getErrorMessage';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -226,8 +227,8 @@ function ImportAnalysis({
         product_title: title,
       });
       setJobId(res.data.job_id);
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Xato yuz berdi');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -609,8 +610,8 @@ function CargoCalculator({
         sell_price_uzs: form.sell_price_uzs ? parseFloat(form.sell_price_uzs) : undefined,
       });
       setResult(r.data);
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Xato yuz berdi');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

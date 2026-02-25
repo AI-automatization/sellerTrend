@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { authApi } from '../api/client';
+import { getErrorMessage } from '../utils/getErrorMessage';
 
 export function RegisterPage() {
   const navigate = useNavigate();
@@ -19,8 +20,8 @@ export function RegisterPage() {
       localStorage.setItem('access_token', res.data.access_token);
       if (res.data.refresh_token) localStorage.setItem('refresh_token', res.data.refresh_token);
       navigate('/');
-    } catch (err: any) {
-      setError(err.response?.data?.message ?? "Ro'yxatdan o'tish xatosi");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Ro'yxatdan o'tish xatosi"));
     } finally {
       setLoading(false);
     }

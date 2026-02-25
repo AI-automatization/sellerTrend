@@ -5,6 +5,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { ActivityAction } from '../common/decorators/activity-action.decorator';
 import { SignalsService } from './signals.service';
 
 @ApiTags('signals')
@@ -70,6 +71,7 @@ export class SignalsController {
   }
 
   @Post('checklist')
+  @ActivityAction('SIGNAL_CHECKLIST_SAVE')
   saveChecklist(
     @CurrentUser('account_id') accountId: string,
     @Body() body: { product_id?: string; title: string; items: any[] },
@@ -79,6 +81,7 @@ export class SignalsController {
 
   /** Feature 29 — A/B Price Testing */
   @Post('price-tests')
+  @ActivityAction('SIGNAL_PRICE_TEST')
   createPriceTest(
     @CurrentUser('account_id') accountId: string,
     @Body() body: { product_id: string; original_price: number; test_price: number },

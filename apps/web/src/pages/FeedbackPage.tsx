@@ -46,7 +46,7 @@ export function FeedbackPage() {
   const [showForm, setShowForm] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [ticketDetail, setTicketDetail] = useState<any>(null);
+  const [ticketDetail, setTicketDetail] = useState<Ticket | null>(null);
   const [msgLoading, setMsgLoading] = useState(false);
   const [newMsg, setNewMsg] = useState('');
   const [sending, setSending] = useState(false);

@@ -79,12 +79,26 @@ function scoreColor(score: number | null) {
 }
 
 // Custom tooltip matching card design
-function ChartTooltipContent({ active, payload, label, fmt }: any) {
+interface TooltipPayloadItem {
+  value: number;
+  name: string;
+  color?: string;
+  fill?: string;
+}
+
+interface ChartTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+  label?: string;
+  fmt?: (value: number, name: string) => string;
+}
+
+function ChartTooltipContent({ active, payload, label, fmt }: ChartTooltipProps) {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-base-100/95 backdrop-blur-md border border-base-300/50 rounded-xl px-3.5 py-2.5 shadow-2xl min-w-[120px]">
       {label && <p className="text-[11px] text-base-content/40 mb-1.5 font-medium">{label}</p>}
-      {payload.map((p: any, i: number) => (
+      {payload.map((p, i: number) => (
         <div key={i} className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full shrink-0" style={{ background: p.color || p.fill }} />
           <span className="text-sm font-bold tabular-nums">
@@ -106,7 +120,7 @@ export function DashboardPage() {
   const isSuperAdmin = getTokenPayload()?.role === 'SUPER_ADMIN';
 
   useEffect(() => {
-    const promises: Promise<any>[] = [productsApi.getTracked().then((r) => setProducts(r.data))];
+    const promises: Promise<unknown>[] = [productsApi.getTracked().then((r) => setProducts(r.data))];
     if (!isSuperAdmin) {
       promises.push(billingApi.getBalance().then((r) => setBalance(r.data)).catch(() => {}));
     }

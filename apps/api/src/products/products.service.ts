@@ -85,34 +85,35 @@ export class ProductsService {
   }
 
   async getProductById(productId: bigint) {
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
-      include: {
-        snapshots: {
-          orderBy: { snapshot_at: 'desc' },
-          take: 20,
-          include: {
-            ai_explanations: {
-              orderBy: { created_at: 'desc' },
-              take: 1,
-            },
+    // Separate queries to avoid N+1 on ai_explanations (was: 20 nested includes → 20 queries)
+    const [product, latestAi] = await Promise.all([
+      this.prisma.product.findUnique({
+        where: { id: productId },
+        include: {
+          snapshots: {
+            orderBy: { snapshot_at: 'desc' },
+            take: 20,
           },
+          skus: {
+            where: { is_available: true },
+            orderBy: { min_sell_price: 'asc' },
+            take: 1,
+          },
+          shop: true,
         },
-        skus: {
-          where: { is_available: true },
-          orderBy: { min_sell_price: 'asc' },
-          take: 1,
-        },
-        shop: true,
-      },
-    });
+      }),
+      this.prisma.productAiExplanation.findFirst({
+        where: { product_id: productId },
+        orderBy: { created_at: 'desc' },
+      }),
+    ]);
 
     if (!product) return null;
 
     const snaps = product.snapshots; // DESC order
     const latest = snaps[0];
     const sku = product.skus[0];
-    const aiRaw = latest?.ai_explanations[0]?.explanation;
+    const aiRaw = latestAi?.explanation;
     let ai_explanation: string[] | null = null;
     if (aiRaw) {
       try {

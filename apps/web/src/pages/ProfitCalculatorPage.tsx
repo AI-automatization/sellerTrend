@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { toolsApi } from '../api/client';
+import { getErrorMessage } from '../utils/getErrorMessage';
 
 interface ProfitResult {
   revenue: number;
@@ -51,8 +52,8 @@ export function ProfitCalculatorPage() {
         quantity: Number(form.quantity),
       });
       setResult(res.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message ?? 'Xato yuz berdi');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

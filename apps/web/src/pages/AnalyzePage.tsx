@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { uzumApi, productsApi } from '../api/client';
+import { getErrorMessage } from '../utils/getErrorMessage';
 import { FireIcon, MagnifyingGlassIcon } from '../components/icons';
 import { ScoreChart } from '../components/ScoreChart';
 
@@ -81,11 +82,8 @@ export function AnalyzePage() {
       } catch {
         // snapshot history optional
       }
-    } catch (err: any) {
-      setError(
-        err.response?.data?.message ??
-          "Tahlil vaqtida xato. URL to'g'riligini tekshiring."
-      );
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Tahlil vaqtida xato. URL to'g'riligini tekshiring."));
     } finally {
       setLoading(false);
     }

@@ -84,7 +84,7 @@ export function Layout() {
 
   useEffect(() => {
     notificationApi.getMy().then((r) => {
-      const unread = (r.data || []).filter((n: any) => !n.is_read).length;
+      const unread = (r.data || []).filter((n: { is_read: boolean }) => !n.is_read).length;
       setUnreadCount(unread);
     }).catch(() => {});
   }, []);

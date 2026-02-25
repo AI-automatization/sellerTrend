@@ -10,6 +10,7 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { ActivityAction } from '../common/decorators/activity-action.decorator';
 import { SourcingService } from './sourcing.service';
 
 @ApiTags('sourcing')
@@ -39,6 +40,7 @@ export class SourcingController {
 
   /** Cargo narxini hisoblash */
   @Post('cargo/calculate')
+  @ActivityAction('SOURCING_CARGO_CALC')
   calculate(
     @Body()
     body: {
@@ -57,6 +59,7 @@ export class SourcingController {
 
   /** Quick narx qidirish (Playwright, backward compat) */
   @Post('search')
+  @ActivityAction('SOURCING_SEARCH')
   search(
     @Body() body: { query: string; source: string },
     @CurrentUser('account_id') account_id: string,
@@ -70,6 +73,7 @@ export class SourcingController {
 
   /** Full sourcing job — AI query gen + multi-platform search + scoring */
   @Post('jobs')
+  @ActivityAction('SOURCING_JOB_CREATE')
   createJob(
     @Body()
     body: {

@@ -69,18 +69,35 @@ async function bootstrap() {
     console.log(`Worker health check: http://localhost:${healthPort}/health`);
   });
 
-  // Graceful shutdown
-  process.on('SIGTERM', async () => {
-    server.close();
-    await billingWorker.close();
-    await discoveryWorker.close();
-    await sourcingWorker.close();
-    await competitorWorker.close();
-    await importWorker.close();
-    await reanalysisWorker.close();
-    redis.disconnect();
-    process.exit(0);
-  });
+  // Graceful shutdown (SIGTERM + SIGINT)
+  const shutdown = async (signal: string) => {
+    console.log(`[${signal}] Worker graceful shutdown...`);
+    const timeout = setTimeout(() => {
+      console.error('Worker shutdown timeout (30s), forcing exit');
+      process.exit(1);
+    }, 30_000);
+    try {
+      server.close();
+      await Promise.allSettled([
+        billingWorker.close(),
+        discoveryWorker.close(),
+        sourcingWorker.close(),
+        competitorWorker.close(),
+        importWorker.close(),
+        reanalysisWorker.close(),
+      ]);
+      await redis.quit();
+      clearTimeout(timeout);
+      console.log('Worker shutdown complete');
+      process.exit(0);
+    } catch (err) {
+      console.error('Worker shutdown error:', err);
+      process.exit(1);
+    }
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
 bootstrap().catch(console.error);

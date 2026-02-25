@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { toolsApi } from '../api/client';
+import { getErrorMessage } from '../utils/getErrorMessage';
 
 interface DescResult {
   title_optimized: string;
@@ -30,8 +31,8 @@ export function DescriptionGeneratorPage() {
         keywords: keywords.trim() ? keywords.split(',').map((k) => k.trim()) : undefined,
       });
       setResult(res.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message ?? 'Xato yuz berdi');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

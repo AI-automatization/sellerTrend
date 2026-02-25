@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { adminApi } from '../api/client';
+import { getErrorMessage } from '../utils/getErrorMessage';
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -107,7 +108,7 @@ function CreateAccountModal({ onClose, onDone }: { onClose: () => void; onDone: 
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setError(''); setLoading(true);
     try { await adminApi.createAccount(form); toast.success('Yangi account yaratildi'); onDone(); onClose(); }
-    catch (err: any) { setError(err.response?.data?.message ?? 'Xato'); toast.error(err.response?.data?.message ?? 'Account yaratib bo\'lmadi'); }
+    catch (err: unknown) { const msg = getErrorMessage(err, 'Account yaratib bo\'lmadi'); setError(msg); toast.error(msg); }
     finally { setLoading(false); }
   }
 
@@ -144,7 +145,7 @@ function DepositModal({ account, onClose, onDone }: { account: Account; onClose:
     if (!num || num <= 0) { setError("Miqdor noto'g'ri"); return; }
     setLoading(true); setError('');
     try { await adminApi.deposit(account.id, num, desc || undefined); toast.success(`${num.toLocaleString()} so'm balansga qo'shildi`); onDone(); onClose(); }
-    catch (err: any) { setError(err.response?.data?.message ?? 'Xato'); toast.error(err.response?.data?.message ?? 'Deposit amalga oshmadi'); }
+    catch (err: unknown) { const msg = getErrorMessage(err, 'Deposit amalga oshmadi'); setError(msg); toast.error(msg); }
     finally { setLoading(false); }
   }
 
@@ -180,7 +181,7 @@ function ChangePasswordModal({ user, onClose }: { user: { id: string; email: str
       await adminApi.changeUserPassword(user.id, password);
       toast.success(`${user.email} uchun parol o'zgartirildi`);
       onClose();
-    } catch (err: any) { toast.error(err.response?.data?.message ?? 'Parolni o\'zgartirib bo\'lmadi'); }
+    } catch (err: unknown) { toast.error(getErrorMessage(err, 'Parolni o\'zgartirib bo\'lmadi')); }
     finally { setLoading(false); }
   }
 
@@ -243,7 +244,7 @@ function AccountDrawer({ account, users, onClose, onRefresh }: {
       setNewUserForm({ email: '', password: '', role: 'USER' });
       setShowAddUser(false);
       onRefresh();
-    } catch (err: any) { toast.error(err.response?.data?.message ?? 'User qo\'shib bo\'lmadi'); }
+    } catch (err: unknown) { toast.error(getErrorMessage(err, 'User qo\'shib bo\'lmadi')); }
     finally { setAddingUser(false); }
   }
 
@@ -539,7 +540,7 @@ export function AdminPage() {
       await adminApi.setFee(accountId, fee); setEditingFee(null);
       setAccounts((prev) => prev.map((a) => a.id === accountId ? { ...a, daily_fee: fee?.toString() ?? null } : a));
       toast.success(fee ? `Kunlik to'lov ${fee.toLocaleString()} so'm qilindi` : 'Global kunlik to\'lovga qaytarildi');
-    } catch (err: any) { toast.error(err.response?.data?.message ?? 'Kunlik to\'lovni o\'zgartirib bo\'lmadi'); }
+    } catch (err: unknown) { toast.error(getErrorMessage(err, 'Kunlik to\'lovni o\'zgartirib bo\'lmadi')); }
   }
 
   async function saveGlobalFee() {
@@ -547,7 +548,7 @@ export function AdminPage() {
     if (!fee || fee <= 0) return;
     setSavingGlobalFee(true);
     try { await adminApi.setGlobalFee(fee); toast.success(`Global kunlik to'lov ${fee.toLocaleString()} so'm`); }
-    catch (err: any) { toast.error(err.response?.data?.message ?? 'Global to\'lovni o\'zgartirib bo\'lmadi'); }
+    catch (err: unknown) { toast.error(getErrorMessage(err, 'Global to\'lovni o\'zgartirib bo\'lmadi')); }
     finally { setSavingGlobalFee(false); }
   }
 
@@ -556,7 +557,7 @@ export function AdminPage() {
       await adminApi.updateRole(userId, newRole);
       setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, role: newRole } : u));
       toast.success(`Rol ${ROLE_META[newRole].label} ga o'zgartirildi`);
-    } catch (err: any) { toast.error(err.response?.data?.message ?? 'Rolni o\'zgartirib bo\'lmadi'); }
+    } catch (err: unknown) { toast.error(getErrorMessage(err, 'Rolni o\'zgartirib bo\'lmadi')); }
   }
 
   async function handleToggleActive(userId: string) {
@@ -564,7 +565,7 @@ export function AdminPage() {
       const res = await adminApi.toggleActive(userId);
       setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, is_active: res.data.is_active } : u));
       toast.success(res.data.is_active ? 'Foydalanuvchi faollashtirildi' : 'Foydalanuvchi bloklandi');
-    } catch (err: any) { toast.error(err.response?.data?.message ?? 'Holatni o\'zgartirib bo\'lmadi'); }
+    } catch (err: unknown) { toast.error(getErrorMessage(err, 'Holatni o\'zgartirib bo\'lmadi')); }
   }
 
   async function handleStatusChange(accountId: string, status: string) {
@@ -573,7 +574,7 @@ export function AdminPage() {
       setAccounts((prev) => prev.map((a) => a.id === accountId ? { ...a, status: status as any } : a));
       const labels: Record<string, string> = { ACTIVE: 'faollashtirildi', SUSPENDED: 'bloklandi', PAYMENT_DUE: 'to\'lov kerak' };
       toast.success(`Account ${labels[status] ?? status}`);
-    } catch (err: any) { toast.error(err.response?.data?.message ?? 'Statusni o\'zgartirib bo\'lmadi'); }
+    } catch (err: unknown) { toast.error(getErrorMessage(err, 'Statusni o\'zgartirib bo\'lmadi')); }
   }
 
   async function handleSearch() {
@@ -582,7 +583,7 @@ export function AdminPage() {
       const r = await adminApi.globalSearch(searchQuery); setSearchResults(r.data);
       const count = (r.data.users?.length || 0) + (r.data.accounts?.length || 0) + (r.data.products?.length || 0);
       if (count === 0) toast.info('Hech narsa topilmadi');
-    } catch (err: any) { toast.error(err.response?.data?.message ?? 'Qidiruvda xatolik'); }
+    } catch (err: unknown) { toast.error(getErrorMessage(err, 'Qidiruvda xatolik')); }
   }
 
   async function sendNotification() {
@@ -596,7 +597,7 @@ export function AdminPage() {
       await adminApi.sendNotificationAdvanced({ message: notifMsg, type: notifType, target });
       setNotifMsg(''); setNotifSelectedAccounts([]);
       toast.success('Xabar yuborildi');
-    } catch (err: any) { toast.error(err.response?.data?.message ?? 'Xabar yuborib bo\'lmadi'); }
+    } catch (err: unknown) { toast.error(getErrorMessage(err, 'Xabar yuborib bo\'lmadi')); }
     setNotifSending(false);
   }
 
@@ -607,7 +608,7 @@ export function AdminPage() {
       setEditingPhone(null);
       setAccounts((prev) => prev.map((a) => a.id === accountId ? { ...a, phone: val } : a));
       toast.success(val ? `Telefon raqam saqlandi: ${val}` : 'Telefon raqam o\'chirildi');
-    } catch (err: any) { toast.error(err.response?.data?.message ?? 'Telefon raqamni saqlab bo\'lmadi'); }
+    } catch (err: unknown) { toast.error(getErrorMessage(err, 'Telefon raqamni saqlab bo\'lmadi')); }
   }
 
   async function createTemplate() {
@@ -617,7 +618,7 @@ export function AdminPage() {
       setTemplates((prev) => [r.data, ...prev]);
       setNewTmplName(''); setNewTmplMsg(''); setNewTmplType('info');
       toast.success('Shablon yaratildi');
-    } catch (err: any) { toast.error(err.response?.data?.message ?? 'Shablon yaratib bo\'lmadi'); }
+    } catch (err: unknown) { toast.error(getErrorMessage(err, 'Shablon yaratib bo\'lmadi')); }
   }
 
   async function deleteTemplate(id: string) {
@@ -625,7 +626,7 @@ export function AdminPage() {
       await adminApi.deleteNotificationTemplate(id);
       setTemplates((prev) => prev.filter((t) => t.id !== id));
       toast.success('Shablon o\'chirildi');
-    } catch (err: any) { toast.error(err.response?.data?.message ?? 'Shablonni o\'chirib bo\'lmadi'); }
+    } catch (err: unknown) { toast.error(getErrorMessage(err, 'Shablonni o\'chirib bo\'lmadi')); }
   }
 
   async function loadErrorsPage(page: number) {
@@ -640,7 +641,7 @@ export function AdminPage() {
       setDepositLog((prev) => prev.filter((d: any) => d.id !== id));
       setDepositLogTotal((prev) => prev - 1);
       toast.success('Deposit yozuvi o\'chirildi');
-    } catch (err: any) { toast.error(err.response?.data?.message ?? 'O\'chirib bo\'lmadi'); }
+    } catch (err: unknown) { toast.error(getErrorMessage(err, 'O\'chirib bo\'lmadi')); }
   }
 
   async function handleFeedbackStatus(ticketId: string, status: string) {
@@ -648,7 +649,7 @@ export function AdminPage() {
       await adminApi.updateFeedbackStatus(ticketId, status);
       setFeedbackTickets((prev) => prev.map((t: any) => t.id === ticketId ? { ...t, status } : t));
       toast.success(`Feedback statusi ${status} ga o'zgartirildi`);
-    } catch (err: any) { toast.error(err.response?.data?.message ?? 'Statusni o\'zgartirib bo\'lmadi'); }
+    } catch (err: unknown) { toast.error(getErrorMessage(err, 'Statusni o\'zgartirib bo\'lmadi')); }
   }
 
   if (loading) {

@@ -19,5 +19,14 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          { group: ['../../apps/api/*'], message: 'Web must not import from API app' },
+          { group: ['../../apps/worker/*'], message: 'Web must not import from Worker app' },
+          { group: ['../../apps/bot/*'], message: 'Web must not import from Bot app' },
+        ],
+      }],
+    },
   },
 ])

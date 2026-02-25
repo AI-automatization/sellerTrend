@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { shopsApi } from '../api/client';
+import { getErrorMessage } from '../utils/getErrorMessage';
 
 interface ShopProduct {
   product_id: string;
@@ -57,8 +58,8 @@ export function ShopsPage() {
       ]);
       setShop(shopRes.data);
       setProducts(prodsRes.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message ?? "Do'kon topilmadi");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Do'kon topilmadi"));
     } finally {
       setLoading(false);
     }

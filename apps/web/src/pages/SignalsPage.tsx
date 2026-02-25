@@ -49,8 +49,21 @@ export function SignalsPage() {
         </div>
       </div>
 
-      {/* Tab navigation — scrollable on mobile */}
-      <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-2 overflow-x-auto">
+      {/* Tab navigation — dropdown on mobile, scrollable tabs on desktop */}
+      <div className="sm:hidden">
+        <select
+          value={tab}
+          onChange={(e) => setTab(e.target.value as Tab)}
+          className="select select-bordered w-full"
+        >
+          {TABS.map((t) => (
+            <option key={t.key} value={t.key}>
+              {t.emoji} {t.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="hidden sm:block rounded-2xl bg-base-200/60 border border-base-300/50 p-2 overflow-x-auto">
         <div className="flex gap-1 min-w-max">
           {TABS.map((t) => (
             <button
@@ -63,8 +76,7 @@ export function SignalsPage() {
               }`}
             >
               <span className="text-base">{t.emoji}</span>
-              <span className="hidden sm:inline">{t.label}</span>
-              <span className="sm:hidden">{t.shortLabel}</span>
+              {t.label}
             </button>
           ))}
         </div>

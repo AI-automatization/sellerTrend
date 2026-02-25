@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { toolsApi } from '../api/client';
+import { getErrorMessage } from '../utils/getErrorMessage';
 
 interface ElasticityResult {
   elasticity: number;
@@ -44,8 +45,8 @@ export function ElasticityPage() {
         qty_new: Number(form.qty_new),
       });
       setResult(res.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message ?? 'Xato yuz berdi');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

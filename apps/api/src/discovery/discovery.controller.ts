@@ -12,6 +12,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { ActivityAction } from '../common/decorators/activity-action.decorator';
 import { DiscoveryService } from './discovery.service';
 import { NicheService } from './niche.service';
 import { RequestLoggerService } from '../common/request-logger.service';
@@ -32,6 +33,7 @@ export class DiscoveryController {
   ) {}
 
   @Post('run')
+  @ActivityAction('DISCOVERY_RUN')
   async startRun(
     @CurrentUser('account_id') accountId: string,
     @Body() body: { input: string },

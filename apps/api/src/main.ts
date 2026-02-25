@@ -5,6 +5,7 @@ import { AppModule } from './app.module';
 import { GlobalLoggerInterceptor } from './common/interceptors/global-logger.interceptor';
 import { ErrorTrackerFilter } from './common/filters/error-tracker.filter';
 import { PrismaService } from './prisma/prisma.service';
+import { initSentry } from './common/sentry';
 
 const SWAGGER_HTML = `<!DOCTYPE html>
 <html>
@@ -35,6 +36,8 @@ const SWAGGER_HTML = `<!DOCTYPE html>
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  await initSentry();
 
   app.setGlobalPrefix('api/v1');
 
@@ -77,10 +80,33 @@ async function bootstrap() {
     res.send(SWAGGER_HTML);
   });
 
+  // Graceful shutdown
+  app.enableShutdownHooks();
+
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
   console.log(`API running on http://localhost:${port}`);
   console.log(`Swagger docs: http://localhost:${port}/api/docs`);
+
+  const shutdown = async (signal: string) => {
+    console.log(`[${signal}] Graceful shutdown...`);
+    const timeout = setTimeout(() => {
+      console.error('Shutdown timeout (30s), forcing exit');
+      process.exit(1);
+    }, 30_000);
+    try {
+      await app.close();
+      clearTimeout(timeout);
+      console.log('Shutdown complete');
+      process.exit(0);
+    } catch (err) {
+      console.error('Shutdown error:', err);
+      process.exit(1);
+    }
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
 bootstrap();

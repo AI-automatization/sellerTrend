@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { discoveryApi, productsApi, seasonalApi, nicheApi } from '../api/client';
+import { getErrorMessage } from '../utils/getErrorMessage';
 import { FireIcon, ArrowTrendingUpIcon } from '../components/icons';
 
 // ─── Shared types ────────────────────────────────────────────────────────────
@@ -141,7 +142,7 @@ function ScannerTab() {
     if (!input) { setError('URL yoki kategoriya ID kiriting'); return; }
     setError(''); setStarting(true);
     try { await discoveryApi.startRun(input); setCategoryInput(''); await loadRuns(); }
-    catch (err: any) { setError(err.response?.data?.message ?? 'Xato yuz berdi'); }
+    catch (err: unknown) { setError(getErrorMessage(err)); }
     finally { setStarting(false); }
   }
 

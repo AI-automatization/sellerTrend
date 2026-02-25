@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { uzumApi, productsApi, sourcingApi } from '../api/client';
+import { getErrorMessage } from '../utils/getErrorMessage';
 import { ScoreChart } from '../components/ScoreChart';
 import {
   AreaChart,
@@ -209,8 +210,8 @@ export function ProductPage() {
         })),
       );
       if (forecastRes.data) setForecast(forecastRes.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message ?? "Uzumdan ma'lumot olib bo'lmadi");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Uzumdan ma'lumot olib bo'lmadi"));
     } finally {
       setLoading(false);
       setRefreshing(false);

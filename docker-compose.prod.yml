@@ -35,6 +35,28 @@ services:
     networks:
       - backend
 
+  pgbouncer:
+    image: edoburu/pgbouncer:1.22.0
+    container_name: uzum_pgbouncer
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-uzum}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB:-uzum_trend_finder}
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: "200"
+      DEFAULT_POOL_SIZE: "20"
+      MIN_POOL_SIZE: "5"
+      RESERVE_POOL_SIZE: "5"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5432"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - backend
+
   # ── Application ───────────────────────────────────────────
   api:
     build:
@@ -43,7 +65,7 @@ services:
     container_name: uzum_api
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-uzum}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-uzum_trend_finder}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-uzum}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB:-uzum_trend_finder}
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
@@ -51,7 +73,7 @@ services:
       PORT: 3000
       NODE_ENV: production
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -70,11 +92,11 @@ services:
     container_name: uzum_worker
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-uzum}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-uzum_trend_finder}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-uzum}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB:-uzum_trend_finder}
       REDIS_URL: redis://redis:6379
       NODE_ENV: production
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -88,11 +110,11 @@ services:
     container_name: uzum_bot
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-uzum}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-uzum_trend_finder}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-uzum}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB:-uzum_trend_finder}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       NODE_ENV: production
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
     networks:
       - backend
