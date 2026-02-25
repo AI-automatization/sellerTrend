@@ -14,7 +14,7 @@ export class ProductsService {
           include: {
             snapshots: {
               orderBy: { snapshot_at: 'desc' },
-              take: 2,
+              take: 20,
             },
             skus: {
               where: { is_available: true },
@@ -27,9 +27,21 @@ export class ProductsService {
     });
 
     return tracked.map((t) => {
-      const latest = t.product.snapshots[0];
-      const prev = t.product.snapshots[1];
+      const snaps = t.product.snapshots; // DESC order
+      const latest = snaps[0];
       const sku = t.product.skus[0];
+
+      // Find a "prev" snapshot with meaningful time gap (>1 hour) from latest
+      const MIN_GAP_MS = 60 * 60 * 1000; // 1 hour
+      let prev = snaps[1];
+      if (latest) {
+        for (let i = 1; i < snaps.length; i++) {
+          if (latest.snapshot_at.getTime() - snaps[i].snapshot_at.getTime() >= MIN_GAP_MS) {
+            prev = snaps[i];
+            break;
+          }
+        }
+      }
 
       const latestScore = latest?.score ? Number(latest.score) : null;
       const prevScore = prev?.score ? Number(prev.score) : null;
@@ -42,7 +54,7 @@ export class ProductsService {
             : 'flat'
           : null;
 
-      // Recalculate weekly_bought from orders_quantity delta (fix corrupted old data)
+      // Recalculate weekly_bought from orders_quantity delta
       let weeklyBought = latest?.weekly_bought ?? null;
       if (latest && prev && latest.orders_quantity != null && prev.orders_quantity != null) {
         const curr = Number(latest.orders_quantity);
@@ -52,7 +64,6 @@ export class ProductsService {
         if (daysDiff > 0.01 && curr >= prevVal) {
           const calculated = Math.round(((curr - prevVal) * 7) / daysDiff);
           if (calculated <= 5000) weeklyBought = calculated;
-          // If extrapolation > 5000 (snapshots too close), keep stored value
         }
       }
       if ((weeklyBought ?? 0) > 5000) weeklyBought = 0;
@@ -79,7 +90,7 @@ export class ProductsService {
       include: {
         snapshots: {
           orderBy: { snapshot_at: 'desc' },
-          take: 2,
+          take: 20,
           include: {
             ai_explanations: {
               orderBy: { created_at: 'desc' },
@@ -98,8 +109,8 @@ export class ProductsService {
 
     if (!product) return null;
 
-    const latest = product.snapshots[0];
-    const prev = product.snapshots[1];
+    const snaps = product.snapshots; // DESC order
+    const latest = snaps[0];
     const sku = product.skus[0];
     const aiRaw = latest?.ai_explanations[0]?.explanation;
     let ai_explanation: string[] | null = null;
@@ -111,7 +122,19 @@ export class ProductsService {
       }
     }
 
-    // Recalculate weekly_bought from orders_quantity delta (fix corrupted old data)
+    // Find a "prev" snapshot with meaningful time gap (>1 hour)
+    const MIN_GAP_MS = 60 * 60 * 1000;
+    let prev = snaps[1];
+    if (latest) {
+      for (let i = 1; i < snaps.length; i++) {
+        if (latest.snapshot_at.getTime() - snaps[i].snapshot_at.getTime() >= MIN_GAP_MS) {
+          prev = snaps[i];
+          break;
+        }
+      }
+    }
+
+    // Recalculate weekly_bought from orders_quantity delta
     let weeklyBought = latest?.weekly_bought ?? null;
     if (latest && prev && latest.orders_quantity != null && prev.orders_quantity != null) {
       const curr = Number(latest.orders_quantity);

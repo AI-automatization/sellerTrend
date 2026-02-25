@@ -350,3 +350,21 @@
 - **Sabab:** 1) Frontend `u.tracked_count` ishlatardi, backend `tracked_products` qaytarardi (field mismatch). 2) Backend `getTopUsers()` `avg_score` va `total_weekly` fieldlarni umuman qaytarmasdi.
 - **Yechim:** 1) Frontend: `tracked_count` → `tracked_products`. 2) Backend: `getTopUsers()` ga tracked productlar snapshot'idan `avg_score` va `total_weekly` hisoblash qo'shildi.
 - **Status:** FIXED
+
+### BUG-024: Dashboard Haftalik = 0 — snapshot duplikat muammosi
+- **Sana:** 2026-02-25
+- **Tur:** backend
+- **Fayl:** `apps/api/src/products/products.service.ts`
+- **Xato:** Dashboard'da barcha mahsulotlar uchun Haftalik = 0 ko'rsatardi, lekin `/weekly-trend` endpoint to'g'ri qiymat qaytarardi.
+- **Sabab:** `getTrackedProducts()` va `getProductById()` faqat 2 ta snapshot olardi (`take: 2`). Snapshot'lar ko'pincha bir-biriga juda yaqin vaqtda yaratiladi (0.5 soniya farq), shuning uchun `daysDiff < 0.01` → delta hisoblanmaydi → stored 0 qaytadi.
+- **Yechim:** `take: 20` ga oshirildi. Yangi logika: eng oxirgi snapshotdan kamida 1 soat farq bo'lgan birinchi "prev" snapshotni topadi, shunda haqiqiy orders delta hisoblanadi.
+- **Status:** FIXED
+
+### BUG-025: Super Admin Home Dashboard — admin stats ko'rinyapti
+- **Sana:** 2026-02-25
+- **Tur:** frontend
+- **Fayl:** `apps/web/src/pages/DashboardPage.tsx`
+- **Xato:** Super Admin kirganda Home Dashboard'da "Tushum", "MRR", "Faol akkauntlar", "To'lov kutmoqda" admin panelga tegishli ma'lumotlar ko'rsatilardi.
+- **Sabab:** `isSuperAdmin` bo'lsa balance o'rniga admin stats API chaqirilardi va alohida admin stats blok ko'rsatilardi.
+- **Yechim:** Admin stats (`adminApi.getStatsOverview`, `adminApi.getStatsRevenue`) Home Dashboard'dan olib tashlandi. Super Admin ham oddiy foydalanuvchi sifatida "Balans" ko'radi. Admin stats faqat `/admin` sahifada.
+- **Status:** FIXED
