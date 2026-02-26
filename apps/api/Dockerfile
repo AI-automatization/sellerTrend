@@ -4,6 +4,7 @@ RUN npm install -g pnpm@10.30.1
 # ── deps ──────────────────────────────────────────────────────
 FROM base AS deps
 WORKDIR /app
+ENV HUSKY=0
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .pnpmfile.cjs ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/types/package.json ./packages/types/
@@ -25,6 +26,7 @@ FROM node:20-alpine AS runner
 RUN npm install -g pnpm@10.30.1
 WORKDIR /app
 ENV NODE_ENV=production
+ENV HUSKY=0
 
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .pnpmfile.cjs ./
 COPY apps/api/package.json ./apps/api/
