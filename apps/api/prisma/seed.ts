@@ -3,7 +3,7 @@ import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-const ADMIN_EMAIL    = 'admin@uzum-trend.uz';
+const ADMIN_EMAIL    = 'admin@ventra.uz';
 const ADMIN_PASSWORD = 'Admin123!';
 
 async function main() {
@@ -58,17 +58,17 @@ async function main() {
 
   const demoHash = await bcrypt.hash('Demo123!', 12);
   await prisma.user.upsert({
-    where:  { email: 'demo@uzum-trend.uz' },
+    where:  { email: 'demo@ventra.uz' },
     update: {},
     create: {
       account_id:    demoAccount.id,
-      email:         'demo@uzum-trend.uz',
+      email:         'demo@ventra.uz',
       password_hash: demoHash,
       role:          'USER',
     },
   });
   console.log('\n✅ Demo User yaratildi:');
-  console.log('   📧 Email:  demo@uzum-trend.uz');
+  console.log('   📧 Email:  demo@ventra.uz');
   console.log('   🔑 Parol:  Demo123!');
   console.log('   💰 Balans: 500,000 so\'m');
 

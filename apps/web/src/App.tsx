@@ -26,6 +26,9 @@ const SignalsPage = lazy(() => import('./pages/SignalsPage').then(m => ({ defaul
 const EnterprisePage = lazy(() => import('./pages/EnterprisePage').then(m => ({ default: m.EnterprisePage })));
 const FeedbackPage = lazy(() => import('./pages/FeedbackPage').then(m => ({ default: m.FeedbackPage })));
 const AdminPage = lazy(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })));
+const ExtensionPage = lazy(() => import('./pages/ExtensionPage').then(m => ({ default: m.ExtensionPage })));
+const SharedWatchlistPage = lazy(() => import('./pages/SharedWatchlistPage').then(m => ({ default: m.SharedWatchlistPage })));
+const TelegramMiniAppPage = lazy(() => import('./pages/TelegramMiniAppPage').then(m => ({ default: m.TelegramMiniAppPage })));
 
 function isAuthenticated() {
   return !!localStorage.getItem('access_token');
@@ -53,6 +56,8 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/watchlists/shared/:token" element={<LazyRoute><SharedWatchlistPage /></LazyRoute>} />
+        <Route path="/tg-app" element={<LazyRoute><TelegramMiniAppPage /></LazyRoute>} />
         <Route
           path="/"
           element={
@@ -77,6 +82,7 @@ export default function App() {
           <Route path="signals" element={<LazyRoute><SignalsPage /></LazyRoute>} />
           <Route path="enterprise" element={<LazyRoute><EnterprisePage /></LazyRoute>} />
           <Route path="feedback" element={<LazyRoute><FeedbackPage /></LazyRoute>} />
+          <Route path="extension" element={<LazyRoute><ExtensionPage /></LazyRoute>} />
           <Route path="admin" element={<LazyRoute><AdminPage /></LazyRoute>} />
         </Route>
       </Routes>

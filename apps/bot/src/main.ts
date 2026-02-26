@@ -17,7 +17,7 @@ const bot = new Bot(TOKEN);
 bot.command('start', async (ctx) => {
   const chatId = ctx.chat.id;
   await ctx.reply(
-    `👋 <b>Uzum Trend Finder Bot</b>\n\n` +
+    `👋 <b>VENTRA Analytics Bot</b>\n\n` +
     `Men sizga Uzum marketplace trenduvoiy mahsulotlar haqida xabar beraman.\n\n` +
     `📋 <b>Buyruqlar:</b>\n` +
     `/subscribe — Xabarnomaga ulaning\n` +

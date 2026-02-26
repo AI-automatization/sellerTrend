@@ -9,3 +9,4 @@ export { sourcingApi } from './sourcing';
 export { toolsApi, leaderboardApi, shopsApi, referralApi, apiKeysApi, exportApi } from './tools';
 export { consultationApi, signalsApi, adsApi, teamApi, reportsApi, watchlistApi, communityApi } from './enterprise';
 export { adminApi, feedbackApi, notificationApi } from './admin';
+export { competitorApi } from './competitor';

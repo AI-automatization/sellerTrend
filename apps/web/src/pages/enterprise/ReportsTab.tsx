@@ -62,6 +62,22 @@ export function ReportsTab() {
     reportsApi.marketShare(Number(marketCatId)).then((r) => setMarketData(r.data)).catch(() => {});
   }
 
+  function downloadMarketShareCSV(data: MarketShareData) {
+    if (!data.shops?.length) return;
+    const header = 'Do\'kon,Mahsulotlar,Haftalik sotuv,Bozor ulushi (%)';
+    const rows = data.shops.map((s) =>
+      `"${s.name || "Noma'lum"}",${s.product_count},${s.total_sales},${s.market_share_pct}`
+    );
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `market-share-${marketCatId}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   if (loading) return <SectionCard><Loading /></SectionCard>;
 
   return (
@@ -146,6 +162,11 @@ export function ReportsTab() {
             onChange={(e) => setMarketCatId(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && loadMarketShare()} />
           <button className="btn btn-sm btn-primary" onClick={loadMarketShare}>Hisoblash</button>
+          {marketData && marketData.shops && marketData.shops.length > 0 && (
+            <button className="btn btn-sm btn-outline gap-1" onClick={() => downloadMarketShareCSV(marketData!)}>
+              📥 CSV yuklab olish
+            </button>
+          )}
         </div>
         {marketData ? (
           <div>

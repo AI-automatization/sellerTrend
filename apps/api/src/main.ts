@@ -10,7 +10,7 @@ import { initSentry } from './common/sentry';
 const SWAGGER_HTML = `<!DOCTYPE html>
 <html>
   <head>
-    <title>Uzum Trend Finder API</title>
+    <title>VENTRA Analytics API</title>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui.css">
@@ -66,10 +66,16 @@ async function bootstrap() {
 
   // Swagger: generate spec + serve via raw Express routes (avoids pnpm static asset issues)
   const config = new DocumentBuilder()
-    .setTitle('Uzum Trend Finder API')
+    .setTitle('VENTRA Analytics API')
     .setVersion('1.0')
     .addBearerAuth()
     .build();
+
+  // API version header on all responses
+  app.use((_req: unknown, res: { setHeader: (k: string, v: string) => void }, next: () => void) => {
+    res.setHeader('X-API-Version', '1.0');
+    next();
+  });
   const document = SwaggerModule.createDocument(app, config);
 
   // Register BEFORE app.listen() so these routes take priority over NestJS router

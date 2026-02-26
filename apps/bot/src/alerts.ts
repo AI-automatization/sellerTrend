@@ -37,7 +37,7 @@ export async function sendDiscoveryAlert(
   const message =
     `🏆 <b>Category #${categoryId} — Top 5 Trending</b>\n\n` +
     lines.join('\n\n') +
-    `\n\n<i>🤖 Uzum Trend Finder</i>`;
+    `\n\n<i>🤖 VENTRA Analytics</i>`;
 
   await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
 }

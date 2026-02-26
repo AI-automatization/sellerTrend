@@ -38,6 +38,15 @@ jobs:
       - name: Type-check Web
         run: pnpm --filter web exec tsc --noEmit
 
+      - name: Type-check Worker
+        run: pnpm --filter worker exec tsc --noEmit
+
+      - name: Type-check Bot
+        run: pnpm --filter bot exec tsc --noEmit
+
+      - name: Unit tests
+        run: pnpm --filter @uzum/utils run test
+
       - name: Lint web
         run: pnpm --filter web run lint
 

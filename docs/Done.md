@@ -149,7 +149,41 @@
 | 41 | Cargo Calculator | DONE |
 | 43 | White-label API | DONE |
 
-**Qolgan 8 ta → docs/Tasks.md:** T-043 (F01), T-044 (F10), T-045 (F14), T-046 (F36), T-052 (F32), T-053 (F35), T-054 (F39), T-055 (F42)
+| 01 | Competitor Price Tracker | DONE |
+| 10 | Browser Extension | DONE |
+| 14 | White-label | DONE |
+| 32 | Telegram Mini App | DONE |
+| 35 | Market Share PDF/CSV | DONE |
+| 36 | Watchlist Sharing | DONE |
+| 39 | Algorithm Reverse Eng. | DONE |
+| 42 | Browser Extension Pro | DONE |
+
+**43/43 feature bajarildi!**
+
+---
+
+## P3 VAZIFALAR — BAJARILDI (2026-02-26)
+
+| # | Vazifa | Yechim |
+|---|--------|--------|
+| T-038 | WebSocket refresh signal | WS faqat "refresh signal" yuboradi, data REST dan. signalScoreUpdate, signalDiscoveryProgress, signalAlert |
+| T-039 | CI tsc --noEmit | Worker + Bot tsc --noEmit + unit tests ci.yml ga qo'shildi |
+| T-040 | API Versioning | X-API-Version: 1.0 header middleware main.ts da |
+| T-041 | I18n structured errors | error-codes.ts (15+ code), translations.ts (3 til), getErrorMessage t() support |
+| T-042 | Optimistic UI | DiscoveryPage trackedIds Set — darhol UI yangilash, xato → rollback |
+| T-043 | Competitor Price Tracker UI | CompetitorSection.tsx — discover, track, untrack, price history chart (Feature 01) |
+| T-044 | Browser Extension Landing | ExtensionPage.tsx — feature cards, install steps, download buttons (Feature 10) |
+| T-045 | White-label Admin Tab | AdminPage "whitelabel" tab — logo, rang, domain, marketplace sozlamalari (Feature 14) |
+| T-046 | SharedWatchlistPage | /watchlists/shared/:token public route — VENTRA branding, products table (Feature 36) |
+| T-047 | DR Plan | docs/DR-PLAN.md — RTO 30min, RPO 6h, failover runbook, monitoring |
+| T-048 | Staging environment | docs/STAGING.md — Railway preview deploys, branch strategy, env config |
+| T-049 | CDN setup | docs/CDN.md — Cloudflare setup, Vite hash-based assets, nginx config |
+| T-050 | Axios cache buster | _t=timestamp kerak (confirmed), Cache-Control + SW bilan birga ishlaydi |
+| T-051 | Branding update | main.ts, bot, seed.ts → VENTRA, emails → @ventra.uz, package.json → ventra-analytics |
+| T-052 | Telegram Mini App UI | TelegramMiniAppPage.tsx — compact dashboard, /tg-app route, TG WebApp SDK (Feature 32) |
+| T-053 | Market Share CSV | ReportsTab.tsx — CSV download button, UTF-8 BOM, date-stamped filename (Feature 35) |
+| T-054 | Algorithm RE | docs/ALGORITHM-RE.md — 7 faktor, patternlar, VENTRA score korrelyatsiya (Feature 39) |
+| T-055 | Browser Extension Pro | ExtensionPage — free/pro toggle, 10 feature card, "qanday ishlaydi" section (Feature 42) |
 
 ---
 
