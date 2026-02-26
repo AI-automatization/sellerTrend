@@ -7,7 +7,7 @@ const FEATURES = {
     { title: "Score overlay", desc: 'Uzum sahifasida har bir mahsulot kartasida score badge', icon: '🎯' },
     { title: 'Tezkor tahlil', desc: "Bir klik bilan score, trend va raqobat ko'rish", icon: '⚡' },
     { title: 'Kuzatuvga olish', desc: "Brauzerdan chiqmasdan mahsulotni kuzatuvga qo'shish", icon: '👁️' },
-    { title: 'Narx tarixini ko'rish', desc: "Mahsulot narxi o'zgarishini grafik shaklida ko'ring", icon: '📈' },
+    { title: "Narx tarixini ko'rish", desc: "Mahsulot narxi o'zgarishini grafik shaklida ko'ring", icon: '📈' },
   ],
   pro: [
     { title: 'Raqiblar narxi', desc: "Raqobatchi do'konlar narxini real-time kuzatish", icon: '⚖️' },
