@@ -1,8 +1,6 @@
-[build]
-builder = "dockerfile"
-dockerfilePath = "apps/api/Dockerfile"
+# Railway deploy configuration
+# Dockerfile paths and health checks are configured per-service in Railway dashboard.
+# This file applies to ALL services deployed via `railway up`.
 
 [deploy]
-healthcheckPath = "/api/v1/health"
-healthcheckTimeout = 120
 restartPolicyType = "on_failure"
