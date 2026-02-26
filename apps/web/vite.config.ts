@@ -5,7 +5,10 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
-    dedupe: ['react', 'react-dom'],
+    dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime', 'recharts'],
   },
   server: {
     port: 5173,
