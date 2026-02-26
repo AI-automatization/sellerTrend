@@ -8,6 +8,7 @@ import { productsApi, billingApi, exportApi, getTokenPayload } from '../api/clie
 import {
   FireIcon, WalletIcon, ArrowTrendingUpIcon, MagnifyingGlassIcon,
 } from '../components/icons';
+import { useI18n } from '../i18n/I18nContext';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -134,6 +135,7 @@ export function DashboardPage() {
   const [exporting, setExporting] = useState(false);
   const [sortKey, setSortKey] = useState<'score' | 'weekly' | 'price'>('score');
   const isSuperAdmin = getTokenPayload()?.role === 'SUPER_ADMIN';
+  const { t } = useI18n();
 
   useEffect(() => {
     const promises: Promise<unknown>[] = [productsApi.getTracked().then((r) => setProducts(r.data))];
@@ -194,11 +196,11 @@ export function DashboardPage() {
 
   const trendPieData = useMemo(() =>
     [
-      { name: "O'sish", value: stats.rising, fill: '#22c55e' },
-      { name: 'Barqaror', value: stats.flat, fill: '#4b5563' },
-      { name: 'Tushish', value: stats.falling, fill: '#ef4444' },
+      { name: t('dashboard.trendUp'), value: stats.rising, fill: '#22c55e' },
+      { name: t('dashboard.trendStable'), value: stats.flat, fill: '#4b5563' },
+      { name: t('dashboard.trendDown'), value: stats.falling, fill: '#ef4444' },
     ].filter((d) => d.value > 0),
-    [stats],
+    [stats, t],
   );
 
   // fake sparkline data from scores (just for visual)
@@ -207,7 +209,7 @@ export function DashboardPage() {
 
   const paymentDue = balance?.status === 'PAYMENT_DUE';
   const hour = new Date().getHours();
-  const greeting = hour < 6 ? 'Xayrli tun' : hour < 12 ? 'Xayrli tong' : hour < 18 ? 'Xayrli kun' : 'Xayrli kech';
+  const greeting = hour < 6 ? t('greeting.night') : hour < 12 ? t('greeting.morning') : hour < 18 ? t('greeting.day') : t('greeting.evening');
 
   async function handleExportCsv() {
     setExporting(true);
@@ -231,7 +233,7 @@ export function DashboardPage() {
           <span className="loading loading-ring loading-lg text-primary" />
           <div className="absolute inset-0 animate-ping rounded-full bg-primary/10" />
         </div>
-        <p className="text-xs text-base-content/30 animate-pulse">Portfolio yuklanmoqda...</p>
+        <p className="text-xs text-base-content/30 animate-pulse">{t('dashboard.loadingPortfolio')}</p>
       </div>
     );
   }
@@ -244,16 +246,16 @@ export function DashboardPage() {
           <div>
             <p className="text-xs text-base-content/30 font-medium tracking-wide uppercase">{greeting}</p>
             <h1 className="text-2xl lg:text-[28px] font-bold tracking-tight font-heading mt-1 leading-tight">
-              Portfolio Overview
+              {t('dashboard.portfolioOverview')}
             </h1>
             <p className="text-sm text-base-content/35 mt-1.5">
               {products.length > 0 ? (
                 <>
-                  <span className="text-base-content/60 font-semibold">{products.length}</span> mahsulot
-                  {stats.rising > 0 && <> · <span className="text-success">{stats.rising} o'sishda</span></>}
-                  {stats.falling > 0 && <> · <span className="text-error">{stats.falling} tushishda</span></>}
+                  <span className="text-base-content/60 font-semibold">{products.length}</span> {t('dashboard.products')}
+                  {stats.rising > 0 && <> · <span className="text-success">{stats.rising} {t('dashboard.rising')}</span></>}
+                  {stats.falling > 0 && <> · <span className="text-error">{stats.falling} {t('dashboard.falling')}</span></>}
                 </>
-              ) : 'Analitika va monitoring markazi'}
+              ) : t('dashboard.analyticsCenter')}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -269,7 +271,7 @@ export function DashboardPage() {
               )} CSV
             </button>
             <Link to="/analyze" className="btn btn-primary btn-sm gap-1.5 shadow-md shadow-primary/15 text-xs">
-              <MagnifyingGlassIcon className="w-3.5 h-3.5" /> Tahlil qilish
+              <MagnifyingGlassIcon className="w-3.5 h-3.5" /> {t('analyze.button')}
             </Link>
           </div>
         </div>
@@ -284,10 +286,10 @@ export function DashboardPage() {
               <WalletIcon className="w-5 h-5 text-error" />
             </div>
             <div className="flex-1 relative">
-              <p className="font-bold text-sm text-error">To'lov kerak</p>
-              <p className="text-xs text-base-content/45 mt-0.5">Balansingiz yetarli emas. Xizmat to'xtatilishi mumkin.</p>
+              <p className="font-bold text-sm text-error">{t('dashboard.paymentRequired')}</p>
+              <p className="text-xs text-base-content/45 mt-0.5">{t('dashboard.paymentDesc')}</p>
             </div>
-            <button className="btn btn-error btn-sm shadow-sm">To'ldirish</button>
+            <button className="btn btn-error btn-sm shadow-sm">{t('dashboard.topUp')}</button>
           </div>
         </FadeIn>
       )}
@@ -304,7 +306,7 @@ export function DashboardPage() {
             }`}>
               <div className="absolute top-0 left-0 w-0.5 h-full bg-gradient-to-b from-primary via-primary/40 to-transparent" />
               <div className="flex items-center justify-between mb-3">
-                <span className="text-[9px] text-base-content/30 font-bold uppercase tracking-[0.15em]">Balans</span>
+                <span className="text-[9px] text-base-content/30 font-bold uppercase tracking-[0.15em]">{t('dashboard.balance')}</span>
                 <div className="w-7 h-7 rounded-lg bg-primary/8 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
                   <WalletIcon className="w-3.5 h-3.5 text-primary/70" />
                 </div>
@@ -324,7 +326,7 @@ export function DashboardPage() {
           <div className="relative h-full rounded-2xl p-4 lg:p-5 bg-base-200/50 border border-base-300/40 overflow-hidden ventra-card">
             <div className="absolute top-0 left-0 w-0.5 h-full bg-gradient-to-b from-accent via-accent/40 to-transparent" />
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[9px] text-base-content/30 font-bold uppercase tracking-[0.15em]">Mahsulotlar</span>
+              <span className="text-[9px] text-base-content/30 font-bold uppercase tracking-[0.15em]">{t('dashboard.productsCount')}</span>
               <div className="w-7 h-7 rounded-lg bg-accent/8 flex items-center justify-center group-hover:bg-accent/15 transition-colors">
                 <ArrowTrendingUpIcon className="w-3.5 h-3.5 text-accent/70" />
               </div>
@@ -343,7 +345,7 @@ export function DashboardPage() {
           <div className="relative h-full rounded-2xl p-4 lg:p-5 bg-base-200/50 border border-base-300/40 overflow-hidden ventra-card">
             <div className="absolute top-0 left-0 w-0.5 h-full bg-gradient-to-b from-success via-success/40 to-transparent" />
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[9px] text-base-content/30 font-bold uppercase tracking-[0.15em]">Haftalik sotuv</span>
+              <span className="text-[9px] text-base-content/30 font-bold uppercase tracking-[0.15em]">{t('dashboard.weeklySales')}</span>
               <div className="w-7 h-7 rounded-lg bg-success/8 flex items-center justify-center group-hover:bg-success/15 transition-colors">
                 <svg className="w-3.5 h-3.5 text-success/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
@@ -364,7 +366,7 @@ export function DashboardPage() {
           <div className="relative h-full rounded-2xl p-4 lg:p-5 bg-base-200/50 border border-base-300/40 overflow-hidden ventra-card">
             <div className="absolute top-0 left-0 w-0.5 h-full bg-gradient-to-b from-warning via-warning/40 to-transparent" />
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[9px] text-base-content/30 font-bold uppercase tracking-[0.15em]">O'rta Score</span>
+              <span className="text-[9px] text-base-content/30 font-bold uppercase tracking-[0.15em]">{t('dashboard.avgScore')}</span>
               <div className="w-7 h-7 rounded-lg bg-warning/8 flex items-center justify-center group-hover:bg-warning/15 transition-colors">
                 <svg className="w-3.5 h-3.5 text-warning/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.562.562 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
@@ -391,7 +393,7 @@ export function DashboardPage() {
               : 'from-error via-error/40 to-transparent'
             }`} />
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[9px] text-base-content/30 font-bold uppercase tracking-[0.15em]">Salomatlik</span>
+              <span className="text-[9px] text-base-content/30 font-bold uppercase tracking-[0.15em]">{t('dashboard.health')}</span>
               <div className="w-7 h-7 rounded-lg bg-info/8 flex items-center justify-center group-hover:bg-info/15 transition-colors">
                 <svg className="w-3.5 h-3.5 text-info/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
@@ -425,7 +427,7 @@ export function DashboardPage() {
                 <div className="relative p-5 lg:p-6">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-sm">🏆</span>
-                    <span className="text-[9px] text-base-content/30 font-bold uppercase tracking-[0.15em]">Eng yuqori score</span>
+                    <span className="text-[9px] text-base-content/30 font-bold uppercase tracking-[0.15em]">{t('dashboard.bestScore')}</span>
                   </div>
                   <Link to={`/products/${stats.best.product_id}`}
                     className="font-bold text-[15px] leading-snug hover:text-primary transition-colors line-clamp-2 block">
@@ -451,7 +453,7 @@ export function DashboardPage() {
                 <div className="relative p-5 lg:p-6">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="w-8 h-8 rounded-xl bg-success/10 flex items-center justify-center text-sm">🔥</span>
-                    <span className="text-[9px] text-base-content/30 font-bold uppercase tracking-[0.15em]">Eng faol mahsulot</span>
+                    <span className="text-[9px] text-base-content/30 font-bold uppercase tracking-[0.15em]">{t('dashboard.mostActive')}</span>
                   </div>
                   <Link to={`/products/${stats.mostActive.product_id}`}
                     className="font-bold text-[15px] leading-snug hover:text-success transition-colors line-clamp-2 block">
@@ -461,7 +463,7 @@ export function DashboardPage() {
                     <span className="text-3xl font-bold text-success tabular-nums tracking-tight font-heading">
                       {stats.mostActive.weekly_bought?.toLocaleString() ?? '—'}
                     </span>
-                    <span className="text-xs text-base-content/30">ta/hafta</span>
+                    <span className="text-xs text-base-content/30">{t('dashboard.perWeek')}</span>
                     <TrendChip trend={stats.mostActive.trend} />
                   </div>
                 </div>
@@ -479,8 +481,8 @@ export function DashboardPage() {
             <div className="xl:col-span-8 rounded-2xl bg-base-200/50 border border-base-300/40 overflow-hidden ventra-card">
               <div className="px-5 py-4 border-b border-base-300/20 flex items-center justify-between">
                 <div>
-                  <h2 className="font-semibold text-sm font-heading">Score Reytingi</h2>
-                  <p className="text-[10px] text-base-content/25 mt-0.5">Top {scoreChartData.length} mahsulot</p>
+                  <h2 className="font-semibold text-sm font-heading">{t('dashboard.scoreRating')}</h2>
+                  <p className="text-[10px] text-base-content/25 mt-0.5">Top {scoreChartData.length} {t('dashboard.products')}</p>
                 </div>
                 <div className="flex items-center gap-2 text-[9px] text-base-content/25">
                   <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-success/60" />6+</span>
@@ -504,7 +506,7 @@ export function DashboardPage() {
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center justify-center h-48 text-base-content/15 text-sm">Ma'lumot yo'q</div>
+                  <div className="flex items-center justify-center h-48 text-base-content/15 text-sm">{t('common.noData')}</div>
                 )}
               </div>
             </div>
@@ -514,8 +516,8 @@ export function DashboardPage() {
               {/* Trend donut */}
               <div className="rounded-2xl bg-base-200/50 border border-base-300/40 overflow-hidden ventra-card flex-1">
                 <div className="px-5 py-4 border-b border-base-300/20">
-                  <h2 className="font-semibold text-sm font-heading">Trend Taqsimoti</h2>
-                  <p className="text-[10px] text-base-content/25 mt-0.5">{products.length} mahsulot</p>
+                  <h2 className="font-semibold text-sm font-heading">{t('dashboard.trendDistribution')}</h2>
+                  <p className="text-[10px] text-base-content/25 mt-0.5">{products.length} {t('dashboard.products')}</p>
                 </div>
                 <div className="p-4">
                   {trendPieData.length > 0 ? (
@@ -531,7 +533,7 @@ export function DashboardPage() {
                             {products.length}
                           </text>
                           <text x="50%" y="58%" textAnchor="middle" dominantBaseline="central" className="fill-base-content/25 text-[9px]">
-                            mahsulot
+                            {t('dashboard.products')}
                           </text>
                         </PieChart>
                       </ResponsiveContainer>
@@ -546,7 +548,7 @@ export function DashboardPage() {
                       </div>
                     </>
                   ) : (
-                    <div className="flex items-center justify-center h-36 text-base-content/15 text-xs">Trend ma'lumoti yo'q</div>
+                    <div className="flex items-center justify-center h-36 text-base-content/15 text-xs">{t('dashboard.trendNoData')}</div>
                   )}
                 </div>
               </div>
@@ -554,7 +556,7 @@ export function DashboardPage() {
               {/* Score ring */}
               <div className="rounded-2xl bg-base-200/50 border border-base-300/40 overflow-hidden ventra-card">
                 <div className="px-5 py-4 border-b border-base-300/20">
-                  <h2 className="font-semibold text-sm font-heading">Score Xulosa</h2>
+                  <h2 className="font-semibold text-sm font-heading">{t('dashboard.scoreSummary')}</h2>
                 </div>
                 <div className="p-5">
                   <div className="flex items-center gap-5">
@@ -574,15 +576,15 @@ export function DashboardPage() {
                     </div>
                     <div className="flex-1 space-y-2.5">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-base-content/35">Eng yuqori</span>
+                        <span className="text-base-content/35">{t('dashboard.highest')}</span>
                         <span className="font-bold text-success tabular-nums">{stats.best?.score?.toFixed(2) ?? '—'}</span>
                       </div>
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-base-content/35">O'rtacha</span>
+                        <span className="text-base-content/35">{t('dashboard.average')}</span>
                         <span className="font-bold tabular-nums">{stats.avgScore.toFixed(2)}</span>
                       </div>
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-base-content/35">Eng past</span>
+                        <span className="text-base-content/35">{t('dashboard.lowest')}</span>
                         <span className="font-bold text-base-content/30 tabular-nums">
                           {products.length > 0 ? Math.min(...products.map((p) => p.score ?? 0)).toFixed(2) : '—'}
                         </span>
@@ -602,8 +604,8 @@ export function DashboardPage() {
           <div className="rounded-2xl bg-base-200/50 border border-base-300/40 overflow-hidden ventra-card">
             <div className="px-5 py-4 border-b border-base-300/20 flex items-center justify-between">
               <div>
-                <h2 className="font-semibold text-sm font-heading">Haftalik Sotuvlar</h2>
-                <p className="text-[10px] text-base-content/25 mt-0.5">Top {activityData.length} — so'nggi 7 kun</p>
+                <h2 className="font-semibold text-sm font-heading">{t('dashboard.weeklySalesChart')}</h2>
+                <p className="text-[10px] text-base-content/25 mt-0.5">Top {activityData.length} — {t('dashboard.last7days')}</p>
               </div>
               <span className="text-xs font-mono text-success/80 font-semibold tabular-nums">{stats.totalWeekly.toLocaleString()} ta</span>
             </div>
@@ -619,7 +621,7 @@ export function DashboardPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                   <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
                   <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
-                  <Tooltip content={<GlassTooltip fmt={(v: number) => v.toLocaleString() + ' ta/hafta'} />} />
+                  <Tooltip content={<GlassTooltip fmt={(v: number) => v.toLocaleString() + ' ' + t('dashboard.perWeek')} />} />
                   <Area type="monotone" dataKey="sales" stroke="#22c55e" strokeWidth={2} fill="url(#salesGrad)"
                     dot={{ r: 3, fill: '#22c55e', strokeWidth: 2, stroke: 'var(--color-base-100)' }}
                     activeDot={{ r: 5 }} animationDuration={800} />
@@ -639,16 +641,16 @@ export function DashboardPage() {
                 <FireIcon className="w-4 h-4 text-orange-400/80" />
               </div>
               <div>
-                <h2 className="font-semibold text-sm font-heading">Kuzatilayotgan Mahsulotlar</h2>
-                <p className="text-[10px] text-base-content/25">{products.length} ta mahsulot</p>
+                <h2 className="font-semibold text-sm font-heading">{t('dashboard.trackedProducts')}</h2>
+                <p className="text-[10px] text-base-content/25">{products.length} ta {t('dashboard.products')}</p>
               </div>
             </div>
             {/* Sort controls */}
             {products.length > 0 && (
               <div className="flex gap-1">
-                {([['score', 'Score'], ['weekly', 'Sotuv'], ['price', 'Narx']] as const).map(([key, label]) => (
+                {([['score', t('dashboard.sortScore')], ['weekly', t('dashboard.sortSales')], ['price', t('dashboard.sortPrice')]] as [string, string][]).map(([key, label]) => (
                   <button key={key}
-                    onClick={() => setSortKey(key)}
+                    onClick={() => setSortKey(key as 'score' | 'weekly' | 'price')}
                     className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all ${
                       sortKey === key
                         ? 'bg-primary/10 text-primary border border-primary/15'
@@ -672,11 +674,11 @@ export function DashboardPage() {
                 </div>
               </div>
               <div className="text-center">
-                <p className="text-base-content/50 text-sm font-medium">Portfolio bo'sh</p>
-                <p className="text-base-content/20 text-xs mt-1 max-w-xs">Birinchi mahsulotingizni tahlil qiling — Uzum URL kiriting va score, trend, raqobat ma'lumotlarini ko'ring</p>
+                <p className="text-base-content/50 text-sm font-medium">{t('dashboard.emptyPortfolio')}</p>
+                <p className="text-base-content/20 text-xs mt-1 max-w-xs">{t('dashboard.emptyDesc')}</p>
               </div>
               <Link to="/analyze" className="btn btn-primary btn-sm gap-1.5 shadow-md shadow-primary/15">
-                <MagnifyingGlassIcon className="w-3.5 h-3.5" /> Birinchi tahlil
+                <MagnifyingGlassIcon className="w-3.5 h-3.5" /> {t('dashboard.firstAnalysis')}
               </Link>
             </div>
           ) : (
@@ -684,13 +686,13 @@ export function DashboardPage() {
               <table className="table table-sm">
                 <thead>
                   <tr className="bg-base-300/10 text-[9px] text-base-content/30 uppercase tracking-[0.12em]">
-                    <th className="font-bold pl-5">Mahsulot</th>
-                    <th className="font-bold text-center">Score</th>
-                    <th className="font-bold text-center">Trend</th>
-                    <th className="font-bold text-right">Haftalik</th>
-                    <th className="font-bold text-right hidden md:table-cell">Buyurtma</th>
-                    <th className="font-bold text-right">Narx</th>
-                    <th className="font-bold text-right hidden sm:table-cell">Reyting</th>
+                    <th className="font-bold pl-5">{t('dashboard.product')}</th>
+                    <th className="font-bold text-center">{t('dashboard.score')}</th>
+                    <th className="font-bold text-center">{t('dashboard.trend')}</th>
+                    <th className="font-bold text-right">{t('dashboard.weekly')}</th>
+                    <th className="font-bold text-right hidden md:table-cell">{t('dashboard.orders')}</th>
+                    <th className="font-bold text-right">{t('dashboard.price')}</th>
+                    <th className="font-bold text-right hidden sm:table-cell">{t('dashboard.rating')}</th>
                     <th className="w-10"></th>
                   </tr>
                 </thead>
@@ -707,7 +709,7 @@ export function DashboardPage() {
                           </Link>
                           <p className="text-[10px] text-base-content/20 mt-0.5 tabular-nums">
                             #{p.product_id}
-                            {p.feedback_quantity ? ` · ${p.feedback_quantity.toLocaleString()} sharh` : ''}
+                            {p.feedback_quantity ? ` · ${p.feedback_quantity.toLocaleString()} ${t('dashboard.review')}` : ''}
                           </p>
                         </div>
                       </td>

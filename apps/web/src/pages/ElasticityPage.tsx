@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { toolsApi } from '../api/client';
 import { getErrorMessage } from '../utils/getErrorMessage';
+import { useI18n } from '../i18n/I18nContext';
 
 interface ElasticityResult {
   elasticity: number;
@@ -24,6 +25,7 @@ function formatNum(n: number) {
 }
 
 export function ElasticityPage() {
+  const { t } = useI18n();
   const [form, setForm] = useState(DEFAULT_FORM);
   const [result, setResult] = useState<ElasticityResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -59,21 +61,21 @@ export function ElasticityPage() {
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 lg:w-7 lg:h-7 text-warning">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
           </svg>
-          Narx Elastikligi
+          {t('elasticity.title')}
         </h1>
         <p className="text-base-content/50 text-sm mt-1">
-          Narx o'zgarishi sotuvga qanchalik ta'sir qilishini aniqlang
+          {t('elasticity.subtitle')}
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
           <div className="card-body">
-            <h2 className="card-title text-base">Ma'lumotlar</h2>
+            <h2 className="card-title text-base">{t('elasticity.data')}</h2>
             <form onSubmit={handleSubmit} className="space-y-3 mt-2">
               <div className="grid grid-cols-2 gap-3">
                 <fieldset className="fieldset">
-                  <legend className="fieldset-legend text-xs">Eski narx (so'm)</legend>
+                  <legend className="fieldset-legend text-xs">{t('elasticity.oldPrice')}</legend>
                   <input
                     type="number"
                     value={form.price_old}
@@ -84,7 +86,7 @@ export function ElasticityPage() {
                   />
                 </fieldset>
                 <fieldset className="fieldset">
-                  <legend className="fieldset-legend text-xs">Yangi narx (so'm)</legend>
+                  <legend className="fieldset-legend text-xs">{t('elasticity.newPrice')}</legend>
                   <input
                     type="number"
                     value={form.price_new}
@@ -97,7 +99,7 @@ export function ElasticityPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <fieldset className="fieldset">
-                  <legend className="fieldset-legend text-xs">Eski sotuv (dona/hafta)</legend>
+                  <legend className="fieldset-legend text-xs">{t('elasticity.oldSales')}</legend>
                   <input
                     type="number"
                     value={form.qty_old}
@@ -108,7 +110,7 @@ export function ElasticityPage() {
                   />
                 </fieldset>
                 <fieldset className="fieldset">
-                  <legend className="fieldset-legend text-xs">Yangi sotuv (dona/hafta)</legend>
+                  <legend className="fieldset-legend text-xs">{t('elasticity.newSales')}</legend>
                   <input
                     type="number"
                     value={form.qty_new}
@@ -124,7 +126,7 @@ export function ElasticityPage() {
 
               <button type="submit" disabled={loading} className="btn btn-primary w-full">
                 {loading && <span className="loading loading-spinner loading-sm" />}
-                {loading ? 'Hisoblanmoqda...' : 'Hisoblash'}
+                {loading ? t('common.calculating') : t('common.calculate')}
               </button>
             </form>
           </div>
@@ -135,16 +137,16 @@ export function ElasticityPage() {
             <>
               <div className="grid grid-cols-2 gap-3">
                 <div className="stat bg-base-200/60 border border-base-300/50 rounded-2xl">
-                  <div className="stat-title text-xs">Elastiklik</div>
+                  <div className="stat-title text-xs">{t('elasticity.value')}</div>
                   <div className={`stat-value text-xl ${result.type === 'elastic' ? 'text-info' : result.type === 'inelastic' ? 'text-warning' : ''}`}>
                     {result.elasticity}
                   </div>
                   <div className="stat-desc">
-                    {result.type === 'elastic' ? 'Elastik' : result.type === 'inelastic' ? 'Noelastik' : 'Birlik'}
+                    {result.type === 'elastic' ? t('elasticity.elastic') : result.type === 'inelastic' ? t('elasticity.inelastic') : t('elasticity.unitary')}
                   </div>
                 </div>
                 <div className="stat bg-base-200/60 border border-base-300/50 rounded-2xl">
-                  <div className="stat-title text-xs">Daromad o'zgarishi</div>
+                  <div className="stat-title text-xs">{t('elasticity.revenueChange')}</div>
                   <div className={`stat-value text-xl ${result.revenue_change_pct > 0 ? 'text-success' : result.revenue_change_pct < 0 ? 'text-error' : ''}`}>
                     {result.revenue_change_pct > 0 ? '+' : ''}{result.revenue_change_pct}%
                   </div>
@@ -156,21 +158,21 @@ export function ElasticityPage() {
 
               <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
                 <div className="card-body p-4">
-                  <h3 className="font-bold text-sm">Batafsil</h3>
+                  <h3 className="font-bold text-sm">{t('common.details')}</h3>
                   <div className="space-y-2 mt-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-base-content/50">Eski daromad</span>
+                      <span className="text-base-content/50">{t('elasticity.oldRevenue')}</span>
                       <span className="font-medium tabular-nums">{formatNum(result.revenue_old)} so'm</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-base-content/50">Yangi daromad</span>
+                      <span className="text-base-content/50">{t('elasticity.newRevenue')}</span>
                       <span className="font-medium tabular-nums">{formatNum(result.revenue_new)} so'm</span>
                     </div>
                     <div className="divider my-1" />
                     <div className="flex justify-between">
-                      <span className="text-base-content/50">Tavsiya</span>
+                      <span className="text-base-content/50">{t('elasticity.recommendation')}</span>
                       <span className={`font-bold ${result.optimal_direction === 'raise' ? 'text-success' : result.optimal_direction === 'lower' ? 'text-info' : 'text-warning'}`}>
-                        {result.optimal_direction === 'raise' ? 'Narx oshiring' : result.optimal_direction === 'lower' ? 'Narx pasaytiring' : 'Narx saqlang'}
+                        {result.optimal_direction === 'raise' ? t('elasticity.raise') : result.optimal_direction === 'lower' ? t('elasticity.lower') : t('elasticity.keep')}
                       </span>
                     </div>
                   </div>
@@ -187,7 +189,7 @@ export function ElasticityPage() {
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75z" />
                 </svg>
-                <p>Eski va yangi narx/sotuv ma'lumotlarini kiriting</p>
+                <p>{t('elasticity.inputHint')}</p>
               </div>
             </div>
           )}

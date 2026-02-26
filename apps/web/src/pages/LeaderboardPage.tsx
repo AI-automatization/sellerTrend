@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { leaderboardApi } from '../api/client';
 import { FireIcon, ArrowTrendingUpIcon } from '../components/icons';
+import { useI18n } from '../i18n/I18nContext';
 
 interface LeaderItem {
   rank: number;
@@ -34,6 +35,7 @@ function RankBadge({ rank }: { rank: number }) {
 }
 
 export function LeaderboardPage() {
+  const { t } = useI18n();
   const [tab, setTab] = useState<'global' | 'categories'>('global');
   const [leaders, setLeaders] = useState<LeaderItem[]>([]);
   const [catLeaders, setCatLeaders] = useState<CategoryLeader[]>([]);
@@ -61,10 +63,10 @@ export function LeaderboardPage() {
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold flex items-center gap-2">
             <FireIcon className="w-6 h-6 lg:w-7 lg:h-7 text-orange-400" />
-            Leaderboard
+            {t('leaderboard.title')}
           </h1>
           <p className="text-base-content/50 text-sm mt-1">
-            Uzum'dagi eng yaxshi mahsulotlar reytingi
+            {t('leaderboard.subtitle')}
           </p>
         </div>
       </div>
@@ -76,14 +78,14 @@ export function LeaderboardPage() {
           onClick={() => setTab('global')}
           className={`tab ${tab === 'global' ? 'tab-active' : ''}`}
         >
-          Global Top
+          {t('leaderboard.globalTop')}
         </button>
         <button
           role="tab"
           onClick={() => setTab('categories')}
           className={`tab ${tab === 'categories' ? 'tab-active' : ''}`}
         >
-          Kategoriya bo'yicha
+          {t('leaderboard.byCategory')}
         </button>
       </div>
 
@@ -98,17 +100,17 @@ export function LeaderboardPage() {
             <div className="px-4 pt-4 pb-3 border-b border-base-300">
               <h2 className="card-title text-base gap-2">
                 <ArrowTrendingUpIcon className="w-5 h-5 text-primary" />
-                Top mahsulotlar (24 soat)
+                {t('leaderboard.topProducts24h')}
               </h2>
               <p className="text-xs text-base-content/40 mt-1">
-                Top-5 to'liq ko'rinadi, qolganlar yashiringan
+                {t('leaderboard.topInfo')}
               </p>
             </div>
 
             {leaders.length === 0 ? (
               <div className="flex flex-col items-center py-12 gap-2 text-base-content/40">
                 <FireIcon className="w-10 h-10" />
-                <p>Ma'lumotlar hali yig'ilmagan</p>
+                <p>{t('leaderboard.noData')}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -116,10 +118,10 @@ export function LeaderboardPage() {
                   <thead>
                     <tr>
                       <th className="w-12">#</th>
-                      <th>Mahsulot</th>
+                      <th>{t('leaderboard.product')}</th>
                       <th className="text-right">Score</th>
-                      <th className="text-right">Haftalik</th>
-                      <th className="text-right">Narx</th>
+                      <th className="text-right">{t('leaderboard.weekly')}</th>
+                      <th className="text-right">{t('leaderboard.price')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -162,7 +164,7 @@ export function LeaderboardPage() {
             <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
               <div className="card-body items-center py-12 text-base-content/40">
                 <FireIcon className="w-10 h-10" />
-                <p>Kategoriya ma'lumotlari hali yig'ilmagan</p>
+                <p>{t('leaderboard.noCatData')}</p>
               </div>
             </div>
           ) : (

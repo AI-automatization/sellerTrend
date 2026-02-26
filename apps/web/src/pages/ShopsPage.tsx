@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { shopsApi } from '../api/client';
 import { getErrorMessage } from '../utils/getErrorMessage';
+import { useI18n } from '../i18n/I18nContext';
 
 interface ShopProduct {
   product_id: string;
@@ -22,11 +23,12 @@ interface ShopData {
 }
 
 function TrustBadge({ score }: { score: number }) {
+  const { t } = useI18n();
   let color = 'badge-ghost';
-  let label = 'Past';
-  if (score >= 0.7) { color = 'badge-success'; label = 'Yuqori'; }
-  else if (score >= 0.4) { color = 'badge-warning'; label = "O'rta"; }
-  else { color = 'badge-error'; label = 'Past'; }
+  let label = t('shops.trustLow');
+  if (score >= 0.7) { color = 'badge-success'; label = t('shops.trustHigh'); }
+  else if (score >= 0.4) { color = 'badge-warning'; label = t('shops.trustMedium'); }
+  else { color = 'badge-error'; label = t('shops.trustLow'); }
   return (
     <span className={`badge ${color} gap-1`}>
       {label} — {(score * 100).toFixed(0)}%
@@ -35,6 +37,7 @@ function TrustBadge({ score }: { score: number }) {
 }
 
 export function ShopsPage() {
+  const { t } = useI18n();
   const [shopId, setShopId] = useState('');
   const [shop, setShop] = useState<ShopData | null>(null);
   const [products, setProducts] = useState<ShopProduct[]>([]);
@@ -45,7 +48,7 @@ export function ShopsPage() {
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     const id = shopId.trim();
-    if (!id) { setError("Do'kon ID kiriting"); return; }
+    if (!id) { setError(t('shops.enterId')); return; }
     setError('');
     setLoading(true);
     setShop(null);
@@ -59,7 +62,7 @@ export function ShopsPage() {
       setShop(shopRes.data);
       setProducts(prodsRes.data);
     } catch (err: unknown) {
-      setError(getErrorMessage(err, "Do'kon topilmadi"));
+      setError(getErrorMessage(err, t('shops.notFound')));
     } finally {
       setLoading(false);
     }
@@ -73,10 +76,10 @@ export function ShopsPage() {
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 lg:w-7 lg:h-7 text-info">
             <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.15c0 .415.336.75.75.75z" />
           </svg>
-          Do'kon Analitikasi
+          {t('shops.title')}
         </h1>
         <p className="text-base-content/50 text-sm mt-1">
-          Do'kon bo'yicha ishonch darajasi va mahsulot tahlili
+          {t('shops.subtitle')}
         </p>
       </div>
 
@@ -88,16 +91,16 @@ export function ShopsPage() {
               type="text"
               value={shopId}
               onChange={(e) => setShopId(e.target.value)}
-              placeholder="Do'kon ID raqamini kiriting"
+              placeholder={t('shops.searchPlaceholder')}
               className="input input-bordered flex-1"
             />
             <button type="submit" disabled={loading} className="btn btn-primary">
-              {loading ? <span className="loading loading-spinner loading-sm" /> : 'Qidirish'}
+              {loading ? <span className="loading loading-spinner loading-sm" /> : t('common.search')}
             </button>
           </form>
           {error && <p className="text-error text-sm mt-2">{error}</p>}
           <p className="text-xs text-base-content/40 mt-1">
-            Do'kon ID ni mahsulot sahifasidan topishingiz mumkin
+            {t('shops.searchHelp')}
           </p>
         </div>
       </div>
@@ -107,28 +110,28 @@ export function ShopsPage() {
         <>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="stat bg-base-200/60 border border-base-300/50 rounded-2xl">
-              <div className="stat-title text-xs">Do'kon</div>
+              <div className="stat-title text-xs">{t('shops.shop')}</div>
               <div className="stat-value text-lg truncate">{shop.shop_title}</div>
               <div className="stat-desc">#{shop.shop_id}</div>
             </div>
             <div className="stat bg-base-200/60 border border-base-300/50 rounded-2xl">
-              <div className="stat-title text-xs">Ishonch darajasi</div>
+              <div className="stat-title text-xs">{t('shops.trustScore')}</div>
               <div className="stat-value text-lg">
                 <TrustBadge score={shop.trust_score} />
               </div>
               <div className="stat-desc">trust score</div>
             </div>
             <div className="stat bg-base-200/60 border border-base-300/50 rounded-2xl">
-              <div className="stat-title text-xs">Mahsulotlar</div>
+              <div className="stat-title text-xs">{t('shops.products')}</div>
               <div className="stat-value text-xl">{shop.product_count}</div>
-              <div className="stat-desc">kuzatilgan</div>
+              <div className="stat-desc">{t('shops.tracked')}</div>
             </div>
             <div className="stat bg-base-200/60 border border-base-300/50 rounded-2xl">
-              <div className="stat-title text-xs">30 kunlik o'sish</div>
+              <div className="stat-title text-xs">{t('shops.growth30d')}</div>
               <div className={`stat-value text-xl ${(shop.growth_30d ?? 0) > 0 ? 'text-success' : (shop.growth_30d ?? 0) < 0 ? 'text-error' : ''}`}>
                 {shop.growth_30d != null ? `${shop.growth_30d > 0 ? '+' : ''}${shop.growth_30d.toFixed(1)}%` : '—'}
               </div>
-              <div className="stat-desc">sotuv o'zgarishi</div>
+              <div className="stat-desc">{t('shops.salesChange')}</div>
             </div>
           </div>
 
@@ -136,7 +139,7 @@ export function ShopsPage() {
           {shop.top_products.length > 0 && (
             <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
               <div className="card-body p-4">
-                <h3 className="font-bold text-sm">Top mahsulotlar</h3>
+                <h3 className="font-bold text-sm">{t('shops.topProducts')}</h3>
                 <div className="space-y-2 mt-2">
                   {shop.top_products.map((p, i) => (
                     <div key={p.product_id} className="flex items-center gap-3 text-sm">
@@ -162,17 +165,17 @@ export function ShopsPage() {
             <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
               <div className="card-body p-0">
                 <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-base-300">
-                  <h3 className="font-bold text-sm">Barcha mahsulotlar</h3>
+                  <h3 className="font-bold text-sm">{t('shops.allProducts')}</h3>
                   <span className="badge badge-neutral badge-sm">{products.length}</span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="table table-sm table-zebra">
                     <thead>
                       <tr>
-                        <th>Mahsulot</th>
+                        <th>{t('dashboard.product')}</th>
                         <th className="text-right">Score</th>
-                        <th className="text-right">Haftalik</th>
-                        <th className="text-right">Narx</th>
+                        <th className="text-right">{t('dashboard.weekly')}</th>
+                        <th className="text-right">{t('dashboard.price')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -205,7 +208,7 @@ export function ShopsPage() {
                 {!showAll && products.length > 10 && (
                   <div className="p-3 text-center">
                     <button onClick={() => setShowAll(true)} className="btn btn-ghost btn-sm">
-                      Hammasini ko'rish ({products.length})
+                      {t('common.viewAll')} ({products.length})
                     </button>
                   </div>
                 )}
