@@ -1,6 +1,106 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
 # Yangilangan: 2026-02-27
 
+## P2 FRONTEND FIX — 30 Task Batch (2026-02-27)
+
+**Commit:** `cbb98c9` — 57 fayl, +4186/-3660 qator
+
+### Admin + Dashboard Group
+| Task | Fix |
+|------|-----|
+| T-114 | `admin.ts` dead `sendNotification` method o'chirildi, `params?: any` → `Record<string, unknown>` |
+| T-116 | `useDashboardData` hook da `getTracked()` ga `.catch(logError)` qo'shildi |
+| T-118 | AdminPage deposits useEffect ga `depositLogPage` dependency qo'shildi |
+| T-122 | AdminPage `setActiveTab` dead function o'chirildi |
+| T-123 | AdminPage URL-sync useEffect `[searchParams, activeTab, setSearchParams]` dep to'ldirildi |
+| T-156 | DashboardPage `scoreSparkline`/`salesSparkline` `useMemo` ga o'raldi |
+| T-157 | CSV export empty catch → `toastError(err, 'CSV eksport xatosi')` |
+| T-158 | AdminPage 30+ `any` → `Record<string, unknown>` + proper interfaces |
+
+### Product + Sourcing Group
+| Task | Fix |
+|------|-----|
+| T-120 | SourcingPage `refreshRates()` va useEffect ga `.catch(logError)` qo'shildi |
+| T-121 | ExternalSearch, JobsList, CalculationHistory da `.catch(logError)` qo'shildi |
+
+### Signals Group
+| Task | Fix |
+|------|-----|
+| T-126 | ConsultationPage timezone — `todayLocal` local date, past booking validation |
+| T-162 | 10 signal component da `any[]` → typed interfaces (types.ts: 10 interface) |
+
+### Qo'shimcha (agentlar tomonidan aniqlangan)
+- `api/types.ts` 201 qator yangi shared types (ConsultationItem, etc.)
+- `i18n/translations.ts` 2900 qator → `uz.ts`, `ru.ts`, `en.ts` ga split (T-255)
+- `isTokenValid()` — JWT exp tekshiradi, expired bo'lsa localStorage tozalaydi (T-155)
+- `useNativeNotification.ts` o'chirildi — dead code (T-191)
+- `ErrorBoundary` — `import.meta.env.DEV` check qo'shildi (T-153)
+- Signal types: CannibalizationPair, DeadStockItem, SaturationData, FlashSaleItem, EarlySignalItem, StockCliffItem, RankingEntry, ChecklistData, PriceTestItem, ReplenishmentItem
+
+**Tekshiruv:** `tsc --noEmit` 0 error, `pnpm build` muvaffaqiyatli
+
+---
+
+## FRONTEND BATCH 3 — PWA Cleanup + Misc Fixes (2026-02-27)
+
+| Task | Fix |
+|------|-----|
+| T-084 | RegisterPage auth store bypass — `setTokens`/`queryClient.clear()` qo'shildi |
+| T-085 | AnalyzePage `setTracked(true)` try ichiga ko'chirildi |
+| T-097 | WebSocket dev proxy — `/ws` proxy vite.config.ts ga qo'shildi |
+| T-117 | `scoreColor(0)` gray → red (`#ef4444`) for scores < 2 |
+| T-164 (qismi) | `uz-UZ` locale → `ru-RU` barcha 7 faylda (AnalyzePage, ProductPage, ScannerTab, ApiKeysPage, CompetitorSection, RankingTab) |
+| T-188 | SW o'chirildi + unregister script qo'shildi (index.html) |
+| T-189 | manifest.json + PWA meta taglar o'chirildi |
+| T-190 | icon-512.svg, icon-maskable.svg o'chirildi |
+| T-191 | useNativeNotification.ts o'chirildi (dead code) |
+| T-192 | `dist/` build artifact tozalandi |
+| — | ChecklistTab.tsx unused `ChecklistItem` import olib tashlandi |
+
+**Tekshiruv:** tsc --noEmit 0 error, eslint --quiet 0 error
+
+---
+
+## FRONTEND BATCH 2 — Empty Catches + Auth Fixes (2026-02-27)
+
+| Task | Fayl | Fix |
+|------|------|-----|
+| T-127 | ConsultationPage.tsx | 3 ta empty catch → logError/toastError |
+| T-128 | ScannerTab, NicheFinderTab | 3 ta empty catch → logError |
+| T-129 | ReferralPage.tsx | 1 ta empty catch → toastError |
+| T-130 | ApiKeysPage.tsx | 3 ta empty catch → logError/toastError |
+| T-131 | FeedbackPage.tsx | 4 ta empty catch → logError/toastError |
+| T-198 | ProductPage.tsx | Haftalik sotuvlar chart — zero-order filter + tooltip |
+
+---
+
+## P2 FRONTEND — Auth / Store / Utils Group Fix (2026-02-27)
+
+### T-115 | FRONTEND | authStore email field JWT da yo'q | Sardor | 10min
+**Status:** Allaqachon tuzatilgan. `authStore.ts` va `base.ts:getTokenPayload()` JWT dan email o'qiydi. `Layout.tsx` da `payload?.email` ishlatiladi.
+
+### T-151 | FRONTEND | useCallback(fn, [fn]) foydasiz | Sardor | 5min
+**Fix:** `useSocket.ts:useNotificationRefresh()` dagi `useCallback(onRefresh, [onRefresh])` olib tashlandi — bevosita `onRefresh` ishlatiladi.
+
+### T-152 | FRONTEND | any type api fayllarida 6 ta | Sardor | 10min
+**Fix:** 6 ta `any` o'rniga proper typlar qo'yildi:
+- `admin.ts`: `params?: any` → `Record<string, unknown>`
+- `enterprise.ts`: `items: any[]` → `Array<{ text: string; checked: boolean }>`
+- `enterprise.ts`: `data: any` → `Record<string, unknown>`
+- `enterprise.ts`: `filters?: any; columns?: any` → `Record<string, unknown>; string[]`
+- `base.ts`: `as any` (2x) → `as Record<string, unknown>`
+
+### T-153 | FRONTEND | ErrorBoundary console.error env check yo'q | Sardor | 5min
+**Fix:** `console.error` ni `if (import.meta.env.DEV)` ichiga o'raldi.
+
+### T-154 | FRONTEND | getTokenPayload return type tor | Sardor | 10min
+**Fix:** `JwtTokenPayload` interface yaratildi (`sub`, `email`, `role`, `account_id`, `exp`, `iat?`). `getTokenPayload()` return type yangilandi. Export qilindi.
+
+### T-155 | FRONTEND | isAuthenticated() token expiry tekshirmaydi | Sardor | 15min
+**Fix:** `isTokenValid()` helper yaratildi (`base.ts`) — JWT `exp` field tekshiradi, expired bo'lsa tokenlarni tozalaydi va `false` qaytaradi. `App.tsx:isAuthenticated()` endi `isTokenValid()` ishlatadi.
+
+---
+
 ## COMPONENT EXTRACTION — 6 God Page → 68 Components (2026-02-27)
 
 ### T-258 | FRONTEND | 6 ta god page → 68 ta component faylga ajratildi | Sardor | 1h
@@ -28,6 +128,39 @@
 
 ---
 
+## PRODUCTPAGE BUGFIX BATCH (2026-02-27)
+
+### Code Quality Fixes (7 bug)
+| Task | Bug | Fix |
+|------|-----|-----|
+| T-086 | `setTracked(true)` API xatosida ham o'rnatiladi | `try` bloki ichiga ko'chirildi |
+| T-119 | Recharts `<rect>` → `<Cell>` (qora to'rtburchak) | `Cell` component import qilindi va ishlatildi |
+| T-124 | loadData useEffect dependency muammosi | `loadedProductId` bilan effect stabilizatsiya |
+| T-125 | extSearched product o'zgarganda reset bo'lmaydi | `id` o'zgarganda barcha ext state reset |
+| T-159 | mlForecast, trendAnalysis `any` type | `MlForecast`, `TrendAnalysis` interface qo'shildi |
+| T-160 | ML effect ikki marta trigger | Faqat `loadedProductId` ga bog'landi |
+| T-161 | Hardcoded USD rate 12900 | `DEFAULT_USD_RATE` const bilan nomlandi |
+
+### UX Fixes (8 bug)
+| Task | Muammo | Fix |
+|------|--------|-----|
+| T-194 | X-axis "M02 27" noto'g'ri format | `uz-UZ` locale → manual `27 Fev` format |
+| T-195 | "WMA + Holt's..." texnik jargon | "AI prognoz · O'rtacha xatolik: X" ga almashtirildi |
+| T-197 | Score chart zigzag (bir kunda ko'p snapshot) | Snapshotlar KUN bo'yicha aggregate (oxirgisi saqlanadi) |
+| T-199 | Trend badge "Barqaror" (3.25→9.14) | Frontend da changePct>5% = up, <-5% = down; foiz ko'rsatiladi |
+| T-200 | "confidence", "snapshot" texnik so'zlar | "aniqlik", "ta tahlil" ga tarjima |
+| T-203 | ML KPI box labels tushunarsiz | Label lar aniqroq: "Tahlillar soni", "aniqlik" |
+| T-204 | Haftalik sotuv chart qora to'rtburchak | `<rect>` → `<Cell>` (T-119 bilan birga) |
+| T-205 | Footer da raw scoring formula | "Score haftalik faollik, buyurtmalar, reyting va omborga asoslanib hisoblanadi" |
+
+### Qo'shimcha
+- `api/types.ts` ga 5 ta yangi interface: `ForecastPrediction`, `ForecastMetrics`, `ForecastDetail`, `MlForecast`, `TrendAnalysis`
+- ML chart `(s: any)` va `(p: any)` annotatsiyalar olib tashlandi — typed
+- Forecast chart `as any` cast olib tashlandi
+- tsc --noEmit ✅, eslint --quiet ✅
+
+---
+
 ## FRONTEND REFACTOR (2026-02-27)
 
 ### T-246 | api/types.ts — Markaziy response types
@@ -38,6 +171,24 @@
 ### T-247 | utils/formatters.ts — Shared formatters
 - `apps/web/src/utils/formatters.ts` yaratildi — fmt, fmtUSD, fmtUZS, scoreColor, glassTooltip
 - ProductPage, DashboardPage, CompetitorSection dan duplicate funksiyalar olib tashlandi
+
+### T-250 | Custom hook: useDashboardData
+- `apps/web/src/hooks/useDashboardData.ts` yaratildi
+- Products fetch, balance fetch, CSV export logikasi DashboardPage dan hook ga chiqarildi
+- `useLocation().key` bilan navigatsiyada auto-refetch
+
+### T-251 | DashboardPage split (664→191 qator)
+- 5 ta sub-component yaratildi:
+  - `KPICards.tsx` — 5 ta KPI card (balans, kuzatuv, haftalik, score, salomatlik)
+  - `HeroCards.tsx` — eng yaxshi score + eng faol mahsulot
+  - `ChartsSection.tsx` — score bar chart + trend pie + score ring
+  - `ActivityChart.tsx` — haftalik sotuv area chart
+  - `ProductsTable.tsx` — mahsulotlar jadvali + sorting
+- `components/dashboard/index.ts` yangilandi — 11 ta export
+
+### T-255 | translations.ts split (2909→3 fayl)
+- `i18n/uz.ts` (979 qator), `i18n/ru.ts` (963 qator), `i18n/en.ts` (963 qator)
+- `translations.ts` = 7 qator (import + re-export)
 
 ### T-248 | Silent .catch(() => {}) → logError/toastError
 - `apps/web/src/utils/handleError.ts` yaratildi — logError (dev console), toastError (toast notification)
