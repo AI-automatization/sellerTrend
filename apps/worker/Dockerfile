@@ -60,33 +60,12 @@ COPY apps/worker/package.json ./apps/worker/
 COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
 
-# Copy built package dist BEFORE pnpm install so workspace symlinks resolve correctly
-COPY --from=builder /app/packages/types/dist ./packages/types/dist
-COPY --from=builder /app/packages/utils/dist ./packages/utils/dist
-
-# Install production deps on Debian (correct platform for native modules)
+# Install production deps FIRST (pnpm may recreate workspace package dirs)
 RUN pnpm install --frozen-lockfile --prod --filter worker --filter @uzum/types --filter @uzum/utils
 
-# Force-copy dist into all possible symlink/hoisted locations
-RUN for loc in \
-      /app/packages/utils \
-      /app/packages/types \
-      /app/node_modules/@uzum/utils \
-      /app/node_modules/@uzum/types \
-      /app/apps/worker/node_modules/@uzum/utils \
-      /app/apps/worker/node_modules/@uzum/types; do \
-      if [ -d "$loc" ] || [ -L "$loc" ]; then \
-        pkg=$(basename "$loc"); \
-        real=$(readlink -f "$loc" 2>/dev/null || echo "$loc"); \
-        echo "Checking $loc -> $real"; \
-        if [ ! -f "$real/dist/index.js" ]; then \
-          echo "  -> Copying $pkg dist to $real"; \
-          cp -r /app/packages/$pkg/dist "$real/dist" 2>/dev/null || true; \
-        else \
-          echo "  -> dist/index.js already exists"; \
-        fi; \
-      fi; \
-    done
+# Copy built package dist AFTER pnpm install (pnpm wipes dist during install)
+COPY --from=builder /app/packages/types/dist ./packages/types/dist
+COPY --from=builder /app/packages/utils/dist ./packages/utils/dist
 
 # Copy worker compiled output + prisma schema
 COPY --from=builder /app/apps/worker/dist ./apps/worker/dist
@@ -94,5 +73,9 @@ COPY --from=builder /app/apps/worker/prisma ./apps/worker/prisma
 
 WORKDIR /app/apps/worker
 RUN pnpm exec prisma generate
+
+# Verify @uzum/utils dist exists (fail build early if missing)
+RUN node -e "require('@uzum/utils'); console.log('@uzum/utils OK')"
+RUN node -e "require('@uzum/types'); console.log('@uzum/types OK')"
 
 CMD ["node", "dist/apps/worker/src/main"]
