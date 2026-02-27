@@ -1,243 +1,360 @@
-# Railway Deployment Guide — Uzum Trend Finder
+# VENTRA — Railway Production Deployment Guide
 
-## Architecture
+## Arxitektura
 
 ```
-Railway Project: uzum-trend-finder
-├── postgres   (PostgreSQL 16 plugin)
-├── redis      (Redis plugin)
-├── api        (NestJS — apps/api/Dockerfile)
-├── worker     (BullMQ — apps/worker/Dockerfile)
-├── web        (nginx/React — apps/web/Dockerfile)
-└── bot        (grammY — apps/bot/Dockerfile)
+GitHub (main push)
+    │
+    ├─→ GitHub Actions CI ──→ lint, typecheck, test, build
+    │                              │
+    │                              ▼ (CI o'tgach)
+    │                         Railway CLI Deploy
+    │                              │
+    ▼                              ▼
+Railway Project: ventra-analytics
+┌──────────────────────────────────────────────────────────┐
+│                                                          │
+│  ┌─────────┐    ┌─────────┐                              │
+│  │ Postgres │    │  Redis  │  ← Railway Managed Plugins  │
+│  │ pgvector │    │  v7     │                              │
+│  │  :5432   │    │  :6379  │                              │
+│  └────┬─────┘    └────┬────┘                              │
+│       │               │                                   │
+│  ┌────┴───────────────┴──────────────────────────┐       │
+│  │           Private Network (.railway.internal)  │       │
+│  │                                                │       │
+│  │  ┌───────┐  ┌────────┐  ┌─────┐  ┌─────────┐ │       │
+│  │  │  API  │  │ Worker │  │ Bot │  │   Web   │ │       │
+│  │  │ :3000 │  │ BullMQ │  │ TG  │  │  nginx  │ │       │
+│  │  │NestJS │  │Chromium│  │grammY│  │  React  │ │       │
+│  │  └───────┘  └────────┘  └─────┘  └────┬────┘ │       │
+│  │                                        │      │       │
+│  └────────────────────────────────────────┘      │       │
+│                                                   │       │
+│                        Custom Domain ─────────────┘       │
+│                        app.ventra.uz                      │
+└──────────────────────────────────────────────────────────┘
 ```
 
-**Networking:** All services communicate via Railway's private network (`*.railway.internal`)
+### Service'lar
+
+| Service | Dockerfile | Port | Health Check |
+|---------|-----------|------|-------------|
+| **api** | `apps/api/Dockerfile` | 3000 | `/api/v1/health` |
+| **worker** | `apps/worker/Dockerfile` | — | Internal |
+| **web** | `apps/web/Dockerfile` | 80 (auto) | `/` |
+| **bot** | `apps/bot/Dockerfile` | — | Internal |
+| **postgres** | Railway Plugin | 5432 | Built-in |
+| **redis** | Railway Plugin | 6379 | Built-in |
 
 ---
 
-## Step 1 — Railway Account & CLI
+## Bosqich 1 — Railway Account
 
 ```bash
+# Railway CLI o'rnatish
 npm install -g @railway/cli
+
+# Login
 railway login
 ```
 
----
-
-## Step 2 — Create Railway Project
-
-1. Go to [railway.app](https://railway.app) → **New Project**
-2. Name it: `uzum-trend-finder`
+Railway dashboard: [railway.app](https://railway.app) → **New Project** → `ventra-analytics`
 
 ---
 
-## Step 3 — Add PostgreSQL
+## Bosqich 2 — Infrastructure (PostgreSQL + Redis)
 
-> Railway's standard Postgres plugin **does NOT include pgvector**.
-> Use a custom Docker service instead.
+### PostgreSQL (pgvector bilan)
 
-### Option A — Custom pgvector service (RECOMMENDED)
+**Variant A — Railway Plugin + pgvector extension (Tavsiya)**
 
-1. In your Railway project → **+ New** → **Docker Image**
-2. Image: `pgvector/pgvector:pg16`
-3. Service name: `postgres`
-4. Set environment variables:
-   ```
-   POSTGRES_USER=uzum
-   POSTGRES_PASSWORD=<strong-password>
-   POSTGRES_DB=uzum_trend_finder
-   ```
-5. Add a **Volume** → mount at `/var/lib/postgresql/data`
-
-### Option B — Railway Postgres plugin
-
-1. **+ New** → **Database** → **PostgreSQL**
-2. Then manually enable pgvector via Railway's query tool:
+1. Railway dashboard → **+ New** → **Database** → **PostgreSQL**
+2. Postgres sozlamalarida SQL console ochib:
    ```sql
    CREATE EXTENSION IF NOT EXISTS vector;
    ```
+3. Variables tab'dan `DATABASE_URL` nusxa oling
 
-After setup, copy the `DATABASE_URL` from the service's **Variables** tab.
+**Variant B — Custom Docker Image**
 
----
+1. **+ New** → **Docker Image** → `pgvector/pgvector:pg16`
+2. Service name: `postgres`
+3. Volume: `/var/lib/postgresql/data`
+4. Env vars:
+   ```
+   POSTGRES_USER=uzum
+   POSTGRES_PASSWORD=<strong-32-char-password>
+   POSTGRES_DB=uzum_trend_finder
+   ```
 
-## Step 4 — Add Redis
+### Redis
 
 1. **+ New** → **Database** → **Redis**
-2. Service name: `redis`
-3. Copy `REDIS_URL` from Variables tab.
+2. Variables tab'dan `REDIS_URL` nusxa oling (parol avtomatik)
 
 ---
 
-## Step 5 — Add API Service
+## Bosqich 3 — Application Services
 
-1. **+ New** → **GitHub Repo** → select `sellerTrend`
-2. Service name: **`api`** (exact name, used for private networking)
-3. In service **Settings**:
-   - **Root Directory**: `/` (repo root — DO NOT change)
-   - **Config File Path**: `railway/api.toml`
-4. Set **Environment Variables**:
+Har bir service uchun:
+1. **+ New** → **GitHub Repo** → `AI-automatization/sellerTrend` tanlang
+2. Service name kiriting (pastdagi nomlar AYNAN shu bo'lishi kerak — private networking uchun)
+3. Settings → **Dockerfile Path** belgilang
 
-| Variable | Value |
-|----------|-------|
-| `DATABASE_URL` | Reference from postgres service |
-| `REDIS_URL` | Reference from redis service |
-| `JWT_SECRET` | Strong random string (min 32 chars) |
-| `JWT_EXPIRES_IN` | `7d` |
+### API Service
+
+| Sozlama | Qiymat |
+|---------|--------|
+| Service name | `api` |
+| Dockerfile Path | `apps/api/Dockerfile` |
+| Root Directory | `/` |
+
+**Environment Variables:**
+
+| Variable | Qiymat | Izoh |
+|----------|--------|------|
+| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` | Railway reference |
+| `DIRECT_DATABASE_URL` | `${{Postgres.DATABASE_URL}}` | Migration uchun (pooler bypass) |
+| `REDIS_URL` | `${{Redis.REDIS_URL}}` | Railway reference |
+| `JWT_SECRET` | `openssl rand -hex 32` natijasi | Min 32 belgi |
+| `JWT_EXPIRES_IN` | `7d` | |
+| `ANTHROPIC_API_KEY` | `sk-ant-api03-...` | Claude AI uchun |
+| `WEB_URL` | `https://app.ventra.uz` | CORS uchun |
+| `NODE_ENV` | `production` | |
+| `PORT` | `3000` | |
+
+### Worker Service
+
+| Sozlama | Qiymat |
+|---------|--------|
+| Service name | `worker` |
+| Dockerfile Path | `apps/worker/Dockerfile` |
+| Root Directory | `/` |
+
+**Environment Variables:**
+
+| Variable | Qiymat |
+|----------|--------|
+| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` |
+| `DIRECT_DATABASE_URL` | `${{Postgres.DATABASE_URL}}` |
+| `REDIS_URL` | `${{Redis.REDIS_URL}}` |
 | `ANTHROPIC_API_KEY` | `sk-ant-api03-...` |
-| `NODE_ENV` | `production` |
-| `PORT` | `3000` |
-
-5. Click **Deploy**
-
----
-
-## Step 6 — Add Worker Service
-
-1. **+ New** → **GitHub Repo** → same repo
-2. Service name: **`worker`**
-3. In service **Settings**:
-   - **Root Directory**: `/`
-   - **Config File Path**: `railway/worker.toml`
-4. Set **Environment Variables**:
-
-| Variable | Value |
-|----------|-------|
-| `DATABASE_URL` | Reference from postgres service |
-| `REDIS_URL` | Reference from redis service |
-| `ANTHROPIC_API_KEY` | `sk-ant-api03-...` |
+| `SERPAPI_API_KEY` | (optional) |
+| `ALIEXPRESS_APP_KEY` | (optional) |
+| `ALIEXPRESS_APP_SECRET` | (optional) |
 | `NODE_ENV` | `production` |
 
-5. Click **Deploy**
+### Web Service
 
----
+| Sozlama | Qiymat |
+|---------|--------|
+| Service name | `web` |
+| Dockerfile Path | `apps/web/Dockerfile` |
+| Root Directory | `/` |
 
-## Step 7 — Add Web Service
+**Environment Variables:**
 
-1. **+ New** → **GitHub Repo** → same repo
-2. Service name: **`web`**
-3. In service **Settings**:
-   - **Root Directory**: `/`
-   - **Config File Path**: `railway/web.toml`
-4. Set **Environment Variables**:
+| Variable | Qiymat | Izoh |
+|----------|--------|------|
+| `API_UPSTREAM` | `api.railway.internal:3000` | Private network! |
 
-| Variable | Value |
-|----------|-------|
-| `API_UPSTREAM` | `api.railway.internal:3000` |
+> `PORT` Railway avtomatik beradi — nginx template `${PORT}` ishlatadi.
 
-> `PORT` is automatically set by Railway — nginx template handles it.
+**Custom Domain:**
+- Settings → Networking → **Generate Domain** yoki **Custom Domain** → `app.ventra.uz`
+- DNS: `CNAME app.ventra.uz → <railway-generated-domain>`
+- SSL: Avtomatik (Let's Encrypt)
 
-5. Add a **Custom Domain** (or use Railway's auto-generated domain)
-6. Click **Deploy**
+### Bot Service
 
----
+| Sozlama | Qiymat |
+|---------|--------|
+| Service name | `bot` |
+| Dockerfile Path | `apps/bot/Dockerfile` |
+| Root Directory | `/` |
 
-## Step 8 — Add Bot Service
+**Environment Variables:**
 
-1. **+ New** → **GitHub Repo** → same repo
-2. Service name: **`bot`**
-3. In service **Settings**:
-   - **Root Directory**: `/`
-   - **Config File Path**: `railway/bot.toml`
-4. Set **Environment Variables**:
-
-| Variable | Value |
-|----------|-------|
-| `DATABASE_URL` | Reference from postgres service |
+| Variable | Qiymat |
+|----------|--------|
+| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` |
 | `TELEGRAM_BOT_TOKEN` | `7926900328:AAE...` |
 | `NODE_ENV` | `production` |
 
-5. Click **Deploy**
-
 ---
 
-## How to Reference Variables Between Services
+## Bosqich 4 — CI/CD Pipeline
 
-In Railway, you can reference another service's variable:
-1. Go to the target service's **Variables** tab
-2. Click **+ New Variable**
-3. Value: `${{postgres.DATABASE_URL}}` (Railway's reference syntax)
+### Arxitektura
 
----
-
-## Private Networking (Railway.internal)
-
-Services reach each other via:
 ```
-api.railway.internal:3000     ← API (used by web nginx proxy)
-redis.railway.internal:6379   ← Redis (alternative to REDIS_URL plugin)
-postgres.railway.internal:5432 ← Postgres (alternative to DATABASE_URL plugin)
+Developer → git push main
+                │
+                ▼
+        GitHub Actions CI
+        ├── pnpm install
+        ├── prisma generate
+        ├── tsc --noEmit (api, web, worker, bot)
+        ├── unit tests
+        ├── lint
+        └── build
+                │
+                ▼ (CI PASSED)
+        GitHub Actions Deploy
+        ├── railway up --service api
+        ├── railway up --service worker
+        ├── railway up --service web
+        ├── railway up --service bot
+        └── prisma db push (migration)
 ```
 
+### GitHub Secrets Sozlash
+
+1. Railway dashboard → Account Settings → **Tokens** → **New Token**
+2. GitHub repo → Settings → Secrets → **New Repository Secret**:
+   - Name: `RAILWAY_TOKEN`
+   - Value: Railway token
+
+### GitHub Environment
+
+1. GitHub repo → Settings → Environments → **New Environment**: `production`
+2. Protection rules (optional):
+   - Required reviewers
+   - Wait timer
+
+### Workflow fayli
+
+`.github/workflows/ci.yml` — allaqachon yaratilgan:
+- **CI job**: lint, typecheck, test, build (har push/PR da)
+- **Deploy job**: Railway CLI deploy (faqat main push + CI o'tgach)
+
 ---
 
-## Auto-Deploy on Push
+## Bosqich 5 — Private Networking
 
-Railway automatically redeploys each service when you push to `main` (linked GitHub branch). No extra CI/CD steps needed.
+Railway'da service'lar bir-birini **private network** orqali ko'radi:
 
-To control which branch triggers deploys:
-- Service Settings → **Source** → **Branch** → select branch
+```
+api.railway.internal:3000        ← Web nginx proxy target
+redis.railway.internal:6379      ← BullMQ connection
+postgres.railway.internal:5432   ← Prisma connection
+```
+
+**MUHIM:** Railway reference syntax (`${{Postgres.DATABASE_URL}}`) avtomatik private URL beradi. Manual yozmang.
+
+**Istisno:** Web service'da `API_UPSTREAM=api.railway.internal:3000` manual yozish kerak (nginx envsubst uchun).
 
 ---
 
-## Useful Commands (Railway CLI)
+## Bosqich 6 — Migration va pgvector
+
+### Birinchi deploy
+
+API Dockerfile entrypoint avtomatik `prisma db push` bajaradi.
+
+### Qo'lda migration
 
 ```bash
-# Link local to Railway project
+railway run --service api -- pnpm exec prisma db push --skip-generate
+```
+
+### pgvector tekshirish
+
+```bash
+railway run --service api -- pnpm exec prisma db execute --stdin <<< "SELECT extversion FROM pg_extension WHERE extname = 'vector';"
+```
+
+---
+
+## Foydali Komandalar
+
+```bash
+# Loyihaga ulash
 railway link
 
-# View logs
+# Log ko'rish
 railway logs --service api
 railway logs --service worker
 railway logs --service web
 railway logs --service bot
 
-# Open service in browser
+# Status
+railway status
+
+# Brauzerda ochish
 railway open
 
-# Run one-off command (e.g., prisma migrate)
-railway run --service api pnpm exec prisma migrate deploy
+# One-off command
+railway run --service api -- pnpm exec prisma studio
 
-# Check service status
-railway status
+# Env var qo'shish
+railway variables set --service api JWT_SECRET=new_secret_value
+
+# Rollback (oldingi deploy'ga)
+railway rollback --service api
 ```
 
 ---
 
-## Troubleshooting
+## Xatoliklarni Tuzatish
 
-### API won't start — Prisma migration error
+### API ishga tushmaydi — Prisma migration xatosi
 ```bash
-railway run --service api pnpm exec prisma db push
+# Direct connection bilan migration
+railway run --service api -- sh -c 'DATABASE_URL=$DIRECT_DATABASE_URL pnpm exec prisma db push'
 ```
 
-### pgvector extension missing
-```bash
-# Connect to postgres and run:
-CREATE EXTENSION IF NOT EXISTS vector;
-```
+### Web 502 Bad Gateway
+1. `API_UPSTREAM` = `api.railway.internal:3000` tekshiring
+2. Railway'da API service nomi AYNAN `api` bo'lishi kerak
+3. `railway logs --service api` — xatolarni ko'ring
 
-### Web can't reach API (502 Bad Gateway)
-- Check `API_UPSTREAM` is `api.railway.internal:3000`
-- Ensure API service name in Railway is exactly `api`
-- Check API health: `railway logs --service api`
+### Worker job'lar ishlamaydi
+1. `REDIS_URL` to'g'riligini tekshiring
+2. `railway logs --service worker` — connection xatolarini qidiring
 
-### Worker not processing jobs
-- Verify `REDIS_URL` matches the Redis service URL
-- Check: `railway logs --service worker`
+### Bot javob bermaydi
+1. `TELEGRAM_BOT_TOKEN` to'g'riligini tekshiring
+2. Webhook vs long-polling: bot long-polling ishlatadi, webhook sozlamang
 
 ---
 
-## Environment Variables Summary
+## Xavfsizlik Checklist
 
-| Service | Required Variables |
-|---------|-------------------|
-| api | DATABASE_URL, REDIS_URL, JWT_SECRET, JWT_EXPIRES_IN, ANTHROPIC_API_KEY, PORT, NODE_ENV |
-| worker | DATABASE_URL, REDIS_URL, ANTHROPIC_API_KEY, NODE_ENV |
-| web | API_UPSTREAM |
-| bot | DATABASE_URL, TELEGRAM_BOT_TOKEN, NODE_ENV |
+- [ ] `JWT_SECRET` kamida 32 belgi, random (`openssl rand -hex 32`)
+- [ ] `POSTGRES_PASSWORD` kuchli, 32+ belgi
+- [ ] `ANTHROPIC_API_KEY` prod key (test key emas)
+- [ ] `.env` fayllari `.gitignore` da
+- [ ] Railway Variables — "Raw Editor" da secret'lar asterisk bilan ko'rinadi
+- [ ] Custom domain + SSL (HTTPS) sozlangan
+- [ ] Bot token rotate qilingan (BotFather → /revoke)
 
 ---
 
-*RAILWAY.md | Uzum Trend Finder | 2026-02-24*
+## Monitoring
+
+### Railway Built-in
+- **Logs**: Har service uchun real-time log stream
+- **Metrics**: CPU, RAM, Network, Disk usage
+- **Deploys**: Deploy history, rollback imkoniyati
+
+### Tavsiya etiladigan qo'shimcha
+- **Uptime**: UptimeRobot yoki BetterStack — `https://app.ventra.uz/api/v1/health` monitor
+- **Errors**: Sentry integration (API + Worker)
+- **Alerts**: Railway → Settings → Notifications → Slack/Email
+
+---
+
+## Environment Variables Xulosa
+
+| Service | Env Vars | Izoh |
+|---------|----------|------|
+| **api** | DATABASE_URL, DIRECT_DATABASE_URL, REDIS_URL, JWT_SECRET, JWT_EXPIRES_IN, ANTHROPIC_API_KEY, WEB_URL, NODE_ENV, PORT | 9 ta |
+| **worker** | DATABASE_URL, DIRECT_DATABASE_URL, REDIS_URL, ANTHROPIC_API_KEY, SERPAPI_API_KEY, ALIEXPRESS_APP_KEY, ALIEXPRESS_APP_SECRET, NODE_ENV | 8 ta |
+| **web** | API_UPSTREAM | 1 ta (PORT avtomatik) |
+| **bot** | DATABASE_URL, TELEGRAM_BOT_TOKEN, NODE_ENV | 3 ta |
+
+---
+
+*RAILWAY.md | VENTRA Analytics Platform | 2026-02-27*

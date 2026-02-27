@@ -44,5 +44,24 @@ COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 WORKDIR /app/apps/api
 RUN pnpm exec prisma generate
 
+# Migration script — uses DIRECT_DATABASE_URL for DDL (bypasses PgBouncer)
+COPY <<'ENTRYPOINT' /app/entrypoint.sh
+#!/bin/sh
+set -e
+
+# Use direct connection for migration if available (PgBouncer can't handle DDL)
+if [ -n "$DIRECT_DATABASE_URL" ]; then
+  echo "[entrypoint] Running migration via DIRECT_DATABASE_URL..."
+  DATABASE_URL="$DIRECT_DATABASE_URL" pnpm exec prisma db push --skip-generate --accept-data-loss
+else
+  echo "[entrypoint] Running migration via DATABASE_URL..."
+  pnpm exec prisma db push --skip-generate --accept-data-loss
+fi
+
+echo "[entrypoint] Starting API server..."
+exec node dist/main
+ENTRYPOINT
+RUN chmod +x /app/entrypoint.sh
+
 EXPOSE 3000
-CMD ["sh", "-c", "pnpm exec prisma db push --skip-generate && node dist/main"]
+CMD ["/app/entrypoint.sh"]

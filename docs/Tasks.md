@@ -517,142 +517,202 @@ function getClient(): Anthropic {
 ---
 
 # ═══════════════════════════════════════════════════════════
-# RAILWAY DEPLOYMENT VAZIFALARI (2026-02-27)
+# RAILWAY PRODUCTION DEPLOYMENT (2026-02-27) — YANGI ARXITEKTURA
 # ═══════════════════════════════════════════════════════════
+#
+# Eski arxitektura O'CHIRILDI:
+#   - railway.toml (root) — minimal, noto'g'ri
+#   - railway/*.toml (4 ta per-service) — Railway dashboard bilan conflict
+#   - ci.yml dagi eski deploy job — qayta yozildi
+#   - docker-compose.prod.yml — 3 ta critical bug fix qilindi (C-06, C-07, H-20)
+#   - API Dockerfile — migration ajratildi (entrypoint.sh)
+#
+# YANGI arxitektura:
+#   - Railway dashboard-first config (service settings UI'da)
+#   - GitHub Actions CI/CD: CI → Deploy (RAILWAY_TOKEN)
+#   - API entrypoint: DIRECT_DATABASE_URL orqali migration (PgBouncer bypass)
+#   - docker-compose.prod.yml: barcha buglar fix
+#   - docs/RAILWAY.md: to'liq production guide
+#
 
-## P0 — KRITIK (Deploy blockerlar)
+## P0 — KRITIK (Production Blocker) — ✅ CODE DONE
 
-### T-173 | DEVOPS | Railway project yaratish — 6 service | Bekzod | 1h
-**Tarkib:**
-1. PostgreSQL plugin (Railway managed, pgvector tekshirish)
-2. Redis plugin (Railway managed, v7)
-3. API service (Docker, `apps/api/Dockerfile`)
-4. Worker service (Docker, `apps/worker/Dockerfile`)
-5. Web service (Docker, `apps/web/Dockerfile`)
-6. Bot service (Docker, `apps/bot/Dockerfile`)
-**Eslatma:** pgvector Railway managed PG da mavjudligini tekshirish. Agar yo'q — custom Docker image (`pgvector/pgvector:pg16`).
+### T-173 | DEVOPS | Railway project yaratish + 6 service sozlash | Bekzod | 1h
+**Status:** Kod tayyor, Railway dashboard'da sozlash kerak.
+**Hujjat:** `docs/RAILWAY.md` → Bosqich 2-3
+**Service'lar:** postgres (plugin), redis (plugin), api, worker, web, bot
+**Har bir app service:** GitHub Repo → Dockerfile Path → Root `/` → Deploy
 
-### T-174 | DEVOPS | Environment variables sozlash | Bekzod | 30min
-**Har service uchun env vars:**
-- **Shared:** `DATABASE_URL` (PG reference), `REDIS_URL` (Redis reference), `NODE_ENV=production`
-- **API:** `JWT_SECRET`, `WEB_URL` (frontend Railway URL), `ANTHROPIC_API_KEY`, `PORT` (auto)
-- **Worker:** `DATABASE_URL`, `REDIS_URL`, `ANTHROPIC_API_KEY`, `SERPAPI_API_KEY` (optional)
-- **Web:** `PORT` (auto), `API_UPSTREAM` (Railway private networking: `api.railway.internal:3000`)
-- **Bot:** `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`
+### T-174 | DEVOPS | RAILWAY_TOKEN GitHub secret yaratish | Bekzod | 5min
+**Status:** Qo'lda bajarish kerak.
+1. Railway dashboard → Account → Tokens → **Create Token**
+2. GitHub repo → Settings → Secrets → **RAILWAY_TOKEN** = token
+3. GitHub repo → Settings → Environments → `production` yaratish
 
-### T-175 | DEVOPS | Worker PORT issue fix | Bekzod | 10min
-**Muammo:** Worker health check `WORKER_HEALTH_PORT` (default 3001) o'qiydi. Railway `PORT` beradi.
-**Fix:** `apps/worker/src/main.ts:42` → `process.env.PORT || process.env.WORKER_HEALTH_PORT || '3001'`
+### T-175 | DEVOPS | Environment variables — Railway dashboard | Bekzod | 15min
+**Status:** Qo'lda bajarish kerak.
+**Hujjat:** `docs/RAILWAY.md` → Bosqich 3
+**Muhim:** Railway reference syntax: `${{Postgres.DATABASE_URL}}`, `${{Redis.REDIS_URL}}`
+**DIRECT_DATABASE_URL:** API va Worker'da `${{Postgres.DATABASE_URL}}` (pooler bypass)
 
-### T-176 | DEVOPS | Prisma directUrl qo'shish — migration PgBouncer muammosi | Bekzod | 10min
-**Muammo:** `prisma db push` PgBouncer transaction mode da ishlamaydi. Railway Postgres built-in pooler bor.
-**Fix:** `schema.prisma` ga `directUrl = env("DIRECT_DATABASE_URL")` qo'shish. Railway da ikki reference: pooled + direct.
+### T-176 | DEVOPS | Prisma schema — directUrl qo'shish | Bekzod | 5min
+**Status:** Kod o'zgartirish kerak.
+**Fayl:** `apps/api/prisma/schema.prisma`
+```prisma
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+```
+**Izoh:** API Dockerfile entrypoint allaqachon `DIRECT_DATABASE_URL` ni ishlatadi. Schema'da ham rasm qilish kerak.
 
-### T-177 | DEVOPS | Bot health check — HTTP endpoint yo'q | Bekzod | 15min
-**Muammo:** Bot long-polling, HTTP port yo'q. Railway health check fail qiladi.
-**Fix:** Minimal HTTP server qo'shish (worker pattern):
+### T-177 | DEVOPS | pgvector extension — Railway PostgreSQL | Bekzod | 5min
+**Status:** Qo'lda bajarish kerak.
+Railway PostgreSQL console (Data tab → Query):
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+```
+
+---
+
+## P1 — MUHIM (Post-deploy stabillik)
+
+### T-178 | DEVOPS | Custom domain + SSL — web service | Bekzod | 10min
+**Status:** Qo'lda bajarish kerak.
+1. Railway → web service → Settings → Networking → **Custom Domain**
+2. DNS: `CNAME app.ventra.uz → <railway-generated-domain>`
+3. SSL: Avtomatik (Let's Encrypt, 5-10 daqiqa)
+4. API `WEB_URL` env var'ni yangilash: `https://app.ventra.uz`
+
+### T-179 | DEVOPS | Worker memory/CPU limit tekshirish | Bekzod | 15min
+**Muammo:** Worker Docker image ~1GB+ (Chromium/Playwright). Railway free plan 512MB RAM.
+**Variant A:** Railway Pro plan (8GB RAM) — Chromium ishlaydi
+**Variant B:** Playwright o'chirish, faqat REST API ishlatish — image 200MB ga tushadi
+**Tekshirish:** `railway logs --service worker` — OOM killer bor-yo'qligini ko'rish
+
+### T-180 | DEVOPS | Monitoring + Uptime alert | Bekzod | 15min
+1. UptimeRobot yoki BetterStack — `https://app.ventra.uz/api/v1/health` har 5 daqiqa
+2. Railway notifications → Slack/Email (deploy fail, service crash)
+3. Sentry: `apps/api/src/common/sentry.ts` da `SENTRY_DSN` env var qo'shish
+
+### T-181 | DEVOPS | Railway database backup tekshirish | Bekzod | 10min
+Railway PostgreSQL automatic daily backup bor (Pro plan).
+Tekshirish: Railway → Postgres service → Settings → Backups.
+Qo'shimcha: `pg_dump` cron (haftalik) → S3/R2.
+
+---
+
+## P2 — O'RTA (Optimizatsiya)
+
+### T-182 | DEVOPS | Bot health endpoint qo'shish | Bekzod | 15min
+**Muammo:** Bot long-polling, HTTP server yo'q. Railway restart loop'ga tushishi mumkin.
+**Fix:** `apps/bot/src/main.ts` ga minimal HTTP server:
 ```typescript
+import http from 'http';
 const server = http.createServer((req, res) => {
-  if (req.url === '/health') res.end(JSON.stringify({ status: 'ok', bot: 'running' }));
+  if (req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', bot: 'running' }));
+  } else {
+    res.writeHead(404);
+    res.end();
+  }
 });
 server.listen(process.env.PORT || 3002);
 ```
 
+### T-183 | DEVOPS | Worker PORT env var fix | Bekzod | 5min
+**Fayl:** `apps/worker/src/main.ts`
+**Muammo:** Worker health `WORKER_HEALTH_PORT` o'qiydi. Railway `PORT` beradi.
+**Fix:** `const port = process.env.PORT || process.env.WORKER_HEALTH_PORT || '3001';`
+
+### T-184 | DEVOPS | Staging environment (optional) | Bekzod | 30min
+Railway'da ikkinchi project yaratish: `ventra-staging`.
+`develop` branch'ga push → staging deploy.
+CI/CD: `.github/workflows/ci.yml` ga staging job qo'shish (develop branch trigger).
+
 ---
 
-## P1 — MUHIM (CI/CD)
+# ═══════════════════════════════════════════════════════════
+# PWA O'CHIRISH VAZIFALARI (2026-02-27)
+# ═══════════════════════════════════════════════════════════
 
-### T-178 | DEVOPS | GitHub Actions → Railway auto-deploy pipeline | Bekzod | 1h
-**Mavjud:** `.github/workflows/ci.yml` — tsc + test + lint + build + docker
-**Qo'shilishi kerak:**
-```yaml
-deploy:
-  name: Deploy to Railway
-  runs-on: ubuntu-latest
-  needs: ci
-  if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-  steps:
-    - uses: actions/checkout@v4
-    - name: Install Railway CLI
-      run: npm install -g @railway/cli
-    - name: Deploy API
-      run: railway up --service api
-      env:
-        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-    - name: Deploy Worker
-      run: railway up --service worker
-      env:
-        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-    - name: Deploy Web
-      run: railway up --service web
-      env:
-        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-    - name: Deploy Bot
-      run: railway up --service bot
-      env:
-        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+## P1 — MUHIM (PWA Removal)
+
+### T-188 | FRONTEND | Service Worker o'chirish + unregister script | Sardor | 20min
+**Fayllar:**
+- `apps/web/public/sw.js` — O'CHIRISH (80 qator, ventra-v3, 4 cache strategiya)
+- `apps/web/index.html:26-32` — SW registration scriptini O'CHIRISH
+**Muhim:** Mavjud foydalanuvchilar brauzerida SW cache qolgan. Unregister script qo'shish:
+```javascript
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(r => r.unregister());
+  });
+  caches.keys().then(keys => {
+    keys.forEach(k => caches.delete(k));
+  });
+}
 ```
-**Alternativa:** Railway GitHub integration (auto-deploy on push, simpler). Ikkalasini config qilish mumkin.
+Bu script bir necha hafta qolishi kerak, keyin o'chiriladi.
 
-### T-179 | DEVOPS | RAILWAY_TOKEN GitHub secret qo'shish | Bekzod | 5min
-Railway dashboard → Settings → Tokens → New Token. GitHub repo → Settings → Secrets → RAILWAY_TOKEN.
+### T-189 | FRONTEND | manifest.json va PWA meta taglar o'chirish | Sardor | 10min
+**Fayllar:**
+- `apps/web/public/manifest.json` — O'CHIRISH (34 qator, standalone PWA config)
+- `apps/web/index.html:18` — `<link rel="manifest" href="/manifest.json" />` O'CHIRISH
+- `apps/web/index.html:19` — `<meta name="apple-mobile-web-app-capable" ...>` O'CHIRISH
+- `apps/web/index.html:20` — `<meta name="apple-mobile-web-app-status-bar-style" ...>` O'CHIRISH
+**Eslatma:** `theme-color` meta tag (line 8) va `favicon.svg` (line 5) QOLADI — bular PWA ga emas, brauzerga kerak.
 
-### T-180 | DEVOPS | Railway service build settings | Bekzod | 15min
-Har service uchun:
-- **Root directory:** `/` (monorepo root)
-- **Dockerfile path:** `apps/<service>/Dockerfile`
-- **Health check path:** API: `/api/v1/health`, Worker: `/health`, Web: `/`, Bot: `/health`
-- **Health check interval:** 30s, timeout 10s.
+### T-190 | FRONTEND | PWA-only ikonalar o'chirish | Sardor | 5min
+**O'chirish:**
+- `apps/web/public/icon-512.svg` — faqat manifest.json uchun kerak edi
+- `apps/web/public/icon-maskable.svg` — faqat PWA install uchun kerak edi
+- `apps/web/public/apple-touch-icon.svg` — faqat iOS home screen uchun kerak edi
+**QOLADI:** `favicon.svg` — brauzer tab icon sifatida kerak.
 
-### T-181 | DEVOPS | CORS va WEB_URL to'g'ri sozlash | Bekzod | 10min
-API `WEB_URL` → Railway frontend public URL (e.g., `https://ventra.up.railway.app`).
-WebSocket gateway ham `WEB_URL` ishlatadi — ikkalasi ham to'g'ri bo'lishi kerak.
+### T-191 | FRONTEND | useNativeNotification.ts dead code o'chirish | Sardor | 5min
+**Fayl:** `apps/web/src/hooks/useNativeNotification.ts` — O'CHIRISH (21 qator)
+**Muammo:** Hech qayerda import qilinmagan — DEAD CODE. Web Notification API + Electron bridge ishlatadi, lekin hech qanday component chaqirmaydi.
+**Eslatma:** Agar kelajakda desktop notification kerak bo'lsa, qayta yoziladi.
 
-### T-182 | DEVOPS | Web API_UPSTREAM Railway private networking | Bekzod | 10min
-nginx.conf.template `$API_UPSTREAM` env var ishlatadi. Railway private networking format: `api.railway.internal:3000`. Bu env var Railway Web service da to'g'ri set bo'lishi kerak.
-
----
-
-## P2 — O'RTA (Stabillik)
-
-### T-183 | DEVOPS | PgBouncer o'rniga Railway built-in pooler | Bekzod | 15min
-Railway managed PostgreSQL built-in connection pooler bor. `docker-compose.prod.yml` dagi PgBouncer service keraksiz. Railway da pooled + direct URL ajratish.
-
-### T-184 | DEVOPS | pgvector extension Railway da enable qilish | Bekzod | 10min
-Railway PostgreSQL console: `CREATE EXTENSION IF NOT EXISTS vector;`
-Yoki Prisma `postgresqlExtensions` preview feature orqali.
-
-### T-185 | DEVOPS | Worker Docker image optimizatsiya | Bekzod | 30min
-Worker image ~1GB+ (Chromium). Railway memory limitlarini tekshirish. Playwright kerak bo'lmasa Chromium o'chirish yoki headless browser alohida service qilish.
-
-### T-186 | DEVOPS | Railway monitoring + alerting | Bekzod | 20min
-Railway dashboard: logs, metrics, alerts. Sentry integration (API + Worker). Uptime monitoring (UptimeRobot/BetterStack).
-
-### T-187 | DEVOPS | Database backup Railway da | Bekzod | 15min
-Railway automatic backups bor. Point-in-time recovery sozlash. External backup (`pg_dump`) cron qo'shish optional.
+### T-192 | FRONTEND | dist/manifest.json build artifact tozalash | Sardor | 5min
+**Fayl:** `apps/web/dist/manifest.json` — mavjud build da qolgan
+**Fix:** `pnpm --filter web run build` qayta ishlatganda avtomatik ketadi, lekin dist papkasini tozalash kerak: `rm -rf apps/web/dist`
 
 ---
 
 ## XULOSA
 
-| Kategoriya | Yangi Tasklar | Diapazoni |
-|------------|---------------|-----------|
+| Kategoriya | Tasklar | Diapazoni |
+|------------|---------|-----------|
 | Worker Debug (P0) | 5 | T-061...T-065 |
 | Worker Debug (P1) | 12 | T-066...T-077 |
 | Bugs.md (P2) | 23 | T-078...T-100 |
 | Bugs.md (P3) | 72 | T-101...T-172 |
-| Railway Deploy (P0) | 5 | T-173...T-177 |
-| Railway Deploy (P1) | 5 | T-178...T-182 |
-| Railway Deploy (P2) | 5 | T-183...T-187 |
-| **JAMI YANGI** | **127** | T-061...T-187 |
+| **Railway Deploy (P0)** | **5 ✅ CODE DONE** | **T-173...T-177** |
+| **Railway Deploy (P1)** | **4** | **T-178...T-181** |
+| **Railway Deploy (P2)** | **3** | **T-182...T-184** |
+| PWA O'chirish (P1) | 5 | T-188...T-192 |
+| **JAMI YANGI** | **129** | T-061...T-192 |
 
 | Prioritet | Eski | Yangi | Jami |
 |-----------|------|-------|------|
-| P0 KRITIK | 9 ✅ | 10 | 10 ochiq |
-| P1 MUHIM | 15 ✅ | 17 | 17 ochiq |
-| P2 O'RTA | 17 ✅ | 23 | 23 ochiq |
-| P3 PAST | 19 ✅ | 77 | 77 ochiq |
-| **JAMI** | **60 ✅** | **127** | **127 ochiq** |
+| P0 KRITIK | 9 ✅ | 10 (5 code done) | 10 ochiq |
+| P1 MUHIM | 15 ✅ | 21 | 21 ochiq |
+| P2 O'RTA | 17 ✅ | 26 | 26 ochiq |
+| P3 PAST | 19 ✅ | 72 | 72 ochiq |
+| **JAMI** | **60 ✅** | **129** | **129 ochiq** |
+
+### RAILWAY DEPLOY — QILINGAN ISHLAR (Code Done)
+- ✅ Eski `railway/` directory o'chirildi (4 ta toml)
+- ✅ Eski `railway.toml` (root) o'chirildi
+- ✅ `.github/workflows/ci.yml` qayta yozildi — CI + Deploy (Railway CLI)
+- ✅ `docker-compose.prod.yml` fix: C-06 (PgBouncer→postgres), C-07 (Redis password), H-20 (Worker env)
+- ✅ `apps/api/Dockerfile` — entrypoint.sh (DIRECT_DATABASE_URL migration, PgBouncer bypass)
+- ✅ `.env.production` — to'liq template (DIRECT_DATABASE_URL, REDIS parol)
+- ✅ `docs/RAILWAY.md` — yangi production guide (arxitektura diagramma, 6 bosqich, CLI, troubleshoot)
 
 ---
 
