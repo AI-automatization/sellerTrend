@@ -4,7 +4,7 @@ services:
   # ── Infrastructure ────────────────────────────────────────
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: uzum_postgres
+    container_name: ventra_postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-uzum}
@@ -22,16 +22,39 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: uzum_redis
+    container_name: ventra_redis
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD:-}
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "--no-auth-warning", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - backend
+
+  pgbouncer:
+    image: edoburu/pgbouncer:1.22.0
+    container_name: ventra_pgbouncer
+    restart: unless-stopped
+    environment:
+      # FIX C-06: PgBouncer MUST connect to postgres, NOT to itself
+      DATABASE_URL: postgresql://${POSTGRES_USER:-uzum}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-uzum_trend_finder}
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: "200"
+      DEFAULT_POOL_SIZE: "20"
+      MIN_POOL_SIZE: "5"
+      RESERVE_POOL_SIZE: "5"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5432"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - backend
 
@@ -40,18 +63,23 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    container_name: uzum_api
+    container_name: ventra_api
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-uzum}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-uzum_trend_finder}
-      REDIS_URL: redis://redis:6379
+      # Pooled connection (PgBouncer) — for queries
+      DATABASE_URL: postgresql://${POSTGRES_USER:-uzum}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB:-uzum_trend_finder}
+      # Direct connection (Postgres) — for migrations/DDL
+      DIRECT_DATABASE_URL: postgresql://${POSTGRES_USER:-uzum}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-uzum_trend_finder}
+      # FIX C-07: Redis URL MUST include password
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      WEB_URL: ${WEB_URL:-http://localhost}
       PORT: 3000
       NODE_ENV: production
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -67,14 +95,21 @@ services:
     build:
       context: .
       dockerfile: apps/worker/Dockerfile
-    container_name: uzum_worker
+    container_name: ventra_worker
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-uzum}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-uzum_trend_finder}
-      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://${POSTGRES_USER:-uzum}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB:-uzum_trend_finder}
+      DIRECT_DATABASE_URL: postgresql://${POSTGRES_USER:-uzum}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-uzum_trend_finder}
+      # FIX C-07: Redis URL MUST include password
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      # FIX H-20: Worker API keys qo'shildi
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      SERPAPI_API_KEY: ${SERPAPI_API_KEY:-}
+      ALIEXPRESS_APP_KEY: ${ALIEXPRESS_APP_KEY:-}
+      ALIEXPRESS_APP_SECRET: ${ALIEXPRESS_APP_SECRET:-}
       NODE_ENV: production
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -85,14 +120,14 @@ services:
     build:
       context: .
       dockerfile: apps/bot/Dockerfile
-    container_name: uzum_bot
+    container_name: ventra_bot
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-uzum}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-uzum_trend_finder}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-uzum}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB:-uzum_trend_finder}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       NODE_ENV: production
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
     networks:
       - backend
@@ -101,19 +136,54 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
-    container_name: uzum_web
+    container_name: ventra_web
     restart: unless-stopped
+    environment:
+      PORT: 80
+      API_UPSTREAM: api:3000
     ports:
       - "80:80"
-      - "443:443"
     depends_on:
       - api
+    networks:
+      - backend
+
+  # ── Backup ──────────────────────────────────────────────
+  backup:
+    image: postgres:16-alpine
+    container_name: ventra_backup
+    restart: unless-stopped
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ${POSTGRES_DB:-uzum_trend_finder}
+      PGUSER: ${POSTGRES_USER:-uzum}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      AWS_ACCESS_KEY_ID: ${BACKUP_AWS_KEY:-}
+      AWS_SECRET_ACCESS_KEY: ${BACKUP_AWS_SECRET:-}
+      RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+      BACKUP_DIR: /backups
+    volumes:
+      - ./scripts/backup-db.sh:/usr/local/bin/backup-db.sh:ro
+      - backup_data:/backups
+    entrypoint: /bin/sh
+    command: >
+      -c "chmod +x /usr/local/bin/backup-db.sh &&
+          echo '0 3 * * * /usr/local/bin/backup-db.sh daily >> /var/log/backup.log 2>&1' > /etc/crontabs/root &&
+          echo '0 4 * * 0 /usr/local/bin/backup-db.sh weekly >> /var/log/backup.log 2>&1' >> /etc/crontabs/root &&
+          crond -f -l 2"
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - backend
 
 volumes:
   postgres_data:
   redis_data:
+  backup_data:
 
 networks:
   backend:

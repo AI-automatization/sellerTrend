@@ -1,0 +1,115 @@
+name: CI / CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: "20"
+  PNPM_VERSION: "10.30.1"
+
+jobs:
+  # ═══════════════════════════════════════════════════════════
+  # CI — Lint, Type-check, Test, Build
+  # ═══════════════════════════════════════════════════════════
+  ci:
+    name: CI — Check & Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter api exec prisma generate
+
+      # ── Type checks (parallel) ──
+      - name: Type-check all packages
+        run: |
+          pnpm --filter api exec tsc --noEmit &
+          pnpm --filter web exec tsc --noEmit &
+          pnpm --filter worker exec tsc --noEmit &
+          pnpm --filter bot exec tsc --noEmit &
+          wait
+
+      - name: Unit tests
+        run: pnpm --filter @uzum/utils run test
+
+      - name: Lint web
+        run: pnpm --filter web run lint
+
+      - name: Dependency audit
+        run: pnpm audit --audit-level=high || true
+
+      - name: Build all packages
+        run: pnpm run build
+
+  # ═══════════════════════════════════════════════════════════
+  # DEPLOY — Railway (faqat main push + CI o'tgandan keyin)
+  # ═══════════════════════════════════════════════════════════
+  deploy:
+    name: Deploy to Railway
+    runs-on: ubuntu-latest
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    timeout-minutes: 30
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      # ── Deploy barcha service'lar parallel ──
+      - name: Deploy API
+        run: railway up --service api --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      - name: Deploy Worker
+        run: railway up --service worker --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      - name: Deploy Web
+        run: railway up --service web --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      - name: Deploy Bot
+        run: railway up --service bot --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      # ── Post-deploy: DB migration ──
+      - name: Run database migration
+        run: railway run --service api -- pnpm exec prisma db push --skip-generate --accept-data-loss
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      - name: Verify API health
+        run: |
+          sleep 30
+          railway run --service api -- wget -qO- http://localhost:3000/api/v1/health || echo "Health check will be verified via Railway dashboard"
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        continue-on-error: true

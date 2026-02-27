@@ -1,6 +1,7 @@
 import { Worker, Job } from 'bullmq';
 import { redisConnection } from '../redis';
 import { prisma } from '../prisma';
+import { logJobStart, logJobDone, logJobError } from '../logger';
 
 async function chargeAllActiveAccounts() {
   const setting = await prisma.systemSetting.findUnique({
@@ -9,8 +10,16 @@ async function chargeAllActiveAccounts() {
   const defaultFee = BigInt(setting?.value ?? '50000');
   const today = new Date().toISOString().split('T')[0];
 
+  // Exclude SUPER_ADMIN accounts from daily charges
+  const adminAccountIds = (
+    await prisma.user.findMany({
+      where: { role: 'SUPER_ADMIN' },
+      select: { account_id: true },
+    })
+  ).map((u) => u.account_id);
+
   const accounts = await prisma.account.findMany({
-    where: { status: 'ACTIVE' },
+    where: { status: 'ACTIVE', id: { notIn: adminAccountIds } },
   });
 
   let charged = 0;
@@ -53,10 +62,16 @@ export function createBillingWorker() {
   return new Worker(
     'billing-queue',
     async (job: Job) => {
-      console.log(`[billing] Processing job: ${job.name}`);
-      const result = await chargeAllActiveAccounts();
-      console.log(`[billing] Done:`, result);
-      return result;
+      const start = Date.now();
+      logJobStart('billing-queue', job.id ?? '-', job.name);
+      try {
+        const result = await chargeAllActiveAccounts();
+        logJobDone('billing-queue', job.id ?? '-', job.name, Date.now() - start, result);
+        return result;
+      } catch (err) {
+        logJobError('billing-queue', job.id ?? '-', job.name, err, Date.now() - start);
+        throw err;
+      }
     },
     { ...redisConnection, concurrency: 1 },
   );

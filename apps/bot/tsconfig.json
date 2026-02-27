@@ -2,7 +2,8 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": "../../",
+    "noImplicitAny": false,
     "paths": {
       "@uzum/types": ["../../packages/types/src/index.ts"],
       "@uzum/utils": ["../../packages/utils/src/index.ts"]

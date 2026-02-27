@@ -8,6 +8,7 @@ import {
   detectEarlySignals,
   detectStockCliff,
   planReplenishment,
+  recalcWeeklyBoughtSeries,
 } from '@uzum/utils';
 
 @Injectable()
@@ -21,20 +22,25 @@ export class SignalsService {
       include: {
         product: {
           include: {
-            snapshots: { orderBy: { snapshot_at: 'desc' }, take: 1 },
+            snapshots: { orderBy: { snapshot_at: 'desc' }, take: 2 },
           },
         },
       },
     });
 
-    const products = tracked.map((t) => ({
-      id: t.product.id.toString(),
-      title: t.product.title,
-      category_id: t.product.category_id ? Number(t.product.category_id) : null,
-      score: t.product.snapshots[0]?.score ? Number(t.product.snapshots[0].score) : 0,
-      weekly_bought: t.product.snapshots[0]?.weekly_bought ?? 0,
-      shop_id: t.product.shop_id?.toString() ?? null,
-    }));
+    const products = tracked.map((t) => {
+      const snaps = [...t.product.snapshots].reverse(); // ASC order
+      const weeklyValues = recalcWeeklyBoughtSeries(snaps);
+      const latest = snaps[snaps.length - 1];
+      return {
+        id: t.product.id.toString(),
+        title: t.product.title,
+        category_id: t.product.category_id ? Number(t.product.category_id) : null,
+        score: latest?.score ? Number(latest.score) : 0,
+        weekly_bought: weeklyValues[weeklyValues.length - 1] ?? 0,
+        shop_id: t.product.shop_id?.toString() ?? null,
+      };
+    });
 
     return detectCannibalization(products);
   }
@@ -54,9 +60,10 @@ export class SignalsService {
 
     return tracked
       .map((t) => {
-        const snaps = t.product.snapshots.map((s) => ({
+        const weeklyValues = recalcWeeklyBoughtSeries(t.product.snapshots);
+        const snaps = t.product.snapshots.map((s, i) => ({
           score: Number(s.score ?? 0),
-          weekly_bought: s.weekly_bought ?? 0,
+          weekly_bought: weeklyValues[i],
           date: s.snapshot_at.toISOString(),
         }));
         return predictDeadStock(snaps, t.product.id.toString(), t.product.title);
@@ -70,15 +77,20 @@ export class SignalsService {
     const products = await this.prisma.product.findMany({
       where: { category_id: BigInt(categoryId), is_active: true },
       include: {
-        snapshots: { orderBy: { snapshot_at: 'desc' }, take: 1 },
+        snapshots: { orderBy: { snapshot_at: 'desc' }, take: 2 },
       },
     });
 
-    const data = products.map((p) => ({
-      score: p.snapshots[0]?.score ? Number(p.snapshots[0].score) : 0,
-      weekly_bought: p.snapshots[0]?.weekly_bought ?? 0,
-      shop_id: p.shop_id?.toString() ?? null,
-    }));
+    const data = products.map((p) => {
+      const snaps = [...p.snapshots].reverse(); // ASC
+      const weeklyValues = recalcWeeklyBoughtSeries(snaps);
+      const latest = snaps[snaps.length - 1];
+      return {
+        score: latest?.score ? Number(latest.score) : 0,
+        weekly_bought: weeklyValues[weeklyValues.length - 1] ?? 0,
+        shop_id: p.shop_id?.toString() ?? null,
+      };
+    });
 
     return calculateSaturation(data, categoryId);
   }
@@ -133,16 +145,19 @@ export class SignalsService {
       },
     });
 
-    const products = tracked.map((t) => ({
-      product_id: t.product.id.toString(),
-      title: t.product.title,
-      created_at: t.product.created_at.toISOString(),
-      snapshots: t.product.snapshots.map((s) => ({
-        score: Number(s.score ?? 0),
-        weekly_bought: s.weekly_bought ?? 0,
-        date: s.snapshot_at.toISOString(),
-      })),
-    }));
+    const products = tracked.map((t) => {
+      const weeklyValues = recalcWeeklyBoughtSeries(t.product.snapshots);
+      return {
+        product_id: t.product.id.toString(),
+        title: t.product.title,
+        created_at: t.product.created_at.toISOString(),
+        snapshots: t.product.snapshots.map((s, i) => ({
+          score: Number(s.score ?? 0),
+          weekly_bought: weeklyValues[i],
+          date: s.snapshot_at.toISOString(),
+        })),
+      };
+    });
 
     return detectEarlySignals(products);
   }
@@ -160,16 +175,21 @@ export class SignalsService {
       },
     });
 
-    const products = tracked.map((t) => ({
-      product_id: t.product.id.toString(),
-      title: t.product.title,
-      weekly_bought: t.product.snapshots[0]?.weekly_bought ?? 0,
-      orders_quantity: Number(t.product.orders_quantity ?? 0),
-      snapshots: t.product.snapshots.map((s) => ({
-        weekly_bought: s.weekly_bought ?? 0,
-        date: s.snapshot_at.toISOString(),
-      })).reverse(),
-    }));
+    const products = tracked.map((t) => {
+      const snaps = [...t.product.snapshots].reverse(); // ASC order
+      const weeklyValues = recalcWeeklyBoughtSeries(snaps);
+      return {
+        product_id: t.product.id.toString(),
+        title: t.product.title,
+        weekly_bought: weeklyValues[weeklyValues.length - 1] ?? 0,
+        orders_quantity: Number(t.product.orders_quantity ?? 0),
+        // total_available_amount not in schema yet — rely on orders_quantity heuristic
+        snapshots: snaps.map((s, i) => ({
+          weekly_bought: weeklyValues[i],
+          date: s.snapshot_at.toISOString(),
+        })),
+      };
+    });
 
     return detectStockCliff(products);
   }
@@ -239,13 +259,14 @@ export class SignalsService {
     });
 
     if (existing) {
-      return this.prisma.productChecklist.update({
+      const c = await this.prisma.productChecklist.update({
         where: { id: existing.id },
         data: { title, items: items as any },
       });
+      return { ...c, product_id: c.product_id?.toString() ?? null };
     }
 
-    return this.prisma.productChecklist.create({
+    const c = await this.prisma.productChecklist.create({
       data: {
         account_id: accountId,
         product_id: productId,
@@ -253,6 +274,7 @@ export class SignalsService {
         items: items as any,
       },
     });
+    return { ...c, product_id: c.product_id?.toString() ?? null };
   }
 
   /** Feature 29 — A/B Price Testing */
@@ -261,7 +283,7 @@ export class SignalsService {
     original_price: number;
     test_price: number;
   }) {
-    return this.prisma.priceTest.create({
+    const t = await this.prisma.priceTest.create({
       data: {
         account_id: accountId,
         product_id: BigInt(data.product_id),
@@ -269,6 +291,14 @@ export class SignalsService {
         test_price: BigInt(data.test_price),
       },
     });
+    return {
+      ...t,
+      product_id: t.product_id.toString(),
+      original_price: Number(t.original_price),
+      test_price: Number(t.test_price),
+      original_revenue: Number(t.original_revenue),
+      test_revenue: Number(t.test_revenue),
+    };
   }
 
   async listPriceTests(accountId: string) {
@@ -327,10 +357,18 @@ export class SignalsService {
     }
     if (data.conclusion) updateData.conclusion = data.conclusion;
 
-    return this.prisma.priceTest.update({
+    const t = await this.prisma.priceTest.update({
       where: { id: testId },
       data: updateData,
     });
+    return {
+      ...t,
+      product_id: t.product_id.toString(),
+      original_price: Number(t.original_price),
+      test_price: Number(t.test_price),
+      original_revenue: Number(t.original_revenue),
+      test_revenue: Number(t.test_revenue),
+    };
   }
 
   /** Feature 30 — Replenishment Planner */
@@ -340,17 +378,21 @@ export class SignalsService {
       include: {
         product: {
           include: {
-            snapshots: { orderBy: { snapshot_at: 'desc' }, take: 1 },
+            snapshots: { orderBy: { snapshot_at: 'desc' }, take: 2 },
           },
         },
       },
     });
 
-    const products = tracked.map((t) => ({
-      product_id: t.product.id.toString(),
-      title: t.product.title,
-      weekly_bought: t.product.snapshots[0]?.weekly_bought ?? 0,
-    }));
+    const products = tracked.map((t) => {
+      const snaps = [...t.product.snapshots].reverse(); // ASC
+      const weeklyValues = recalcWeeklyBoughtSeries(snaps);
+      return {
+        product_id: t.product.id.toString(),
+        title: t.product.title,
+        weekly_bought: weeklyValues[weeklyValues.length - 1] ?? 0,
+      };
+    });
 
     return planReplenishment(products, leadTimeDays);
   }

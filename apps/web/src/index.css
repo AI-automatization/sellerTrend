@@ -1,4 +1,170 @@
 @import "tailwindcss";
-@plugin "daisyui" {
-  themes: light, dark, night;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+@plugin "daisyui";
+
+/* ━━━ VENTRA Light Theme (default) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+@plugin "daisyui/theme" {
+  name: "ventra-light";
+  default: true;
+  color-scheme: light;
+
+  --color-base-100: oklch(100% 0 0);
+  --color-base-200: oklch(97% 0.003 265);
+  --color-base-300: oklch(91% 0.008 265);
+  --color-base-content: oklch(21% 0.02 265);
+
+  --color-primary: oklch(50% 0.24 265);
+  --color-primary-content: oklch(100% 0 0);
+  --color-secondary: oklch(52% 0.22 295);
+  --color-secondary-content: oklch(100% 0 0);
+  --color-accent: oklch(60% 0.16 195);
+  --color-accent-content: oklch(100% 0 0);
+  --color-neutral: oklch(40% 0.02 265);
+  --color-neutral-content: oklch(97% 0.003 265);
+
+  --color-info: oklch(60% 0.18 235);
+  --color-info-content: oklch(100% 0 0);
+  --color-success: oklch(58% 0.18 155);
+  --color-success-content: oklch(100% 0 0);
+  --color-warning: oklch(78% 0.16 75);
+  --color-warning-content: oklch(21% 0.02 75);
+  --color-error: oklch(55% 0.24 25);
+  --color-error-content: oklch(100% 0 0);
+
+  --radius-selector: 1rem;
+  --radius-field: 0.625rem;
+  --radius-box: 0.75rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+/* ━━━ VENTRA Dark Theme (OS preference) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+@plugin "daisyui/theme" {
+  name: "ventra-dark";
+  prefersdark: true;
+  color-scheme: dark;
+
+  --color-base-100: oklch(25% 0.012 265);
+  --color-base-200: oklch(18% 0.014 265);
+  --color-base-300: oklch(32% 0.010 265);
+  --color-base-content: oklch(93% 0.004 265);
+
+  --color-primary: oklch(62% 0.20 265);
+  --color-primary-content: oklch(100% 0 0);
+  --color-secondary: oklch(62% 0.19 295);
+  --color-secondary-content: oklch(100% 0 0);
+  --color-accent: oklch(70% 0.14 195);
+  --color-accent-content: oklch(18% 0.014 265);
+  --color-neutral: oklch(35% 0.012 265);
+  --color-neutral-content: oklch(88% 0.004 265);
+
+  --color-info: oklch(68% 0.15 235);
+  --color-info-content: oklch(100% 0 0);
+  --color-success: oklch(68% 0.16 155);
+  --color-success-content: oklch(100% 0 0);
+  --color-warning: oklch(82% 0.14 80);
+  --color-warning-content: oklch(18% 0.02 80);
+  --color-error: oklch(63% 0.21 25);
+  --color-error-content: oklch(100% 0 0);
+
+  --radius-selector: 1rem;
+  --radius-field: 0.625rem;
+  --radius-box: 0.75rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+/* ━━━ Chart / Tooltip CSS Variables (theme-aware) ━━━━━━━━━━━━━━━━━━━━━━━━━ */
+[data-theme="ventra-light"] {
+  --chart-grid: oklch(88% 0.005 265 / 0.5);
+  --chart-tick: oklch(55% 0.01 265);
+  --chart-tooltip-bg: oklch(100% 0 0 / 0.96);
+  --chart-tooltip-border: oklch(91% 0.008 265);
+  --chart-tooltip-text: oklch(21% 0.02 265);
+  --chart-cursor: oklch(88% 0.005 265 / 0.3);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.12);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.22);
+  --card-hover-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  --card-hover-border: oklch(50% 0.24 265 / 0.12);
+  --bg-from: oklch(97.5% 0.002 265);
+  --bg-to: oklch(95.5% 0.012 270);
+  --sidebar-from: oklch(100% 0 0);
+  --sidebar-to: oklch(98% 0.006 265);
+}
+
+[data-theme="ventra-dark"] {
+  --chart-grid: oklch(40% 0.005 265 / 0.15);
+  --chart-tick: oklch(60% 0.005 265);
+  --chart-tooltip-bg: oklch(20% 0.012 265 / 0.95);
+  --chart-tooltip-border: oklch(35% 0.01 265 / 0.3);
+  --chart-tooltip-text: oklch(90% 0.004 265);
+  --chart-cursor: oklch(50% 0.005 265 / 0.08);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.10);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.20);
+  --card-hover-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  --card-hover-border: oklch(62% 0.20 265 / 0.15);
+  --bg-from: oklch(18% 0.014 265);
+  --bg-to: oklch(15% 0.022 275);
+  --sidebar-from: oklch(20% 0.016 265);
+  --sidebar-to: oklch(15% 0.022 270);
+}
+
+/* ━━━ Typography ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+}
+
+h1, h2, h3, h4, h5, h6,
+.font-heading {
+  font-family: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+.tabular-nums,
+table td,
+.stat-value,
+.countdown {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ━━━ Scrollbar ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* ━━━ Card hover effect ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.ventra-card {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.ventra-card:hover {
+  box-shadow: var(--card-hover-shadow);
+  border-color: var(--card-hover-border);
+}
+
+/* ━━━ Gradient backgrounds ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.ventra-main-bg {
+  background: linear-gradient(145deg, var(--bg-from), var(--bg-to));
+}
+.ventra-sidebar {
+  background: linear-gradient(180deg, var(--sidebar-from), var(--sidebar-to));
 }

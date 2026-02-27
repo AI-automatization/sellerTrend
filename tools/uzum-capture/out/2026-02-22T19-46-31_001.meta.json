@@ -1,0 +1,36 @@
+{
+  "n": 1,
+  "responseUrl": "https://graphql.uzum.uz/",
+  "status": 200,
+  "method": "POST",
+  "requestHeaders": {
+    "sec-ch-ua-platform": "\"Windows\"",
+    "authorization": "Bearer eyJraWQiOiIwcE9oTDBBVXlWSXF1V0w1U29NZTdzcVNhS2FqYzYzV1N5THZYb0ZhWXRNIiwiYWxnIjoiRWREU0EiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJVenVtIElEIiwiaWF0IjoxNzcxNzg5NTk3LCJzdWIiOiJmMGU4ZTNmYy1jYWRiLTQzOWQtYmZiYS0yZjNjMDg0MjAxNTciLCJhdWQiOlsidXp1bV9hcHBzIiwibWFya2V0L3dlYiJdLCJldmVudHMiOnt9LCJleHAiOjE3NzE4MzI3OTd9.x3Em0npbYkh3pfgfzNnltKZ4W84RPGRFu5CQ5kJXV6b5SDaOvy3XS_M9v0g8sTRi4S1zPYu7ZgkrvTc4v7_gCw",
+    "x-iid": "3ded4a4d-b806-461d-8e6a-fed4d670ab61",
+    "referer": "https://uzum.uz/",
+    "accept-language": "ru-RU,ru;q=0.9,en;q=0.8",
+    "sec-ch-ua": "\"Not:A-Brand\";v=\"99\", \"HeadlessChrome\";v=\"145\", \"Chromium\";v=\"145\"",
+    "sec-ch-ua-mobile": "?0",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "accept": "*/*",
+    "apollographql-client-version": "1.63.2",
+    "content-type": "application/json",
+    "apollographql-client-name": "web-customers"
+  },
+  "responseHeaders": {
+    "access-control-allow-origin": "*",
+    "content-encoding": "gzip",
+    "date": "Sun, 22 Feb 2026 19:46:36 GMT",
+    "content-type": "application/json",
+    "vary": "origin",
+    "server": "ycalb"
+  },
+  "postData": {
+    "operationName": "Cart",
+    "variables": {
+      "cityId": 1
+    },
+    "query": "query Cart($cityId: Int) {\n  cart {\n    ...CartFragmentWithCityId\n    __typename\n  }\n}\n\nfragment CartFragmentWithCityId on CartItem {\n  ...CartBaseFragment\n  sku {\n    stock(cityId: $cityId) {\n      deliveryDays\n      deliveryDate\n      deliveryTitle\n      type\n      warehouseTitle\n      status\n      statusTitle\n      __typename\n    }\n    __typename\n  }\n  __typename\n}\n\nfragment CartBaseFragment on CartItem {\n  amount\n  sku {\n    availableAmount\n    bestPrice\n    characteristicValues {\n      characteristic {\n        id\n        title\n        type\n        values {\n          id\n          title\n          value\n          __typename\n        }\n        __typename\n      }\n      id\n      title\n      value\n      __typename\n    }\n    priceBlock {\n      ...PriceBlockFragment\n      __typename\n    }\n    discount {\n      discountAmount\n      discountPrice\n      fullDiscountPercent\n      modalHeader\n      modalText\n      paymentOptionKey\n      priceText\n      sellDiscountPercent\n      __typename\n    }\n    fullPrice\n    id\n    photo {\n      key\n      link(trans: PRODUCT_240) {\n        high\n        low\n        __typename\n      }\n      original {\n        high\n        low\n        __typename\n      }\n      __typename\n    }\n    product {\n      id\n      offer {\n        due\n        icon\n        text\n        textColor\n        __typename\n      }\n      oversized\n      rating\n      shop {\n        avatar {\n          high\n          low\n          __typename\n        }\n        feedbackQuantity\n        id\n        official\n        ordersQuantity\n        rating\n        seller {\n          accountId\n          legalRecords {\n            name\n            value\n            __typename\n          }\n          __typename\n        }\n        shortTitle\n        title\n        url\n        __typename\n      }\n      title\n      __typename\n    }\n    sellPrice\n    vat {\n      price\n      type\n      vatAmount\n      vatRate\n      __typename\n    }\n    __typename\n  }\n  __typename\n}\n\nfragment PriceBlockFragment on PriceBlock {\n  badges {\n    id\n    text\n    textColor\n    backgroundColor\n    __typename\n  }\n  sellPrice {\n    ...priceFragment\n    __typename\n  }\n  finalPrice {\n    ...priceFragment\n    __typename\n  }\n  fullPrice {\n    ...priceFragment\n    __typename\n  }\n  sellerPrice {\n    ...priceFragment\n    __typename\n  }\n  icon\n  __typename\n}\n\nfragment priceFragment on Price {\n  amountColor\n  amount\n  description\n  descriptionColor\n  __typename\n}"
+  },
+  "capturedAt": "2026-02-22T19:46:37.104Z"
+}

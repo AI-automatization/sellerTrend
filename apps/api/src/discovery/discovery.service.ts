@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { enqueueDiscovery } from './discovery.queue';
 
@@ -10,6 +10,20 @@ export class DiscoveryService {
 
   /** Create a DB record and enqueue to BullMQ worker */
   async startRun(accountId: string, categoryId: number, categoryUrl?: string): Promise<string> {
+    // Prevent duplicate runs for same category while one is still pending/running
+    const existing = await this.prisma.categoryRun.findFirst({
+      where: {
+        account_id: accountId,
+        category_id: BigInt(categoryId),
+        status: { in: ['PENDING', 'RUNNING'] },
+      },
+    });
+    if (existing) {
+      throw new ConflictException(
+        `Bu kategoriya uchun allaqachon ishlamoqda (run: ${existing.id}). Tugashini kuting.`,
+      );
+    }
+
     const run = await this.prisma.categoryRun.create({
       data: {
         account_id: accountId,

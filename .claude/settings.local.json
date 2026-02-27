@@ -60,7 +60,18 @@
       "Bash(export:*)",
       "Bash(printf {\"email\":\"admin@uzum-trend.uz\",\"password\":\"Admin123!\"}:*)",
       "Bash(python:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(cd /c/Users/User/Desktop/TrendShopAnalyze && export PATH=\"$PATH:/c/Users/User/AppData/Roaming/npm\" && pnpm --filter api exec tsc --noEmit 2>&1)",
+      "Bash(cd /c/Users/User/Desktop/TrendShopAnalyze && export PATH=\"$PATH:/c/Users/User/AppData/Roaming/npm\" && pnpm --filter worker exec tsc --noEmit 2>&1)",
+      "Bash(cd /c/Users/User/Desktop/TrendShopAnalyze && export PATH=\"$PATH:/c/Users/User/AppData/Roaming/npm\" && pnpm --filter api exec prisma db push 2>&1)",
+      "Bash(cd /c/Users/User/Desktop/TrendShopAnalyze/apps/api && export PATH=\"$PATH:/c/Users/User/AppData/Roaming/npm\" && npx prisma generate 2>&1)",
+      "Bash(cd /c/Users/User/Desktop/TrendShopAnalyze && export PATH=\"$PATH:/c/Users/User/AppData/Roaming/npm\" && pnpm --filter api run db:seed 2>&1)",
+      "Bash(cd /c/Users/User/Desktop/TrendShopAnalyze && export PATH=\"$PATH:/c/Users/User/AppData/Roaming/npm\" && pnpm --filter worker add @anthropic-ai/sdk 2>&1)",
+      "Bash(cd /c/Users/User/Desktop/TrendShopAnalyze && export PATH=\"$PATH:/c/Users/User/AppData/Roaming/npm\" && pnpm --filter web exec tsc --noEmit 2>&1)",
+      "Bash(cd /c/Users/User/Desktop/TrendShopAnalyze && export PATH=\"$PATH:/c/Users/User/AppData/Roaming/npm\" && pnpm --filter api run dev 2>&1)",
+      "Bash(cd /c/Users/User/Desktop/TrendShopAnalyze && export PATH=\"$PATH:/c/Users/User/AppData/Roaming/npm\" && pnpm --filter web run dev 2>&1)",
+      "Bash(cd /c/Users/User/Desktop/TrendShopAnalyze && export PATH=\"$PATH:/c/Users/User/AppData/Roaming/npm\" && pnpm --filter worker run dev 2>&1)",
+      "mcp__claude_ai_Figma__create_design_system_rules"
     ]
   }
 }

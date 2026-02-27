@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { forecastEnsemble } from '@uzum/utils';
+import { forecastEnsemble, calcWeeklyBought, recalcWeeklyBoughtSeries } from '@uzum/utils';
 
 @Injectable()
 export class ProductsService {
@@ -14,7 +14,7 @@ export class ProductsService {
           include: {
             snapshots: {
               orderBy: { snapshot_at: 'desc' },
-              take: 2,
+              take: 20,
             },
             skus: {
               where: { is_available: true },
@@ -27,10 +27,12 @@ export class ProductsService {
     });
 
     return tracked.map((t) => {
-      const latest = t.product.snapshots[0];
-      const prev = t.product.snapshots[1];
+      const snaps = t.product.snapshots; // DESC order
+      const latest = snaps[0];
       const sku = t.product.skus[0];
 
+      // Score trend from last two snapshots with meaningful gap
+      const prev = snaps.length > 1 ? snaps[1] : null;
       const latestScore = latest?.score ? Number(latest.score) : null;
       const prevScore = prev?.score ? Number(prev.score) : null;
       const trend =
@@ -42,6 +44,11 @@ export class ProductsService {
             : 'flat'
           : null;
 
+      // Centralized weekly_bought: 7-day lookback, 24h minimum gap (T-207)
+      const currentOrders = Number(latest?.orders_quantity ?? t.product.orders_quantity ?? 0);
+      const currentTime = latest?.snapshot_at?.getTime() ?? Date.now();
+      const weeklyBought = calcWeeklyBought(snaps, currentOrders, currentTime);
+
       return {
         product_id: t.product.id.toString(),
         title: t.product.title,
@@ -51,7 +58,7 @@ export class ProductsService {
         score: latestScore,
         prev_score: prevScore,
         trend,
-        weekly_bought: latest?.weekly_bought,
+        weekly_bought: weeklyBought,
         sell_price: sku?.min_sell_price ? Number(sku.min_sell_price) : null,
         tracked_since: t.created_at,
       };
@@ -59,33 +66,35 @@ export class ProductsService {
   }
 
   async getProductById(productId: bigint) {
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
-      include: {
-        snapshots: {
-          orderBy: { snapshot_at: 'desc' },
-          take: 1,
-          include: {
-            ai_explanations: {
-              orderBy: { created_at: 'desc' },
-              take: 1,
-            },
+    // Separate queries to avoid N+1 on ai_explanations (was: 20 nested includes → 20 queries)
+    const [product, latestAi] = await Promise.all([
+      this.prisma.product.findUnique({
+        where: { id: productId },
+        include: {
+          snapshots: {
+            orderBy: { snapshot_at: 'desc' },
+            take: 20,
           },
+          skus: {
+            where: { is_available: true },
+            orderBy: { min_sell_price: 'asc' },
+            take: 1,
+          },
+          shop: true,
         },
-        skus: {
-          where: { is_available: true },
-          orderBy: { min_sell_price: 'asc' },
-          take: 1,
-        },
-        shop: true,
-      },
-    });
+      }),
+      this.prisma.productAiExplanation.findFirst({
+        where: { product_id: productId },
+        orderBy: { created_at: 'desc' },
+      }),
+    ]);
 
     if (!product) return null;
 
-    const latest = product.snapshots[0];
+    const snaps = product.snapshots; // DESC order
+    const latest = snaps[0];
     const sku = product.skus[0];
-    const aiRaw = latest?.ai_explanations[0]?.explanation;
+    const aiRaw = latestAi?.explanation;
     let ai_explanation: string[] | null = null;
     if (aiRaw) {
       try {
@@ -95,6 +104,11 @@ export class ProductsService {
       }
     }
 
+    // Centralized weekly_bought: 7-day lookback, 24h minimum gap (T-207)
+    const currentOrders = Number(latest?.orders_quantity ?? product.orders_quantity ?? 0);
+    const currentTime = latest?.snapshot_at?.getTime() ?? Date.now();
+    const weeklyBought = calcWeeklyBought(snaps, currentOrders, currentTime);
+
     return {
       product_id: product.id.toString(),
       title: product.title,
@@ -103,7 +117,7 @@ export class ProductsService {
       orders_quantity: product.orders_quantity?.toString(),
       shop_name: (product.shop as any)?.name ?? null,
       score: latest?.score ? Number(latest.score) : null,
-      weekly_bought: latest?.weekly_bought ?? null,
+      weekly_bought: weeklyBought,
       sell_price: sku?.min_sell_price ? Number(sku.min_sell_price) : null,
       stock_type: sku?.stock_type ?? null,
       ai_explanation,
@@ -112,7 +126,7 @@ export class ProductsService {
   }
 
   async trackProduct(accountId: string, productId: bigint) {
-    return this.prisma.trackedProduct.upsert({
+    const tp = await this.prisma.trackedProduct.upsert({
       where: {
         account_id_product_id: {
           account_id: accountId,
@@ -125,10 +139,11 @@ export class ProductsService {
         product_id: productId,
       },
     });
+    return { ...tp, product_id: tp.product_id.toString() };
   }
 
   async getProductSnapshots(productId: bigint, limit = 30) {
-    return this.prisma.productSnapshot.findMany({
+    const rows = await this.prisma.productSnapshot.findMany({
       where: { product_id: productId },
       orderBy: { snapshot_at: 'desc' },
       take: limit,
@@ -140,6 +155,18 @@ export class ProductsService {
         snapshot_at: true,
       },
     });
+
+    // Recalculate weekly_bought with 7-day lookback (fix stale stored values) (T-207)
+    const asc = [...rows].reverse();
+    const wbValues = recalcWeeklyBoughtSeries(asc);
+
+    return rows.map((s, idx) => ({
+      score: s.score ? Number(s.score) : null,
+      weekly_bought: wbValues[rows.length - 1 - idx],
+      orders_quantity: s.orders_quantity ? Number(s.orders_quantity) : null,
+      rating: s.rating ? Number(s.rating) : null,
+      snapshot_at: s.snapshot_at,
+    }));
   }
 
   /**
@@ -202,11 +229,14 @@ export class ProductsService {
       where: { product_id: productId },
       orderBy: { snapshot_at: 'asc' },
       take: 60,
-      select: { score: true, weekly_bought: true, snapshot_at: true },
+      select: { score: true, weekly_bought: true, orders_quantity: true, snapshot_at: true },
     });
 
     const scoreValues = rows.map((s) => Number(s.score ?? 0));
-    const wbValues = rows.map((s) => s.weekly_bought ?? 0);
+
+    // Centralized weekly_bought recalculation with 7-day lookback (T-207)
+    const wbValues = recalcWeeklyBoughtSeries(rows);
+
     const dates = rows.map((s) => s.snapshot_at.toISOString());
 
     const scoreForecast = forecastEnsemble(scoreValues, dates, 7);
@@ -215,10 +245,10 @@ export class ProductsService {
     return {
       score_forecast: scoreForecast,
       sales_forecast: salesForecast,
-      snapshots: rows.map((s) => ({
+      snapshots: rows.map((s, i) => ({
         date: s.snapshot_at.toISOString(),
         score: Number(s.score ?? 0),
-        weekly_bought: s.weekly_bought ?? 0,
+        weekly_bought: wbValues[i],
       })),
       data_points: rows.length,
     };
@@ -268,4 +298,244 @@ export class ProductsService {
       })),
     });
   }
+
+  /**
+   * 7-day weekly trend: orders delta, sales velocity, dynamic seller advice.
+   * Calculates actual weekly_bought from ordersAmount delta between snapshots.
+   */
+  async getWeeklyTrend(productId: bigint): Promise<{
+    weekly_sold: number | null;
+    prev_weekly_sold: number | null;
+    delta: number | null;
+    delta_pct: number | null;
+    trend: 'up' | 'flat' | 'down';
+    daily_breakdown: Array<{ date: string; orders: number; daily_sold: number }>;
+    advice: { type: string; title: string; message: string; urgency: 'high' | 'medium' | 'low' };
+    score_change: number | null;
+    last_updated: string | null;
+  }> {
+    // Get last 14 days of snapshots for comparison
+    const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+    const snapshots = await this.prisma.productSnapshot.findMany({
+      where: {
+        product_id: productId,
+        snapshot_at: { gte: twoWeeksAgo },
+      },
+      orderBy: { snapshot_at: 'asc' },
+      select: {
+        orders_quantity: true,
+        weekly_bought: true,
+        score: true,
+        snapshot_at: true,
+      },
+    });
+
+    if (snapshots.length < 2) {
+      return {
+        weekly_sold: null,
+        prev_weekly_sold: null,
+        delta: null,
+        delta_pct: null,
+        trend: 'flat',
+        daily_breakdown: [],
+        advice: {
+          type: 'info',
+          title: 'Birinchi tahlil',
+          message: "Hali yetarli ma'lumot yo'q. 24 soatdan keyin avtomatik yangilanadi va haftalik trend ko'rsatiladi.",
+          urgency: 'low',
+        },
+        score_change: null,
+        last_updated: snapshots[snapshots.length - 1]?.snapshot_at?.toISOString() ?? null,
+      };
+    }
+
+    const latest = snapshots[snapshots.length - 1];
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    // Find the snapshot closest to 7 days ago
+    let weekAgoSnapshot = snapshots[0];
+    for (const snap of snapshots) {
+      if (snap.snapshot_at <= sevenDaysAgo) {
+        weekAgoSnapshot = snap;
+      }
+    }
+
+    // Calculate current week's orders delta
+    const latestOrders = Number(latest.orders_quantity ?? 0);
+    const weekAgoOrders = Number(weekAgoSnapshot.orders_quantity ?? 0);
+    const daysSinceWeekAgo =
+      (latest.snapshot_at.getTime() - weekAgoSnapshot.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
+
+    let weeklySold: number | null = null;
+    if (daysSinceWeekAgo > 0 && latestOrders >= weekAgoOrders) {
+      weeklySold = Math.round(((latestOrders - weekAgoOrders) * 7) / daysSinceWeekAgo);
+    }
+
+    // Find the snapshot closest to 14 days ago for prev week comparison
+    const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+    let twoWeekAgoSnapshot = snapshots[0];
+    for (const snap of snapshots) {
+      if (snap.snapshot_at <= fourteenDaysAgo) {
+        twoWeekAgoSnapshot = snap;
+      }
+    }
+
+    let prevWeeklySold: number | null = null;
+    const twoWeekOrders = Number(twoWeekAgoSnapshot.orders_quantity ?? 0);
+    const daysBetweenWeeks =
+      (weekAgoSnapshot.snapshot_at.getTime() - twoWeekAgoSnapshot.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
+
+    if (daysBetweenWeeks > 0 && weekAgoOrders >= twoWeekOrders) {
+      prevWeeklySold = Math.round(((weekAgoOrders - twoWeekOrders) * 7) / daysBetweenWeeks);
+    }
+
+    // Delta
+    const delta = weeklySold != null && prevWeeklySold != null
+      ? weeklySold - prevWeeklySold
+      : null;
+    const deltaPct = delta != null && prevWeeklySold != null && prevWeeklySold > 0
+      ? Number(((delta / prevWeeklySold) * 100).toFixed(1))
+      : null;
+
+    // Trend
+    const trend: 'up' | 'flat' | 'down' =
+      delta != null && delta > 5 ? 'up' :
+      delta != null && delta < -5 ? 'down' : 'flat';
+
+    // Daily breakdown from snapshots
+    const dailyBreakdown = snapshots.slice(-8).map((snap, i, arr) => {
+      const prevOrders = i > 0 ? Number(arr[i - 1].orders_quantity ?? 0) : Number(snap.orders_quantity ?? 0);
+      const currOrders = Number(snap.orders_quantity ?? 0);
+      const prevTime = i > 0 ? arr[i - 1].snapshot_at.getTime() : snap.snapshot_at.getTime();
+      const currTime = snap.snapshot_at.getTime();
+      const daysDiff = Math.max(0.5, (currTime - prevTime) / (1000 * 60 * 60 * 24));
+      const dailySold = i > 0 ? Math.round((currOrders - prevOrders) / daysDiff) : 0;
+
+      return {
+        date: snap.snapshot_at.toISOString().split('T')[0],
+        orders: currOrders,
+        daily_sold: Math.max(0, dailySold),
+      };
+    });
+
+    // Score change
+    const latestScore = Number(latest.score ?? 0);
+    const weekAgoScore = Number(weekAgoSnapshot.score ?? 0);
+    const scoreChange = latestScore - weekAgoScore;
+
+    // Dynamic seller advice
+    const advice = generateSellerAdvice(weeklySold, prevWeeklySold, delta, deltaPct, trend, latestScore);
+
+    return {
+      weekly_sold: weeklySold,
+      prev_weekly_sold: prevWeeklySold,
+      delta,
+      delta_pct: deltaPct,
+      trend,
+      daily_breakdown: dailyBreakdown.slice(1), // Skip first (no delta)
+      advice,
+      score_change: scoreChange !== 0 ? Number(scoreChange.toFixed(4)) : null,
+      last_updated: latest.snapshot_at.toISOString(),
+    };
+  }
+}
+
+/**
+ * Generate dynamic seller advice based on weekly trend data.
+ */
+function generateSellerAdvice(
+  weeklySold: number | null,
+  prevWeeklySold: number | null,
+  delta: number | null,
+  deltaPct: number | null,
+  trend: 'up' | 'flat' | 'down',
+  score: number,
+): { type: string; title: string; message: string; urgency: 'high' | 'medium' | 'low' } {
+
+  // Strong growth
+  if (trend === 'up' && delta != null && delta > 50) {
+    return {
+      type: 'growth',
+      title: "Kuchli o'sish!",
+      message: `Haftalik sotuv +${delta} ta o'sdi (${deltaPct != null ? deltaPct + '%' : ''}). Bu mahsulotga talab oshmoqda. Stokni ko'paytiring va narxni biroz oshirishni ko'rib chiqing — talab yuqori bo'lganda margin yaxshilash imkoniyati.`,
+      urgency: 'high',
+    };
+  }
+
+  // Moderate growth
+  if (trend === 'up' && delta != null && delta > 10) {
+    return {
+      type: 'growth',
+      title: 'Sotuv o\'smoqda',
+      message: `Haftalik sotuv +${delta} ta. Barqaror o'sish ko'rsatmoqda. Reklama xarajatlarini oshirib, o'sishni tezlashtirish mumkin. FBO ombori bo'lsa, stok yetarliligini tekshiring.`,
+      urgency: 'medium',
+    };
+  }
+
+  // Stable sales
+  if (trend === 'flat' && weeklySold != null && weeklySold > 20) {
+    return {
+      type: 'stable',
+      title: 'Barqaror sotuv',
+      message: `Haftalik ${weeklySold} ta sotuv — barqaror darajada. Raqobatchilarga e'tibor bering: agar ular narx tushirsa, siz ham moslashishingiz kerak bo'ladi.`,
+      urgency: 'low',
+    };
+  }
+
+  // Declining sales
+  if (trend === 'down' && delta != null && delta < -20) {
+    return {
+      type: 'decline',
+      title: 'Sotuv tushmoqda!',
+      message: `Haftalik sotuv ${delta} ta kamaydi (${deltaPct != null ? deltaPct + '%' : ''}). Shoshilinch: narxni qayta ko'rib chiqing, rasm va tavsifni yangilang, yoki aksiya e'lon qiling. Raqiblar narx tushirgan bo'lishi mumkin.`,
+      urgency: 'high',
+    };
+  }
+
+  // Moderate decline
+  if (trend === 'down') {
+    return {
+      type: 'decline',
+      title: 'Sekinlashish',
+      message: `Sotuv biroz kamaymoqda. Raqiblar narxini tekshiring va mahsulot rasmlarini yangilang. Mavsumiy o'zgarish bo'lishi ham mumkin.`,
+      urgency: 'medium',
+    };
+  }
+
+  // Low sales
+  if (weeklySold != null && weeklySold < 5) {
+    return {
+      type: 'low',
+      title: 'Past sotuv',
+      message: `Haftalik faqat ${weeklySold} ta sotuv. Narxni pasaytiring, SEO sarlavhani optimallang, yoki Uzum reklamasini yoqing. Raqobatli kategoriyada bo'lsangiz niche topishga harakat qiling.`,
+      urgency: 'medium',
+    };
+  }
+
+  // First analysis / not enough data
+  if (weeklySold == null) {
+    return {
+      type: 'info',
+      title: "Ma'lumot to'planmoqda",
+      message: "Tizim 24 soatdan keyin avtomatik qayta tahlil qiladi. Shu vaqtda haftalik trend va maslahatlar paydo bo'ladi.",
+      urgency: 'low',
+    };
+  }
+
+  // Default: high score product
+  if (score >= 5) {
+    return {
+      type: 'success',
+      title: 'Yaxshi natija',
+      message: `Mahsulot yaxshi ko'rsatkich ko'rsatmoqda. Hozirgi strategiyani davom ettiring va stokni nazorat qiling.`,
+      urgency: 'low',
+    };
+  }
+
+  return {
+    type: 'info',
+    title: 'Tahlil davom etmoqda',
+    message: 'Tizim har 24 soatda mahsulotni qayta tahlil qiladi. Trend ma\'lumotlari to\'planmoqda.',
+    urgency: 'low',
+  };
 }

@@ -24,38 +24,39 @@ export class ProductGateway implements OnGatewayConnection, OnGatewayDisconnect 
   private readonly logger = new Logger(ProductGateway.name);
 
   handleConnection(client: Socket) {
-    this.logger.log(`WS client connected: ${client.id}`);
+    // Join account-specific room for targeted signals
+    const accountId = client.handshake.query.account_id as string;
+    if (accountId) {
+      client.join(`account:${accountId}`);
+    }
+    this.logger.log(`WS connected: ${client.id} (account: ${accountId ?? 'anon'})`);
   }
 
   handleDisconnect(client: Socket) {
-    this.logger.log(`WS client disconnected: ${client.id}`);
+    this.logger.log(`WS disconnected: ${client.id}`);
   }
 
-  /** Emit score update to all connected clients */
-  emitScoreUpdate(productId: string, data: {
-    score: number;
-    weekly_bought: number;
-    trend: string;
-    updated_at: string;
-  }) {
-    this.server.emit('score:update', { product_id: productId, ...data });
+  // ─── Refresh Signals ─────────────────────────────────
+  // These emit lightweight "something changed" signals.
+  // Frontend should refetch via REST — WS is NOT the data source.
+
+  /** Signal: a tracked product's score/data changed */
+  signalScoreUpdate(productId: string) {
+    this.server.emit('refresh:score', { product_id: productId });
   }
 
-  /** Emit discovery run progress */
-  emitDiscoveryProgress(runId: string, data: {
-    status: string;
-    progress: number;
-    winners_count: number;
-  }) {
-    this.server.emit('discovery:progress', { run_id: runId, ...data });
+  /** Signal: discovery run progress changed */
+  signalDiscoveryProgress(runId: string, status: string, progress: number) {
+    this.server.emit('refresh:discovery', { run_id: runId, status, progress });
   }
 
-  /** Emit alert notification */
-  emitAlert(accountId: string, data: {
-    type: string;
-    product_id: string;
-    message: string;
-  }) {
-    this.server.emit(`alert:${accountId}`, data);
+  /** Signal: new alert for a specific account */
+  signalAlert(accountId: string, type: string) {
+    this.server.to(`account:${accountId}`).emit('refresh:alert', { type });
+  }
+
+  /** Signal: new notification for a specific account */
+  signalNotification(accountId: string) {
+    this.server.to(`account:${accountId}`).emit('refresh:notification', {});
   }
 }

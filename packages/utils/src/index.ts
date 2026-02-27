@@ -75,6 +75,130 @@ export function sleep(ms: number): Promise<void> {
 }
 
 // ============================================================
+// Centralized weekly_bought calculation (T-207)
+// ============================================================
+
+/**
+ * Central weekly_bought calculator — 7-day lookback, 24h minimum gap.
+ * Replaces all scattered inline calculations across the codebase.
+ *
+ * @param snapshots Ordered by snapshot_at DESC
+ * @param currentOrders Current total orders count
+ * @param currentTime Timestamp to measure from (default: Date.now()).
+ *        Write path: Date.now() (fresh API data).
+ *        Read path: latest snapshot_at.getTime() (historical data).
+ * @returns weekly_bought or null if insufficient data
+ */
+export function calcWeeklyBought(
+  snapshots: Array<{ orders_quantity: bigint | number | null; snapshot_at: Date }>,
+  currentOrders: number,
+  currentTime?: number,
+): number | null {
+  const MAX_REASONABLE = 5000;
+  const now = currentTime ?? Date.now();
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+  // 1. Prefer snapshot closest to 7 days before currentTime (best accuracy, ~×1.0 extrapolation)
+  const sevenDaysAgo = now - SEVEN_DAYS_MS;
+  let ref: (typeof snapshots)[0] | null = null;
+
+  for (const snap of snapshots) {
+    if (snap.orders_quantity != null && snap.snapshot_at.getTime() <= sevenDaysAgo) {
+      ref = snap;
+      break; // DESC: first match is closest to 7 days ago
+    }
+  }
+
+  // 2. Fallback: any snapshot >= 24h before currentTime (prevent 6h ×28 extrapolation)
+  if (!ref) {
+    const oneDayAgo = now - ONE_DAY_MS;
+    for (const snap of snapshots) {
+      if (snap.orders_quantity != null && snap.snapshot_at.getTime() <= oneDayAgo) {
+        ref = snap;
+        break;
+      }
+    }
+  }
+
+  if (!ref || ref.orders_quantity == null) return null;
+
+  const daysDiff = (now - ref.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
+  const ordersDiff = currentOrders - Number(ref.orders_quantity);
+
+  if (daysDiff < 0.5 || ordersDiff < 0) return null;
+
+  const wb = Math.round((ordersDiff * 7) / daysDiff);
+  return wb <= MAX_REASONABLE ? wb : null;
+}
+
+/**
+ * Recalculate weekly_bought for a time series of snapshots.
+ * Uses wider lookback (not just consecutive) with 7-day target and 24h minimum gap.
+ * Replaces the old consecutive-delta approach that caused extrapolation errors.
+ *
+ * @param snapshots Ordered by snapshot_at ASC
+ * @returns Array of weekly_bought values (same length as input)
+ */
+export function recalcWeeklyBoughtSeries(
+  snapshots: Array<{
+    orders_quantity: bigint | number | null;
+    weekly_bought?: number | null;
+    snapshot_at: Date;
+  }>,
+): number[] {
+  const MAX_REASONABLE = 5000;
+  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+  const SEVEN_DAYS_MS = 7 * ONE_DAY_MS;
+
+  return snapshots.map((snap, i) => {
+    const stored = snap.weekly_bought ?? 0;
+    if (i === 0 || snap.orders_quantity == null) {
+      return stored > MAX_REASONABLE ? 0 : stored;
+    }
+
+    const snapTime = snap.snapshot_at.getTime();
+
+    // Find best reference: closest to 7 days before this snapshot (search backwards in ASC array)
+    const targetTime = snapTime - SEVEN_DAYS_MS;
+    let ref: (typeof snapshots)[0] | null = null;
+
+    for (let j = i - 1; j >= 0; j--) {
+      if (snapshots[j].orders_quantity != null && snapshots[j].snapshot_at.getTime() <= targetTime) {
+        ref = snapshots[j];
+        break;
+      }
+    }
+
+    // Fallback: any snapshot >= 24h before this one
+    if (!ref) {
+      const minTime = snapTime - ONE_DAY_MS;
+      for (let j = i - 1; j >= 0; j--) {
+        if (snapshots[j].orders_quantity != null && snapshots[j].snapshot_at.getTime() <= minTime) {
+          ref = snapshots[j];
+          break;
+        }
+      }
+    }
+
+    if (!ref || ref.orders_quantity == null) {
+      return stored > MAX_REASONABLE ? 0 : stored;
+    }
+
+    const daysDiff = (snapTime - ref.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
+    const curr = Number(snap.orders_quantity);
+    const prevVal = Number(ref.orders_quantity);
+
+    if (daysDiff < 0.5 || curr < prevVal) {
+      return stored > MAX_REASONABLE ? 0 : stored;
+    }
+
+    const calculated = Math.round(((curr - prevVal) * 7) / daysDiff);
+    return calculated <= MAX_REASONABLE ? calculated : (stored > MAX_REASONABLE ? 0 : stored);
+  });
+}
+
+// ============================================================
 // Feature 03 — Shop Trust Score
 // ============================================================
 
@@ -678,11 +802,15 @@ export function detectEarlySignals(
     const firstScore = scores[0] || 0;
     const lastScore = scores[scores.length - 1] || 0;
     const scoreGrowth = firstScore > 0 ? (lastScore - firstScore) / firstScore : lastScore > 0 ? 1 : 0;
-    const avgSales = sales.reduce((a, b) => a + b, 0) / sales.length;
-    const salesVelocity = ageDays > 0 ? avgSales / ageDays * 7 : avgSales;
+
+    // weekly_bought is already a WEEKLY rate (ordersAmount snapshot delta * 7 / daysDiff)
+    // salesVelocity = latest weekly rate (most recent snapshot), NOT divided by ageDays
+    const latestSales = sales[sales.length - 1] || 0;
+    const salesVelocity = latestSales;
 
     // Momentum = weighted combo of growth + velocity
-    const momentum = 0.5 * Math.min(1, scoreGrowth) + 0.5 * Math.min(1, salesVelocity / 50);
+    // Normalize velocity: 500/week = strong signal for Uzum products
+    const momentum = 0.5 * Math.min(1, scoreGrowth) + 0.5 * Math.min(1, salesVelocity / 500);
 
     if (momentum > 0.2) {
       results.push({
@@ -717,6 +845,7 @@ export function detectStockCliff(
     title: string;
     weekly_bought: number;
     orders_quantity: number;
+    total_available_amount?: number;
     snapshots: Array<{ weekly_bought: number; date: string }>;
   }>,
 ): StockCliffResult[] {
@@ -725,22 +854,20 @@ export function detectStockCliff(
     const recentSales = p.snapshots.slice(-7);
     if (recentSales.length < 2) continue;
 
-    // Calculate daily velocity
-    const totalRecent = recentSales.reduce((s, snap) => s + snap.weekly_bought, 0);
-    const velocity = totalRecent / (recentSales.length * 7); // per day
+    // weekly_bought is already weekly rate — average across recent snapshots, then /7 for daily
+    const avgWeekly = recentSales.reduce((s, snap) => s + snap.weekly_bought, 0) / recentSales.length;
+    const velocity = avgWeekly / 7; // per day
 
-    // Estimate remaining stock heuristic: if recent weekly_bought is high but dropping...
-    const latest = recentSales[recentSales.length - 1]?.weekly_bought ?? 0;
-    const prev = recentSales[0]?.weekly_bought ?? 0;
-    const dropRate = prev > 0 ? (prev - latest) / prev : 0;
+    if (velocity <= 0) continue;
 
-    // If sales are accelerating but supply pressure signs exist
-    const estDaysLeft = velocity > 0 ? Math.max(0, Math.round(30 * (1 - dropRate))) : 999;
+    // Use real stock if available, otherwise estimate from orders_quantity heuristic
+    const stock = p.total_available_amount ?? Math.max(0, p.orders_quantity * 0.1);
+    const estDaysLeft = stock > 0 ? Math.round(stock / velocity) : 999;
 
     let severity: StockCliffResult['severity'] = 'ok';
-    if (estDaysLeft < 7 || (dropRate > 0.5 && velocity > 1)) {
+    if (estDaysLeft < 7) {
       severity = 'critical';
-    } else if (estDaysLeft < 14 || dropRate > 0.3) {
+    } else if (estDaysLeft < 14) {
       severity = 'warning';
     }
 

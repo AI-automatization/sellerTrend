@@ -1,17 +1,19 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UzumClient } from './uzum.client';
 import { AiService } from '../ai/ai.service';
 import {
   parseUzumProductId,
-  parseWeeklyBought,
   calculateScore,
   getSupplyPressure,
+  calcWeeklyBought,
   sleep,
 } from '@uzum/utils';
 
 @Injectable()
 export class UzumService {
+  private readonly logger = new Logger(UzumService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly uzumClient: UzumClient,
@@ -75,13 +77,21 @@ export class UzumService {
       },
     });
 
-    // 4. Parse weekly_bought
-    // Prefer recentOrdersAmount (rOrdersAmount from REST API) over actions text parsing
-    const actionsText = detail.actions?.text ?? '';
-    const weeklyBought =
-      detail.recentOrdersAmount != null
-        ? detail.recentOrdersAmount
-        : parseWeeklyBought(actionsText);
+    // 4. Centralized weekly_bought: 7-day lookback, 24h minimum gap (T-207)
+    const currentOrders = detail.ordersQuantity ?? 0;
+
+    const recentSnapshots = await this.prisma.productSnapshot.findMany({
+      where: { product_id: BigInt(productId) },
+      orderBy: { snapshot_at: 'desc' },
+      take: 20,
+      select: { orders_quantity: true, snapshot_at: true },
+    });
+
+    const weeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
+    this.logger.log(
+      `weekly_bought (T-207): product=${productId}, currentOrders=${currentOrders}, ` +
+      `snapshots=${recentSnapshots.length}, weeklyBought=${weeklyBought}`,
+    );
 
     // 5. Upsert SKUs
     const skuList = detail.skuList ?? [];
@@ -181,6 +191,7 @@ export class UzumService {
       score: scoreNum,
       snapshot_id: snapshot.id,
       sell_price: primarySku?.sellPrice,
+      total_available_amount: detail.totalAvailableAmount ?? 0,
       ai_explanation: aiExplanation,
     };
   }

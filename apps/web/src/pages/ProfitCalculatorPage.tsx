@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { toolsApi } from '../api/client';
+import { getErrorMessage } from '../utils/getErrorMessage';
+import { useI18n } from '../i18n/I18nContext';
 
 interface ProfitResult {
   revenue: number;
@@ -27,6 +29,7 @@ function formatNum(n: number) {
 }
 
 export function ProfitCalculatorPage() {
+  const { t } = useI18n();
   const [form, setForm] = useState(DEFAULT_FORM);
   const [result, setResult] = useState<ProfitResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -51,8 +54,8 @@ export function ProfitCalculatorPage() {
         quantity: Number(form.quantity),
       });
       setResult(res.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message ?? 'Xato yuz berdi');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -66,10 +69,10 @@ export function ProfitCalculatorPage() {
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 lg:w-7 lg:h-7 text-accent">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75V18m15-8.25l-8.25 4.5m0 0l-8.25-4.5M21 9.75v4.5m0 0l-8.25 4.5m0 0l-8.25-4.5" />
           </svg>
-          Profit Kalkulyator
+          {t('calculator.title')}
         </h1>
         <p className="text-base-content/50 text-sm mt-1">
-          Uzum'da sotish uchun foyda, margin va ROI hisoblang
+          {t('calculator.subtitle')}
         </p>
       </div>
 
@@ -77,11 +80,11 @@ export function ProfitCalculatorPage() {
         {/* Form */}
         <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
           <div className="card-body">
-            <h2 className="card-title text-base">Parametrlar</h2>
+            <h2 className="card-title text-base">{t('calculator.params')}</h2>
             <form onSubmit={handleSubmit} className="space-y-3 mt-2">
               <div className="grid grid-cols-2 gap-3">
                 <fieldset className="fieldset">
-                  <legend className="fieldset-legend text-xs">Sotish narxi (so'm)</legend>
+                  <legend className="fieldset-legend text-xs">{t('calculator.sellPrice')}</legend>
                   <input
                     type="number"
                     value={form.sell_price_uzs}
@@ -93,7 +96,7 @@ export function ProfitCalculatorPage() {
                   />
                 </fieldset>
                 <fieldset className="fieldset">
-                  <legend className="fieldset-legend text-xs">Xarid narxi (USD)</legend>
+                  <legend className="fieldset-legend text-xs">{t('calculator.unitCost')}</legend>
                   <input
                     type="number"
                     value={form.unit_cost_usd}
@@ -109,7 +112,7 @@ export function ProfitCalculatorPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <fieldset className="fieldset">
-                  <legend className="fieldset-legend text-xs">USD kursi (so'm)</legend>
+                  <legend className="fieldset-legend text-xs">{t('calculator.usdRate')}</legend>
                   <input
                     type="number"
                     value={form.usd_to_uzs}
@@ -121,7 +124,7 @@ export function ProfitCalculatorPage() {
                   />
                 </fieldset>
                 <fieldset className="fieldset">
-                  <legend className="fieldset-legend text-xs">Uzum komissiya (%)</legend>
+                  <legend className="fieldset-legend text-xs">{t('calculator.commission')}</legend>
                   <input
                     type="number"
                     value={form.uzum_commission_pct}
@@ -137,7 +140,7 @@ export function ProfitCalculatorPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <fieldset className="fieldset">
-                  <legend className="fieldset-legend text-xs">FBO xarajat (so'm)</legend>
+                  <legend className="fieldset-legend text-xs">{t('calculator.fboCost')}</legend>
                   <input
                     type="number"
                     value={form.fbo_cost_uzs}
@@ -147,7 +150,7 @@ export function ProfitCalculatorPage() {
                   />
                 </fieldset>
                 <fieldset className="fieldset">
-                  <legend className="fieldset-legend text-xs">Reklama xarajat (so'm)</legend>
+                  <legend className="fieldset-legend text-xs">{t('calculator.adsCost')}</legend>
                   <input
                     type="number"
                     value={form.ads_spend_uzs}
@@ -159,7 +162,7 @@ export function ProfitCalculatorPage() {
               </div>
 
               <fieldset className="fieldset">
-                <legend className="fieldset-legend text-xs">Soni (dona)</legend>
+                <legend className="fieldset-legend text-xs">{t('calculator.quantity')}</legend>
                 <input
                   type="number"
                   value={form.quantity}
@@ -175,7 +178,7 @@ export function ProfitCalculatorPage() {
 
               <button type="submit" disabled={loading} className="btn btn-primary w-full">
                 {loading && <span className="loading loading-spinner loading-sm" />}
-                {loading ? 'Hisoblanmoqda...' : 'Hisoblash'}
+                {loading ? t('common.calculating') : t('common.calculate')}
               </button>
             </form>
           </div>
@@ -188,28 +191,28 @@ export function ProfitCalculatorPage() {
               {/* Main stats */}
               <div className="grid grid-cols-2 gap-3">
                 <div className={`stat bg-base-200 rounded-2xl ${result.net_profit > 0 ? '' : 'border border-error/30'}`}>
-                  <div className="stat-title text-xs">Sof foyda</div>
+                  <div className="stat-title text-xs">{t('calculator.netProfit')}</div>
                   <div className={`stat-value text-xl ${result.net_profit > 0 ? 'text-success' : 'text-error'}`}>
                     {formatNum(result.net_profit)}
                   </div>
                   <div className="stat-desc">so'm</div>
                 </div>
                 <div className="stat bg-base-200/60 border border-base-300/50 rounded-2xl">
-                  <div className="stat-title text-xs">Margin</div>
+                  <div className="stat-title text-xs">{t('calculator.margin')}</div>
                   <div className={`stat-value text-xl ${result.margin_pct > 20 ? 'text-success' : result.margin_pct > 0 ? 'text-warning' : 'text-error'}`}>
                     {result.margin_pct.toFixed(1)}%
                   </div>
-                  <div className="stat-desc">sof margin</div>
+                  <div className="stat-desc">{t('calculator.netMargin')}</div>
                 </div>
                 <div className="stat bg-base-200/60 border border-base-300/50 rounded-2xl">
-                  <div className="stat-title text-xs">ROI</div>
+                  <div className="stat-title text-xs">{t('calculator.roi')}</div>
                   <div className={`stat-value text-xl ${result.roi_pct > 50 ? 'text-success' : result.roi_pct > 0 ? 'text-warning' : 'text-error'}`}>
                     {result.roi_pct.toFixed(1)}%
                   </div>
-                  <div className="stat-desc">rentabellik</div>
+                  <div className="stat-desc">{t('calculator.profitability')}</div>
                 </div>
                 <div className="stat bg-base-200/60 border border-base-300/50 rounded-2xl">
-                  <div className="stat-title text-xs">Daromad</div>
+                  <div className="stat-title text-xs">{t('calculator.revenue')}</div>
                   <div className="stat-value text-xl">{formatNum(result.revenue)}</div>
                   <div className="stat-desc">so'm</div>
                 </div>
@@ -218,34 +221,34 @@ export function ProfitCalculatorPage() {
               {/* Detail card */}
               <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
                 <div className="card-body p-4">
-                  <h3 className="font-bold text-sm">Batafsil</h3>
+                  <h3 className="font-bold text-sm">{t('common.details')}</h3>
                   <div className="space-y-2 mt-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-base-content/50">Daromad</span>
+                      <span className="text-base-content/50">{t('calculator.revenue')}</span>
                       <span className="font-medium tabular-nums">{formatNum(result.revenue)} so'm</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-base-content/50">Jami xarajat</span>
+                      <span className="text-base-content/50">{t('calculator.totalCost')}</span>
                       <span className="font-medium tabular-nums text-error">{formatNum(result.total_cost)} so'm</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-base-content/50">Yalpi foyda</span>
+                      <span className="text-base-content/50">{t('calculator.grossProfit')}</span>
                       <span className="font-medium tabular-nums">{formatNum(result.gross_profit)} so'm</span>
                     </div>
                     <div className="divider my-1" />
                     <div className="flex justify-between font-bold">
-                      <span>Sof foyda</span>
+                      <span>{t('calculator.netProfit')}</span>
                       <span className={result.net_profit > 0 ? 'text-success' : 'text-error'}>
                         {formatNum(result.net_profit)} so'm
                       </span>
                     </div>
                     <div className="divider my-1" />
                     <div className="flex justify-between">
-                      <span className="text-base-content/50">Zararsizlik soni</span>
-                      <span className="font-medium tabular-nums">{Math.ceil(result.breakeven_qty)} dona</span>
+                      <span className="text-base-content/50">{t('calculator.breakevenQty')}</span>
+                      <span className="font-medium tabular-nums">{Math.ceil(result.breakeven_qty)} {t('calculator.pieces')}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-base-content/50">Zararsizlik narxi</span>
+                      <span className="text-base-content/50">{t('calculator.breakevenPrice')}</span>
                       <span className="font-medium tabular-nums">{formatNum(result.breakeven_price)} so'm</span>
                     </div>
                   </div>
@@ -256,10 +259,10 @@ export function ProfitCalculatorPage() {
               <div className={`alert ${result.margin_pct >= 20 ? 'alert-success' : result.margin_pct >= 10 ? 'alert-warning' : 'alert-error'}`}>
                 <span className="text-sm">
                   {result.margin_pct >= 20
-                    ? "Yaxshi margin! Bu mahsulot foydali ko'rinadi."
+                    ? t('calculator.goodMargin')
                     : result.margin_pct >= 10
-                    ? "O'rtacha margin. Xarajatlarni optimallashtirish kerak."
-                    : "Past margin yoki zarar. Narx siyosatini qayta ko'ring."}
+                    ? t('calculator.avgMargin')
+                    : t('calculator.lowMargin')}
                 </span>
               </div>
             </>
@@ -269,7 +272,7 @@ export function ProfitCalculatorPage() {
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75V18m15-8.25l-8.25 4.5m0 0l-8.25-4.5M21 9.75v4.5m0 0l-8.25 4.5m0 0l-8.25-4.5" />
                 </svg>
-                <p>Parametrlarni kiriting va "Hisoblash" tugmasini bosing</p>
+                <p>{t('calculator.inputHint')}</p>
               </div>
             </div>
           )}

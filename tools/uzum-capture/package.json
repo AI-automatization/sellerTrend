@@ -1,0 +1,12 @@
+{
+  "name": "uzum-capture",
+  "version": "1.0.0",
+  "description": "Captures GraphQL/API responses from Uzum while browsing",
+  "main": "capture.js",
+  "scripts": {
+    "capture": "node capture.js"
+  },
+  "dependencies": {
+    "playwright": "^1.41.0"
+  }
+}

@@ -4,7 +4,8 @@ RUN npm install -g pnpm@10.30.1
 # ── deps ──────────────────────────────────────────────────────
 FROM base AS deps
 WORKDIR /app
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+ENV HUSKY=0
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .pnpmfile.cjs ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
@@ -17,6 +18,7 @@ COPY tsconfig.base.json ./
 COPY packages/ ./packages/
 COPY apps/api/ ./apps/api/
 WORKDIR /app/apps/api
+RUN pnpm exec prisma generate
 RUN pnpm run build
 
 # ── runner ────────────────────────────────────────────────────
@@ -24,19 +26,42 @@ FROM node:20-alpine AS runner
 RUN npm install -g pnpm@10.30.1
 WORKDIR /app
 ENV NODE_ENV=production
+ENV HUSKY=0
 
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .pnpmfile.cjs ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
 RUN pnpm install --frozen-lockfile --prod --filter api --filter @uzum/types --filter @uzum/utils
 
+# Ensure swagger-ui-dist top-level symlink exists for NestJS Swagger static serving
+RUN ln -sf /app/node_modules/.pnpm/swagger-ui-dist@5.17.14/node_modules/swagger-ui-dist \
+    /app/node_modules/swagger-ui-dist
+
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 WORKDIR /app/apps/api
 RUN pnpm exec prisma generate
 
+# Migration script — uses DIRECT_DATABASE_URL for DDL (bypasses PgBouncer)
+COPY <<'ENTRYPOINT' /app/entrypoint.sh
+#!/bin/sh
+set -e
+
+# Use direct connection for migration if available (PgBouncer can't handle DDL)
+if [ -n "$DIRECT_DATABASE_URL" ]; then
+  echo "[entrypoint] Running migration via DIRECT_DATABASE_URL..."
+  DATABASE_URL="$DIRECT_DATABASE_URL" pnpm exec prisma db push --skip-generate --accept-data-loss
+else
+  echo "[entrypoint] Running migration via DATABASE_URL..."
+  pnpm exec prisma db push --skip-generate --accept-data-loss
+fi
+
+echo "[entrypoint] Starting API server..."
+exec node dist/main
+ENTRYPOINT
+RUN chmod +x /app/entrypoint.sh
+
 EXPOSE 3000
-CMD ["sh", "-c", "pnpm exec prisma db push --skip-generate && node dist/main"]
+CMD ["/app/entrypoint.sh"]

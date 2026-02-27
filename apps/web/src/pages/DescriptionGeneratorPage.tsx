@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { toolsApi } from '../api/client';
+import { getErrorMessage } from '../utils/getErrorMessage';
+import { useI18n } from '../i18n/I18nContext';
 
 interface DescResult {
   title_optimized: string;
@@ -9,6 +11,7 @@ interface DescResult {
 }
 
 export function DescriptionGeneratorPage() {
+  const { t } = useI18n();
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
   const [keywords, setKeywords] = useState('');
@@ -30,8 +33,8 @@ export function DescriptionGeneratorPage() {
         keywords: keywords.trim() ? keywords.split(',').map((k) => k.trim()) : undefined,
       });
       setResult(res.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message ?? 'Xato yuz berdi');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -50,10 +53,10 @@ export function DescriptionGeneratorPage() {
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 lg:w-7 lg:h-7 text-secondary">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
           </svg>
-          AI Tavsif Generator
+          {t('aidesc.title')}
         </h1>
         <p className="text-base-content/50 text-sm mt-1">
-          Mahsulot uchun SEO-optimallashtirilgan tavsif yarating
+          {t('aidesc.subtitle')}
         </p>
       </div>
 
@@ -61,10 +64,10 @@ export function DescriptionGeneratorPage() {
         {/* Form */}
         <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
           <div className="card-body">
-            <h2 className="card-title text-base">Mahsulot ma'lumotlari</h2>
+            <h2 className="card-title text-base">{t('aidesc.productInfo')}</h2>
             <form onSubmit={handleGenerate} className="space-y-3 mt-2">
               <fieldset className="fieldset">
-                <legend className="fieldset-legend text-xs">Mahsulot nomi *</legend>
+                <legend className="fieldset-legend text-xs">{t('aidesc.productName')}</legend>
                 <input
                   type="text"
                   value={title}
@@ -76,7 +79,7 @@ export function DescriptionGeneratorPage() {
               </fieldset>
 
               <fieldset className="fieldset">
-                <legend className="fieldset-legend text-xs">Kategoriya</legend>
+                <legend className="fieldset-legend text-xs">{t('aidesc.category')}</legend>
                 <input
                   type="text"
                   value={category}
@@ -87,7 +90,7 @@ export function DescriptionGeneratorPage() {
               </fieldset>
 
               <fieldset className="fieldset">
-                <legend className="fieldset-legend text-xs">Kalit so'zlar (vergul bilan)</legend>
+                <legend className="fieldset-legend text-xs">{t('aidesc.keywords')}</legend>
                 <input
                   type="text"
                   value={keywords}
@@ -101,7 +104,7 @@ export function DescriptionGeneratorPage() {
 
               <button type="submit" disabled={loading} className="btn btn-primary w-full">
                 {loading && <span className="loading loading-spinner loading-sm" />}
-                {loading ? 'AI ishlamoqda...' : 'Tavsif yaratish'}
+                {loading ? t('aidesc.generating') : t('aidesc.generate')}
               </button>
             </form>
           </div>
@@ -115,12 +118,12 @@ export function DescriptionGeneratorPage() {
               <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
                 <div className="card-body p-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-sm">Optimallashtirilgan sarlavha</h3>
+                    <h3 className="font-bold text-sm">{t('aidesc.optimizedTitle')}</h3>
                     <button
                       onClick={() => copyText(result.title_optimized, 'title')}
                       className="btn btn-ghost btn-xs"
                     >
-                      {copied === 'title' ? 'Nusxalandi!' : 'Nusxalash'}
+                      {copied === 'title' ? t('common.copied') : t('common.copy')}
                     </button>
                   </div>
                   <p className="text-base mt-1">{result.title_optimized}</p>
@@ -131,12 +134,12 @@ export function DescriptionGeneratorPage() {
               <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
                 <div className="card-body p-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-sm">Tavsif</h3>
+                    <h3 className="font-bold text-sm">{t('aidesc.description')}</h3>
                     <button
                       onClick={() => copyText(result.description, 'desc')}
                       className="btn btn-ghost btn-xs"
                     >
-                      {copied === 'desc' ? 'Nusxalandi!' : 'Nusxalash'}
+                      {copied === 'desc' ? t('common.copied') : t('common.copy')}
                     </button>
                   </div>
                   <p className="text-sm mt-1 whitespace-pre-line text-base-content/80">{result.description}</p>
@@ -148,12 +151,12 @@ export function DescriptionGeneratorPage() {
                 <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
                   <div className="card-body p-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-sm">Asosiy xususiyatlar</h3>
+                      <h3 className="font-bold text-sm">{t('aidesc.features')}</h3>
                       <button
                         onClick={() => copyText(result.bullets.map((b) => `• ${b}`).join('\n'), 'bullets')}
                         className="btn btn-ghost btn-xs"
                       >
-                        {copied === 'bullets' ? 'Nusxalandi!' : 'Nusxalash'}
+                        {copied === 'bullets' ? t('common.copied') : t('common.copy')}
                       </button>
                     </div>
                     <ul className="mt-2 space-y-1">
@@ -172,7 +175,7 @@ export function DescriptionGeneratorPage() {
               {result.seo_keywords.length > 0 && (
                 <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
                   <div className="card-body p-4">
-                    <h3 className="font-bold text-sm">SEO kalit so'zlar</h3>
+                    <h3 className="font-bold text-sm">{t('aidesc.seoKeywords')}</h3>
                     <div className="flex flex-wrap gap-2 mt-2">
                       {result.seo_keywords.map((kw, i) => (
                         <span key={i} className="badge badge-outline badge-sm">{kw}</span>
@@ -188,7 +191,7 @@ export function DescriptionGeneratorPage() {
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                 </svg>
-                <p>Mahsulot nomini kiriting va "Tavsif yaratish" tugmasini bosing</p>
+                <p>{t('aidesc.inputHint')}</p>
               </div>
             </div>
           )}

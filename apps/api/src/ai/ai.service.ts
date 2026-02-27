@@ -1,6 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
 import Anthropic from '@anthropic-ai/sdk';
 import { PrismaService } from '../prisma/prisma.service';
+
+// Haiku pricing per 1M tokens (USD)
+const HAIKU_INPUT_COST = 0.80 / 1_000_000;
+const HAIKU_OUTPUT_COST = 4.00 / 1_000_000;
 
 @Injectable()
 export class AiService {
@@ -11,6 +15,102 @@ export class AiService {
     this.client = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
     });
+  }
+
+  /**
+   * Check if an account has exceeded its monthly AI budget.
+   * Throws ForbiddenException if over limit. No-op if limit is NULL (unlimited).
+   */
+  async checkAiQuota(accountId: string): Promise<void> {
+    const account = await this.prisma.account.findUnique({
+      where: { id: accountId },
+      select: { ai_monthly_limit_usd: true },
+    });
+    if (!account?.ai_monthly_limit_usd) return; // unlimited
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const usage = await this.prisma.aiUsageLog.aggregate({
+      where: { account_id: accountId, created_at: { gte: monthStart } },
+      _sum: { cost_usd: true },
+    });
+
+    const usedUsd = Number(usage._sum.cost_usd ?? 0);
+    const limitUsd = Number(account.ai_monthly_limit_usd);
+
+    if (usedUsd >= limitUsd) {
+      throw new ForbiddenException(
+        `AI oylik budget tugagan: $${usedUsd.toFixed(4)} / $${limitUsd.toFixed(2)}. Keyingi oyda yangilanadi.`,
+      );
+    }
+  }
+
+  /**
+   * Get current month AI usage for an account.
+   */
+  async getAiUsage(accountId: string): Promise<{
+    used_usd: number;
+    limit_usd: number | null;
+    remaining_usd: number | null;
+    calls_this_month: number;
+  }> {
+    const account = await this.prisma.account.findUnique({
+      where: { id: accountId },
+      select: { ai_monthly_limit_usd: true },
+    });
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const usage = await this.prisma.aiUsageLog.aggregate({
+      where: { account_id: accountId, created_at: { gte: monthStart } },
+      _sum: { cost_usd: true },
+      _count: true,
+    });
+
+    const usedUsd = Number(usage._sum.cost_usd ?? 0);
+    const limitUsd = account?.ai_monthly_limit_usd ? Number(account.ai_monthly_limit_usd) : null;
+
+    return {
+      used_usd: usedUsd,
+      limit_usd: limitUsd,
+      remaining_usd: limitUsd !== null ? Math.max(0, limitUsd - usedUsd) : null,
+      calls_this_month: usage._count ?? 0,
+    };
+  }
+
+  /** Log AI usage to database for cost tracking */
+  private async logUsage(opts: {
+    method: string;
+    model: string;
+    inputTokens: number;
+    outputTokens: number;
+    productId?: string;
+    accountId?: string;
+    userId?: string;
+    durationMs?: number;
+    error?: string;
+  }): Promise<void> {
+    try {
+      const costUsd = opts.inputTokens * HAIKU_INPUT_COST + opts.outputTokens * HAIKU_OUTPUT_COST;
+      await this.prisma.aiUsageLog.create({
+        data: {
+          method: opts.method,
+          model: opts.model,
+          input_tokens: opts.inputTokens,
+          output_tokens: opts.outputTokens,
+          cost_usd: costUsd,
+          product_id: opts.productId,
+          account_id: opts.accountId,
+          user_id: opts.userId,
+          duration_ms: opts.durationMs,
+          error: opts.error,
+        },
+      });
+    } catch (err: any) {
+      this.logger.warn(`Failed to log AI usage: ${err.message}`);
+    }
   }
 
   /**
@@ -30,6 +130,7 @@ export class AiService {
     });
     if (cached) return cached;
 
+    const startMs = Date.now();
     try {
       const message = await this.client.messages.create({
         model: 'claude-haiku-4-5-20251001',
@@ -43,6 +144,15 @@ export class AiService {
               `{"brand":null,"model":null,"type":null,"color":null}`,
           },
         ],
+      });
+
+      await this.logUsage({
+        method: 'extractAttributes',
+        model: 'claude-haiku-4-5-20251001',
+        inputTokens: message.usage.input_tokens,
+        outputTokens: message.usage.output_tokens,
+        productId: productId.toString(),
+        durationMs: Date.now() - startMs,
       });
 
       const text = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
@@ -76,6 +186,7 @@ export class AiService {
       this.logger.log(`Attributes extracted for product ${productId}`);
       return attrs;
     } catch (err: any) {
+      await this.logUsage({ method: 'extractAttributes', model: 'claude-haiku-4-5-20251001', inputTokens: 0, outputTokens: 0, productId: productId.toString(), durationMs: Date.now() - startMs, error: err.message });
       this.logger.error(`extractAttributes failed for ${productId}: ${err.message}`);
       return null;
     }
@@ -103,6 +214,7 @@ export class AiService {
       try { return JSON.parse(cached.explanation); } catch { return null; }
     }
 
+    const startMs = Date.now();
     try {
       const message = await this.client.messages.create({
         model: 'claude-haiku-4-5-20251001',
@@ -123,13 +235,21 @@ export class AiService {
         ],
       });
 
+      await this.logUsage({
+        method: 'explainWinner',
+        model: 'claude-haiku-4-5-20251001',
+        inputTokens: message.usage.input_tokens,
+        outputTokens: message.usage.output_tokens,
+        productId: opts.productId.toString(),
+        durationMs: Date.now() - startMs,
+      });
+
       const text = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
       let bullets: string[] = [];
       try {
         bullets = JSON.parse(text);
         if (!Array.isArray(bullets)) throw new Error('not array');
       } catch {
-        // Fallback: split by newline
         bullets = text.split('\n').filter((l) => l.trim().length > 0).slice(0, 4);
       }
 
@@ -144,6 +264,7 @@ export class AiService {
       this.logger.log(`Explanation generated for product ${opts.productId}`);
       return bullets;
     } catch (err: any) {
+      await this.logUsage({ method: 'explainWinner', model: 'claude-haiku-4-5-20251001', inputTokens: 0, outputTokens: 0, productId: opts.productId.toString(), durationMs: Date.now() - startMs, error: err.message });
       this.logger.error(`explainWinner failed for ${opts.productId}: ${err.message}`);
       return null;
     }
@@ -182,6 +303,7 @@ export class AiService {
       keywords: productTitle.split(/\s+/).slice(0, 5),
     };
 
+    const startMs = Date.now();
     try {
       const message = await this.client.messages.create({
         model: 'claude-haiku-4-5-20251001',
@@ -201,6 +323,8 @@ export class AiService {
         ],
       });
 
+      await this.logUsage({ method: 'generateSearchQuery', model: 'claude-haiku-4-5-20251001', inputTokens: message.usage.input_tokens, outputTokens: message.usage.output_tokens, durationMs: Date.now() - startMs });
+
       const text =
         message.content[0].type === 'text' ? message.content[0].text.trim() : '';
       try {
@@ -215,6 +339,7 @@ export class AiService {
         return fallback;
       }
     } catch (err: any) {
+      await this.logUsage({ method: 'generateSearchQuery', model: 'claude-haiku-4-5-20251001', inputTokens: 0, outputTokens: 0, durationMs: Date.now() - startMs, error: err.message });
       this.logger.error(`generateSearchQuery failed: ${err.message}`);
       return fallback;
     }
@@ -241,6 +366,7 @@ export class AiService {
         ? Object.entries(opts.attributes).filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join(', ')
         : 'N/A';
 
+      const startMs = Date.now();
       const message = await this.client.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
@@ -260,6 +386,8 @@ export class AiService {
             `}`,
         }],
       });
+
+      await this.logUsage({ method: 'generateDescription', model: 'claude-haiku-4-5-20251001', inputTokens: message.usage.input_tokens, outputTokens: message.usage.output_tokens, durationMs: Date.now() - startMs });
 
       const text = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
       try {
@@ -307,6 +435,7 @@ export class AiService {
 
     try {
       const reviewText = opts.reviews.slice(0, 20).map((r, i) => `${i + 1}. ${r}`).join('\n');
+      const startMs = Date.now();
 
       const message = await this.client.messages.create({
         model: 'claude-haiku-4-5-20251001',
@@ -327,6 +456,8 @@ export class AiService {
             `}`,
         }],
       });
+
+      await this.logUsage({ method: 'analyzeSentiment', model: 'claude-haiku-4-5-20251001', inputTokens: message.usage.input_tokens, outputTokens: message.usage.output_tokens, durationMs: Date.now() - startMs });
 
       const text = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
       try {
@@ -370,6 +501,7 @@ export class AiService {
         (s) => `${s.date.split('T')[0]}: score=${s.score.toFixed(2)}, sold=${s.weekly_bought}`,
       ).join('\n');
 
+      const startMs = Date.now();
       const message = await this.client.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 512,
@@ -383,6 +515,8 @@ export class AiService {
             `{"analysis": "1-2 jumla tahlil", "factors": ["sabab1", "sabab2"], "recommendation": "Tavsiya"}`,
         }],
       });
+
+      await this.logUsage({ method: 'analyzeTrend', model: 'claude-haiku-4-5-20251001', inputTokens: message.usage.input_tokens, outputTokens: message.usage.output_tokens, durationMs: Date.now() - startMs });
 
       const text = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
       try {
@@ -422,6 +556,7 @@ export class AiService {
         .map((r) => `${r.index}. [${r.platform}] ${r.title} — ${r.price}`)
         .join('\n');
 
+      const startMs = Date.now();
       const message = await this.client.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
@@ -439,6 +574,8 @@ export class AiService {
           },
         ],
       });
+
+      await this.logUsage({ method: 'scoreExternalResults', model: 'claude-haiku-4-5-20251001', inputTokens: message.usage.input_tokens, outputTokens: message.usage.output_tokens, durationMs: Date.now() - startMs });
 
       const text =
         message.content[0].type === 'text' ? message.content[0].text.trim() : '';

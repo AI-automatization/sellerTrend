@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiKeysApi } from '../api/client';
+import { useI18n } from '../i18n/I18nContext';
 
 interface ApiKeyItem {
   id: string;
@@ -13,6 +14,7 @@ interface ApiKeyItem {
 }
 
 export function ApiKeysPage() {
+  const { t } = useI18n();
   const [keys, setKeys] = useState<ApiKeyItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -65,14 +67,14 @@ export function ApiKeysPage() {
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 lg:w-7 lg:h-7 text-warning">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
             </svg>
-            API Kalitlari
+            {t('apikeys.title')}
           </h1>
           <p className="text-base-content/50 text-sm mt-1">
-            API kalitlarini boshqaring (Dev Plan)
+            {t('apikeys.subtitle')}
           </p>
         </div>
         <button onClick={() => setShowCreate(true)} className="btn btn-primary btn-sm">
-          + Yangi kalit
+          + {t('apikeys.newKey')}
         </button>
       </div>
 
@@ -83,17 +85,17 @@ export function ApiKeysPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
           </svg>
           <div className="flex-1">
-            <p className="font-bold text-sm">Yangi API kalit yaratildi!</p>
-            <p className="text-xs mt-1">Bu kalitni saqlang — qayta ko'rsatilmaydi!</p>
+            <p className="font-bold text-sm">{t('apikeys.created')}</p>
+            <p className="text-xs mt-1">{t('apikeys.saveWarning')}</p>
             <div className="bg-base-100 rounded-lg p-3 mt-2 font-mono text-xs break-all select-all">
               {newKeyValue}
             </div>
           </div>
           <div className="flex flex-col gap-2">
             <button onClick={copyKey} className="btn btn-sm">
-              {copied ? 'Nusxalandi!' : 'Nusxalash'}
+              {copied ? t('common.copied') : t('common.copy')}
             </button>
-            <button onClick={() => setNewKeyValue(null)} className="btn btn-sm btn-ghost">Yopish</button>
+            <button onClick={() => setNewKeyValue(null)} className="btn btn-sm btn-ghost">{t('common.close')}</button>
           </div>
         </div>
       )}
@@ -102,22 +104,22 @@ export function ApiKeysPage() {
       {showCreate && (
         <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
           <div className="card-body">
-            <h2 className="card-title text-base">Yangi API kalit</h2>
+            <h2 className="card-title text-base">{t('apikeys.newApiKey')}</h2>
             <form onSubmit={handleCreate} className="flex gap-3">
               <input
                 type="text"
                 value={newKeyName}
                 onChange={(e) => setNewKeyName(e.target.value)}
-                placeholder="Kalit nomi (masalan: Production Bot)"
+                placeholder={t('apikeys.keyName')}
                 className="input input-bordered flex-1"
                 required
                 autoFocus
               />
               <button type="submit" disabled={creating} className="btn btn-primary">
-                {creating ? <span className="loading loading-spinner loading-sm" /> : 'Yaratish'}
+                {creating ? <span className="loading loading-spinner loading-sm" /> : t('common.create')}
               </button>
               <button type="button" onClick={() => setShowCreate(false)} className="btn btn-ghost">
-                Bekor
+                {t('common.cancel')}
               </button>
             </form>
           </div>
@@ -128,7 +130,7 @@ export function ApiKeysPage() {
       <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
         <div className="card-body p-0">
           <div className="px-4 pt-4 pb-3 border-b border-base-300">
-            <h2 className="card-title text-base">Kalitlar</h2>
+            <h2 className="card-title text-base">{t('apikeys.keys')}</h2>
           </div>
 
           {loading ? (
@@ -140,18 +142,18 @@ export function ApiKeysPage() {
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
               </svg>
-              <p>Hali API kalit yo'q</p>
+              <p>{t('apikeys.noKeys')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="table table-sm">
                 <thead>
                   <tr>
-                    <th>Nomi</th>
-                    <th>Prefix</th>
-                    <th className="text-center">Bugungi</th>
-                    <th className="text-center">Limit</th>
-                    <th>Oxirgi ishlatilgan</th>
+                    <th>{t('apikeys.name')}</th>
+                    <th>{t('apikeys.prefix')}</th>
+                    <th className="text-center">{t('apikeys.today')}</th>
+                    <th className="text-center">{t('apikeys.limit')}</th>
+                    <th>{t('apikeys.lastUsed')}</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -167,7 +169,7 @@ export function ApiKeysPage() {
                       </td>
                       <td className="text-center tabular-nums text-sm text-base-content/50">{k.daily_limit}</td>
                       <td className="text-xs text-base-content/50">
-                        {k.last_used_at ? new Date(k.last_used_at).toLocaleString('uz-UZ') : 'Hali yo\'q'}
+                        {k.last_used_at ? new Date(k.last_used_at).toLocaleString('uz-UZ') : t('apikeys.notUsed')}
                       </td>
                       <td>
                         <button
@@ -175,7 +177,7 @@ export function ApiKeysPage() {
                           disabled={deletingId === k.id}
                           className="btn btn-ghost btn-xs text-error"
                         >
-                          {deletingId === k.id ? <span className="loading loading-spinner loading-xs" /> : 'O\'chirish'}
+                          {deletingId === k.id ? <span className="loading loading-spinner loading-xs" /> : t('common.delete')}
                         </button>
                       </td>
                     </tr>
@@ -190,9 +192,9 @@ export function ApiKeysPage() {
       {/* Info */}
       <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
         <div className="card-body p-4">
-          <h3 className="font-bold text-sm">Foydalanish</h3>
+          <h3 className="font-bold text-sm">{t('apikeys.usage')}</h3>
           <div className="bg-base-300 rounded-lg p-3 mt-2 font-mono text-xs">
-            <p className="text-base-content/50"># Har bir requestda X-API-Key header yuboring:</p>
+            <p className="text-base-content/50">{t('apikeys.usageHint')}</p>
             <p className="mt-1">curl -H "X-API-Key: utf_..." https://api.example.com/api/v1/...</p>
           </div>
           <p className="text-xs text-base-content/40 mt-2">

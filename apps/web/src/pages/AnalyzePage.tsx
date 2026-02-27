@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { uzumApi, productsApi } from '../api/client';
+import { getErrorMessage } from '../utils/getErrorMessage';
 import { FireIcon, MagnifyingGlassIcon } from '../components/icons';
 import { ScoreChart } from '../components/ScoreChart';
+import { useI18n } from '../i18n/I18nContext';
 
 interface AnalyzeResult {
   product_id: number;
@@ -46,6 +48,7 @@ function ScoreRadial({ score }: { score: number }) {
 }
 
 export function AnalyzePage() {
+  const { t } = useI18n();
   const [url, setUrl] = useState('');
   const [result, setResult] = useState<AnalyzeResult | null>(null);
   const [snapshots, setSnapshots] = useState<ChartPoint[]>([]);
@@ -81,11 +84,8 @@ export function AnalyzePage() {
       } catch {
         // snapshot history optional
       }
-    } catch (err: any) {
-      setError(
-        err.response?.data?.message ??
-          "Tahlil vaqtida xato. URL to'g'riligini tekshiring."
-      );
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, t('analyze.error')));
     } finally {
       setLoading(false);
     }
@@ -107,10 +107,10 @@ export function AnalyzePage() {
       <div>
         <h1 className="text-2xl lg:text-3xl font-bold flex items-center gap-2">
           <MagnifyingGlassIcon className="w-6 h-6 lg:w-7 lg:h-7 text-primary" />
-          URL Tahlil
+          {t('analyze.title')}
         </h1>
         <p className="text-base-content/50 text-sm mt-1">
-          Uzum mahsulot URL'ini kiriting — real vaqtda score hisoblanadi
+          {t('analyze.subtitle')}
         </p>
       </div>
 
@@ -118,7 +118,7 @@ export function AnalyzePage() {
       <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-6">
         <form onSubmit={handleAnalyze} className="flex flex-col sm:flex-row gap-3 lg:gap-4">
           <fieldset className="fieldset flex-1">
-            <legend className="fieldset-legend text-xs">Uzum mahsulot havolasi</legend>
+            <legend className="fieldset-legend text-xs">{t('analyze.inputLabel')}</legend>
             <input
               type="url"
               value={url}
@@ -128,7 +128,7 @@ export function AnalyzePage() {
               placeholder="https://uzum.uz/ru/product/mahsulot-nomi-123456"
             />
             <p className="fieldset-label">
-              Uzum mahsulot sahifasining to'liq URL'ini kiriting
+              {t('analyze.inputHelp')}
             </p>
           </fieldset>
 
@@ -140,7 +140,7 @@ export function AnalyzePage() {
             {loading
               ? <span className="loading loading-spinner loading-sm" />
               : <MagnifyingGlassIcon className="w-4 h-4" />}
-            {loading ? 'Tahlil qilinmoqda...' : 'Tahlil qilish'}
+            {loading ? t('analyze.analyzing') : t('analyze.button')}
           </button>
         </form>
       </div>
@@ -178,28 +178,28 @@ export function AnalyzePage() {
           {/* Stats grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <StatCard
-              label="Jami buyurtmalar"
+              label={t('analyze.totalOrders')}
               value={result.orders_quantity.toLocaleString()}
               accent="text-primary"
             />
             <StatCard
-              label="So'nggi faollik"
+              label={t('analyze.recentActivity')}
               value={result.weekly_bought != null ? result.weekly_bought.toLocaleString() : 'N/A'}
               accent={result.weekly_bought ? 'text-success' : 'text-base-content/40'}
             />
             <StatCard
-              label="Reyting"
+              label={t('analyze.rating')}
               value={`${result.rating}`}
               accent="text-yellow-400"
             />
             <StatCard
-              label="Sharhlar"
+              label={t('analyze.reviews')}
               value={result.feedback_quantity.toLocaleString()}
               accent="text-secondary"
             />
             {result.sell_price != null && (
               <StatCard
-                label="Narx"
+                label={t('analyze.price')}
                 value={`${result.sell_price.toLocaleString()} so'm`}
                 accent="text-accent"
               />
@@ -211,7 +211,7 @@ export function AnalyzePage() {
             <>
               <div className="divider my-0" />
               <div>
-                <p className="text-xs text-base-content/50 mb-2">Score tarixi</p>
+                <p className="text-xs text-base-content/50 mb-2">{t('analyze.scoreHistory')}</p>
                 <ScoreChart data={snapshots} />
               </div>
             </>
@@ -223,7 +223,7 @@ export function AnalyzePage() {
               <div className="divider my-0" />
               <div>
                 <p className="text-xs text-base-content/50 mb-2 flex items-center gap-1">
-                  <span>🤖</span> Claude AI tahlili
+                  <span>🤖</span> {t('analyze.aiAnalysis')}
                 </p>
                 <ul className="space-y-1.5">
                   {result.ai_explanation.map((bullet, i) => (
@@ -243,7 +243,7 @@ export function AnalyzePage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span>
-              Score = 0.55×ln(1+faollik) + 0.25×ln(1+jami) + 0.10×reyting + 0.10×ombor
+              {t('analyze.scoreFormula')}
             </span>
           </div>
 
@@ -254,7 +254,7 @@ export function AnalyzePage() {
               disabled={tracked}
               className={`btn btn-sm gap-2 ${tracked ? 'btn-success' : 'btn-outline btn-success'}`}
             >
-              {tracked ? '✓ Kuzatuvga qo\'shildi' : '+ Kuzatuvga qo\'shish'}
+              {tracked ? `✓ ${t('analyze.tracked')}` : `+ ${t('analyze.track')}`}
             </button>
           </div>
         </div>

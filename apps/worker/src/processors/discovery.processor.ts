@@ -12,6 +12,7 @@ import {
   extractCategoryName,
   filterByCategory,
 } from './uzum-ai-scraper';
+import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
 
 /**
  * Fetch product details in parallel batches with rate limiting.
@@ -35,7 +36,7 @@ async function batchFetchDetails(
   return results;
 }
 
-async function processDiscovery(data: CategoryDiscoveryJobData) {
+async function processDiscovery(data: CategoryDiscoveryJobData, jobId: string, jobName: string) {
   const { categoryId, runId, categoryUrl } = data;
 
   // Build URL for Playwright (use provided URL or construct a canonical one)
@@ -48,16 +49,16 @@ async function processDiscovery(data: CategoryDiscoveryJobData) {
   });
 
   const categoryName = extractCategoryName(url);
-  console.log(`[discovery] Category name: "${categoryName}"`);
+  logJobInfo('discovery-queue', jobId, jobName, `Category name: "${categoryName}"`);
 
   // Step 1: Scrape product IDs from the category page via Playwright
-  console.log(`[discovery] Scraping category ${categoryId} from ${url}`);
+  logJobInfo('discovery-queue', jobId, jobName, `Scraping category ${categoryId} from ${url}`);
   let productIds: number[];
   try {
     const { ids } = await scrapeCategoryProductIds(url);
     productIds = ids;
   } catch (err) {
-    console.error('[discovery] Playwright scraping failed:', err);
+    logJobError('discovery-queue', jobId, jobName, err);
     throw new Error(`Playwright scraping failed: ${(err as Error).message}`);
   }
 
@@ -70,9 +71,7 @@ async function processDiscovery(data: CategoryDiscoveryJobData) {
     data: { total_products: productIds.length },
   });
 
-  console.log(
-    `[discovery] Found ${productIds.length} product IDs — fetching details...`,
-  );
+  logJobInfo('discovery-queue', jobId, jobName, `Found ${productIds.length} product IDs — fetching details...`);
 
   // Step 2: Fetch product details from the working REST product detail API
   // Limit to 200 products to cover more of the category
@@ -84,9 +83,7 @@ async function processDiscovery(data: CategoryDiscoveryJobData) {
     data: { processed: products.length },
   });
 
-  console.log(
-    `[discovery] Fetched details for ${products.length}/${idsToFetch.length} products`,
-  );
+  logJobInfo('discovery-queue', jobId, jobName, `Fetched details for ${products.length}/${idsToFetch.length} products`);
 
   if (products.length === 0) {
     throw new Error('Product detail API returned no results');
@@ -95,17 +92,20 @@ async function processDiscovery(data: CategoryDiscoveryJobData) {
   // Step 2b: AI category filter — remove cross-category noise
   if (categoryName) {
     products = await filterByCategory(products, categoryName);
-    console.log(`[discovery] After AI filter: ${products.length} products`);
+    logJobInfo('discovery-queue', jobId, jobName, `After AI filter: ${products.length} products`);
     if (products.length === 0) {
       throw new Error('AI filter removed all products — check category name');
     }
   }
 
   // Step 3: Score all products
+  // ESLATMA: rOrdersAmount = rounded total orders (haftalik EMAS!)
+  // Discovery batch'da weekly_bought hisoblanmaydi (snapshot delta kerak)
+  // ordersAmount ga asoslangan scoring ishlatiladi
   const scored = products
     .map((p) => {
       const score = calculateScore({
-        weekly_bought: p.rOrdersAmount ?? null,
+        weekly_bought: null,
         orders_quantity: p.ordersAmount,
         rating: p.rating,
         supply_pressure: getSupplyPressure(p.stockType),
@@ -142,7 +142,7 @@ async function processDiscovery(data: CategoryDiscoveryJobData) {
         product_id: productId,
         score,
         rank: i + 1,
-        weekly_bought: product.rOrdersAmount ?? null,
+        weekly_bought: null, // Delta hisob faqat snapshot tarix bilan mumkin
         orders_quantity: BigInt(product.ordersAmount),
         sell_price: product.sellPrice,
       },
@@ -169,15 +169,17 @@ export function createDiscoveryWorker() {
   return new Worker<CategoryDiscoveryJobData>(
     'discovery-queue',
     async (job: Job<CategoryDiscoveryJobData>) => {
-      console.log(
-        `[discovery] Run ${job.data.runId}, category ${job.data.categoryId}`,
-      );
+      const start = Date.now();
+      logJobStart('discovery-queue', job.id ?? '-', job.name, {
+        runId: job.data.runId,
+        categoryId: job.data.categoryId,
+      });
       try {
-        const result = await processDiscovery(job.data);
-        console.log(`[discovery] Done:`, result);
+        const result = await processDiscovery(job.data, job.id ?? '-', job.name);
+        logJobDone('discovery-queue', job.id ?? '-', job.name, Date.now() - start, result);
         return result;
       } catch (err) {
-        console.error(`[discovery] Failed:`, err);
+        logJobError('discovery-queue', job.id ?? '-', job.name, err, Date.now() - start);
         await prisma.categoryRun.update({
           where: { id: job.data.runId },
           data: { status: 'FAILED', finished_at: new Date() },

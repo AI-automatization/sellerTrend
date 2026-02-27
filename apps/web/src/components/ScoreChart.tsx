@@ -25,27 +25,28 @@ export function ScoreChart({ data }: { data: ChartPoint[] }) {
   return (
     <ResponsiveContainer width="100%" height={200}>
       <LineChart data={data} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
         <XAxis
           dataKey="date"
-          tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.4)' }}
+          tick={{ fontSize: 10, fill: 'var(--chart-tick)' }}
           tickLine={false}
           axisLine={false}
         />
         <YAxis
-          tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.4)' }}
+          tick={{ fontSize: 10, fill: 'var(--chart-tick)' }}
           tickLine={false}
           axisLine={false}
           domain={['auto', 'auto']}
         />
         <Tooltip
           contentStyle={{
-            background: '#1d232a',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'var(--chart-tooltip-bg)',
+            border: '1px solid var(--chart-tooltip-border)',
             borderRadius: 8,
             fontSize: 12,
+            color: 'var(--chart-tooltip-text)',
           }}
-          labelStyle={{ color: 'rgba(255,255,255,0.5)' }}
+          labelStyle={{ color: 'var(--chart-tick)' }}
           itemStyle={{ color: '#a78bfa' }}
         />
         <Line

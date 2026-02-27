@@ -259,9 +259,10 @@ export class UzumClient {
           rating: d.rating ?? 0,
           feedbackQuantity: d.reviewsAmount ?? 0,
           ordersQuantity: d.ordersAmount ?? 0,
-          // rOrdersAmount = recent orders (best proxy for weekly_bought via REST API)
-          recentOrdersAmount: d.rOrdersAmount ?? null,
-          actions: { text: '' },
+          // rOrdersAmount = ROUNDED total orders (NOT weekly!) — faqat display uchun
+          rOrdersAmount: d.rOrdersAmount ?? null,
+          // totalAvailableAmount = haqiqiy ombordagi stok (sku.availableAmount = per-order limit)
+          totalAvailableAmount: d.totalAvailableAmount ?? 0,
           skuList,
           shop,
         };

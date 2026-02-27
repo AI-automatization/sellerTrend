@@ -16,9 +16,11 @@ datasource db {
 model Account {
   id         String        @id @default(uuid())
   name       String        @db.VarChar(255)
+  phone      String?       @db.VarChar(20)
   status     AccountStatus @default(ACTIVE)
   balance    BigInt        @default(0)
   daily_fee  BigInt?       // NULL = global default ishlatiladi
+  ai_monthly_limit_usd Decimal? @db.Decimal(10, 2) // NULL = unlimited, e.g. 5.00
   created_at DateTime      @default(now()) @db.Timestamptz
 
   users              User[]
@@ -43,6 +45,9 @@ model Account {
   custom_reports         CustomReport[]
   shared_watchlists      SharedWatchlist[]
   community_insights     CommunityInsight[]
+  notifications          Notification[]
+  feedback_tickets       FeedbackTicket[]
+  user_activities        UserActivity[]
 
   @@map("accounts")
 }
@@ -62,8 +67,12 @@ model User {
   is_active     Boolean  @default(true)
   created_at    DateTime @default(now()) @db.Timestamptz
 
-  account      Account      @relation(fields: [account_id], references: [id])
+  account      Account         @relation(fields: [account_id], references: [id])
   audit_events AuditEvent[]
+  activities   UserActivity[]
+  sessions     UserSession[]
+  feedback_tickets  FeedbackTicket[]
+  feedback_messages FeedbackMessage[]
 
   @@map("users")
 }
@@ -169,6 +178,7 @@ model Product {
   competitors_of       CompetitorTracking[] @relation("competitor_of")
   price_tests          PriceTest[]
 
+  @@index([category_id, is_active])
   @@map("products")
 }
 
@@ -200,6 +210,7 @@ model ProductSnapshot {
   product         Product                @relation(fields: [product_id], references: [id])
   ai_explanations ProductAiExplanation[]
 
+  @@index([product_id, snapshot_at])
   @@map("product_snapshots")
 }
 
@@ -813,4 +824,184 @@ model InsightVote {
 
   @@unique([insight_id, account_id])
   @@map("insight_votes")
+}
+
+// ============================================================
+// USER ACTIVITY & SESSIONS (Admin v5)
+// ============================================================
+
+model UserActivity {
+  id         String   @id @default(uuid())
+  user_id    String
+  account_id String
+  action     String   @db.VarChar(50)
+  details    Json?
+  ip         String?  @db.VarChar(45)
+  user_agent String?  @db.VarChar(500)
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  user    User    @relation(fields: [user_id], references: [id])
+  account Account @relation(fields: [account_id], references: [id])
+
+  @@index([user_id, created_at])
+  @@index([account_id, created_at])
+  @@map("user_activities")
+}
+
+model UserSession {
+  id                 String    @id @default(uuid())
+  user_id            String
+  refresh_token_hash String?   @db.VarChar(128)
+  expires_at         DateTime? @db.Timestamptz
+  revoked_at         DateTime? @db.Timestamptz
+  ip                 String?   @db.VarChar(45)
+  user_agent         String?   @db.VarChar(500)
+  device_type        String?   @db.VarChar(50)
+  logged_in_at       DateTime  @default(now()) @db.Timestamptz
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id, logged_in_at])
+  @@index([refresh_token_hash])
+  @@map("user_sessions")
+}
+
+// ============================================================
+// NOTIFICATIONS (Admin v5)
+// ============================================================
+
+model Notification {
+  id         String   @id @default(uuid())
+  account_id String?
+  message    String   @db.VarChar(500)
+  type       String   @db.VarChar(20) @default("info")
+  is_read    Boolean  @default(false)
+  created_by String?
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  account Account? @relation(fields: [account_id], references: [id])
+
+  @@index([account_id, is_read])
+  @@map("notifications")
+}
+
+// ============================================================
+// FEEDBACK & CHAT (Admin v5)
+// ============================================================
+
+model FeedbackTicket {
+  id         String           @id @default(uuid())
+  account_id String
+  user_id    String
+  subject    String           @db.VarChar(200)
+  type       FeedbackType     @default(OTHER)
+  priority   FeedbackPriority @default(MEDIUM)
+  status     FeedbackStatus   @default(OPEN)
+  created_at DateTime         @default(now()) @db.Timestamptz
+  updated_at DateTime         @updatedAt @db.Timestamptz
+
+  account  Account           @relation(fields: [account_id], references: [id])
+  user     User              @relation(fields: [user_id], references: [id])
+  messages FeedbackMessage[]
+
+  @@index([account_id, status])
+  @@index([status, created_at])
+  @@map("feedback_tickets")
+}
+
+model FeedbackMessage {
+  id         String   @id @default(uuid())
+  ticket_id  String
+  sender_id  String
+  content    String   @db.Text
+  is_admin   Boolean  @default(false)
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  ticket FeedbackTicket @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  sender User           @relation(fields: [sender_id], references: [id])
+
+  @@index([ticket_id, created_at])
+  @@map("feedback_messages")
+}
+
+enum FeedbackType {
+  BUG
+  FEATURE
+  QUESTION
+  OTHER
+}
+
+enum FeedbackPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum FeedbackStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+// ============================================================
+// NOTIFICATION TEMPLATES (Admin v6)
+// ============================================================
+
+model NotificationTemplate {
+  id         String   @id @default(uuid())
+  name       String   @db.VarChar(100)
+  message    String   @db.VarChar(500)
+  type       String   @db.VarChar(20) @default("info")
+  created_by String?
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @updatedAt @db.Timestamptz
+
+  @@map("notification_templates")
+}
+
+// ============================================================
+// AI USAGE LOG (Admin v6 — Token & Cost Tracking)
+// ============================================================
+
+model AiUsageLog {
+  id            String   @id @default(uuid())
+  account_id    String?
+  user_id       String?
+  method        String   @db.VarChar(50)
+  model         String   @db.VarChar(50)
+  input_tokens  Int      @default(0)
+  output_tokens Int      @default(0)
+  cost_usd      Decimal  @db.Decimal(10, 6) @default(0)
+  product_id    String?  @db.VarChar(50)
+  duration_ms   Int?
+  error         String?  @db.Text
+  created_at    DateTime @default(now()) @db.Timestamptz
+
+  @@index([created_at])
+  @@index([account_id, created_at])
+  @@map("ai_usage_logs")
+}
+
+// ============================================================
+// SYSTEM ERROR LOG (Admin v6 — Error Tracking)
+// ============================================================
+
+model SystemError {
+  id         String   @id @default(uuid())
+  endpoint   String   @db.VarChar(255)
+  method     String   @db.VarChar(10)
+  status     Int
+  message    String   @db.Text
+  stack      String?  @db.Text
+  account_id String?
+  user_id    String?
+  ip         String?  @db.VarChar(45)
+  user_agent String?  @db.VarChar(500)
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  @@index([created_at])
+  @@index([endpoint, created_at])
+  @@index([account_id, created_at])
+  @@map("system_errors")
 }

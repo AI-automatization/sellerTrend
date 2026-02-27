@@ -6,6 +6,8 @@ const redisConnection = {
   connection: {
     host: redisUrl.hostname,
     port: parseInt(redisUrl.port || '6379', 10),
+    username: redisUrl.username || undefined,
+    password: redisUrl.password || undefined,
     maxRetriesPerRequest: null,
   },
 };

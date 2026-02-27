@@ -1,95 +1,106 @@
-# CLAUDE.md — UZUM TREND FINDER
+# CLAUDE.md — VENTRA Analytics Platform
 # Bu fayl Claude CLI tomonidan avtomatik o'qiladi
 # Ikkala dasturchi uchun UMUMIY qoidalar
 
 ---
 
-## 🤖 CLAUDE — BIRINCHI QADAM (MAJBURIY)
+## BIRINCHI QADAM (MAJBURIY)
 
-**Har yangi terminal sessiyasida Claude SHART quyidagini so'rashi kerak:**
+**Har yangi terminal sessiyasida Claude quyidagini so'rashi SHART:**
 
 ```
-Salom! Men Uzum Trend Finder loyihasidaman.
+Salom! Men VENTRA loyihasidaman.
 Kimligingizni aniqlay olmayman — ismingiz kim?
   1. Bekzod (Backend)
   2. Sardor (Frontend)
 ```
 
-Javob kelgach, o'sha dasturchining `CLAUDE_[ISM].md` faylini o'qib, kontekstga kirish.
+Javob kelgach, tegishli faylni o'qib kontekstga kirish:
+- Bekzod → `CLAUDE_BACKEND.md`
+- Sardor → `CLAUDE_FRONTEND.md`
 
 ---
 
-## 📁 LOYIHA HAQIDA
+## LOYIHA
 
-**Uzum Trend Finder** — `uzum.uz` marketplace uchun SaaS analytics platformasi.
+**VENTRA** — `uzum.uz` marketplace uchun SaaS analytics platformasi.
 
 | Layer | Tech | Port |
 |-------|------|------|
-| Backend API | NestJS + Prisma + PostgreSQL | 3000 |
-| Worker | BullMQ + Redis | — |
-| Frontend | React 19 + Vite + Tailwind + DaisyUI v5 | 5173 |
+| Backend API | NestJS + Prisma + PostgreSQL 16 + pgvector | 3000 |
+| Worker | BullMQ + Redis 7 | — |
+| Frontend | React 19 + Vite 7 + Tailwind v4 + DaisyUI v5 | 5173 |
 | Bot | grammY (Telegram) | — |
-| DB | PostgreSQL 16 + pgvector | 5432 |
-| Queue | Redis 7 | 6379 |
 
 **Monorepo:** `pnpm workspaces` + `turbo`
 
 ```
-apps/api/        → Bekzod (FAQAT)
-apps/worker/     → Bekzod (FAQAT)
-apps/bot/        → Bekzod (FAQAT)
-apps/web/        → Sardor (FAQAT)
-packages/types/  → Kelishib (IKKALASI)
-packages/utils/  → Kelishib (IKKALASI)
+apps/api/        → Backend (Bekzod)
+apps/worker/     → Worker (Bekzod)
+apps/bot/        → Telegram bot (Bekzod)
+apps/web/        → Frontend (Sardor)
+packages/types/  → Shared types (IKKALASI — kelishib)
+packages/utils/  → Shared utils (IKKALASI — kelishib)
 ```
 
 ---
 
-## ✅ 43 FEATURE — VERSION MAP
+## CLEAN CODE PRINSIPLARI
 
-### v1.0 MVP (01-10)
-```
-01 Competitor Price Tracker   | 02 Seasonal Trend Calendar
-03 Shop Intelligence          | 04 Niche Finder
-05 CSV/Excel Import-Export    | 06 Referral Tizimi
-07 API Access (Dev Plan)      | 08 Public Leaderboard
-09 Profit Calculator 2.0      | 10 Browser Extension
-```
+### SOLID
+- **S** — Single Responsibility: Har fayl BIR vazifa. Controller = HTTP, Service = logika, Hook = state.
+- **O** — Open/Closed: Yangi funksionallik qo'shish uchun mavjud kodni o'zgartirma, kengaytir.
+- **L** — Liskov: Interfeys va'da qilganini bajar. `any` type TAQIQLANGAN.
+- **I** — Interface Segregation: Kichik, aniq interface'lar. Katta "god object" yaratma.
+- **D** — Dependency Inversion: Service → Interface ga bog'lan, konkret implementatsiyaga emas.
 
-### v2.0 AI+Tech (11-20)
-```
-11 Trend Prediction ML        | 12 Auto Description Generator
-13 Review Sentiment Analysis  | 14 White-label
-15 Konsultatsiya Marketplace  | 16 PWA
-17 WebSocket Real-time        | 18 Multi-language i18n
-19 Demand-Supply Gap          | 20 Price Elasticity Calculator
-```
+### DRY + KISS
+- Bir xil kod 2+ joyda → helper/hook/service ga chiqar.
+- Murakkab yechimdan oldin oddiy yechimni sinab ko'r.
+- Premature optimization qilma — avval ishlat, keyin optimizatsiya qil.
 
-### v3.0 Signals (21-30)
+### TAQIQLANGAN
 ```
-21 Cannibalization Alert      | 22 Dead Stock Predictor
-23 Category Saturation Index  | 24 Flash Sale Detector
-25 New Product Early Signal   | 26 Stock Cliff Alert
-27 Ranking Position Tracker   | 28 Product Launch Checklist
-29 A/B Price Testing          | 30 Replenishment Planner
-```
-
-### v4.0 Enterprise (31-43)
-```
-31 Uzum Ads ROI Tracker       | 32 Telegram Mini App
-33 Team Collaboration         | 34 Custom Report Builder
-35 Market Share PDF           | 36 Watchlist Sharing
-37 Historical Data Archive    | 38 Collective Intelligence
-39 Algorithm Reverse Eng.     | 40 Xitoy/Yevropa Sourcing
-41 Cargo Calculator           | 42 Browser Extension Pro
-43 White-label API            |
+❌ any type (TypeScript strict mode)
+❌ console.log (Backend: NestJS Logger, Frontend: development only)
+❌ God object / 400+ qatorli fayl
+❌ Inline styles (Tailwind class ishlatish)
+❌ Magic numbers (const bilan nomlash)
+❌ Nested try/catch (flat structure)
+❌ Hardcoded secrets (.env ishlatish)
 ```
 
 ---
 
-## 🔐 SHARED FILE PROTOCOL
+## TASK TRACKING (MAJBURIY)
 
-`packages/types/src/index.ts` yoki `packages/utils/src/index.ts` o'zgartirish kerak bo'lsa:
+**Loyiha vazifalari 2 ta faylda boshqariladi:**
+
+| Fayl | Vazifasi |
+|------|----------|
+| `docs/Tasks.md` | Barcha ochiq vazifalar — bug, error, feature, arxitektura, devops |
+| `docs/Done.md` | Bajarilgan ishlar arxivi — fix, feature, test natijalari |
+
+**Yangi bug/error/task topilganda `docs/Tasks.md` ga qo'shiladi:**
+
+Format: `T-XXX | [KATEGORIYA] | Sarlavha | Mas'ul | Vaqt`
+- Kategoriyalar: BACKEND, FRONTEND, DEVOPS, IKKALASI
+- Prioritetlar: P0 (kritik), P1 (muhim), P2 (o'rta), P3 (past)
+
+**Fix bo'lgandan keyin:**
+1. `docs/Tasks.md` dan o'chiriladi
+2. `docs/Done.md` ga ko'chiriladi (sana + qisqa yechim)
+
+**Qoidalar:**
+- Bug/task topilgan paytda DARHOL yoziladi
+- Har sessiyada avval `docs/Tasks.md` o'qib, T-raqamni davom ettirish
+- Takroriy task yaratmaslik, mavjudini yangilash
+
+---
+
+## SHARED FILE PROTOCOL
+
+`packages/types/` yoki `packages/utils/` o'zgartirish kerak bo'lsa:
 
 ```
 1. Telegram/chat orqali ikkinchi dasturchiga xabar ber
@@ -100,7 +111,7 @@ packages/utils/  → Kelishib (IKKALASI)
 
 ---
 
-## 🌿 GIT QOIDALARI
+## GIT QOIDALARI
 
 ```bash
 # Har kuni boshida:
@@ -123,7 +134,22 @@ refactor(discovery): replace Playwright with REST pagination
 
 ---
 
-## ⚙️ LOCAL DEVELOPMENT
+## DEFINITIONS
+
+| Atama | Ma'nosi |
+|-------|---------|
+| `weekly_bought` | Snapshot DELTA — `ordersAmount` farqi (cumulative emas!) |
+| `rOrdersAmount` | Rounded JAMI buyurtma (haftalik emas, ishlatma!) |
+| `availableAmount` | Per-order limit (masalan 5) — real stok EMAS |
+| `totalAvailableAmount` | Haqiqiy ombor stoki (masalan 2659) |
+| `score` | Mahsulot reytingi — `packages/utils/src/index.ts` dagi formula |
+| `BigInt` | Prisma ID/balance — JSON serialize uchun `.toString()` MAJBURIY |
+| `account_id` | Multi-tenant filter — HAR query da bo'lishi SHART |
+| `FBO/FBS` | Uzum fulfillment turi — FBO = Uzum omborida, FBS = sotuvchida |
+
+---
+
+## LOCAL DEVELOPMENT
 
 ```bash
 # Infra (postgres + redis):
@@ -149,4 +175,16 @@ pnpm --filter web exec tsc --noEmit
 
 ---
 
-*CLAUDE.md | Uzum Trend Finder | 2026-02-23*
+## XAVFLI ZONALAR (IKKALA DASTURCHI UCHUN)
+
+```
+❌ prisma migrate reset — ma'lumotlar yo'qoladi!
+❌ main branch'ga to'g'ridan push — PR orqali
+❌ .env faylni commit qilma — .gitignore da bo'lishi kerak
+❌ O'zga dasturchining papkasiga teginma (apps/api ↔ apps/web)
+❌ packages/* o'zgartirish — avval kelishib olish
+```
+
+---
+
+*CLAUDE.md | VENTRA Analytics Platform | 2026-02-26*

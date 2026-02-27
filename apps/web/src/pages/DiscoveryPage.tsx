@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { discoveryApi, productsApi, seasonalApi, nicheApi } from '../api/client';
+import { getErrorMessage } from '../utils/getErrorMessage';
 import { FireIcon, ArrowTrendingUpIcon } from '../components/icons';
 
 // ─── Shared types ────────────────────────────────────────────────────────────
@@ -141,7 +142,7 @@ function ScannerTab() {
     if (!input) { setError('URL yoki kategoriya ID kiriting'); return; }
     setError(''); setStarting(true);
     try { await discoveryApi.startRun(input); setCategoryInput(''); await loadRuns(); }
-    catch (err: any) { setError(err.response?.data?.message ?? 'Xato yuz berdi'); }
+    catch (err: unknown) { setError(getErrorMessage(err)); }
     finally { setStarting(false); }
   }
 
@@ -149,10 +150,20 @@ function ScannerTab() {
     try { const res = await discoveryApi.getRun(run.id); setSelectedRun(res.data); } catch {}
   }
 
+  const [trackedIds, setTrackedIds] = useState<Set<string>>(new Set());
+
   async function handleTrack(productId: string) {
+    // Optimistic UI — mark as tracked immediately
+    setTrackedIds((prev) => new Set(prev).add(productId));
     setTrackingId(productId);
-    try { await productsApi.track(productId); } catch {}
-    finally { setTrackingId(null); }
+    try {
+      await productsApi.track(productId);
+    } catch {
+      // Rollback on failure
+      setTrackedIds((prev) => { const s = new Set(prev); s.delete(productId); return s; });
+    } finally {
+      setTrackingId(null);
+    }
   }
 
   return (
@@ -269,8 +280,14 @@ function ScannerTab() {
                         <td className="text-right tabular-nums text-sm">{w.weekly_bought != null ? <span className="text-success">{w.weekly_bought.toLocaleString()}</span> : <span className="text-base-content/30">—</span>}</td>
                         <td className="text-right tabular-nums text-xs text-base-content/60">{w.sell_price ? `${Number(w.sell_price).toLocaleString()} so'm` : '—'}</td>
                         <td>
-                          <button onClick={() => handleTrack(w.product_id)} disabled={trackingId === w.product_id} className="btn btn-xs btn-outline btn-success">
-                            {trackingId === w.product_id ? <span className="loading loading-spinner loading-xs" /> : '+ Track'}
+                          <button
+                            onClick={() => handleTrack(w.product_id)}
+                            disabled={trackingId === w.product_id || trackedIds.has(w.product_id)}
+                            className={`btn btn-xs ${trackedIds.has(w.product_id) ? 'btn-success no-animation' : 'btn-outline btn-success'}`}
+                          >
+                            {trackingId === w.product_id
+                              ? <span className="loading loading-spinner loading-xs" />
+                              : trackedIds.has(w.product_id) ? '✓ Tracked' : '+ Track'}
                           </button>
                         </td>
                       </tr>

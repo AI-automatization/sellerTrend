@@ -12,7 +12,7 @@ export class ConsultationService {
     price_uzs: number;
     duration_min?: number;
   }) {
-    return this.prisma.consultation.create({
+    const c = await this.prisma.consultation.create({
       data: {
         consultant_id: consultantId,
         title: data.title,
@@ -22,6 +22,7 @@ export class ConsultationService {
         duration_min: data.duration_min ?? 60,
       },
     });
+    return { ...c, price_uzs: c.price_uzs.toString() };
   }
 
   async listAvailable(category?: string) {
@@ -100,7 +101,7 @@ export class ConsultationService {
     if (consultation.status !== 'AVAILABLE') throw new BadRequestException('Bu konsultatsiya band');
     if (consultation.consultant_id === clientId) throw new BadRequestException('O\'zingizga bron qilib bo\'lmaydi');
 
-    return this.prisma.consultation.update({
+    const c = await this.prisma.consultation.update({
       where: { id: consultationId },
       data: {
         client_id: clientId,
@@ -108,6 +109,7 @@ export class ConsultationService {
         scheduled_at: new Date(scheduledAt),
       },
     });
+    return { ...c, price_uzs: c.price_uzs.toString() };
   }
 
   async complete(consultantId: string, consultationId: string) {
@@ -118,10 +120,11 @@ export class ConsultationService {
     if (!consultation) throw new NotFoundException('Konsultatsiya topilmadi');
     if (consultation.consultant_id !== consultantId) throw new BadRequestException('Sizning konsultatsiyangiz emas');
 
-    return this.prisma.consultation.update({
+    const c = await this.prisma.consultation.update({
       where: { id: consultationId },
       data: { status: 'COMPLETED', completed_at: new Date() },
     });
+    return { ...c, price_uzs: c.price_uzs.toString() };
   }
 
   async rate(clientId: string, consultationId: string, rating: number, review?: string) {
@@ -133,10 +136,11 @@ export class ConsultationService {
     if (consultation.client_id !== clientId) throw new BadRequestException('Sizning broningiz emas');
     if (consultation.status !== 'COMPLETED') throw new BadRequestException('Faqat yakunlangan konsultatsiyani baholash mumkin');
 
-    return this.prisma.consultation.update({
+    const c = await this.prisma.consultation.update({
       where: { id: consultationId },
       data: { rating, review },
     });
+    return { ...c, price_uzs: c.price_uzs.toString() };
   }
 
   async getCategories() {
