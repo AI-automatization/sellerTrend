@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { getTokenPayload } from './api/client';
 import { ToastContainer } from 'react-toastify';
 import { Suspense, lazy } from 'react';
 import 'react-toastify/dist/ReactToastify.css';
@@ -31,7 +32,9 @@ const SharedWatchlistPage = lazy(() => import('./pages/SharedWatchlistPage').the
 const TelegramMiniAppPage = lazy(() => import('./pages/TelegramMiniAppPage').then(m => ({ default: m.TelegramMiniAppPage })));
 
 function isAuthenticated() {
-  return !!localStorage.getItem('access_token');
+  const payload = getTokenPayload();
+  if (!payload) return false;
+  return payload.exp > Date.now() / 1000;
 }
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
