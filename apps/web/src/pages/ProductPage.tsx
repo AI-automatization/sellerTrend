@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { uzumApi, productsApi, sourcingApi } from '../api/client';
 import { getErrorMessage } from '../utils/getErrorMessage';
@@ -8,6 +8,7 @@ import {
   Area,
   BarChart,
   Bar,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -179,6 +180,16 @@ export function ProductPage() {
   const [extItems, setExtItems] = useState<ExternalItem[]>([]);
   const [extLoading, setExtLoading] = useState(false);
   const [extSearched, setExtSearched] = useState(false);
+
+  // Kunlik aggregate — har kunning oxirgi qiymatini olish (zigzag oldini olish)
+  const dailySnapshots = useMemo(() => {
+    const map = new Map<string, { date: string; score: number; orders: number }>();
+    for (const s of snapshots) {
+      const day = s.date.substring(0, 10);
+      map.set(day, { ...s, date: day });
+    }
+    return Array.from(map.values());
+  }, [snapshots]);
   const [extNote, setExtNote] = useState('');
   const [usdRate, setUsdRate] = useState(12900);
 
@@ -254,14 +265,18 @@ export function ProductPage() {
         setExtItems((res.data.results ?? []).slice(0, 12));
         if (res.data.note) setExtNote(res.data.note);
       })
-      .catch(() => {})
+      .catch(() => {
+        setExtNote('Global bozor ma\'lumotlarini olishda xatolik yuz berdi');
+      })
       .finally(() => setExtLoading(false));
   }, [result?.title]);
 
   async function handleTrack() {
     if (!id) return;
-    try { await productsApi.track(id); } catch { /* already tracked */ }
-    setTracked(true);
+    try {
+      await productsApi.track(id);
+      setTracked(true);
+    } catch { /* already tracked */ }
   }
 
   if (loading) {
@@ -545,7 +560,7 @@ export function ProductPage() {
                   />
                   <Bar dataKey="daily_sold" radius={[4, 4, 0, 0]} name="Kunlik sotuv">
                     {weeklyTrend.daily_breakdown.map((_entry, i) => (
-                      <rect key={i} fill={
+                      <Cell key={i} fill={
                         i === weeklyTrend.daily_breakdown.length - 1 ? '#a78bfa' : '#34d399'
                       } />
                     ))}
@@ -625,12 +640,12 @@ export function ProductPage() {
                   <p className="font-bold text-lg tabular-nums">
                     {(mlForecast.score_forecast.confidence * 100).toFixed(0)}%
                   </p>
-                  <p className="text-xs text-base-content/40">confidence</p>
+                  <p className="text-xs text-base-content/40">bashorat darajasi</p>
                 </div>
                 <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3">
-                  <p className="text-xs text-base-content/50">Ma'lumot</p>
+                  <p className="text-xs text-base-content/50">Tahlil soni</p>
                   <p className="font-bold text-lg tabular-nums">{mlForecast.data_points}</p>
-                  <p className="text-xs text-base-content/40">snapshot</p>
+                  <p className="text-xs text-base-content/40">ta o'lcham</p>
                 </div>
               </div>
 
@@ -642,11 +657,11 @@ export function ProductPage() {
                     <AreaChart
                       data={[
                         ...mlForecast.snapshots.slice(-10).map((s: any) => ({
-                          date: new Date(s.date).toLocaleDateString('uz-UZ', { month: 'short', day: 'numeric' }),
+                          date: s.date?.substring(0, 10) ?? s.date,
                           score: s.score,
                         })),
                         ...mlForecast.score_forecast.predictions.map((p: any) => ({
-                          date: new Date(p.date).toLocaleDateString('uz-UZ', { month: 'short', day: 'numeric' }),
+                          date: p.date?.substring(0, 10) ?? p.date,
                           predicted: p.value,
                           lower: p.lower,
                           upper: p.upper,
@@ -661,7 +676,13 @@ export function ProductPage() {
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
-                      <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fontSize: 10, fill: 'var(--chart-tick)' }}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(v) => { const d = new Date(v); return isNaN(d.getTime()) ? v : `${d.getDate()}/${d.getMonth() + 1}`; }}
+                      />
                       <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
                       <Tooltip {...glassTooltip} />
                       <Area type="monotone" dataKey="score" stroke="#a78bfa" strokeWidth={2} fill="none" dot={false} />
@@ -696,7 +717,7 @@ export function ProductPage() {
               )}
 
               <p className="text-xs text-base-content/30">
-                Ensemble: WMA + Holt's Exponential Smoothing + Linear Regression · MAE: {mlForecast.score_forecast.metrics?.mae ?? '—'} · RMSE: {mlForecast.score_forecast.metrics?.rmse ?? '—'}
+                AI bashorat · {(mlForecast.score_forecast.confidence * 100).toFixed(0)}% ishonchlilik
               </p>
             </>
           )}
@@ -704,21 +725,35 @@ export function ProductPage() {
       )}
 
       {/* Score + Orders history */}
-      {snapshots.length > 1 && (
+      {dailySnapshots.length > 1 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-5">
             <h2 className="font-bold text-sm text-base-content/70 mb-3">Score tarixi</h2>
-            <ScoreChart data={snapshots} />
+            <ScoreChart data={dailySnapshots} />
           </div>
           <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-5">
             <h2 className="font-bold text-sm text-base-content/70 mb-3">Haftalik sotuvlar tarixi</h2>
             <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={snapshots.slice(-15)} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+              <BarChart data={dailySnapshots.slice(-15)} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
-                <Tooltip {...glassTooltip} />
-                <Bar dataKey="orders" fill="#34d399" radius={[4, 4, 0, 0]} name="Haftalik sotuvlar" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 10, fill: 'var(--chart-tick)' }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v) => { const d = new Date(v); return `${d.getDate()}/${d.getMonth() + 1}`; }}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: 'var(--chart-tick)' }}
+                  tickLine={false}
+                  axisLine={false}
+                  unit=" ta"
+                />
+                <Tooltip
+                  {...glassTooltip}
+                  formatter={(value: number) => [`${value} ta`, 'Haftalik sotuv']}
+                />
+                <Bar dataKey="orders" fill="#34d399" radius={[4, 4, 0, 0]} name="Haftalik sotuvlar (dona/hafta)" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -754,13 +789,6 @@ export function ProductPage() {
         usdRate={usdRate}
       />
 
-      {/* Score formula */}
-      <div className="alert alert-info alert-soft text-xs">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="h-4 w-4 shrink-0 stroke-current">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <span>Score = 0.55×ln(1+faollik) + 0.25×ln(1+jami) + 0.10×reyting + 0.10×ombor · Real vaqtda Uzumdan hisoblangan</span>
-      </div>
     </div>
   );
 }
