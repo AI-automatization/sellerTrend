@@ -2561,3 +2561,91 @@ WHERE id IN (
 
 **Fayllar:**
 - One-time migration yoki manual SQL
+
+---
+
+# ═══════════════════════════════════════════════════════════
+# i18n AUDIT — Sardor push (2026-02-28)
+# ═══════════════════════════════════════════════════════════
+# Playwright + kod tahlili asosida topilgan muammolar
+# Mas'ul: Sardor (FRONTEND)
+
+## P0 — KRITIK
+
+### T-271 | FRONTEND | i18n: 23 ta DUPLICATE KEY barcha 3 tilda — ikkinchisi birinchisini yozib tashlaydi | 30min
+**Muammo:** `uz.ts`, `en.ts`, `ru.ts` fayllarida ~980-1139 qatorlarda eski tarjimalar qolib ketgan. 23 ta key ikki marta aniqlangan. JS objectda oxirgisi yutadi — `{n}` template variable yo'qolib qolgan.
+**Conflict bor keylar:**
+- `consultation.pricePerMin`: `"so'm / {n} min"` → `"so'm / min"` (template YO'QOLDI!)
+- `feedback.myTickets`: `"Mening ticketlarim ({n})"` → `"Mening ticketlarim"` (count YO'QOLDI!)
+- `signals.subtitle`, `feedback.messagePlaceholder`, `referral.title` (en), `discovery.subtitle` (en), `consultation.title` (en/ru), `feedback.subtitle` (en/ru), `product.notFound` (ru), `sourcing.subtitle` (en/ru)
+**Fix:** ~980-1139 qatorlardagi eski blokni O'CHIRISH, birinchi (to'liq) definitionni saqlash.
+**Fayllar:**
+- `apps/web/src/i18n/uz.ts` (~980-1139 qatorlar)
+- `apps/web/src/i18n/en.ts` (~980-1139 qatorlar)
+- `apps/web/src/i18n/ru.ts` (~980-1139 qatorlar)
+
+## P1 — MUHIM
+
+### T-272 | FRONTEND | Layout.tsx sidebar section labellar hardcoded — i18n ishlatilmagan | 20min
+**Muammo:** `Layout.tsx` da sidebar guruh nomlari to'g'ridan-to'g'ri string sifatida yozilgan, `t()` ishlatilmagan. RU/EN tilga o'tganda ham O'zbek/Inglizcha qoladi.
+**Hardcoded joylar:**
+- Line 174: `label: 'Asosiy'` → `t('sidebar.main')`
+- Line 183: `label: 'Mahsulot'` → `t('sidebar.product')`
+- Line 200: `label: 'Biznes'` → `t('sidebar.business')`
+- Line 176: `label: isSuperAdmin ? 'Home' : t(...)` → `t('nav.home')`
+- Line 205: `label: 'Extension'` → `t('nav.extension')`
+- Line 206: `label: 'Feedback'` → `t('nav.feedback')`
+- Lines 160-168: Admin section labels — all hardcoded Uzbek
+**Fix:** Barcha labellarni `t()` bilan o'rash, yangi keylarni 3 tilda qo'shish.
+**Fayl:** `apps/web/src/components/Layout.tsx`
+
+### T-273 | FRONTEND | SignalsPage tab nomlari va tab content hardcoded — i18n yo'q | 45min
+**Muammo:** Signal tab nomlari `types.ts` da hardcoded array (aralash O'zbek/Ingliz). Tab content componentlarida (CannibalizationTab, FlashSaleTab va boshqalar) barcha title/description/empty state textlar hardcoded O'zbek tilida.
+**Hardcoded tablar:** Kannibalizatsiya, Dead Stock, Saturatsiya, Flash Sale, Erta Signal, Stock Alert, Ranking, Checklist, Narx Test, Zahira
+**Fix:** `types.ts` dagi TABS arrayni i18n keylar bilan almashtirish. Har bir tab componentida `useI18n()` + `t()` ishlatish.
+**Fayllar:**
+- `apps/web/src/components/signals/types.ts` (TABS array)
+- `apps/web/src/components/signals/CannibalizationTab.tsx`
+- `apps/web/src/components/signals/` — barcha tab componentlari
+
+### T-274 | FRONTEND | ScannerTab.tsx (Discovery) butunlay i18n siz — hardcoded O'zbek | 30min
+**Muammo:** `ScannerTab.tsx` componentida `useI18n()` UMUMAN ishlatilmagan. Barcha stringlar (category nomlari, buttonlar, placeholder, empty state) hardcoded O'zbek tilida.
+**Fix:** `useI18n()` import qilish, barcha stringlarni `t()` bilan o'rash, yangi keylarni 3 tilda qo'shish.
+**Fayl:** `apps/web/src/components/discovery/ScannerTab.tsx`
+
+### T-275 | FRONTEND | CargoCalculator.tsx (Sourcing) butunlay i18n siz — hardcoded O'zbek | 30min
+**Muammo:** `CargoCalculator.tsx` form labellar, placeholder, button textlari, cargo provider nomlari, customs dropdown — hammasi hardcoded O'zbek tilida.
+**Fix:** `useI18n()` import qilish, barcha stringlarni `t()` bilan o'rash, yangi keylarni 3 tilda qo'shish.
+**Fayl:** `apps/web/src/components/sourcing/CargoCalculator.tsx`
+
+## P2 — O'RTA
+
+### T-276 | FRONTEND | UZ faylida ~85 ta inglizcha tarjima qilinmagan value | 60min
+**Muammo:** `uz.ts` da ~85 ta key inglizcha qolgan (EN fayldagi qiymat bilan bir xil). Asosiy guruhlari:
+- Navigation: Dashboard, Discovery, Sourcing, Leaderboard, Enterprise
+- Admin panel: ~20 ta key (Dashboard, Analytics, Feedback, Tracked products, Churn rate, va h.k.)
+- Signals: Dead Stock, Flash Sale, Stock Alert, Ranking, Checklist
+- Extension: Browser Extension, Free, Sidebar Panel, Notifications
+- Product: Conversion, Trend Score, AI+ML
+**Fix:** Barcha keylarni o'zbek tiliga tarjima qilish.
+**Fayl:** `apps/web/src/i18n/uz.ts`
+
+### T-277 | FRONTEND | RU faylida ~24 ta inglizcha tarjima qilinmagan value | 30min
+**Muammo:** `ru.ts` da ~24 ta key inglizcha qolgan:
+- Discovery, Sourcing, Enterprise, Category Discovery, Sourcing Engine
+- Dead Stock, Flash Sale, Ads ROI, Watchlist, Trend Score, Churn rate, White-label
+**Fix:** Barcha keylarni rus tiliga tarjima qilish.
+**Fayl:** `apps/web/src/i18n/ru.ts`
+
+### T-278 | FRONTEND | feedback.title UZ da aralash til: "Feedback & Yordam" | 5min
+**Muammo:** UZ tarjimasida inglizcha "Feedback" so'zi qolgan: `'feedback.title': 'Feedback & Yordam'`
+**Fix:** `'feedback.title': "Fikr-mulohaza va Yordam"` yoki `"Qayta aloqa va Yordam"`
+**Fayl:** `apps/web/src/i18n/uz.ts` (line 471 + line 1111)
+
+### T-279 | FRONTEND | discovery.title barcha 3 tilda "Category Discovery" — tarjima qilinmagan | 5min
+**Muammo:** `discovery.title` key barcha 3 faylda ham inglizcha "Category Discovery" qilib qolgan.
+**Fix:**
+- `uz.ts`: `"Kategoriya Kashfiyoti"` yoki `"Kategoriya Tahlili"`
+- `ru.ts`: `"Обзор категорий"` yoki `"Исследование категорий"`
+- `en.ts`: `"Category Discovery"` (to'g'ri)
+**Fayllar:** `apps/web/src/i18n/uz.ts`, `apps/web/src/i18n/ru.ts`
