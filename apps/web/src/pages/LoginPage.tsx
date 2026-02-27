@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '../api/client';
+import { useAuthStore } from '../stores/authStore';
+import { queryClient } from '../stores/queryClient';
 import { getErrorMessage } from '../utils/getErrorMessage';
 import { useI18n } from '../i18n/I18nContext';
 
@@ -19,14 +21,17 @@ export function LoginPage() {
     { title: t('auth.featureCount'), desc: t('auth.featureCountDesc'), iconPath: 'M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941' },
   ];
 
+  const setTokens = useAuthStore((s) => s.setTokens);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
       const res = await authApi.login(email, password);
-      localStorage.setItem('access_token', res.data.access_token);
-      if (res.data.refresh_token) localStorage.setItem('refresh_token', res.data.refresh_token);
+      // Clear stale cache from previous session/account before setting new tokens
+      queryClient.clear();
+      setTokens(res.data.access_token, res.data.refresh_token ?? '');
       navigate('/');
     } catch (err: unknown) {
       setError(getErrorMessage(err, t('auth.loginError')));

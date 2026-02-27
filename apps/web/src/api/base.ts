@@ -1,4 +1,5 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import { queryClient } from '../stores/queryClient';
 
 export const api = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL ?? ''}/api/v1`,
@@ -47,6 +48,7 @@ api.interceptors.response.use(
     ) {
       const refreshToken = localStorage.getItem('refresh_token');
       if (!refreshToken) {
+        queryClient.clear();
         localStorage.removeItem('access_token');
         window.location.href = '/login';
         return Promise.reject(err);
@@ -80,6 +82,7 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshErr) {
         processPendingQueue(null, refreshErr);
+        queryClient.clear();
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         window.location.href = '/login';
@@ -91,6 +94,7 @@ api.interceptors.response.use(
 
     // 401 on auth endpoints — just redirect
     if (err.response?.status === 401) {
+      queryClient.clear();
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       window.location.href = '/login';

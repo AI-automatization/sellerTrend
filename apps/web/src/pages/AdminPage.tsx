@@ -486,13 +486,16 @@ export function AdminPage() {
 
   async function load() {
     setLoading(true);
-    try {
-      const [accRes, feeRes, auditRes, usersRes] = await Promise.all([
-        adminApi.listAccounts(), adminApi.getGlobalFee(), adminApi.getAuditLog(50), adminApi.listUsers(),
-      ]);
-      setAccounts(accRes.data); setGlobalFeeInput(feeRes.data.daily_fee_default);
-      setAuditLog(auditRes.data); setUsers(usersRes.data);
-    } catch { /* empty */ }
+    const [accRes, feeRes, auditRes, usersRes] = await Promise.all([
+      adminApi.listAccounts().catch(() => null),
+      adminApi.getGlobalFee().catch(() => null),
+      adminApi.getAuditLog(50).catch(() => null),
+      adminApi.listUsers().catch(() => null),
+    ]);
+    if (accRes) setAccounts(accRes.data);
+    if (feeRes) setGlobalFeeInput(feeRes.data.daily_fee_default);
+    if (auditRes) setAuditLog(auditRes.data);
+    if (usersRes) setUsers(usersRes.data);
     setLoading(false);
   }
 

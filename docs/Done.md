@@ -3,7 +3,7 @@
 
 ---
 
-## TUZATILGAN BUGLAR (26 ta)
+## TUZATILGAN BUGLAR (28 ta)
 
 | # | Sana | Tur | Muammo | Fayl |
 |---|------|-----|--------|------|
@@ -33,6 +33,8 @@
 | BUG-024 | 2026-02-25 | backend | Dashboard weekly=0 — duplicate snapshots, take:2→take:20 + 1h min gap | products.service.ts |
 | BUG-025 | 2026-02-25 | frontend+backend+worker | Super Admin billing to'liq ajratish — frontend+worker+DB | DashboardPage, billing.processor |
 | BUG-026 | 2026-02-25 | build | API 19 ta TS error — prisma generate qilinmagan (v6 modellar) | admin.service, ai.service |
+| BUG-027 | 2026-02-27 | frontend | Login/logout da React Query cache tozalanmaydi — eski account data ko'rsatiladi | LoginPage, Layout, base.ts |
+| BUG-028 | 2026-02-27 | frontend | Admin sidebar 2 ta item active — NavLink search params e'tiborsiz qoldiradi | Layout.tsx |
 
 ---
 

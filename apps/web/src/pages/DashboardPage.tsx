@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, PieChart, Pie, LineChart, Line,
@@ -136,14 +136,21 @@ export function DashboardPage() {
   const [sortKey, setSortKey] = useState<'score' | 'weekly' | 'price'>('score');
   const isSuperAdmin = getTokenPayload()?.role === 'SUPER_ADMIN';
   const { t } = useI18n();
+  const location = useLocation();
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
+    setLoading(true);
     const promises: Promise<unknown>[] = [productsApi.getTracked().then((r) => setProducts(r.data))];
     if (!isSuperAdmin) {
       promises.push(billingApi.getBalance().then((r) => setBalance(r.data)).catch(() => {}));
     }
     Promise.all(promises).finally(() => setLoading(false));
-  }, []);
+  }, [isSuperAdmin]);
+
+  // Refetch when navigating to dashboard (location.key changes on each navigation)
+  useEffect(() => {
+    fetchData();
+  }, [location.key, fetchData]);
 
   // ── Computed ──
   const stats = useMemo(() => {

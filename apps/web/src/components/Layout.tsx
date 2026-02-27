@@ -1,5 +1,7 @@
 import { Outlet, NavLink, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { queryClient } from '../stores/queryClient';
+import { useAuthStore } from '../stores/authStore';
 import {
   HomeIcon,
   ChartBarIcon,
@@ -131,6 +133,8 @@ export function Layout() {
     }).catch(() => {});
   }, []);
 
+  const clearTokens = useAuthStore((s) => s.clearTokens);
+
   function logout() {
     const rt = localStorage.getItem('refresh_token');
     if (rt) {
@@ -138,8 +142,9 @@ export function Layout() {
         authApi.logout(rt).catch(() => {}),
       );
     }
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    // Clear all cached API data so next login starts fresh
+    queryClient.clear();
+    clearTokens();
     navigate('/login');
   }
 
@@ -210,6 +215,10 @@ export function Layout() {
     if (item.to.includes('?tab=')) {
       const tab = item.to.split('tab=')[1];
       return adminLinkClass(tab);
+    }
+    // /admin without tab — active only when no tab query param is selected
+    if (item.to === '/admin' && item.end) {
+      return adminLinkClass();
     }
     if (item.end) return location.pathname === item.to;
     return location.pathname.startsWith(item.to);
@@ -338,55 +347,24 @@ export function Layout() {
                         const active = isItemActive(item);
                         const Icon = item.icon;
 
-                        if (item.to.includes('?tab=')) {
-                          // Admin tab links — use regular links
-                          return (
-                            <NavLink
-                              key={item.to}
-                              to={item.to}
-                              className={`group relative flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-all duration-150 ${
-                                active
-                                  ? 'bg-primary/10 text-primary font-semibold'
-                                  : 'text-base-content/65 hover:bg-base-content/5 hover:text-base-content/85 font-medium'
-                              }`}
-                            >
-                              {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-primary" />}
-                              <Icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-primary' : 'text-base-content/40 group-hover:text-base-content/55'}`} />
-                              <span className="truncate">{item.label}</span>
-                              {item.badge != null && item.badge > 0 && (
-                                <span className="ml-auto text-[10px] font-bold bg-error/15 text-error px-1.5 py-0.5 rounded-md min-w-[20px] text-center">
-                                  {item.badge}
-                                </span>
-                              )}
-                            </NavLink>
-                          );
-                        }
-
                         return (
                           <NavLink
                             key={item.to}
                             to={item.to}
                             end={item.end}
-                            className={({ isActive: navActive }) => {
-                              const act = navActive;
-                              return `group relative flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-all duration-150 ${
-                                act
-                                  ? 'bg-primary/10 text-primary font-semibold'
-                                  : 'text-base-content/65 hover:bg-base-content/5 hover:text-base-content/85 font-medium'
-                              }`;
-                            }}
+                            className={`group relative flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-all duration-150 ${
+                              active
+                                ? 'bg-primary/10 text-primary font-semibold'
+                                : 'text-base-content/65 hover:bg-base-content/5 hover:text-base-content/85 font-medium'
+                            }`}
                           >
-                            {({ isActive: navActive }) => (
-                              <>
-                                {navActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-primary" />}
-                                <Icon className={`w-[18px] h-[18px] shrink-0 ${navActive ? 'text-primary' : 'text-base-content/40 group-hover:text-base-content/55'}`} />
-                                <span className="truncate">{item.label}</span>
-                                {item.badge != null && item.badge > 0 && (
-                                  <span className="ml-auto text-[10px] font-bold bg-error/15 text-error px-1.5 py-0.5 rounded-md min-w-[20px] text-center">
-                                    {item.badge}
-                                  </span>
-                                )}
-                              </>
+                            {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-primary" />}
+                            <Icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-primary' : 'text-base-content/40 group-hover:text-base-content/55'}`} />
+                            <span className="truncate">{item.label}</span>
+                            {item.badge != null && item.badge > 0 && (
+                              <span className="ml-auto text-[10px] font-bold bg-error/15 text-error px-1.5 py-0.5 rounded-md min-w-[20px] text-center">
+                                {item.badge}
+                              </span>
                             )}
                           </NavLink>
                         );

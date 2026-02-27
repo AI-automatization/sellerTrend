@@ -10,3 +10,5 @@ apps/api/logs/
 apps/worker/logs/
 apps/worker/bg_playwright.js
 .playwright-mcp/
+apps/desktop/out/
+apps/desktop/release/
