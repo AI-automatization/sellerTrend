@@ -21,9 +21,11 @@ export class AdminStatsService {
   constructor(private readonly prisma: PrismaService) {
     const url = process.env.REDIS_URL ?? 'redis://localhost:6379';
     this.redis = new Redis(url, {
-      maxRetriesPerRequest: 1,
+      maxRetriesPerRequest: 0,
       connectTimeout: 3000,
+      commandTimeout: 3000,
       lazyConnect: true,
+      retryStrategy: () => null,
     });
   }
 

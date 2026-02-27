@@ -32,9 +32,11 @@ export class AuthService {
     private readonly referralService: ReferralService,
   ) {
     this.redis = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
-      maxRetriesPerRequest: 1,
+      maxRetriesPerRequest: 0,
       connectTimeout: 3000,
+      commandTimeout: 3000,
       lazyConnect: true,
+      retryStrategy: () => null,
     });
     this.redis.connect().catch(() => {
       this.logger.warn('Redis not available for rate limiting — falling back to no rate limit');
