@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import { referralApi } from '../api/client';
+import { getErrorMessage } from '../utils/getErrorMessage';
 
 interface ReferralStats {
   my_code: string | null;
@@ -26,8 +28,9 @@ export function ReferralPage() {
     try {
       const res = await referralApi.generateCode();
       setStats((s) => s ? { ...s, my_code: res.data.code } : s);
-    } catch {}
-    finally { setGenerating(false); }
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
+    } finally { setGenerating(false); }
   }
 
   function copyLink() {

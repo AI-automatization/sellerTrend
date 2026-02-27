@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
+import { toast } from 'react-toastify';
 import { feedbackApi } from '../api/client';
+import { getErrorMessage } from '../utils/getErrorMessage';
 
 type Ticket = {
   id: string;
@@ -72,7 +74,7 @@ export function FeedbackPage() {
     try {
       const r = await feedbackApi.getMyTickets();
       setTickets(r.data || []);
-    } catch { /* empty */ }
+    } catch (err: unknown) { toast.error(getErrorMessage(err)); }
     setLoading(false);
   }
 
@@ -88,7 +90,7 @@ export function FeedbackPage() {
       setType('QUESTION');
       setPriority('MEDIUM');
       loadTickets();
-    } catch { /* empty */ }
+    } catch (err: unknown) { toast.error(getErrorMessage(err)); }
     setSubmitting(false);
   }
 
@@ -99,7 +101,7 @@ export function FeedbackPage() {
       const r = await feedbackApi.getTicket(ticketId);
       setTicketDetail(r.data);
       setMessages(r.data.messages || []);
-    } catch { /* empty */ }
+    } catch (err: unknown) { toast.error(getErrorMessage(err)); }
     setMsgLoading(false);
   }
 
@@ -112,7 +114,7 @@ export function FeedbackPage() {
       // Reload messages
       const r = await feedbackApi.getTicket(selectedTicket);
       setMessages(r.data.messages || []);
-    } catch { /* empty */ }
+    } catch (err: unknown) { toast.error(getErrorMessage(err)); }
     setSending(false);
   }
 

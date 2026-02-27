@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { discoveryApi, productsApi, seasonalApi, nicheApi } from '../api/client';
 import { getErrorMessage } from '../utils/getErrorMessage';
 import { FireIcon, ArrowTrendingUpIcon } from '../components/icons';
@@ -119,7 +120,8 @@ function ScannerTab() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   async function loadRuns() {
-    try { const res = await discoveryApi.listRuns(); setRuns(res.data); } catch {}
+    try { const res = await discoveryApi.listRuns(); setRuns(res.data); }
+    catch (err: unknown) { toast.error(getErrorMessage(err)); }
   }
 
   useEffect(() => {
@@ -147,7 +149,8 @@ function ScannerTab() {
   }
 
   async function openRun(run: Run) {
-    try { const res = await discoveryApi.getRun(run.id); setSelectedRun(res.data); } catch {}
+    try { const res = await discoveryApi.getRun(run.id); setSelectedRun(res.data); }
+    catch (err: unknown) { toast.error(getErrorMessage(err)); }
   }
 
   const [trackedIds, setTrackedIds] = useState<Set<string>>(new Set());

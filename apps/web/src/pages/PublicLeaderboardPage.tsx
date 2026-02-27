@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { discoveryApi } from '../api/client';
+import { discoveryApi, getTokenPayload } from '../api/client';
 import { SkeletonTable } from '../components/ui/Skeleton';
 import { setMetaTags } from '../utils/seo';
 
@@ -129,7 +129,9 @@ function WinnerRow({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function isAuthenticated() {
-  return !!localStorage.getItem('access_token');
+  const payload = getTokenPayload();
+  if (!payload) return false;
+  return payload.exp > Date.now() / 1000;
 }
 
 export function PublicLeaderboardPage() {

@@ -103,8 +103,8 @@ api.interceptors.response.use(
     if (err.response?.status === 402) {
       window.dispatchEvent(new CustomEvent('payment-due', {
         detail: {
-          message: (err.response?.data as any)?.message ?? "To'lov muddati o'tgan",
-          balance: (err.response?.data as any)?.balance,
+          message: (err.response?.data as { message?: string })?.message ?? "To'lov muddati o'tgan",
+          balance: (err.response?.data as { balance?: unknown })?.balance,
         },
       }));
     }
@@ -112,13 +112,20 @@ api.interceptors.response.use(
   },
 );
 
+export interface JwtPayload {
+  sub: string;
+  email?: string;
+  role: string;
+  account_id: string;
+  exp: number;
+}
+
 // Helper: decode JWT payload without verification
-export function getTokenPayload(): { role?: string; account_id?: string } | null {
+export function getTokenPayload(): JwtPayload | null {
   const token = localStorage.getItem('access_token');
   if (!token) return null;
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload;
+    return JSON.parse(atob(token.split('.')[1])) as JwtPayload;
   } catch {
     return null;
   }

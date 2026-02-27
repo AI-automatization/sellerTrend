@@ -1,6 +1,52 @@
 import { useState, useEffect } from 'react';
 import { signalsApi } from '../api/client';
 
+// ─── Signal types ─────────────────────────────────────────────────────────────
+
+interface CannibalizationItem {
+  product_a_title: string; product_b_title: string;
+  overlap_score: number; reason: string;
+}
+interface DeadStockItem {
+  product_id: string; title: string;
+  risk_level: string; risk_score: number;
+  days_to_dead: number; factors: string[];
+}
+interface FlashSaleItem {
+  title: string; old_price: number; new_price: number;
+  price_drop_pct: number; detected_at: string;
+}
+interface EarlySignalItem {
+  product_id: string; title: string;
+  momentum_score: number; days_since_first: number;
+  sales_velocity: number; score_growth: number;
+}
+interface StockCliffItem {
+  product_id: string; title: string;
+  severity: string; current_velocity: number;
+  estimated_days_left: number;
+}
+interface RankingItem {
+  rank: number; score: number | null;
+  weekly_bought: number | null; date: string;
+  category_name?: string;
+}
+interface PriceTest {
+  id: string; product_id: string; product_title?: string;
+  original_price: number; test_price: number; status: string;
+  original_sales?: number | null; test_sales?: number | null;
+}
+interface ReplenishmentItem {
+  product_id: string; title: string;
+  avg_daily_sales: number; reorder_point: number;
+  suggested_order_qty: number; next_order_date: string;
+}
+
+interface ChecklistItem { key: string; label: string; done: boolean }
+interface Checklist { id?: string; title: string; items: ChecklistItem[] }
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 type Tab =
   | 'cannibalization'
   | 'dead-stock'
@@ -134,7 +180,7 @@ function LoadingSpinner() {
 
 /* ============ Feature 21 — Cannibalization Alert ============ */
 function CannibalizationTab() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<CannibalizationItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -166,7 +212,7 @@ function CannibalizationTab() {
               </tr>
             </thead>
             <tbody>
-              {data.map((pair: any, i: number) => (
+              {data.map((pair, i) => (
                 <tr key={i} className="hover:bg-base-300/20 transition-colors">
                   <td className="max-w-[200px] truncate text-sm">{pair.product_a_title}</td>
                   <td className="max-w-[200px] truncate text-sm">{pair.product_b_title}</td>
@@ -188,7 +234,7 @@ function CannibalizationTab() {
 
 /* ============ Feature 22 — Dead Stock Predictor ============ */
 function DeadStockTab() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<DeadStockItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -213,7 +259,7 @@ function DeadStockTab() {
         <EmptyState text="Dead stock xavfi yo'q — yaxshi!" />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {data.map((item: any) => (
+          {data.map((item) => (
             <div key={item.product_id} className="rounded-xl bg-base-300/40 border border-base-300/30 p-4 hover:bg-base-300/60 transition-colors">
               <div className="flex items-start justify-between mb-2">
                 <h3 className="font-semibold text-sm truncate max-w-[65%]">{item.title}</h3>
@@ -310,7 +356,7 @@ function SaturationTab() {
 
 /* ============ Feature 24 — Flash Sale Detector ============ */
 function FlashSalesTab() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<FlashSaleItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -343,7 +389,7 @@ function FlashSalesTab() {
               </tr>
             </thead>
             <tbody>
-              {data.map((item: any, i: number) => (
+              {data.map((item, i) => (
                 <tr key={i} className="hover:bg-base-300/20 transition-colors">
                   <td className="max-w-[200px] truncate text-sm">{item.title}</td>
                   <td className="text-right tabular-nums text-sm line-through text-base-content/40">
@@ -368,7 +414,7 @@ function FlashSalesTab() {
 
 /* ============ Feature 25 — New Product Early Signal ============ */
 function EarlySignalsTab() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<EarlySignalItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -401,7 +447,7 @@ function EarlySignalsTab() {
               </tr>
             </thead>
             <tbody>
-              {data.map((item: any) => (
+              {data.map((item) => (
                 <tr key={item.product_id} className="hover:bg-base-300/20 transition-colors">
                   <td className="max-w-[200px] truncate text-sm">{item.title}</td>
                   <td className="text-center">
@@ -425,7 +471,7 @@ function EarlySignalsTab() {
 
 /* ============ Feature 26 — Stock Cliff Alert ============ */
 function StockCliffsTab() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<StockCliffItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -449,7 +495,7 @@ function StockCliffsTab() {
         <EmptyState text="Stock cliff xavfi yo'q" />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {data.map((item: any) => (
+          {data.map((item) => (
             <div key={item.product_id} className="rounded-xl bg-base-300/40 border border-base-300/30 p-4 hover:bg-base-300/60 transition-colors">
               <div className="flex items-start justify-between mb-2">
                 <h3 className="font-semibold text-sm truncate max-w-[70%]">{item.title}</h3>
@@ -470,7 +516,7 @@ function StockCliffsTab() {
 /* ============ Feature 27 — Ranking Position Tracker ============ */
 function RankingTab() {
   const [productId, setProductId] = useState('');
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<RankingItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
@@ -518,12 +564,12 @@ function RankingTab() {
             </div>
             <div className="rounded-xl bg-base-300/40 border border-base-300/30 p-4">
               <p className="text-xs text-base-content/40">Eng yaxshi</p>
-              <p className="text-2xl font-bold mt-1 text-success">#{Math.min(...data.map((d: any) => d.rank))}</p>
+              <p className="text-2xl font-bold mt-1 text-success">#{Math.min(...data.map((d) => d.rank))}</p>
             </div>
             <div className="rounded-xl bg-base-300/40 border border-base-300/30 p-4">
               <p className="text-xs text-base-content/40">O'rt. Score</p>
               <p className="text-2xl font-bold mt-1">
-                {(data.reduce((s: number, d: any) => s + (d.score ?? 0), 0) / data.length).toFixed(2)}
+                {(data.reduce((s, d) => s + (d.score ?? 0), 0) / data.length).toFixed(2)}
               </p>
             </div>
             <div className="rounded-xl bg-base-300/40 border border-base-300/30 p-4">
@@ -545,7 +591,7 @@ function RankingTab() {
                 </tr>
               </thead>
               <tbody>
-                {[...data].reverse().map((item: any, i: number) => {
+                {[...data].reverse().map((item, i) => {
                   const prevRank = i < data.length - 1 ? [...data].reverse()[i + 1]?.rank : null;
                   const rankChange = prevRank ? prevRank - item.rank : 0;
                   return (
@@ -584,7 +630,7 @@ function RankingTab() {
 
 /* ============ Feature 28 — Product Launch Checklist ============ */
 function ChecklistTab() {
-  const [checklist, setChecklist] = useState<any>(null);
+  const [checklist, setChecklist] = useState<Checklist | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -599,7 +645,7 @@ function ChecklistTab() {
     if (!checklist) return;
     const updated = {
       ...checklist,
-      items: checklist.items.map((item: any) =>
+      items: checklist.items.map((item) =>
         item.key === key ? { ...item, done: !item.done } : item,
       ),
     };
@@ -620,7 +666,7 @@ function ChecklistTab() {
   if (loading) return <SectionCard><LoadingSpinner /></SectionCard>;
   if (!checklist) return null;
 
-  const done = checklist.items.filter((i: any) => i.done).length;
+  const done = checklist.items.filter((i) => i.done).length;
   const total = checklist.items.length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
@@ -637,7 +683,7 @@ function ChecklistTab() {
       </div>
       <progress className="progress progress-primary w-full h-2 mb-5" value={pct} max="100" />
       <div className="space-y-2">
-        {checklist.items.map((item: any) => (
+        {checklist.items.map((item) => (
           <label key={item.key} className="flex items-center gap-3 p-3 rounded-xl bg-base-300/40 border border-base-300/30 cursor-pointer hover:bg-base-300/60 transition-colors">
             <input
               type="checkbox"
@@ -657,7 +703,7 @@ function ChecklistTab() {
 
 /* ============ Feature 29 — A/B Price Testing ============ */
 function PriceTestTab() {
-  const [tests, setTests] = useState<any[]>([]);
+  const [tests, setTests] = useState<PriceTest[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ product_id: '', original_price: '', test_price: '' });
   const [creating, setCreating] = useState(false);
@@ -754,7 +800,7 @@ function PriceTestTab() {
               </tr>
             </thead>
             <tbody>
-              {tests.map((t: any) => (
+              {tests.map((t) => (
                 <tr key={t.id} className="hover:bg-base-300/20 transition-colors">
                   <td className="max-w-[150px] truncate text-sm">{t.product_title || `#${t.product_id}`}</td>
                   <td className="text-right tabular-nums text-sm">{Number(t.original_price).toLocaleString()}</td>
@@ -793,7 +839,7 @@ function PriceTestTab() {
 
 /* ============ Feature 30 — Replenishment Planner ============ */
 function ReplenishmentTab() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<ReplenishmentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [leadTime, setLeadTime] = useState(14);
 
@@ -844,7 +890,7 @@ function ReplenishmentTab() {
               </tr>
             </thead>
             <tbody>
-              {data.map((item: any) => {
+              {data.map((item) => {
                 const isUrgent = new Date(item.next_order_date) <= new Date(Date.now() + 7 * 86400000);
                 return (
                   <tr key={item.product_id} className={`hover:bg-base-300/20 transition-colors ${isUrgent ? 'bg-error/5' : ''}`}>

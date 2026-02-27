@@ -1,5 +1,39 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
-# Yangilangan: 2026-02-26
+# Yangilangan: 2026-02-27
+
+---
+
+## TUZATILGAN BUGLAR (50 ta)
+
+### 2026-02-27 — Frontend bug fixes (Sardor, commit e121da8 + shu sessiya)
+
+| # | Task | Sana | Muammo | Fayl/Yechim |
+|---|------|------|--------|-------------|
+| BUG-029 | E-001 | 2026-02-27 | Desktop `.env` yo'q — login `app://api/v1` ga ketardi | `apps/desktop/.env` yaratildi: `VITE_API_URL=http://localhost:3000` |
+| BUG-030 | E-002 | 2026-02-27 | Desktop dev proxy yo'q — `/api/v1` backend ga yetmaydi | `electron.vite.config.ts` ga `/api/v1` proxy qo'shildi |
+| BUG-031 | T-084 | 2026-02-27 | RegisterPage: `setTokens()` chaqirilmaydi — Zustand yangilanmaydi | `RegisterPage.tsx` — `setTokens()` + `queryClient.clear()` qo'shildi |
+| BUG-032 | T-085 | 2026-02-27 | AnalyzePage: `setTracked(true)` try tashqarisida — xatoda ham true bo'lardi | `AnalyzePage.tsx` — `setTracked(true)` try ichiga ko'chirildi |
+| BUG-033 | T-086 | 2026-02-27 | ProductPage: `setTracked(true)` try tashqarisida | `ProductPage.tsx:278` — try ichiga ko'chirildi |
+| BUG-034 | T-188 | 2026-02-27 | Service Worker registered — PWA o'chirilishi kerak | `sw.js` o'chirildi, `index.html` ga unregister scripti qo'shildi |
+| BUG-035 | T-189 | 2026-02-27 | manifest.json va PWA meta taglar bor | `public/manifest.json` o'chirildi, meta taglar tozalandi |
+| BUG-036 | T-190 | 2026-02-27 | PWA-only iconlar bor (`icon-512`, `icon-maskable`, `apple-touch-icon`) | Uchala fayl o'chirildi, `favicon.svg` qoldi |
+| BUG-037 | T-191 | 2026-02-27 | `useNativeNotification.ts` dead code — hech qayerda import qilinmagan | Fayl o'chirildi |
+| BUG-038 | T-192 | 2026-02-27 | `dist/manifest.json` build artifact | `apps/web/dist/` qayta build da avtomatik tozalanadi |
+| BUG-039 | T-194 | 2026-02-27 | Chart X-axis "M02 27" format — `uz-UZ` locale ishlatilgan | `ProductPage.tsx:219` — `s.snapshot_at` ISO saqlashga o'tildi; ScoreChart `formatDay()` |
+| BUG-040 | T-195 | 2026-02-27 | "Ensemble: WMA + Holt's... MAE: X · RMSE: Y" texnik jargon | O'chirildi → "AI bashorat · X% ishonchlilik" |
+| BUG-041 | T-197 | 2026-02-27 | Score chart: bir kunda ko'p snapshot → zigzag | `dailySnapshots` useMemo — har kunning oxirgi scorei; ScoreChart ham aggregate qiladi |
+| BUG-042 | T-198 | 2026-02-27 | Haftalik sotuvlar chart noto'g'ri data, Y-axis labelsiz | `dailySnapshots.slice(-15)` + Y-axis "ta" unit + formatter |
+| BUG-043 | T-200 | 2026-02-27 | ML box: "confidence", "snapshot" inglizcha raw label | "Ishonchlilik" / "bashorat darajasi", "Tahlil soni" / "ta o'lcham" |
+| BUG-044 | T-201 | 2026-02-27 | Global bozor fetch xatosida bo'sh qoladi | `catch` da `setExtNote('Global bozor...')` qo'shildi |
+| BUG-045 | T-203 | 2026-02-27 | ML Prognoz 4 KPI box labelsiz — raqamlar tushunarsiz | Har boxga label: "7 kun score", "7 kun sotuv", "Ishonchlilik", "Tahlil soni" |
+| BUG-046 | T-204 | 2026-02-27 | WeeklyTrend BarChart — qora to'rtburchak (`<rect fill="black">`) | `<Cell>` ga almashtirildi, har bar uchun rang belgilandi |
+| BUG-047 | T-205 | 2026-02-27 | Footer da raw scoring formula ko'rinadi | `Score = 0.55×ln(...)` bloki to'liq o'chirildi |
+| BUG-048 | T-151 | 2026-02-27 | `useSocket.ts` — `useCallback(fn, [fn])` foydasiz, `fn` har render yangi | `socketRef` + `callbackRef` pattern: `useRef` ga o'tkazildi, WS reconnect yo'q |
+| BUG-049 | T-158 | 2026-02-27 | `AdminPage.tsx` — 30+ `any` type | 20+ typed interface qo'shildi (OverviewStats, RevenueStats, GrowthStats ...); `unknown` audit values; `tsc` clean |
+| BUG-050 | T-163 | 2026-02-27 | `AdminPage.tsx` 2163 qator — 400 qator limit buzilgan | 9 fayl ga bo'lindi: `adminTypes.ts`, `AdminComponents.tsx`, `AdminDashboardTab`, `AdminAccountsTab`, `AdminAnalyticsTab`, `AdminSystemTab`, `AdminFeedbackTab`, `AdminNotificationsTab`, `AdminAuditTab` — barcha fayllar ≤330 qator |
+| BUG-048 | T-097 | 2026-02-27 | WebSocket dev proxy yo'q — real-time notificationlar dev da ishlamaydi | `vite.config.ts` ga `/ws` proxy qo'shildi (`ws: true`, `ws://localhost:3000`) |
+| BUG-049 | T-234 | 2026-02-27 | Desktop production build da `VITE_API_URL` yo'q → `app://api/v1` URL | `apps/desktop/.env.production` yaratildi: `VITE_API_URL=https://app.ventra.uz` |
+| BUG-050 | T-202 | 2026-02-27 | ProductPage seksiya tartibi noto'g'ri — texnik bloklar AI tahlilidan oldin | Qayta tartib: Asosiy → AI tahlili → Haftalik → ScoreChart → ML Prognoz → Bashorat → Raqiblar → Global |
 
 ---
 

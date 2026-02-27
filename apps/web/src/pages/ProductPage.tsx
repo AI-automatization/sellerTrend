@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { uzumApi, productsApi, sourcingApi } from '../api/client';
 import { getErrorMessage } from '../utils/getErrorMessage';
@@ -66,6 +66,23 @@ interface ExternalItem {
   store: string;
 }
 
+interface MlPrediction { value: number; lower?: number; upper?: number }
+interface MlForecastSeries {
+  trend: 'up' | 'down' | 'flat';
+  predictions: MlPrediction[];
+  confidence: number;
+}
+interface MlForecast {
+  score_forecast: MlForecastSeries;
+  sales_forecast: MlForecastSeries;
+  data_points: number;
+}
+interface TrendAnalysis {
+  analysis: string;
+  factors?: string[];
+  recommendation?: string;
+}
+
 function extractSearchQuery(title: string): string {
   const stopWords = new Set([
     'для', 'из', 'и', 'в', 'с', 'на', 'по', 'за', 'от', 'до', 'ва', 'учун',
@@ -91,6 +108,7 @@ const SOURCE_META: Record<string, { label: string; flag: string; color: string }
 };
 
 const MAX_SCORE = 10;
+const USD_RATE_FALLBACK = 12900;
 
 const glassTooltip = {
   contentStyle: {
@@ -191,20 +209,20 @@ export function ProductPage() {
     return Array.from(map.values());
   }, [snapshots]);
   const [extNote, setExtNote] = useState('');
-  const [usdRate, setUsdRate] = useState(12900);
+  const [usdRate, setUsdRate] = useState(USD_RATE_FALLBACK);
 
   // ML Forecast state
-  const [mlForecast, setMlForecast] = useState<any>(null);
-  const [trendAnalysis, setTrendAnalysis] = useState<any>(null);
+  const [mlForecast, setMlForecast] = useState<MlForecast | null>(null);
+  const [trendAnalysis, setTrendAnalysis] = useState<TrendAnalysis | null>(null);
   const [mlLoading, setMlLoading] = useState(false);
 
   // Weekly trend state
   const [weeklyTrend, setWeeklyTrend] = useState<WeeklyTrend | null>(null);
 
-  async function loadData(showRefreshing = false) {
+  const loadData = useCallback(async function loadData(showRefreshing = false) {
     if (!id) return;
     if (showRefreshing) setRefreshing(true);
-    else setLoading(true);
+    else { setLoading(true); setResult(null); }
     setError('');
     try {
       const [analyzeRes, snapRes, forecastRes] = await Promise.all([
@@ -216,7 +234,7 @@ export function ProductPage() {
       const snaps: Snapshot[] = snapRes.data;
       setSnapshots(
         snaps.slice().reverse().map((s) => ({
-          date: new Date(s.snapshot_at).toLocaleDateString('uz-UZ', { month: 'short', day: 'numeric' }),
+          date: s.snapshot_at,
           score: Number(Number(s.score).toFixed(4)),
           orders: s.weekly_bought ?? 0,
         })),
@@ -228,9 +246,9 @@ export function ProductPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  }
+  }, [id]);
 
-  useEffect(() => { loadData(); }, [id]);
+  useEffect(() => { setExtSearched(false); loadData(); }, [id, loadData]);
 
   // Fetch live USD rate
   useEffect(() => {
@@ -428,56 +446,22 @@ export function ProductPage() {
         />
       </div>
 
-      {/* Forecast */}
-      {forecast && (
-        <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-6 space-y-4">
-          <h2 className="font-bold text-base lg:text-lg flex items-center gap-2">
-            <ArrowTrendingUpIcon className="w-5 h-5 text-primary" />
-            7 kunlik bashorat
-          </h2>
-          <div className="flex items-center gap-4 lg:gap-6 flex-wrap">
-            <div className="text-center">
-              <p className="text-xs text-base-content/50 mb-1">Hozirgi score</p>
-              <p className="text-2xl font-bold tabular-nums">{result.score.toFixed(2)}</p>
-            </div>
-            <div className="text-2xl text-base-content/30">→</div>
-            <div className="text-center">
-              <p className="text-xs text-base-content/50 mb-1">7 kun keyin</p>
-              <p className={`text-2xl font-bold tabular-nums ${
-                forecast.trend === 'up' ? 'text-success' : forecast.trend === 'down' ? 'text-error' : 'text-base-content'
-              }`}>{forecast.forecast_7d.toFixed(2)}</p>
-            </div>
-            <TrendBadge trend={forecast.trend} />
-            <span className="text-xs text-base-content/30 ml-auto">
-              slope {forecast.slope > 0 ? '+' : ''}{forecast.slope.toFixed(4)}
-            </span>
+      {/* AI Explanation */}
+      {result.ai_explanation && result.ai_explanation.length > 0 && (
+        <div className="rounded-2xl bg-base-200/60 border border-primary/20 p-4 lg:p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🤖</span>
+            <h2 className="font-bold text-base lg:text-lg">Claude AI tahlili</h2>
+            <span className="badge badge-primary badge-sm ml-auto">AI</span>
           </div>
-
-          {snapshots.length > 1 && (
-            <div className="mt-3">
-              <ResponsiveContainer width="100%" height={160}>
-                <AreaChart
-                  data={[
-                    ...snapshots.slice(-10),
-                    { date: '7 kun', score: forecast.forecast_7d, orders: 0, forecast: true } as any,
-                  ]}
-                  margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#a78bfa" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
-                  <Tooltip {...glassTooltip} />
-                  <Area type="monotone" dataKey="score" stroke="#a78bfa" strokeWidth={2} fill="url(#scoreGrad)" dot={false} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+          <ul className="space-y-3">
+            {result.ai_explanation.map((bullet, i) => (
+              <li key={i} className="flex items-start gap-3 text-sm bg-base-300/60 rounded-xl p-3">
+                <span className="text-primary font-bold mt-0.5 shrink-0">{i + 1}.</span>
+                <span>{bullet}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -595,6 +579,46 @@ export function ProductPage() {
               <p className="text-sm text-base-content/80">{weeklyTrend.advice.message}</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Score + Orders history */}
+      {dailySnapshots.length > 1 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-5">
+            <h2 className="font-bold text-sm text-base-content/70 mb-3">Score tarixi</h2>
+            <ScoreChart data={dailySnapshots} />
+          </div>
+          <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-5">
+            <h2 className="font-bold text-sm text-base-content/70 mb-3">Haftalik sotuvlar tarixi</h2>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={dailySnapshots.slice(-15)} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 10, fill: 'var(--chart-tick)' }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v) => { const d = new Date(v); return `${d.getDate()}/${d.getMonth() + 1}`; }}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: 'var(--chart-tick)' }}
+                  tickLine={false}
+                  axisLine={false}
+                  unit=" ta"
+                />
+                <Tooltip
+                  {...glassTooltip}
+                  formatter={(value: number) => [`${value} ta`, 'Haftalik sotuv']}
+                />
+                <Bar dataKey="orders" radius={[4, 4, 0, 0]} name="Haftalik sotuvlar (dona/hafta)">
+                  {dailySnapshots.slice(-15).map((_entry, i) => (
+                    <Cell key={i} fill="#34d399" />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       )}
 
@@ -724,58 +748,61 @@ export function ProductPage() {
         </div>
       )}
 
-      {/* Score + Orders history */}
-      {dailySnapshots.length > 1 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-5">
-            <h2 className="font-bold text-sm text-base-content/70 mb-3">Score tarixi</h2>
-            <ScoreChart data={dailySnapshots} />
+      {/* 7 kunlik score bashorat */}
+      {forecast && (
+        <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-6 space-y-4">
+          <h2 className="font-bold text-base lg:text-lg flex items-center gap-2">
+            <ArrowTrendingUpIcon className="w-5 h-5 text-primary" />
+            7 kunlik bashorat
+          </h2>
+          <div className="flex items-center gap-4 lg:gap-6 flex-wrap">
+            <div className="text-center">
+              <p className="text-xs text-base-content/50 mb-1">Hozirgi score</p>
+              <p className="text-2xl font-bold tabular-nums">{result.score.toFixed(2)}</p>
+            </div>
+            <div className="text-2xl text-base-content/30">→</div>
+            <div className="text-center">
+              <p className="text-xs text-base-content/50 mb-1">7 kun keyin</p>
+              <p className={`text-2xl font-bold tabular-nums ${
+                forecast.trend === 'up' ? 'text-success' : forecast.trend === 'down' ? 'text-error' : 'text-base-content'
+              }`}>{forecast.forecast_7d.toFixed(2)}</p>
+            </div>
+            <TrendBadge trend={forecast.trend} />
+            <span className="text-xs text-base-content/30 ml-auto">
+              slope {forecast.slope > 0 ? '+' : ''}{forecast.slope.toFixed(4)}
+            </span>
           </div>
-          <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-5">
-            <h2 className="font-bold text-sm text-base-content/70 mb-3">Haftalik sotuvlar tarixi</h2>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={dailySnapshots.slice(-15)} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 10, fill: 'var(--chart-tick)' }}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(v) => { const d = new Date(v); return `${d.getDate()}/${d.getMonth() + 1}`; }}
-                />
-                <YAxis
-                  tick={{ fontSize: 10, fill: 'var(--chart-tick)' }}
-                  tickLine={false}
-                  axisLine={false}
-                  unit=" ta"
-                />
-                <Tooltip
-                  {...glassTooltip}
-                  formatter={(value: number) => [`${value} ta`, 'Haftalik sotuv']}
-                />
-                <Bar dataKey="orders" fill="#34d399" radius={[4, 4, 0, 0]} name="Haftalik sotuvlar (dona/hafta)" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-
-      {/* AI Explanation */}
-      {result.ai_explanation && result.ai_explanation.length > 0 && (
-        <div className="rounded-2xl bg-base-200/60 border border-primary/20 p-4 lg:p-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">🤖</span>
-            <h2 className="font-bold text-base lg:text-lg">Claude AI tahlili</h2>
-            <span className="badge badge-primary badge-sm ml-auto">AI</span>
-          </div>
-          <ul className="space-y-3">
-            {result.ai_explanation.map((bullet, i) => (
-              <li key={i} className="flex items-start gap-3 text-sm bg-base-300/60 rounded-xl p-3">
-                <span className="text-primary font-bold mt-0.5 shrink-0">{i + 1}.</span>
-                <span>{bullet}</span>
-              </li>
-            ))}
-          </ul>
+          {dailySnapshots.length > 1 && (
+            <div className="mt-3">
+              <ResponsiveContainer width="100%" height={160}>
+                <AreaChart
+                  data={[
+                    ...dailySnapshots.slice(-10),
+                    { date: '7 kun', score: forecast.forecast_7d, orders: 0, forecast: true } as any,
+                  ]}
+                  margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#a78bfa" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 10, fill: 'var(--chart-tick)' }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v) => { const d = new Date(v); return isNaN(d.getTime()) ? v : `${d.getDate()}/${d.getMonth() + 1}`; }}
+                  />
+                  <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                  <Tooltip {...glassTooltip} />
+                  <Area type="monotone" dataKey="score" stroke="#a78bfa" strokeWidth={2} fill="url(#scoreGrad)" dot={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       )}
 

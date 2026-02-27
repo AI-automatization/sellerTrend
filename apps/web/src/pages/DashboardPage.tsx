@@ -4,7 +4,9 @@ import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, PieChart, Pie, LineChart, Line,
 } from 'recharts';
+import { toast } from 'react-toastify';
 import { productsApi, billingApi, exportApi, getTokenPayload } from '../api/client';
+import { getErrorMessage } from '../utils/getErrorMessage';
 import {
   FireIcon, WalletIcon, ArrowTrendingUpIcon, MagnifyingGlassIcon,
 } from '../components/icons';
@@ -36,7 +38,7 @@ interface Balance {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function scoreColor(score: number | null) {
-  if (!score) return '#4b5563';
+  if (score === null) return '#4b5563';
   if (score >= 6) return '#22c55e';
   if (score >= 4) return '#f59e0b';
   return '#6b7280';
@@ -141,7 +143,7 @@ export function DashboardPage() {
 
   const fetchData = useCallback(() => {
     setLoading(true);
-    const promises: Promise<unknown>[] = [productsApi.getTracked().then((r) => setProducts(r.data))];
+    const promises: Promise<unknown>[] = [productsApi.getTracked().then((r) => setProducts(r.data)).catch(() => {})];
     if (!isSuperAdmin) {
       promises.push(billingApi.getBalance().then((r) => setBalance(r.data)).catch(() => {}));
     }
@@ -212,8 +214,8 @@ export function DashboardPage() {
   );
 
   // fake sparkline data from scores (just for visual)
-  const scoreSparkline = products.slice(0, 8).map((p) => p.score ?? 0);
-  const salesSparkline = products.slice(0, 8).map((p) => p.weekly_bought ?? 0);
+  const scoreSparkline = useMemo(() => products.slice(0, 8).map((p) => p.score ?? 0), [products]);
+  const salesSparkline = useMemo(() => products.slice(0, 8).map((p) => p.weekly_bought ?? 0), [products]);
 
   const paymentDue = balance?.status === 'PAYMENT_DUE';
   const hour = new Date().getHours();
@@ -229,7 +231,9 @@ export function DashboardPage() {
       a.download = `ventra-products-${new Date().toISOString().slice(0, 10)}.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
-    } catch {} finally {
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
+    } finally {
       setExporting(false);
     }
   }
@@ -299,16 +303,7 @@ export function DashboardPage() {
             </div>
             <button className="btn btn-error btn-sm shadow-sm">{t('dashboard.topUp')}</button>
           </div>
-<<<<<<< HEAD
-          <div className="flex-1">
-            <p className="font-bold text-sm text-error">To'lov kerak!</p>
-            <p className="text-xs text-base-content/50">Balansingiz yetarli emas. Hisobni to'ldiring.</p>
-          </div>
-          <Link to="/billing" className="btn btn-error btn-sm">To'ldirish</Link>
-        </div>
-=======
         </FadeIn>
->>>>>>> 30ee789eb3eed4a57a40c9d058520f0d139c050b
       )}
 
       {/* ═══ KPI CARDS ═══ */}

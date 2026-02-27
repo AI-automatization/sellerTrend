@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import { consultationApi } from '../api/client';
+import { getErrorMessage } from '../utils/getErrorMessage';
 
 interface ConsultationItem {
   id: string;
@@ -41,8 +43,9 @@ export function ConsultationPage() {
       else if (tab === 'my-listings') res = await consultationApi.getMyListings();
       else res = await consultationApi.getMyBookings();
       setItems(res.data);
-    } catch {}
-    finally { setLoading(false); }
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
+    } finally { setLoading(false); }
   }
 
   async function handleCreate(e: React.FormEvent) {
@@ -59,21 +62,26 @@ export function ConsultationPage() {
       setShowCreate(false);
       setForm({ title: '', description: '', category: 'Uzum strategiya', price_uzs: '', duration_min: '60' });
       loadData();
-    } catch {}
-    finally { setCreating(false); }
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
+    } finally { setCreating(false); }
   }
 
   async function handleBook() {
     if (!bookingId || !bookingDate) return;
     try {
-      const dateTime = new Date(`${bookingDate}T${bookingTime}`);
+      const [year, month, day] = bookingDate.split('-').map(Number);
+      const [hour, minute] = bookingTime.split(':').map(Number);
+      const dateTime = new Date(year, month - 1, day, hour, minute);
       if (isNaN(dateTime.getTime())) return;
       await consultationApi.book(bookingId, dateTime.toISOString());
       setBookingId(null);
       setBookingDate('');
       setBookingTime('10:00');
       loadData();
-    } catch {}
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
+    }
   }
 
   const categories = ['Uzum strategiya', 'Mahsulot tanlash', 'Reklama', 'Logistika', 'Narxlash', 'Boshqa'];

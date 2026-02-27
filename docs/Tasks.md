@@ -553,9 +553,6 @@ function getClient(): Anthropic {
 ### T-150 | BACKEND | naming consultant_id aslida account_id |10min
 **Bug:** L-09.
 
-### T-151 | FRONTEND | useCallback(fn, [fn]) foydasiz |5min
-**Bug:** L-10.
-
 ### T-152 | FRONTEND | any type api fayllarida 6 ta |10min
 **Bug:** L-11.
 
@@ -574,9 +571,6 @@ function getClient(): Anthropic {
 ### T-157 | FRONTEND | DashboardPage CSV export empty catch |5min
 **Bug:** L-16.
 
-### T-158 | FRONTEND | AdminPage 30+ any type |30min
-**Bug:** L-17.
-
 ### T-159 | FRONTEND | ProductPage any — mlForecast, trendAnalysis |10min
 **Bug:** L-18.
 
@@ -588,12 +582,6 @@ function getClient(): Anthropic {
 
 ### T-162 | FRONTEND | SignalsPage any[] barcha tab'larda |15min
 **Bug:** L-21.
-
-### T-163 | FRONTEND | AdminPage 900+ qator (400 limit) |1h
-**Bug:** L-22. Komponentlarga bo'lish.
-
-### T-164 | i18n | 7 ta sahifada hardcoded Uzbek matn |30min
-**Bug:** L-23. `t()` funksiya bilan almashtirish.
 
 ### T-166 | BACKEND | parseWeeklyBought dead code |5min
 **Bug:** L-28. O'chirish.

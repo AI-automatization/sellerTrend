@@ -112,6 +112,8 @@ export function SourcingPage() {
     try {
       const r = await sourcingApi.refreshRates();
       setRates(r.data);
+    } catch {
+      // rates refresh failed silently
     } finally {
       setRatesLoading(false);
     }
@@ -208,10 +210,14 @@ function ImportAnalysis({
 
   // Auto-start if we have product_id from URL
   useEffect(() => {
-    if (initialProductId && initialTitle && !jobId) {
-      handleStart();
-    }
-  }, []); // eslint-disable-line
+    if (!initialProductId || !initialTitle) return;
+    setLoading(true);
+    setError('');
+    sourcingApi.createJob({ product_id: initialProductId, product_title: initialTitle })
+      .then((res) => setJobId(res.data.job_id))
+      .catch((err: unknown) => setError(getErrorMessage(err)))
+      .finally(() => setLoading(false));
+  }, [initialProductId, initialTitle]);
 
   async function handleStart() {
     if (!productId || !title) {

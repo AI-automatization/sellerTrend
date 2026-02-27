@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 interface TokenPayload {
   sub: string;
-  email: string;
+  email?: string;
   role: string;
   account_id: string;
   exp: number;
