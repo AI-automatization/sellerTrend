@@ -122,7 +122,7 @@ API `apps/api/.env` dan o'qiydi, root ni o'qimaydi — lekin bu CONFUSION yarata
 
 ## P0 — KRITIK
 
-### T-207 | DESKTOP | Login ishlamaydi — VITE_API_URL yo'q, URL `app://api/v1` bo'ladi | 30min
+### T-234 | DESKTOP | Login ishlamaydi — VITE_API_URL yo'q, URL `app://api/v1` bo'ladi | 30min
 **Root cause:** Desktop Electron app production mode da `app://./index.html` dan yuklaydi. `VITE_API_URL` env variable yo'q → `base.ts:5` da `''` qaytadi → Axios `app://api/v1/auth/login` ga request yuboradi → FAIL.
 **Fayllar:**
 - `apps/web/src/api/base.ts:5` — `import.meta.env.VITE_API_URL ?? ''`
@@ -1055,14 +1055,19 @@ Bu ikki xabar bir-biriga ZID. 50 ta raqib kuzatilayotgan bo'lsa, ma'lumot bo'lis
 | PWA O'chirish (P1) | 5 | T-188...T-192 |
 | **ProductPage UX (P0)** | **3** | **T-193...T-195** |
 | **ProductPage UX (P1)** | **11** | **T-196...T-206** |
-| **JAMI** | **136 ochiq** | T-061...T-206 |
+| **Chrome Extension** | **26** | **T-208...T-233** |
+| Weekly_bought fix | 1 ✅ DONE | T-207 |
+| Desktop Login | 1 (renumbered) | T-234 |
+| **Playwright DOM scraping** | **2** | **T-235...T-236** |
+| **JAMI** | **165 ochiq (1 done)** | T-061...T-236 |
 
 | O'zgarish | Tafsilot |
 |-----------|----------|
 | ✅ Duplicatlar o'chirildi | T-132 (=T-069), T-140 (=T-176), T-165 (=T-073), T-168 (=T-061) |
-| ✅ Done belgilandi | T-082, T-083, T-100 (docker-compose fix allaqachon qilindi) |
+| ✅ Done belgilandi | T-082, T-083, T-100 (docker-compose fix), T-207 (calcWeeklyBought) |
+| ✅ Duplicate fix | T-207 Desktop Login → T-234 ga renumber (T-207 weekly_bought bilan conflict edi) |
 | ✅ Assignment o'chirildi | Bekzod/Sardor/Ikkalasi barcha tasklardan olib tashlandi |
-| ✅ Yangi buglar qo'shildi | T-203 (KPI labelsiz), T-204 (black rect), T-205 (footer formula), T-206 (raqiblar ziddiyat) |
+| ✅ Yangi buglar qo'shildi | T-203-T-206 (UX), T-235-T-236 (Playwright weekly_bought) |
 
 ### RAILWAY DEPLOY — QILINGAN ISHLAR (Code Done)
 - ✅ Eski `railway/` directory o'chirildi (4 ta toml)
@@ -1095,11 +1100,952 @@ Bu ikki xabar bir-biriga ZID. 50 ta raqib kuzatilayotgan bo'lsa, ma'lumot bo'lis
 # WEEKLY_BOUGHT MARKAZLASHTIRISH (2026-02-27) — DATA CONSISTENCY
 # ═══════════════════════════════════════════════════════════
 
-### T-207 | P0 | BACKEND+WORKER | weekly_bought 6 joyda 6 xil — markaziy calcWeeklyBought() | 1h
+### T-207 | ✅ DONE | BACKEND+WORKER | weekly_bought 6 joyda 6 xil — markaziy calcWeeklyBought() | 1h
 **Muammo:** Bitta product 4 xil weekly_bought: Dashboard=523, Stat=134, Chart=142, Trend=134
 **Sabab:** 6 ta turli joy o'z formulasi, har biri boshqa snapshot, boshqa daysDiff
-**Yechim:** `calcWeeklyBought(prisma, productId, currentOrders)` — 7 kunlik lookback + min 24h fallback
-**Fayllar:** products.service.ts, uzum.service.ts, reanalysis.processor.ts, import.processor.ts, signals.service.ts
+**Yechim:** `calcWeeklyBought()` + `recalcWeeklyBoughtSeries()` → `packages/utils/src/index.ts`
+**Commit:** `b930501` — 7 ta fayl, 181 qator qo'shildi, 157 o'chirildi
+
+---
+
+# ═══════════════════════════════════════════════════════════
+# PLAYWRIGHT DOM SCRAPING — ANIQ weekly_bought (2026-02-27)
+# ═══════════════════════════════════════════════════════════
+#
+# Muammo: Uzum REST API `actions.text` ni O'CHIRGAN (undefined).
+# Saytda "533 человека купили на этой неделе" ko'rinadi lekin API bermaydi.
+# Hozirgi yechim: snapshot delta — TAXMINIY (±10-30% xato).
+# Yangi yechim: Playwright bilan DOM dan aniq raqam olish.
+
+## P1 — MUHIM
+
+### T-235 | P1 | BACKEND+WORKER | Playwright bilan weekly_bought DOM scraping — birinchi tahlilda aniq raqam | 2h
+**Muammo:** Uzum REST API `actions.text` ni olib tashlagan. `weekly_bought` faqat saytda ko'rinadi:
+`"533 человека купили на этой неделе"` — DOM da mavjud, API da YO'Q.
+Hozir `calcWeeklyBought()` snapshot delta ishlatadi — bu TAXMINIY, birinchi tahlilda null qaytaradi.
+**Yechim — A+B kombinatsiya:**
+1. **Birinchi tahlil** (URL Analyze) — Playwright bilan `uzum.uz/product/{id}` ochib, DOM dan:
+   - "XXX человек(а) купили на этой неделе" matnini parse qilish
+   - Bu raqamni `weekly_bought` sifatida snapshot ga yozish
+2. **Keyingi re-analysis** (6h cron) — faqat REST API + snapshot delta (Playwright og'ir, 100 ta product = 5-8 daqiqa)
+**Fayllar:**
+- `apps/worker/src/processors/uzum-scraper.ts` — `scrapeWeeklyBought(productId)` funksiya qo'shish
+- `apps/api/src/uzum/uzum.service.ts` — `analyzeProduct()` da Playwright result ni olish
+- `packages/utils/src/index.ts` — `parseWeeklyBoughtFromDOM(text)` parser (allaqachon `parseWeeklyBought` bor, kengaytirish)
+**DOM selector:**
+```typescript
+// Uzum product sahifasida "XXX человек купили" matni
+const el = await page.$('text=/\\d+\\s*(человек|kishi|нафар)/i');
+const text = await el?.textContent();
+// yoki: page.locator('[data-test-id="product-actions"]')
+```
+**Qabul:** Birinchi URL Analyze da Uzum bilan bir xil son ko'rinadi. Re-analysis taxminiy lekin ±5% ichida.
+
+### T-236 | P1 | BACKEND | parseWeeklyBought kengaytirish — "1,2 тыс" va "тысяч" formatlarni qo'llash | 30min
+**Muammo:** Uzum ba'zan "533 человека" o'rniga "1,2 тыс. человек" yoki "тысяч" formatda ko'rsatadi.
+**Fayl:** `packages/utils/src/index.ts:22-26` — `parseWeeklyBought()`
+**Hozirgi:** faqat `(\d[\d\s]*)\s*(человек|kishi|нафар)` regex — "1,2 тыс" ni tutmaydi
+**Fix:**
+```typescript
+export function parseWeeklyBought(text: string): number | null {
+  // "1,2 тыс. человек" → 1200
+  const kMatch = text.match(/([\d,.]+)\s*тыс[.\s]*(человек|kishi|нафар)/i);
+  if (kMatch) return Math.round(parseFloat(kMatch[1].replace(',', '.')) * 1000);
+  // "533 человек" → 533
+  const match = text.match(/(\d[\d\s]*)\s*(человек|kishi|нафар)/i);
+  if (!match) return null;
+  return parseInt(match[1].replace(/\s/g, ''), 10);
+}
+```
+
+---
+
+# ═══════════════════════════════════════════════════════════
+# NOANIQ ISHLOVCHI FUNKTSIYALAR (weekly_bought ga bog'liq)
+# ═══════════════════════════════════════════════════════════
+#
+# T-207 fix qilindi (markaziy hisob), lekin snapshot delta
+# hali TAXMINIY. T-235 (Playwright) tugaguncha bu funktsiyalar
+# ±10-30% xatoga moyil:
+#
+# | Funktsiya | Fayl | Muammo |
+# |-----------|------|--------|
+# | calculateScore() | packages/utils | weekly_bought 55% og'irlik. null→0→score past |
+# | predictDeadStock() | packages/utils | weekly_bought trend → risk_score noaniq |
+# | detectEarlySignals() | packages/utils | salesVelocity = weekly_bought, yangi product 0 |
+# | detectStockCliff() | packages/utils | velocity = wb/7, stock heuristic orders*0.1 |
+# | planReplenishment() | packages/utils | daily_sales = wb/7, null→0→reorder nonsense |
+# | detectCannibalization() | packages/utils | wb comparison noaniq → overlap_score noaniq |
+# | calculateSaturation() | packages/utils | avg_weekly_sales noaniq → saturation noaniq |
+# | getAdvancedForecast() | products.service | sales_forecast wb seriyasiga asoslangan |
+#
+# T-235 (Playwright) implement qilingach, birinchi tahlil ANIQ,
+# keyingilari ±5% ichida bo'ladi.
+
+---
+
+# ═══════════════════════════════════════════════════════════
+# CHROME EXTENSION — VENTRA Browser Extension (2026-02-27)
+# uzum.uz marketplace uchun inline analytics overlay
+# ═══════════════════════════════════════════════════════════
+
+## Faza 1 — PROJECT SETUP + AUTH (P0)
+
+### T-208 | P0 | FRONTEND | Chrome Extension — Monorepo scaffold + Manifest V3 + build pipeline | 2h
+**Vazifa:** `apps/extension/` papka yaratish va Manifest V3 Chrome extension loyiha strukturasini sozlash.
+**Texnik talablar:**
+1. `apps/extension/package.json` — `"name": "@ventra/extension"`, `"private": true`
+   - Dependencies: `@uzum/types`, `@uzum/utils` (workspace:*), react 19, react-dom 19
+   - DevDeps: vite, @crxjs/vite-plugin (Manifest V3 + HMR), typescript 5.7+, tailwindcss v4, @tailwindcss/vite
+2. `apps/extension/manifest.json` (Manifest V3):
+   ```json
+   {
+     "manifest_version": 3,
+     "name": "VENTRA — Uzum Analytics",
+     "version": "1.0.0",
+     "description": "uzum.uz mahsulotlarini real-vaqtda tahlil qilish",
+     "permissions": ["storage", "activeTab", "alarms", "notifications"],
+     "host_permissions": ["https://uzum.uz/*", "https://api.uzum.uz/*"],
+     "background": { "service_worker": "src/background/index.ts", "type": "module" },
+     "content_scripts": [{
+       "matches": ["https://uzum.uz/*"],
+       "js": ["src/content/index.tsx"],
+       "css": ["src/content/content.css"],
+       "run_at": "document_idle"
+     }],
+     "action": { "default_popup": "src/popup/index.html", "default_icon": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" } },
+     "options_page": "src/options/index.html",
+     "icons": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" }
+   }
+   ```
+3. `apps/extension/vite.config.ts` — @crxjs/vite-plugin + @tailwindcss/vite, build → `dist/`
+4. `apps/extension/tsconfig.json` — ES2022, path mapping: `@uzum/types`, `@uzum/utils`
+5. Papka strukturasi:
+   ```
+   apps/extension/
+   ├── manifest.json
+   ├── package.json
+   ├── tsconfig.json
+   ├── vite.config.ts
+   ├── icons/                    # 16, 48, 128 px ikonkalar
+   ├── src/
+   │   ├── background/           # Service Worker
+   │   │   └── index.ts
+   │   ├── content/              # Content Script (uzum.uz inject)
+   │   │   ├── index.tsx
+   │   │   ├── content.css
+   │   │   └── components/       # Overlay komponentlar
+   │   ├── popup/                # Extension Popup (mini dashboard)
+   │   │   ├── index.html
+   │   │   ├── index.tsx
+   │   │   └── components/
+   │   ├── options/              # Settings sahifa
+   │   │   ├── index.html
+   │   │   ├── index.tsx
+   │   │   └── components/
+   │   ├── shared/               # Extension-ichki umumiy kod
+   │   │   ├── api.ts            # VENTRA API client
+   │   │   ├── storage.ts        # chrome.storage wrapper
+   │   │   ├── constants.ts      # API URLs, keys
+   │   │   └── types.ts          # Extension-specific types
+   │   └── styles/
+   │       └── tailwind.css      # @import "tailwindcss"
+   ├── tests/
+   └── _locales/                 # i18n (uz, ru, en)
+       ├── uz/messages.json
+       ├── ru/messages.json
+       └── en/messages.json
+   ```
+6. Root `turbo.json` ga `extension` build task qo'shish
+7. `pnpm install` ishlashi + `pnpm --filter extension dev` HMR bilan Chrome ga yuklash
+**Qabul kriterlari:** `pnpm --filter extension build` → `dist/` papkada to'liq extension, Chrome ga `chrome://extensions` → Load unpacked sifatida yuklash mumkin.
+
+---
+
+### T-209 | P0 | FRONTEND | Chrome Extension — API client + chrome.storage JWT boshqaruvi | 1.5h
+**Vazifa:** VENTRA API bilan muloqot qiluvchi client va JWT tokenlarni xavfsiz saqlash.
+**Texnik talablar:**
+1. `src/shared/api.ts` — `VentraApiClient` class:
+   ```typescript
+   class VentraApiClient {
+     private baseUrl: string; // default: production URL, options'dan o'zgartiriladi
+
+     // Auth
+     async login(email: string, password: string): Promise<LoginResponse>
+     async refreshToken(): Promise<void>  // auto-refresh agar 401 kelsa
+     async logout(): Promise<void>
+
+     // Products
+     async analyzeProduct(url: string): Promise<ApiResponse<UzumProductDetail>>
+     async getQuickScore(productId: number): Promise<QuickScoreResponse>
+     async trackProduct(productId: number): Promise<void>
+     async getTrackedProducts(): Promise<TrackedProductResponse[]>
+     async getProductForecast(productId: number): Promise<ForecastResponse>
+
+     // Signals
+     async getSignals(): Promise<SignalsSummary>
+
+     // Balance
+     async getBalance(): Promise<BalanceResponse>
+   }
+   ```
+2. Har bir request ga `Authorization: Bearer {token}` header avtomatik qo'shiladi
+3. 401 xatosida avtomatik `refreshToken()` chaqiriladi, token yangilangandan so'ng original request qaytariladi (retry interceptor)
+4. Token zanjiri: `accessToken` (15min TTL) + `refreshToken` (7d TTL)
+5. `src/shared/storage.ts` — `chrome.storage.local` wrapper:
+   ```typescript
+   // chrome.storage.local — extension uninstall bo'lganda o'chiriladi
+   async getToken(): Promise<{ access: string; refresh: string } | null>
+   async setToken(access: string, refresh: string): Promise<void>
+   async clearToken(): Promise<void>
+   async getApiUrl(): Promise<string>
+   async setApiUrl(url: string): Promise<void>
+   async getUserProfile(): Promise<UserProfile | null>
+   async setUserProfile(profile: UserProfile): Promise<void>
+   async getSettings(): Promise<ExtensionSettings>
+   async setSettings(settings: Partial<ExtensionSettings>): Promise<void>
+   ```
+6. `src/shared/constants.ts`:
+   ```typescript
+   export const DEFAULT_API_URL = 'https://ventra.uz/api/v1';
+   export const STORAGE_KEYS = { TOKEN: 'ventra_token', PROFILE: 'ventra_profile', SETTINGS: 'ventra_settings', API_URL: 'ventra_api_url' };
+   export const ALARM_NAMES = { TOKEN_REFRESH: 'token_refresh', SIGNALS_CHECK: 'signals_check' };
+   ```
+7. `src/shared/types.ts` — extension-specific types: `ExtensionSettings`, `QuickScoreResponse`, `ContentScriptMessage`, `BackgroundMessage`
+**Qabul kriterlari:** API client ishlaydi, JWT avtomatik yangilanadi, token chrome.storage'da saqlanadi.
+
+---
+
+### T-210 | P0 | FRONTEND | Chrome Extension — Background Service Worker (alarm, badge, messaging) | 2h
+**Vazifa:** Extension background script — token refresh, signal check, badge yangilash, popup↔content↔background messaging.
+**Texnik talablar:**
+1. `src/background/index.ts` — Manifest V3 Service Worker:
+   ```typescript
+   // 1. ALARM — Token auto-refresh (har 10 daqiqada)
+   chrome.alarms.create(ALARM_NAMES.TOKEN_REFRESH, { periodInMinutes: 10 });
+
+   // 2. ALARM — Signals/notifications check (har 30 daqiqada)
+   chrome.alarms.create(ALARM_NAMES.SIGNALS_CHECK, { periodInMinutes: 30 });
+
+   // 3. ALARM handler
+   chrome.alarms.onAlarm.addListener(async (alarm) => {
+     if (alarm.name === 'token_refresh') → api.refreshToken()
+     if (alarm.name === 'signals_check') → checkNewSignals()
+   });
+
+   // 4. Badge — treklanayotgan mahsulotlar soni yoki yangi signallar soni
+   async function updateBadge(count: number) {
+     chrome.action.setBadgeText({ text: count > 0 ? String(count) : '' });
+     chrome.action.setBadgeBackgroundColor({ color: count > 0 ? '#EF4444' : '#6B7280' });
+   }
+
+   // 5. Message routing — popup, content script, options sahifalardan kelgan xabarlar
+   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+     switch (message.type) {
+       case 'ANALYZE_PRODUCT': → api.analyzeProduct(message.url) → sendResponse
+       case 'QUICK_SCORE': → api.getQuickScore(message.productId) → sendResponse
+       case 'TRACK_PRODUCT': → api.trackProduct(message.productId) → sendResponse
+       case 'GET_AUTH_STATE': → storage.getToken() → sendResponse
+       case 'LOGIN': → api.login(message.email, message.password) → sendResponse
+       case 'LOGOUT': → api.logout() → storage.clearToken() → sendResponse
+       case 'GET_TRACKED': → api.getTrackedProducts() → sendResponse
+       case 'GET_SIGNALS': → api.getSignals() → sendResponse
+       case 'GET_BALANCE': → api.getBalance() → sendResponse
+     }
+     return true; // async response
+   });
+
+   // 6. Tab yangilanganida — uzum.uz da bo'lsa badge rangini o'zgartirish
+   chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+     if (tab.url?.includes('uzum.uz')) {
+       chrome.action.setIcon({ tabId, path: 'icons/icon-active-16.png' });
+     }
+   });
+   ```
+2. `checkNewSignals()` — har 30 minutda `/signals/early-signals` + `/signals/stock-cliffs` tekshirish → yangi signal bo'lsa `chrome.notifications.create()` + badge yangilash
+3. Service Worker lifecycle: `chrome.runtime.onInstalled` → default settings sozlash, storage init
+4. Error handling: network offline bo'lsa → retry qilmaslik, faqat keyingi alarm da urinish
+**Qabul kriterlari:** Service worker ishlaydi, alarmlar fire bo'ladi, badge yangilanadi, messaging ishlaydi.
+
+---
+
+### T-211 | P0 | FRONTEND | Chrome Extension — Popup Login UI + autentifikatsiya holati | 1.5h
+**Vazifa:** Extension popup'da login forma va autentifikatsiya holatini boshqarish.
+**Texnik talablar:**
+1. `src/popup/index.html` — minimal HTML shell (React mount point)
+2. `src/popup/index.tsx` — React app entry: `<PopupApp />` mount
+3. `src/popup/components/PopupApp.tsx` — holatga qarab ko'rsatish:
+   - **Logged out** → `<LoginForm />` ko'rsatish
+   - **Logged in** → `<PopupDashboard />` ko'rsatish
+   - **Loading** → skeleton/spinner
+4. `src/popup/components/LoginForm.tsx`:
+   - Email + Password inputlar (Tailwind styled, VENTRA branding)
+   - "Kirish" button
+   - Loading state (spinner)
+   - Error xabar (noto'g'ri login, tarmoq xatosi, balans yetarli emas)
+   - "API URL o'zgartirish" link → options sahifaga
+   - Form submit → `chrome.runtime.sendMessage({ type: 'LOGIN', email, password })`
+   - Muvaffaqiyatli login → profile + token saqlash → `<PopupDashboard />` ga o'tish
+5. `src/popup/components/PopupHeader.tsx`:
+   - VENTRA logo (kichik)
+   - Foydalanuvchi nomi + avatar (birinchi harf)
+   - Balans ko'rsatkichi (so'mda)
+   - "Chiqish" tugma
+6. Popup o'lcham: 380px kenglik, max 520px balandlik (Chrome popup cheklovi)
+7. Dark/light mode: `prefers-color-scheme` media query + manual toggle
+**Qabul kriterlari:** Login forma ishlaydi, JWT token olinadi va saqlanadi, muvaffaqiyatli login dan so'ng dashboard ko'rinadi.
+
+---
+
+## Faza 2 — CONTENT SCRIPT: UZUM.UZ OVERLAY (P0)
+
+### T-212 | P0 | FRONTEND | Content Script — uzum.uz mahsulot sahifasida VENTRA score overlay | 3h
+**Vazifa:** uzum.uz/ru/product/* sahifalarida mahsulot score, trend, signallarni ko'rsatuvchi overlay panel inject qilish.
+**Texnik talablar:**
+1. `src/content/index.tsx` — Content script entry point:
+   ```typescript
+   // 1. URL dan product ID ajratish
+   const productId = parseProductIdFromUrl(window.location.href);
+   // parseUzumProductId() — packages/utils dan
+
+   // 2. Shadow DOM yaratish (uzum.uz CSS bilan conflict bo'lmasligi uchun)
+   const host = document.createElement('div');
+   host.id = 'ventra-extension-root';
+   const shadow = host.attachShadow({ mode: 'closed' });
+
+   // 3. Tailwind CSS ni shadow DOM ichiga inject qilish
+   const style = document.createElement('style');
+   style.textContent = tailwindCSS; // build vaqtida inline qilinadi
+   shadow.appendChild(style);
+
+   // 4. React mount
+   const root = createRoot(shadow.appendChild(document.createElement('div')));
+   root.render(<ProductOverlay productId={productId} />);
+
+   // 5. Sahifa o'zgarishini kuzatish (SPA navigation)
+   // uzum.uz Vue SPA — popstate + pushState intercept
+   let lastUrl = location.href;
+   new MutationObserver(() => {
+     if (location.href !== lastUrl) {
+       lastUrl = location.href;
+       handleUrlChange();
+     }
+   }).observe(document.body, { childList: true, subtree: true });
+   ```
+2. `src/content/components/ProductOverlay.tsx` — asosiy overlay panel:
+   - **Joylashuv:** Mahsulot sahifasining o'ng tomonida floating panel (position: fixed, right: 16px, top: 80px)
+   - **Minimize/expand:** Kichik ikonka holatiga yig'ish mumkin
+   - **Panellar:**
+     - **Score Badge:** Katta raqam (0-10), rang kodi (qizil < 3, sariq 3-6, yashil > 6)
+     - **Trend Arrow:** yoki o'sish / tushish / barqaror + foiz o'zgarish
+     - **Haftalik sotuvlar:** weekly_bought raqami + mini sparkline chart
+     - **Narx tarix:** Oxirgi 7 kun narx o'zgarishi (mini line chart)
+     - **Signallar:** Stock cliff, Flash sale, Early signal (bo'lsa)
+     - **Tez harakatlar:**
+       - "Kuzatishga olish" tugma (track/untrack toggle)
+       - "To'liq tahlil" → VENTRA web sahifaga link
+       - "Import narx" → sourcing popup
+3. `src/content/content.css` — Shadow DOM ichidagi base stillar
+4. Product ID topilmasa → overlay ko'rsatilmaydi
+5. Auth yo'q bo'lsa → "VENTRA ga kiring" mini banner ko'rsatish
+6. API xatosi bo'lsa → "Ma'lumot yuklanmadi" + retry tugma
+**Qabul kriterlari:** uzum.uz/ru/product/* sahifalarida o'ng tomonda VENTRA analytics paneli ko'rinadi, score va trend real-time yuklanadi.
+
+---
+
+### T-213 | P0 | FRONTEND | Content Script — uzum.uz katalog/qidiruv sahifalarida inline score badge | 2.5h
+**Vazifa:** uzum.uz kategoriya va qidiruv natijalarida har bir mahsulot kartochkasiga VENTRA score badge qo'shish.
+**Texnik talablar:**
+1. `src/content/components/CatalogOverlay.tsx` — katalog sahifasi uchun:
+   ```typescript
+   // 1. Mahsulot kartochkalarini topish
+   // Selector: [data-test-id="product-card--default"] yoki .product-card
+   const productCards = document.querySelectorAll('[data-test-id="product-card--default"]');
+
+   // 2. Har bir kartochkadan product ID olish
+   // <a href="/ru/product/slug-12345?skuId=xxx"> → 12345
+
+   // 3. Batch API: barcha IDlar uchun quick-score olish (bitta so'rov)
+   // POST /uzum/batch-quick-score { productIds: [1,2,3...] }
+
+   // 4. Har bir kartochkaga badge inject qilish
+   ```
+2. Badge dizayni:
+   - Kartochka yuqori-chap burchagida kichik badge: `VENTRA 7.2` (score raqami)
+   - Rang: qizil/sariq/yashil (score ga qarab)
+   - Hover da tooltip: "Haftalik: 523 dona | Trend: +12% | Signal: Stock cliff"
+   - Kichik o'lcham: 60x22px, border-radius: 4px, font-size: 11px
+3. Performance optimizatsiya:
+   - **Lazy loading:** Faqat viewport da ko'rinadigan kartochkalar uchun score yuklash (IntersectionObserver)
+   - **Cache:** Bir sahifadagi scorelar `Map<number, QuickScore>` da cache qilinadi
+   - **Debounce:** Scroll/pagination da 300ms debounce bilan yangi kartochkalar tekshiriladi
+   - **Rate limit:** Max 5 parallel API request (uzum.uz da ~48 kartochka per page)
+4. Sahifa o'zgarishi kuzatuv:
+   - MutationObserver — yangi kartochkalar paydo bo'lganda badge qo'shish
+   - Infinite scroll va pagination ni qo'llab-quvvatlash
+   - Vue router navigation (pushState) ni ushlash
+5. Badge ko'rsatishni o'chirish imkoniyati (extension settings'da toggle)
+**Qabul kriterlari:** Kategoriya/qidiruv sahifalarida har bir mahsulot kartochkasida VENTRA score badge ko'rinadi, sahifa tezligi sezilarli pasaymaydi.
+
+---
+
+### T-214 | P1 | BACKEND | POST /uzum/batch-quick-score endpoint — extension uchun batch scoring | 1h
+**Vazifa:** Content script katalog sahifasida 48 ta mahsulot uchun 48 ta alohida request qilmasligi uchun batch endpoint.
+**Texnik talablar:**
+1. `apps/api/src/uzum/uzum.controller.ts` ga yangi endpoint:
+   ```typescript
+   @Post('batch-quick-score')
+   @UseGuards(JwtAuthGuard)
+   async batchQuickScore(@Body() body: { productIds: number[] }, @Req() req) {
+     // Max 50 product ID
+     // Return: { scores: { [productId: number]: QuickScoreResponse } }
+   }
+   ```
+2. `uzum.service.ts` da `batchQuickScore()` method:
+   - Prisma `findMany` — bitta query bilan barcha productlar va oxirgi snapshotlarni olish
+   - Har biri uchun score hisoblash (`calculateScore` from @uzum/utils)
+   - Topilmagan IDlar uchun null qaytarish (404 emas)
+3. Rate limit: 10 req/min per IP (batch endpoint og'ir)
+4. Response format:
+   ```typescript
+   {
+     scores: {
+       12345: { score: 7.2, weekly_bought: 523, trend: 'up', trend_pct: 12.5, sell_price: 125000, signals: ['stock_cliff'] },
+       67890: null, // bu product bazada yo'q
+     }
+   }
+   ```
+**Qabul kriterlari:** `POST /api/v1/uzum/batch-quick-score` ishlaydi, 50 gacha product ID qabul qiladi, bitta response da barcha scorelar qaytaradi.
+
+---
+
+## Faza 3 — POPUP DASHBOARD (P1)
+
+### T-215 | P1 | FRONTEND | Chrome Extension — Popup Dashboard (tracked products, signals, quick analyze) | 3h
+**Vazifa:** Extension popup ichida mini dashboard — foydalanuvchining asosiy ma'lumotlari bir ko'rishda.
+**Texnik talablar:**
+1. `src/popup/components/PopupDashboard.tsx` — Tab-based layout (380x520px):
+   ```
+   +--------------------------------------+
+   |  [VENTRA logo]   Balance: 45,200 UZS |
+   |  Sardor v                    [gear] [link] |
+   +--------------------------------------+
+   |  [Bosh]  [Mahsulotlar]  [Signal]     |
+   +--------------------------------------+
+   |                                      |
+   |  TAB CONTENT                         |
+   |                                      |
+   +--------------------------------------+
+   ```
+
+2. **"Bosh" tab** — `PopupHome.tsx`:
+   - **Tez tahlil:** URL input + "Tahlil" tugma (joriy tab URL avtomatik qo'yiladi agar uzum.uz da bo'lsa)
+   - **Oxirgi tahlillar:** So'nggi 5 ta tahlil qilingan mahsulot (nomi, score, vaqt)
+   - **KPI kartalar:** Jami kuzatilayotgan | Yangi signallar | O'rtacha score
+   - **Tez harakatlar:** "Kategoriya skanerlash" → uzum.uz/ru/category URL so'raydi
+
+3. **"Mahsulotlar" tab** — `PopupProducts.tsx`:
+   - Tracked products ro'yxati (scroll, max 20 ko'rsatish)
+   - Har bir qator: Nomi (truncated 35 char) | Score badge | Trend arrow | Weekly bought
+   - Tanlash → VENTRA web sahifadagi product sahifaga yangi tab da ochilish
+   - Qidiruv input (client-side filter)
+   - Sort: Score bo'yicha (default), Trend bo'yicha, Weekly_bought bo'yicha
+
+4. **"Signallar" tab** — `PopupSignals.tsx`:
+   - Yangi signallar ro'yxati (stock cliff, flash sale, early signal, anomaly)
+   - Har bir signal: Ikonka | Mahsulot nomi | Signal turi | Vaqt
+   - "O'qildi" deb belgilash (swipe yoki tugma)
+   - Bo'sh bo'lsa: "Hozircha yangi signallar yo'q" + oxirgi tekshiruv vaqti
+
+5. UI stillar:
+   - VENTRA brand ranglari: Primary #3B82F6 (blue), Accent #10B981 (green), Danger #EF4444 (red)
+   - Tailwind v4 + DaisyUI v5 (apps/web bilan bir xil)
+   - Micro-animations: score badge pulse, trend arrow slide
+   - Loading: skeleton shimmer (DaisyUI skeleton)
+**Qabul kriterlari:** Popup ochilganda 3 tab bilan mini dashboard ko'rinadi, barcha ma'lumotlar API dan yuklanadi, tezkor va responsive.
+
+---
+
+### T-216 | P1 | FRONTEND | Chrome Extension — Popup "Tez Tahlil" funksiyasi | 1.5h
+**Vazifa:** Popup'dan to'g'ridan-to'g'ri mahsulot URL kiritib tahlil qilish + joriy tab URL ni avtomatik aniqlash.
+**Texnik talablar:**
+1. `src/popup/components/QuickAnalyze.tsx`:
+   - URL input field — placeholder: "uzum.uz mahsulot URL sini kiriting"
+   - "Joriy sahifani tahlil qil" tugma — `chrome.tabs.query({ active: true })` → joriy tab URL
+   - Agar joriy tab uzum.uz product sahifasi bo'lsa → URL avtomatik qo'yiladi + "Tahlil" tugmasi highlighted
+   - Tahlil jarayoni:
+     1. URL validatsiya (`parseUzumProductId()` orqali)
+     2. Loading state (progress bar + "Tahlillanmoqda..." matn)
+     3. `chrome.runtime.sendMessage({ type: 'ANALYZE_PRODUCT', url })` → background
+     4. Natija: Score, narx, haftalik sotuvlar, trend, signallar
+   - Natija kartochkasi:
+     ```
+     +-----------------------------+
+     |  Samsung Galaxy A54         |
+     |  Score: 8.1 [========--]    |
+     |  Narx: 3,250,000 UZS       |
+     |  Haftalik: 1,234 dona +15%  |
+     |  Signal: Flash sale         |
+     |  ---------------------------+
+     |  [Kuzatish] [To'liq tahlil] |
+     +-----------------------------+
+     ```
+   - "Kuzatish" → `TRACK_PRODUCT` message → badge yangilanadi
+   - "To'liq tahlil" → `chrome.tabs.create({ url: 'https://ventra.uz/product/${id}' })`
+2. Xatolar:
+   - "Bu URL uzum.uz mahsulot sahifasi emas" (noto'g'ri URL)
+   - "Mahsulot topilmadi" (404)
+   - "Tarmoq xatosi" (network error)
+   - "Balans yetarli emas" (402 billing guard)
+**Qabul kriterlari:** Popup'dan URL kiritib yoki joriy tab ni tahlil qilish imkoni bor, natija tez va aniq ko'rsatiladi.
+
+---
+
+## Faza 4 — CATEGORY SCANNER + ADVANCED FEATURES (P1)
+
+### T-217 | P1 | FRONTEND | Content Script — Kategoriya sahifasida "Top 10 mahsulot" floating widget | 2h
+**Vazifa:** uzum.uz kategoriya sahifasida VENTRA score bo'yicha eng yaxshi 10 ta mahsulotni ko'rsatuvchi widget.
+**Texnik talablar:**
+1. `src/content/components/CategoryWidget.tsx`:
+   - Kategoriya sahifasi aniqlanadi: URL `uzum.uz/ru/category/*` pattern
+   - `parseUzumCategoryId()` orqali category ID olinadi
+   - Sahifada ko'rinadigan barcha product IDlarni yig'ish → batch-quick-score API
+   - Natijalarni score bo'yicha sort → top 10 ko'rsatish
+   - Widget joylashuvi: Sahifa yuqorisida yoki floating panel (o'ng tomon)
+2. Widget dizayni:
+   ```
+   +------ VENTRA Top 10 ------------------+
+   | #1 Samsung Galaxy A54    8.1 +15%     |
+   | #2 iPhone 15 Case        7.8 +8%      |
+   | #3 Xiaomi Redmi Note 13  7.5 0%       |
+   | ...                                   |
+   | [Hammasini ko'rish ->]                |
+   +----------------------------------------+
+   ```
+   - Har bir qator: Rank | Nomi (truncated) | Score badge | Trend
+   - Click → o'sha mahsulot sahifasiga o'tish
+   - "Hammasini ko'rish" → VENTRA web discovery sahifaga link
+3. Widget yig'ish/ochish toggle + "yashirish" tugma
+4. Settings'da kategoriya widget ni o'chirish imkoniyati
+**Qabul kriterlari:** Kategoriya sahifasida top 10 VENTRA score bilan widget ko'rinadi, click bilan navigate qilish mumkin.
+
+---
+
+### T-218 | P1 | FRONTEND | Chrome Extension — Notifications sistema (chrome.notifications + badge) | 1.5h
+**Vazifa:** Real-time signallar va muhim o'zgarishlar uchun Chrome notification + extension badge.
+**Texnik talablar:**
+1. `src/background/notifications.ts`:
+   ```typescript
+   // Signal turlariga qarab notification template
+   const NOTIFICATION_TEMPLATES = {
+     stock_cliff: { title: 'Stok tushishi!', icon: 'icons/alert-stock.png' },
+     flash_sale: { title: 'Flash sale aniqlandi!', icon: 'icons/alert-flash.png' },
+     early_signal: { title: 'Yangi signal!', icon: 'icons/alert-signal.png' },
+     price_drop: { title: 'Narx tushdi!', icon: 'icons/alert-price.png' },
+     score_change: { title: 'Score ozgarishi', icon: 'icons/alert-score.png' },
+   };
+
+   async function checkNewSignals() {
+     const signals = await api.getSignals();
+     const lastCheck = await storage.getLastSignalCheck();
+     const newSignals = signals.filter(s => s.created_at > lastCheck);
+
+     for (const signal of newSignals) {
+       chrome.notifications.create(signal.id, {
+         type: 'basic',
+         iconUrl: NOTIFICATION_TEMPLATES[signal.type].icon,
+         title: NOTIFICATION_TEMPLATES[signal.type].title,
+         message: `${signal.product_name}: ${signal.description}`,
+         priority: signal.severity === 'critical' ? 2 : 1,
+       });
+     }
+
+     // Badge yangilash
+     updateBadge(newSignals.length);
+     await storage.setLastSignalCheck(Date.now());
+   }
+   ```
+2. Notification click handler: `chrome.notifications.onClicked` → mahsulot sahifasini ochish
+3. Badge logika:
+   - Raqam: o'qilmagan signallar soni
+   - Rang: qizil = kritik signal bor, sariq = oddiy signal, yashil = hamma yaxshi
+   - Popup ochilganda → signallar "o'qildi" deb belgilanadi → badge tozalanadi
+4. Settings: notification turlarini alohida o'chirish/yoqish imkoniyati
+5. "Bezovta qilmaslik" rejimi: 22:00-08:00 orasida notification yubormaslik
+**Qabul kriterlari:** Yangi signallar Chrome notification sifatida ko'rsatiladi, badge yangilanadi, click bilan navigate mumkin.
+
+---
+
+### T-219 | P1 | FRONTEND | Chrome Extension — Options (Sozlamalar) sahifasi | 1.5h
+**Vazifa:** Extension sozlamalari sahifasi — API URL, notification preferences, display settings.
+**Texnik talablar:**
+1. `src/options/index.html` + `src/options/index.tsx` — alohida sahifa (popup emas)
+2. `src/options/components/OptionsPage.tsx`:
+   - **API Sozlamalari:** Server URL input + ulanish test + holat indikatori
+   - **Profil:** Email, hisob turi, "Chiqish" tugma
+   - **Bildirishnomalar:** Har signal turi uchun toggle (stock cliff, flash sale, narx, score)
+   - **Bezovta qilmaslik:** Boshlanish/tugash vaqti (default 22:00-08:00)
+   - **Ko'rinish:** Dark/light theme toggle, katalog badge on/off, overlay on/off, overlay pozitsiyasi (o'ng/chap)
+   - **Ma'lumot:** Cache tozalash tugma, so'nggi yangilanish vaqti, saqlangan mahsulotlar soni
+   - **[Saqlash]** tugma
+3. Sozlamalar `chrome.storage.local` da saqlanadi
+4. API URL o'zgartirilganda → ulanish test qilinadi (GET /health)
+5. "Cache tozalash" → cached scorelar, signallar tozalanadi
+6. Har bir o'zgartirish real-time saqlanadi (debounce 500ms)
+**Qabul kriterlari:** Options sahifasi ishlaydi, barcha sozlamalar saqlanadi va boshqa extension qismlariga ta'sir qiladi.
+
+---
+
+## Faza 5 — COMPETITOR FEATURES + NARX MONITORING (P2)
+
+### T-220 | P2 | FRONTEND | Content Script — Raqiblar narx taqqoslash overlay (mahsulot sahifasida) | 2h
+**Vazifa:** uzum.uz mahsulot sahifasida raqiblarning narxlarini real-time ko'rsatish.
+**Texnik talablar:**
+1. `src/content/components/CompetitorOverlay.tsx`:
+   - Mahsulot sahifasida "Raqiblar" tab → ProductOverlay ichida yangi panel
+   - API: `GET /competitor/products/:productId/prices` → raqiblar ro'yxati
+   - Ko'rsatish: sizning narx, raqiblar narxi (foiz farqi bilan), o'rtacha bozor narx, pozitsiya
+   - Narx farqi foizda: yashil = siz arzonroq, qizil = siz qimmatroq
+   - "Kuzatishga olish" → `POST /competitor/track` → har kuni narx kuzatiladi
+2. Raqiblar topilmasa → "Raqiblar hali aniqlanmagan. [Tahlil qilish] tugmasini bosing"
+3. Loading state: skeleton cards
+4. Error: "Raqiblar ma'lumoti yuklanmadi" + retry
+**Qabul kriterlari:** Mahsulot sahifasida raqiblar narxi overlay da ko'rinadi, foiz farqi hisoblanadi.
+
+---
+
+### T-221 | P2 | FRONTEND | Content Script — Narx tarix grafigi (mini chart) mahsulot overlay da | 1.5h
+**Vazifa:** Mahsulot overlay panelida 30 kunlik narx tarix grafigi.
+**Texnik talablar:**
+1. `src/content/components/PriceChart.tsx`:
+   - API: `GET /products/:id/snapshots` → 30 kunlik snapshot ma'lumotlar
+   - Mini line chart: 200x80px, Canvas/SVG based (lightweight)
+   - X axis: sanalar (faqat boshi va oxiri label)
+   - Y axis: narx (UZS), min-max range
+   - Hover: tooltip — sana + aniq narx
+   - Trend line: linear regression chizig'i (dotted)
+   - Narx o'zgarish badge: "+12% (30 kun)" yoki "-5% (30 kun)"
+2. Chart library: Lightweight — `uPlot` (3KB) yoki custom Canvas rendering
+   - Recharts/Chart.js ISHLATILMAYDI — extension uchun juda og'ir (200KB+)
+3. Ma'lumot yo'q bo'lsa → "Narx tarixi hali yig'ilmagan. Kuzatishga oling!"
+**Qabul kriterlari:** Overlay da 30 kunlik narx grafigi ko'rinadi, hover bilan aniq narxni ko'rish mumkin.
+
+---
+
+### T-222 | P2 | FRONTEND | Chrome Extension — Context Menu integration (o'ng tugma menu) | 1h
+**Vazifa:** uzum.uz da o'ng tugma bosganda VENTRA harakatlarini ko'rsatish.
+**Texnik talablar:**
+1. `src/background/contextMenu.ts`:
+   ```typescript
+   // Faqat uzum.uz sahifalarida ko'rinadi
+   chrome.contextMenus.create({
+     id: 'ventra-analyze',
+     title: 'VENTRA: Bu mahsulotni tahlil qilish',
+     contexts: ['link'],
+     documentUrlPatterns: ['https://uzum.uz/*'],
+     targetUrlPatterns: ['https://uzum.uz/*/product/*'],
+   });
+
+   chrome.contextMenus.create({
+     id: 'ventra-track',
+     title: 'VENTRA: Kuzatishga olish',
+     contexts: ['link'],
+     documentUrlPatterns: ['https://uzum.uz/*'],
+     targetUrlPatterns: ['https://uzum.uz/*/product/*'],
+   });
+
+   chrome.contextMenus.create({
+     id: 'ventra-compare',
+     title: 'VENTRA: Raqiblar bilan taqqoslash',
+     contexts: ['link'],
+     documentUrlPatterns: ['https://uzum.uz/*'],
+     targetUrlPatterns: ['https://uzum.uz/*/product/*'],
+   });
+   ```
+2. Context menu faqat uzum.uz product link ustida o'ng tugma bosganda ko'rinadi
+3. Action bajarilgandan so'ng Chrome notification orqali natija ko'rsatiladi
+**Qabul kriterlari:** uzum.uz da mahsulot linkiga o'ng tugma → VENTRA harakatlari ko'rinadi va ishlaydi.
+
+---
+
+## Faza 6 — ADVANCED ANALYTICS + AI (P2)
+
+### T-223 | P2 | FRONTEND | Content Script — AI tahlil natijasini overlay da ko'rsatish | 1.5h
+**Vazifa:** Mahsulot overlay da AI tomonidan yaratilgan tahlil va tavsiyalarni ko'rsatish.
+**Texnik talablar:**
+1. `src/content/components/AiInsight.tsx`:
+   - API: `GET /ai/explanations/:productId` → AI tahlil matnlari
+   - Ko'rsatish (overlay panel ichida "AI Tahlil" tab): tahlil matni + tavsiya + amaliy maslahat
+   - AI tahlil mavjud bo'lmasa → "AI tahlilni boshlash" tugma → `POST /ai/attributes/:id/extract`
+   - Loading: typing animation (AI yozyapti effekti)
+   - AI usage limit ko'rsatish: "Bu oy: 45/100 AI tahlil"
+2. Matn formatlash: Markdown → HTML (bold, bullet points)
+3. Error: "AI xizmati hozir mavjud emas" (503)
+**Qabul kriterlari:** Overlay da AI tahlil matni ko'rsatiladi, yangi tahlil boshlash mumkin.
+
+---
+
+### T-224 | P2 | FRONTEND | Chrome Extension — Keyboard shortcuts (hotkeys) | 1h
+**Vazifa:** Extension uchun keyboard shortcutlar.
+**Texnik talablar:**
+1. `manifest.json` → `commands`:
+   ```json
+   "commands": {
+     "_execute_action": { "suggested_key": { "default": "Alt+V" }, "description": "VENTRA popup ochish" },
+     "analyze-current": { "suggested_key": { "default": "Alt+A" }, "description": "Joriy sahifani tahlil qilish" },
+     "track-current": { "suggested_key": { "default": "Alt+T" }, "description": "Joriy mahsulotni kuzatish" },
+     "toggle-overlay": { "suggested_key": { "default": "Alt+O" }, "description": "Overlay panelni yashirish/ko'rsatish" }
+   }
+   ```
+2. `src/background/index.ts` → `chrome.commands.onCommand` handler:
+   - `analyze-current`: joriy tab dagi mahsulotni tahlil qilish → notification bilan natija
+   - `track-current`: joriy tab dagi mahsulotni track qilish → notification
+   - `toggle-overlay`: content script ga message → overlay visibility toggle
+3. Shortcutlar Options sahifasida ko'rsatiladi (Chrome o'zi boshqaradi: `chrome://extensions/shortcuts`)
+**Qabul kriterlari:** Alt+V popup ochadi, Alt+A tahlil qiladi, Alt+T track qiladi, Alt+O overlay toggle.
+
+---
+
+## Faza 7 — I18N, TESTING, POLISH (P2)
+
+### T-225 | P2 | FRONTEND | Chrome Extension — i18n (uz, ru, en) ko'p tilli qo'llab-quvvatlash | 1.5h
+**Vazifa:** Extension interfeysi 3 tilda ishlashi: o'zbek (default), rus, ingliz.
+**Texnik talablar:**
+1. `_locales/uz/messages.json` — barcha UI matnlar o'zbek tilida
+2. `_locales/ru/messages.json` — rus tilida
+3. `_locales/en/messages.json` — ingliz tilida
+4. `manifest.json`: `"default_locale": "uz"`
+5. `src/shared/i18n.ts`:
+   ```typescript
+   export const t = (key: string, substitutions?: string[]) =>
+     chrome.i18n.getMessage(key, substitutions) || key;
+   ```
+6. Barcha UI komponentlarda hardcoded matn o'rniga `t('key')` ishlatish
+7. Kalit so'zlar: extName, extDescription, loginTitle, analyzeBtn, trackBtn, untrackBtn, score, weeklyBought, trend, competitors, signals, settings, noData, loading, error, retry
+**Qabul kriterlari:** Extension Chrome tili sozlamasiga qarab 3 tilda ishlaydi.
+
+---
+
+### T-226 | P2 | FRONTEND | Chrome Extension — Unit testlar (Vitest + Testing Library) | 2h
+**Vazifa:** Extension komponentlari va utility funksiyalar uchun unit testlar.
+**Texnik talablar:**
+1. `apps/extension/vitest.config.ts` — test konfiguratsiya (jsdom environment)
+2. `tests/setup.ts` — chrome API mock (chrome.storage, chrome.runtime, chrome.tabs, chrome.i18n)
+3. Test fayllar:
+   - `tests/shared/api.test.ts` — VentraApiClient: login, refresh, error handling
+   - `tests/shared/storage.test.ts` — chrome.storage wrapper: get/set/clear token
+   - `tests/popup/LoginForm.test.tsx` — render, submit, error states
+   - `tests/popup/PopupDashboard.test.tsx` — tabs, data loading, empty states
+   - `tests/content/url-parser.test.ts` — uzum.uz URL parsing (product, category)
+   - `tests/background/notifications.test.ts` — signal check, notification creation
+4. Coverage target: >70% statements
+5. `package.json` script: `"test": "vitest run"`, `"test:watch": "vitest"`
+**Qabul kriterlari:** `pnpm --filter extension test` barcha testlar o'tadi, coverage >70%.
+
+---
+
+### T-227 | P2 | FRONTEND | Chrome Extension — Performance optimization + bundle size | 1h
+**Vazifa:** Extension bundle hajmini kamaytirish va performance optimizatsiya.
+**Texnik talablar:**
+1. Bundle analysis: `rollup-plugin-visualizer` → bundle hajm xaritasi
+2. Target hajmlar:
+   - Background service worker: <50KB
+   - Content script: <100KB (CSS bilan birga)
+   - Popup: <150KB
+   - Options: <80KB
+3. Optimizatsiya chora-tadbirlari:
+   - Tree shaking: faqat ishlatilgan @uzum/utils funksiyalarni import
+   - Code splitting: popup va options alohida chunk
+   - CSS: Tailwind purge — faqat ishlatilgan classlar
+   - Images: SVG ikonlar (PNG emas), inline small SVGs
+   - No heavy dependencies: Chart.js/Recharts o'rniga uPlot yoki Canvas
+4. Content script performance:
+   - DOM mutations → requestIdleCallback bilan batch processing
+   - IntersectionObserver → faqat ko'rinadigan elementlar uchun API call
+   - Score cache: `Map<productId, { score, timestamp }>` → 5 min TTL
+   - Debounce: scroll/resize events 200ms
+5. Memory leak prevention:
+   - MutationObserver disconnect on cleanup
+   - React unmount on SPA navigation
+   - Background alarm cleanup
+**Qabul kriterlari:** Bundle hajmlari target ichida, Lighthouse extension audit >90, DOM overhead <5ms per card.
+
+---
+
+## Faza 8 — BUILD, PUBLISH, CI/CD (P1)
+
+### T-228 | P1 | DEVOPS | Chrome Extension — Production build pipeline + Chrome Web Store publish | 2h
+**Vazifa:** Extension ni production build qilish, versiya boshqarish va Chrome Web Store ga publish qilish.
+**Texnik talablar:**
+1. `apps/extension/package.json` scripts:
+   ```json
+   {
+     "dev": "vite",
+     "build": "vite build",
+     "build:prod": "NODE_ENV=production vite build && cd dist && zip -r ../ventra-extension-v$npm_package_version.zip .",
+     "test": "vitest run",
+     "lint": "eslint src/",
+     "type-check": "tsc --noEmit"
+   }
+   ```
+2. Vite production config:
+   - Minification: terser (esbuild emas — Chrome Web Store ba'zan reject qiladi)
+   - Source maps: alohida fayl (debug uchun, publish qilinmaydi)
+   - Environment: `VITE_API_URL`, `VITE_VERSION`
+3. `.github/workflows/extension.yml` — CI pipeline:
+   ```yaml
+   name: Extension CI
+   on:
+     push:
+       paths: ['apps/extension/**', 'packages/**']
+     pull_request:
+       paths: ['apps/extension/**', 'packages/**']
+   jobs:
+     build:
+       - pnpm install
+       - pnpm --filter extension type-check
+       - pnpm --filter extension lint
+       - pnpm --filter extension test
+       - pnpm --filter extension build:prod
+       - Upload artifact: ventra-extension-v*.zip
+     publish: # manual trigger
+       - Download artifact
+       - chrome-webstore-upload-cli → Chrome Web Store API
+   ```
+4. Chrome Web Store Developer account:
+   - Store listing: VENTRA — Uzum Analytics
+   - Category: Shopping
+   - Screenshots: 1280x800 (5 ta: popup, overlay, catalog, signals, settings)
+   - Privacy policy URL
+   - `CWS_CLIENT_ID`, `CWS_CLIENT_SECRET`, `CWS_REFRESH_TOKEN` → GitHub Secrets
+5. Versiya boshqarish:
+   - `manifest.json` version → `package.json` version bilan sinxron
+   - Semantic versioning: MAJOR.MINOR.PATCH
+   - Auto-increment patch on CI merge to main
+**Qabul kriterlari:** CI pipeline ishlaydi, `pnpm --filter extension build:prod` → .zip tayyor, Chrome Web Store ga publish mumkin.
+
+---
+
+### T-229 | P1 | DEVOPS | Chrome Extension — Edge/Firefox adaptatsiya tayyorlash | 1h
+**Vazifa:** Extension ni Microsoft Edge va Firefox uchun ham chiqarish imkoniyatini tayyorlash.
+**Texnik talablar:**
+1. Edge: Chromium-based → deyarli to'liq mos. Faqat:
+   - Edge Add-ons Developer portal uchun alohida publish
+   - CI pipeline ga Edge upload step qo'shish
+2. Firefox adaptatsiya:
+   - `manifest-firefox.json` (Manifest V2 format — background.scripts, browser_specific_settings.gecko.id)
+   - `chrome.*` → `browser.*` API polyfill (`webextension-polyfill` package)
+   - Build script: alohida `build:firefox` command
+3. `apps/extension/build.config.ts`:
+   - Target platformalar: chrome (V3 .zip), edge (V3 .zip), firefox (V2 .xpi)
+4. CI pipeline ga Firefox/Edge build + upload step qo'shish
+**Qabul kriterlari:** Bitta codebase dan Chrome, Edge, Firefox uchun alohida build chiqarish mumkin.
+
+---
+
+## Faza 9 — SECURITY + FINAL POLISH (P1)
+
+### T-230 | P1 | IKKALASI | Chrome Extension — Security audit + CSP + token xavfsizligi | 1h
+**Vazifa:** Extension xavfsizlik tekshiruvi va mustahkamlash.
+**Texnik talablar:**
+1. Content Security Policy (manifest.json):
+   ```json
+   "content_security_policy": {
+     "extension_pages": "script-src 'self'; object-src 'none'; connect-src https://ventra.uz https://api.uzum.uz"
+   }
+   ```
+2. Token xavfsizligi:
+   - JWT token faqat `chrome.storage.local` da saqlanadi (localStorage EMAS)
+   - Content script token ga TO'G'RIDAN access olmaydi — faqat background message orqali
+   - Token expose bo'lmasligi: content script → background → API (proxy pattern)
+   - Refresh token faqat background service worker ichida ishlatiladi
+3. Input sanitization:
+   - uzum.uz dan olingan DOM ma'lumotlari (product name, price) → DOMPurify bilan tozalash
+   - API response → TypeScript strict typing, unknown → validate
+4. Permissions minimizatsiya:
+   - `activeTab` (faqat joriy tab), `storage`, `alarms`, `notifications`
+   - `host_permissions`: faqat `uzum.uz` va `api.uzum.uz` (wildcard emas)
+   - `<all_urls>` ISHLATILMAYDI — Chrome Web Store reject qiladi
+5. XSS himoya: Shadow DOM (closed mode) — uzum.uz saytidagi skriptlar extension DOM ga kira olmaydi
+6. Network: barcha API requestlar HTTPS orqali, HTTP fallback yo'q
+**Qabul kriterlari:** Chrome Web Store review o'tadi, security audit clean, CSP to'g'ri sozlangan.
+
+---
+
+### T-231 | P1 | FRONTEND | Chrome Extension — Onboarding flow (birinchi marta ochganda) | 1h
+**Vazifa:** Foydalanuvchi extension ni birinchi marta o'rnatganda ko'rsatiladigan welcome/tutorial.
+**Texnik talablar:**
+1. `chrome.runtime.onInstalled` → yangi tab da onboarding sahifa ochish:
+   ```typescript
+   chrome.runtime.onInstalled.addListener((details) => {
+     if (details.reason === 'install') {
+       chrome.tabs.create({ url: chrome.runtime.getURL('src/onboarding/index.html') });
+     }
+   });
+   ```
+2. `src/onboarding/` — 4 bosqichli wizard:
+   - **1-bosqich:** "VENTRA ga xush kelibsiz!" + extension imkoniyatlari ro'yxati
+   - **2-bosqich:** Login forma (yoki "Ro'yxatdan o'tish" → VENTRA web ga link)
+   - **3-bosqich:** "Qanday ishlaydi" — 3 ta screenshot bilan: overlay, popup, signals
+   - **4-bosqich:** "Tayyor! uzum.uz ga o'ting va boshlang" + shortcutlar ro'yxati
+3. Progress indicator: 4 nuqta (step dots)
+4. "O'tkazib yuborish" tugmasi har bosqichda
+5. Onboarding faqat 1 marta ko'rsatiladi (flag chrome.storage da saqlanadi)
+**Qabul kriterlari:** Extension o'rnatilganda onboarding wizard ochiladi, login qilish va asosiy funksiyalarni tushuntirish imkoni bor.
+
+---
+
+### T-232 | P2 | FRONTEND | Chrome Extension — Extension icon set (16/48/128 + active/inactive states) | 30min
+**Vazifa:** VENTRA extension uchun professional ikonka to'plami.
+**Texnik talablar:**
+1. `apps/extension/icons/`:
+   - `icon16.png`, `icon48.png`, `icon128.png` — asosiy ikonkalar
+   - `icon-active-16.png`, `icon-active-48.png` — uzum.uz da bo'lganda (rangli, yoniq)
+   - `icon-inactive-16.png`, `icon-inactive-48.png` — boshqa saytlarda (kulrang, dim)
+2. Dizayn: VENTRA logotipi (V harfi) — ko'k (#3B82F6) fonda, oq V
+3. Active/inactive farqi: active = to'liq rang, inactive = 50% opacity grayscale
+4. SVG source fayllar ham saqlash (keyingi o'zgartirishlar uchun)
+5. `alert-stock.png`, `alert-flash.png`, `alert-signal.png`, `alert-price.png` — notification ikonkalari (48x48)
+**Qabul kriterlari:** Barcha ikonkalar tayyor, manifest.json da to'g'ri ulangan, Chrome toolbar da yaxshi ko'rinadi.
+
+---
+
+### T-233 | P2 | FRONTEND | Chrome Extension — Error handling + offline mode + graceful degradation | 1h
+**Vazifa:** Extension barcha xato holatlarida foydalanuvchiga tushunarli xabar ko'rsatishi va offline da minimum funksionallik saqlanishi.
+**Texnik talablar:**
+1. Offline mode detection: `navigator.onLine` + event listeners
+2. Offline da mavjud funksiyalar:
+   - Cached scorelar ko'rsatish (oxirgi yuklanganlardan)
+   - "Offline rejim — ma'lumotlar eskirgan bo'lishi mumkin" banner
+   - Cached tracked products ro'yxati
+3. Error states (har bir komponent uchun):
+   - **Network error:** "Internet aloqasi yo'q. Qayta urinish" + retry tugma
+   - **401 Unauthorized:** Auto-refresh → agar baribir 401 → "Qayta kiring" + login forma
+   - **402 Payment Required:** "Balans yetarli emas. [To'ldirish →]" + VENTRA billing link
+   - **429 Too Many Requests:** "Juda ko'p so'rov. {X} soniyadan keyin qayta uriniladi" + auto-retry
+   - **500 Server Error:** "Server xatosi. Keyinroq urinib ko'ring"
+   - **Timeout (10s):** "So'rov uzoq davom etmoqda. [Bekor qilish] [Kutish]"
+4. Global error boundary: `src/shared/ErrorBoundary.tsx` — React error boundary
+5. API client: automatic retry (max 2, exponential backoff: 1s, 3s)
+6. Sentry/error tracking integration (optional): `VITE_SENTRY_DSN` env variable
+**Qabul kriterlari:** Barcha xato holatlarida tushunarli xabar, offline da cached data ishlaydi, crashlar error boundary bilan ushlandi.
+
+---
+
+## XULOSA — CHROME EXTENSION TASKLARI
+
+| Faza | Vazifalar | Diapazoni | Jami vaqt |
+|------|-----------|-----------|-----------|
+| **Faza 1** — Setup + Auth | 4 task | T-208...T-211 | ~7h |
+| **Faza 2** — Content Script Overlay | 3 task | T-212...T-214 | ~6.5h |
+| **Faza 3** — Popup Dashboard | 2 task | T-215...T-216 | ~4.5h |
+| **Faza 4** — Category + Advanced | 3 task | T-217...T-219 | ~5h |
+| **Faza 5** — Competitor + Narx | 3 task | T-220...T-222 | ~4.5h |
+| **Faza 6** — AI + Hotkeys | 2 task | T-223...T-224 | ~2.5h |
+| **Faza 7** — i18n + Testing + Perf | 3 task | T-225...T-227 | ~4.5h |
+| **Faza 8** — Build + Publish + Multi-browser | 2 task | T-228...T-229 | ~3h |
+| **Faza 9** — Security + Onboarding + Polish | 4 task | T-230...T-233 | ~3.5h |
+| **JAMI** | **26 task** | **T-208...T-233** | **~41h** |
 
 ---
 
