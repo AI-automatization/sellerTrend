@@ -60,6 +60,7 @@ export async function scrapeCategoryProductIds(
 
   const browser = await chromium.launch({
     headless: true,
+    executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
     proxy: process.env.PROXY_URL ? { server: process.env.PROXY_URL } : undefined,
     args: [
       '--no-sandbox',

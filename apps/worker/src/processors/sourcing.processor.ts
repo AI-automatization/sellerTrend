@@ -347,6 +347,7 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
   // Always run Playwright scrapers
   const browser = await chromium.launch({
     headless: true,
+    executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
     proxy: process.env.PROXY_URL ? { server: process.env.PROXY_URL } : undefined,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-blink-features=AutomationControlled', '--disable-dev-shm-usage'],
   });
