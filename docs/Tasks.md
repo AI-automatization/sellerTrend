@@ -2561,3 +2561,25 @@ WHERE id IN (
 
 **Fayllar:**
 - One-time migration yoki manual SQL
+
+---
+
+### T-271 | P0 | BACKEND | admin module 4 ta servis fayli push qilinmagan — backend ishlamaydi | Bekzod | 10min
+
+**Root cause:** Bekzod `admin.service.ts` ni refactor qilib 5 ta alohida faylga bo'lgan, lekin faqat `admin-stats.service.ts` ni push qilgan. Qolgan 4 ta fayl lokal qolgan.
+
+**Xato (16 ta webpack error):**
+```
+Module not found: Can't resolve './admin-account.service'
+Module not found: Can't resolve './admin-user.service'
+Module not found: Can't resolve './admin-feedback.service'
+Module not found: Can't resolve './admin-log.service'
+```
+
+**Ta'sir:** Backend port 3000 da ishga tushmaydi → login, API hamma narsa 500/connection refused.
+
+**Yechim:** Bekzod quyidagi fayllarni push qilishi kerak:
+- `apps/api/src/admin/admin-account.service.ts`
+- `apps/api/src/admin/admin-user.service.ts`
+- `apps/api/src/admin/admin-feedback.service.ts`
+- `apps/api/src/admin/admin-log.service.ts`
