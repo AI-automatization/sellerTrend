@@ -15,17 +15,6 @@ export function calculateScore(input: ScoreInput): number {
 }
 
 /**
- * Parse weekly_bought from Uzum product detail actions text
- * Supports: Russian "X человек купили на этой неделе"
- *           Uzbek "X kishi bu hafta sotib oldi"
- */
-export function parseWeeklyBought(actionsText: string): number | null {
-  const match = actionsText.match(/(\d[\d\s]*)\s*(человек|kishi|нафар)/i);
-  if (!match) return null;
-  return parseInt(match[1].replace(/\s/g, ''), 10);
-}
-
-/**
  * Extract product ID from Uzum URL
  * Supports:
  *   https://uzum.uz/product/12345
@@ -304,6 +293,10 @@ export function calculateProfit(input: ProfitInput): ProfitResult {
   const margin_pct = revenue > 0 ? (net_profit / revenue) * 100 : 0;
   const roi_pct = total_cost > 0 ? (net_profit / total_cost) * 100 : 0;
 
+  // Breakeven analysis (variable-cost model, no fixed costs):
+  // per_unit_margin = revenue_per_unit_after_commission - variable_costs_per_unit
+  // breakeven_qty = total_commission / per_unit_margin (units needed to cover commission)
+  // breakeven_price = minimum sell price to cover costs at 0% profit
   const per_unit_cost = unit_cost_uzs + fbo_cost_uzs + ads_spend_uzs;
   const per_unit_margin = sell_price_uzs * (1 - uzum_commission_pct / 100) - per_unit_cost;
   const breakeven_qty = per_unit_margin > 0 ? Math.ceil(commission / per_unit_margin) : Infinity;
@@ -343,7 +336,7 @@ export interface ForecastResult {
   trend: 'up' | 'flat' | 'down';
   confidence: number;
   slope: number;
-  metrics: { mae: number; rmse: number };
+  metrics: { mae: number; std_dev: number };
 }
 
 /** Weighted Moving Average forecast */
@@ -418,7 +411,7 @@ export function forecastEnsemble(
       trend: 'flat',
       confidence: 0,
       slope: 0,
-      metrics: { mae: 0, rmse: 0 },
+      metrics: { mae: 0, std_dev: 0 },
     };
   }
 
@@ -456,7 +449,11 @@ export function forecastEnsemble(
   const denom = n * sumX2 - sumX * sumX;
   const slope = denom !== 0 ? (n * sumXY - sumX * sumY) / denom : 0;
 
-  const trend: 'up' | 'flat' | 'down' = slope > 0.01 ? 'up' : slope < -0.01 ? 'down' : 'flat';
+  // Prediction-based trend: compare first vs last predicted value
+  const firstPred = ensemble[0] ?? 0;
+  const lastPred = ensemble[ensemble.length - 1] ?? 0;
+  const changePct = firstPred !== 0 ? (lastPred - firstPred) / Math.abs(firstPred) : 0;
+  const trend: 'up' | 'flat' | 'down' = changePct > 0.05 ? 'up' : changePct < -0.05 ? 'down' : 'flat';
 
   // Cross-validation MAE (last 3 points)
   const cvLen = Math.min(3, values.length - 2);
@@ -479,7 +476,7 @@ export function forecastEnsemble(
     trend,
     confidence: Number(confidence.toFixed(3)),
     slope: Number(slope.toFixed(6)),
-    metrics: { mae: Number(mae.toFixed(4)), rmse: Number(std.toFixed(4)) },
+    metrics: { mae: Number(mae.toFixed(4)), std_dev: Number(std.toFixed(4)) },
   };
 }
 
@@ -597,6 +594,12 @@ export interface DeadStockResult {
   factors: string[];
 }
 
+/**
+ * Predict dead stock risk based on sales velocity decline and score trajectory.
+ * `days_to_dead` = estimated days until sales velocity reaches zero
+ *   (based on linear extrapolation of recent vs older avg weekly sales).
+ * Returns 999 when no decline trend detected.
+ */
 export function predictDeadStock(
   snapshots: Array<{ score: number; weekly_bought: number; date: string }>,
   productId: string,
@@ -647,9 +650,10 @@ export function predictDeadStock(
     }
   }
 
-  // Estimate days to dead stock
+  // Estimate days to dead stock (guard against NaN: 0/0 or Infinity)
   const salesDeclineRate = avgOlder > 0 ? (avgOlder - avgRecent) / avgOlder : 0;
-  const daysEstimate = salesDeclineRate > 0 ? Math.round(avgRecent / (salesDeclineRate * avgOlder / 7)) : 999;
+  const dailyDecline = salesDeclineRate > 0 && avgOlder > 0 ? (salesDeclineRate * avgOlder) / 7 : 0;
+  const daysEstimate = dailyDecline > 0 ? Math.round(avgRecent / dailyDecline) : 999;
 
   const riskLevel: DeadStockResult['risk_level'] =
     risk >= 0.6 ? 'high' : risk >= 0.3 ? 'medium' : 'low';

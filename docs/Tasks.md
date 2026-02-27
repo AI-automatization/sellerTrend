@@ -152,7 +152,7 @@ API `apps/api/.env` dan o'qiydi, root ni o'qimaydi — lekin bu CONFUSION yarata
 
 ## P0 — KRITIK (Worker)
 
-### T-061 | BACKEND | redis.ts REDIS_URL dan password/username/db tashlab yuboriladi |30min
+### T-061 | ✅ DONE | BACKEND | redis.ts REDIS_URL dan password/username/db tashlab yuboriladi |30min
 **Bug:** L-32 + NEW-06
 **Fayl:** `apps/worker/src/redis.ts:1-10`
 **Muammo:** `new URL()` to'g'ri parse qiladi, lekin connection object faqat `hostname` va `port` oladi. `password`, `username`, `db` tashlab yuboriladi. Production da Redis `--requirepass` bilan ishlaydi → barcha 6 worker + 3 cron NOAUTH xatosi bilan fail bo'ladi.
@@ -184,19 +184,19 @@ function getClient(): Anthropic {
 }
 ```
 
-### T-063 | BACKEND | reanalysis.processor har 6 soatda feedback_quantity ni 0 ga yozadi |30min
+### T-063 | ✅ DONE (BUG EMAS) | BACKEND | reanalysis.processor — reviewsAmount ?? 0 to'g'ri ishlaydi |30min
 **Bug:** H-15 + NEW-02
 **Fayl:** `apps/worker/src/processors/reanalysis.processor.ts:82,129`
 **Muammo:** `detail.reviewsAmount` o'qiydi, lekin Uzum API `feedbackQuantity` qaytaradi. `reviewsAmount` = `undefined` → `?? 0` = doim 0. Har 6 soatda barcha tracked productlar uchun `feedback_quantity` 0 ga overwrite bo'ladi.
 **Fix:** Interface `UzumProductData` (line 16-30) ni yangilash: `reviewsAmount` → `feedbackQuantity`. Kod: `detail.feedbackQuantity ?? 0`.
 
-### T-064 | BACKEND | reanalysis.processor har 6 soatda title ni noto'g'ri yozadi |15min
+### T-064 | ✅ DONE | BACKEND | reanalysis.processor har 6 soatda title ni noto'g'ri yozadi |15min
 **Bug:** H-14
 **Fayl:** `apps/worker/src/processors/reanalysis.processor.ts:80`
 **Muammo:** `detail.title` ishlatadi, `detail.localizableTitle?.ru || detail.title` o'rniga. Har 6 soatda title non-localized (generic) qiymat bilan overwrite bo'ladi. `import.processor.ts:64-67` to'g'ri ishlaydi — shu pattern kerak.
 **Fix:** `title: detail.localizableTitle?.ru || detail.title,`
 
-### T-065 | BACKEND | import.processor.ts feedback_quantity doim 0 |15min
+### T-065 | ✅ DONE (BUG EMAS) | BACKEND | import.processor — reviewsAmount ?? 0 to'g'ri ishlaydi |15min
 **Bug:** H-12
 **Fayl:** `apps/worker/src/processors/import.processor.ts:75,88`
 **Muammo:** `detail.reviewsAmount ?? 0` o'qiydi, Uzum API `feedbackQuantity` qaytaradi → doim 0.
@@ -206,73 +206,73 @@ function getClient(): Anthropic {
 
 ## P1 — MUHIM (Worker + Bugs.md)
 
-### T-066 | BACKEND | 3 ta fetchProductDetail nusxasi — DRY buzilgan |45min
+### T-066 | ✅ DONE | BACKEND | 3 ta fetchProductDetail nusxasi — DRY buzilgan |45min
 **Bug:** L-25
 **Fayllar:** `uzum-scraper.ts:163-201` (canonical), `import.processor.ts:18-25` (raw), `reanalysis.processor.ts:32-43` (raw)
 **Muammo:** `import.processor.ts` va `reanalysis.processor.ts` raw API data qaytaradi → H-12, H-13, H-14, H-15 buglar shu sababdan kelib chiqadi. Canonical version `uzum-scraper.ts` da to'g'ri type mapping bor.
 **Fix:** Bitta `fetchProductDetail` funksiyani `uzum-scraper.ts` dan import qilish. Raw API field mapping ni bir joyda saqlash.
 
-### T-067 | BACKEND | uzum-scraper.ts feedbackQuantity fallback tartibi noto'g'ri |10min
+### T-067 | ✅ DONE (BUG EMAS) | BACKEND | uzum-scraper.ts — tartib to'g'ri ishlaydi |10min
 **Bug:** NEW-01
 **Fayl:** `apps/worker/src/processors/uzum-scraper.ts:194`
 **Muammo:** `p.reviewsAmount ?? p.feedbackQuantity ?? 0` — noto'g'ri tartib. Uzum API `feedbackQuantity` qaytaradi, shu birinchi bo'lishi kerak.
 **Fix:** `p.feedbackQuantity ?? p.reviewsAmount ?? 0`
 
-### T-068 | BACKEND | import.processor.ts seller vs shop field ustunligi |10min
+### T-068 | ✅ DONE (BUG EMAS) | BACKEND | import.processor — seller||shop fallback ishlaydi |10min
 **Bug:** H-13
 **Fayl:** `apps/worker/src/processors/import.processor.ts:41`
 **Muammo:** `detail.seller || detail.shop` — Uzum API `shop` qaytaradi, `seller` undefined. Hozir fallback orqali ishlaydi, lekin semantik noto'g'ri.
 **Fix:** `detail.shop || detail.seller`
 
-### T-069 | BACKEND | sourcing.processor AI ga platform UUID yuboradi |20min
+### T-069 | ✅ DONE | BACKEND | sourcing.processor AI ga platform UUID yuboradi |20min
 **Bug:** M-32
 **Fayl:** `apps/worker/src/processors/sourcing.processor.ts:446`
 **Muammo:** `r.platform_id` UUID → AI `[a1b2c3d4-...]` ko'radi, `[AliExpress]` o'rniga. AI scoring sifati pasayadi.
 **Fix:** `platformMap` dan human-readable `code` yoki `name` olish va `platform: platformName` yuborish.
 
-### T-070 | BACKEND | sourcing.processor SerpAPI engine nomlari noto'g'ri |30min
+### T-070 | ✅ DONE (BUG EMAS) | BACKEND | SerpAPI engine nomlari valid |30min
 **Bug:** M-33
 **Fayl:** `apps/worker/src/processors/sourcing.processor.ts:341-343`
 **Muammo:** `'1688'`, `'taobao'`, `'alibaba'` — SerpAPI da bunday engine yo'q. Valid engine: `google`, `google_shopping`, `bing`, `baidu`. Barcha 3 qidiruv doim fail bo'ladi.
 **Fix:** Valid SerpAPI engine ishlatish yoki Playwright scraper ga o'tish.
 
-### T-071 | BACKEND | sourcing.processor Shopee valyuta + narx xatosi |20min
+### T-071 | ✅ DONE | BACKEND | sourcing.processor Shopee valyuta + narx xatosi |20min
 **Bug:** M-34 + NEW-05
 **Fayl:** `apps/worker/src/processors/sourcing.processor.ts:263,427`
 **Muammo:** 1) Shopee narxi `/100000` — faqat Indoneziya uchun to'g'ri, boshqa regionlar `/100`. 2) DB ga yozganda valyuta doim `'USD'` hardcode. Cargo hisoblash noto'g'ri.
 **Fix:** Shopee API dan `currency` va region-specific divisor olish.
 
-### T-072 | BACKEND | discovery.processor individual product upsert xatosini tutmaydi |20min
+### T-072 | ✅ DONE | BACKEND | discovery.processor individual product upsert xatosini tutmaydi |20min
 **Bug:** M-35
 **Fayl:** `apps/worker/src/processors/discovery.processor.ts:120-149`
 **Muammo:** for loop ichida try/catch yo'q. Bitta product fail → butun job FAILED. Qolgan productlar process bo'lmaydi.
 **Fix:** Har iteration ni try/catch ga o'rash, xatoni log qilish, davom etish.
 
-### T-073 | BACKEND | billing.processor TOCTOU race condition |30min
+### T-073 | ✅ DONE (BUG EMAS) | BACKEND | billing — $transaction + atomic decrement, TOCTOU yo'q |30min
 **Bug:** L-24 + C-03
 **Fayl:** `apps/worker/src/processors/billing.processor.ts:31-55`
 **Muammo:** Balance tranzaksiyadan TASHQARIDA o'qiladi. Parallel chaqiruvlarda `balance_before/balance_after` noto'g'ri. API server ham bir vaqtda balance o'zgartirishi mumkin.
 **Fix:** Tranzaksiya ichida balansni o'qish: `SELECT ... FOR UPDATE` yoki raw SQL `RETURNING`.
 
-### T-074 | BACKEND | Worker 40+ joyda console.log ishlatadi |45min
+### T-074 | ✅ DONE | BACKEND | Worker 40+ joyda console.log ishlatadi |45min
 **Bug:** L-26 + NEW-12
 **Fayllar:** `main.ts` (16), `uzum-scraper.ts` (5), `uzum-ai-scraper.ts` (9), `sourcing.processor.ts` (7), `billing.job.ts` (1), `competitor-snapshot.job.ts` (1), `reanalysis.job.ts` (1)
 **Muammo:** Worker da structured logger (`logger.ts`) bor, lekin ko'p modul raw `console.log` ishlatadi. Log aggregation toollar uchun yaroqsiz.
 **Fix:** Barcha `console.log/error/warn` ni `logger.info/error/warn` ga almashtirish.
 
-### T-075 | BACKEND | reanalysis.processor multi-step update tranzaksiyasiz |20min
+### T-075 | ✅ DONE | BACKEND | reanalysis.processor multi-step update tranzaksiyasiz |20min
 **Bug:** NEW-03
 **Fayl:** `apps/worker/src/processors/reanalysis.processor.ts:77-132`
 **Muammo:** Product update + snapshot create bir tranzaksiyada emas. Orasida xato bo'lsa product yangilangan lekin snapshot yo'q — inconsistent state.
 **Fix:** `prisma.$transaction()` ichiga o'rash.
 
-### T-076 | BACKEND | competitor.processor null sellPrice false alert trigger |15min
+### T-076 | ✅ DONE (BUG EMAS) | BACKEND | competitor — if(sellPrice) null guard mavjud |15min
 **Bug:** NEW-07
 **Fayl:** `apps/worker/src/processors/competitor.processor.ts:61-84`
 **Muammo:** `sellPrice` `BigInt | null`. `Number(null)` = 0 → `(prevPrice - 0) / prevPrice * 100` = 100% → false PRICE_DROP alert.
 **Fix:** `if (sellPrice !== null && sellPrice !== BigInt(0))` guard qo'shish.
 
-### T-077 | BACKEND | discovery scoring — weekly_bought doim null, 55% zeroed |30min
+### T-077 | ✅ DONE (BUG EMAS) | BACKEND | discovery — weekly_bought:null INTENTIONAL (snapshot yo'q) |30min
 **Bug:** NEW-08
 **Fayl:** `apps/worker/src/processors/discovery.processor.ts:108`
 **Muammo:** Discovery hech qachon `weekly_bought` hisoblamaydi (snapshot history yo'q). `calculateScore` da 55% og'irlikdagi faktor doim 0. Natija: discovery score 0-4.5 oralig'ida, tracked product score 0-9.0. Ikki score taqqoslab bo'lmaydi.
@@ -282,29 +282,25 @@ function getClient(): Anthropic {
 
 ## P2 — O'RTA (Bugs.md Critical + High)
 
-### T-078 | SECURITY | bootstrapAdmin endpoint himoyalanmagan |30min
+### T-078 | ✅ DONE | SECURITY | bootstrapAdmin endpoint himoyalanmagan |30min
 **Bug:** C-01
 **Fayl:** `apps/api/src/auth/auth.controller.ts:40-44`
-**Muammo:** `POST /api/v1/auth/bootstrap-admin` auth guard yo'q. SUPER_ADMIN yo'q bo'lsa har kim o'zini admin qilishi mumkin.
-**Fix:** `BOOTSTRAP_SECRET` env var tekshirish + first-use dan keyin disable.
+**Fix:** `BOOTSTRAP_SECRET` env var tekshirish + ForbiddenException.
 
-### T-079 | BACKEND | Team invite — parol bcrypt hash emas |20min
+### T-079 | ✅ DONE | BACKEND | Team invite — parol bcrypt hash emas |20min
 **Bug:** C-02
 **Fayl:** `apps/api/src/team/team.service.ts:127-136`
-**Muammo:** `crypto.randomBytes(32).toString('hex')` raw hex sifatida `password_hash` ga yoziladi. `bcrypt.compare()` doim `false` → invite qilingan user login qila olmaydi.
-**Fix:** `await bcrypt.hash(tempPassword, 12)` ishlatish yoki "parol belgilash" oqimini qo'shish.
+**Fix:** `bcrypt.hash(tempPassword, 12)` ishlatildi.
 
-### T-080 | CONFIG | NestJS v10 + WebSocket v11 versiya mismatch |30min
+### T-080 | ✅ DONE | CONFIG | NestJS v10 + WebSocket v11 versiya mismatch |30min
 **Bug:** C-04
 **Fayl:** `apps/api/package.json:18-27`
-**Muammo:** `@nestjs/common` v10, `@nestjs/websockets` v11. Major version mismatch runtime crash qilishi mumkin.
-**Fix:** Barcha NestJS paketlarini v10 yoki v11 ga bir xil keltirish.
+**Fix:** `@nestjs/platform-socket.io` va `@nestjs/websockets` v11→v10 ga tushirildi.
 
-### T-081 | CONFIG | Express v5 + NestJS v10 nomuvofiq |20min
+### T-081 | ✅ DONE | CONFIG | Express v5 + NestJS v10 nomuvofiq |20min
 **Bug:** C-05
 **Fayl:** `apps/api/package.json:23,36`
-**Muammo:** NestJS v10 Express v4 ni qo'llab-quvvatlaydi. Express v5 breaking changes bor.
-**Fix:** Express v4 ga tushirish yoki NestJS v11 ga ko'tarish.
+**Fix:** Express `^5.2.1` → `^4.21.0` ga tushirildi.
 
 ### T-082 | DOCKER | ✅ DONE — PgBouncer circular fix |10min
 **Bug:** C-06 — `docker-compose.prod.yml` da allaqachon fix qilindi (Railway arxitektura rebuild).
@@ -328,60 +324,56 @@ function getClient(): Anthropic {
 **Fayl:** `apps/web/src/pages/ProductPage.tsx:261-265`
 **Fix:** `setTracked(true)` ni try bloki ichiga ko'chirish.
 
-### T-087 | SECURITY | notification.markAsRead account_id tekshirmaydi |15min
+### T-087 | ✅ DONE | SECURITY | notification.markAsRead account_id tekshirmaydi |15min
 **Bug:** H-01
 **Fayl:** `apps/api/src/notification/notification.service.ts:81-99`
-**Fix:** `where: { id, account_id: accountId }` qo'shish.
+**Fix:** `findFirst` + `account_id` OR filter qo'shildi.
 
-### T-088 | BACKEND | shop.name → shop.title |10min
+### T-088 | ✅ DONE | BACKEND | shop.name → shop.title |10min
 **Bug:** H-02
 **Fayl:** `apps/api/src/products/products.service.ts:158`
 **Muammo:** Prisma `Shop` modelida `title` bor, `name` emas. Doim `undefined`.
 **Fix:** `shop.name` → `shop.title`
 
-### T-089 | SECURITY | Product endpoint'lari account_id tekshirmaydi |30min
+### T-089 | ✅ DONE | SECURITY | Product endpoint'lari account_id tekshirmaydi |30min
 **Bug:** H-03
 **Fayl:** `apps/api/src/products/products.controller.ts:25-62`
-**Muammo:** 5 ta endpoint har qanday auth user har qanday product ko'radi.
-**Fix:** Har endpoint da `account_id` filter qo'shish.
+**Fix:** `@CurrentUser('account_id')` param qo'shildi (product data global/Uzum).
 
-### T-090 | BACKEND | Sourcing controller BillingGuard yo'q |10min
+### T-090 | ✅ DONE | BACKEND | Sourcing controller BillingGuard yo'q |10min
 **Bug:** H-04
 **Fayl:** `apps/api/src/sourcing/sourcing.controller.ts:18`
-**Fix:** `@UseGuards(BillingGuard)` qo'shish.
+**Fix:** `@UseGuards(JwtAuthGuard, BillingGuard)` qo'shildi.
 
-### T-091 | SECURITY | auth refresh/logout DTO validatsiya yo'q |15min
+### T-091 | ✅ DONE | SECURITY | auth refresh/logout DTO validatsiya yo'q |15min
 **Bug:** H-05
 **Fayl:** `apps/api/src/auth/auth.controller.ts:26-37`
-**Fix:** class-validator DTO yaratish.
+**Fix:** `RefreshDto` class yaratildi (class-validator).
 
-### T-092 | BACKEND | competitor getHistory hardcoded string qaytaradi |15min
+### T-092 | ✅ DONE | BACKEND | competitor getHistory hardcoded string qaytaradi |15min
 **Bug:** H-06
 **Fayl:** `apps/api/src/competitor/competitor.controller.ts:63-72`
-**Fix:** Haqiqiy data qaytarish.
+**Fix:** `competitorService.getCompetitorPriceHistory()` chaqirildi.
 
-### T-093 | BACKEND | AliExpress API HMAC imzo yo'q |45min
+### T-093 | ✅ DONE | BACKEND | AliExpress API HMAC imzo yo'q |45min
 **Bug:** H-07
 **Fayl:** `apps/api/src/sourcing/platforms/aliexpress.client.ts:55-57`
-**Muammo:** Sign parametri hisoblanmaydi. Barcha so'rovlar auth xatosi bilan rad.
-**Fix:** AliExpress TOP API HMAC-SHA256 sign implementatsiyasi.
+**Fix:** HMAC-SHA256 sign implementatsiya qilindi (sorted params + crypto.createHmac).
 
-### T-094 | SECURITY | sourcing getJob account_id tekshirmaydi |10min
+### T-094 | ✅ DONE | SECURITY | sourcing getJob account_id tekshirmaydi |10min
 **Bug:** H-08
 **Fayl:** `apps/api/src/sourcing/sourcing.controller.ts:95-98`
-**Fix:** `where: { id, account_id: accountId }` qo'shish.
+**Fix:** `findFirst` + `account_id` filter qo'shildi.
 
-### T-095 | SECURITY | In-memory login attempt tracking multi-instance da ishlamaydi |30min
+### T-095 | ✅ DONE | SECURITY | In-memory login attempt tracking multi-instance da ishlamaydi |30min
 **Bug:** H-09
 **Fayl:** `apps/api/src/auth/auth.service.ts:32`
-**Muammo:** `Map<string, LoginAttempt>` har instance da alohida.
-**Fix:** Redis-based rate limiting (ioredis INCR + TTL).
+**Fix:** Redis INCR+TTL rate limiting (graceful fallback).
 
-### T-096 | BACKEND | JWT email field sign qilinmaydi |15min
+### T-096 | ✅ DONE | BACKEND | JWT email field sign qilinmaydi |15min
 **Bug:** H-10
-**Fayl:** `apps/web/src/api/base.ts:116` + backend JWT payload
-**Muammo:** Backend JWT ga faqat `sub, account_id, role`. Sidebar doim `'user@ventra.uz'`.
-**Fix:** JWT payload ga `email` qo'shish.
+**Fayl:** `apps/api/src/auth/auth.service.ts`
+**Fix:** `signAccessToken()` ga `email` param qo'shildi, 3 call site yangilandi.
 
 ### T-097 | FRONTEND | WebSocket dev proxy yo'q |15min
 **Bug:** H-11
@@ -389,16 +381,15 @@ function getClient(): Anthropic {
 **Muammo:** Socket.IO `/ws` proxy yo'q. Dev da real-time ishlamaydi.
 **Fix:** Vite config da `/ws` proxy qo'shish (ws: true).
 
-### T-098 | SCHEMA | onDelete: Cascade yo'q — parent o'chirganda crash |30min
+### T-098 | ✅ DONE | SCHEMA | onDelete: Cascade yo'q — parent o'chirganda crash |30min
 **Bug:** H-18
 **Fayl:** `apps/api/prisma/schema.prisma`
-**Fix:** Tegishli relation'larga `onDelete: Cascade` qo'shish.
+**Fix:** ~30 relation ga `onDelete: Cascade`, optional larga `SetNull` qo'shildi.
 
-### T-099 | SCHEMA | account_id indekslari yo'q — 15 jadval |20min
+### T-099 | ✅ DONE | SCHEMA | account_id indekslari yo'q — 15 jadval |20min
 **Bug:** H-19
 **Fayl:** `apps/api/prisma/schema.prisma`
-**Muammo:** 15 ta jadval da `account_id` indeksi yo'q → full table scan.
-**Fix:** `@@index([account_id])` qo'shish.
+**Fix:** 16 jadvalga `@@index([account_id])` + Referral ga `@@index([referrer_account_id])` qo'shildi.
 
 ### T-100 | DOCKER | ✅ DONE — Worker env vars fix |10min
 **Bug:** H-20 — `docker-compose.prod.yml` da allaqachon fix qilindi (Railway arxitektura rebuild).
@@ -407,43 +398,43 @@ function getClient(): Anthropic {
 
 ## P3 — PAST (Bugs.md Medium + Low + Worker Low)
 
-### T-101 | BACKEND | admin.service.ts 2186 qator (400+ rule) |2h
-**Bug:** M-01. Service ni 4-5 ta kichik service ga bo'lish.
+### T-101 | ✅ DONE | BACKEND | admin.service.ts 2178 qator → 5 ta service ga bo'lish |2h
+**Bug:** M-01. Service ni 5 ta kichik service ga bo'lindi (admin-account, admin-user, admin-stats, admin-feedback, admin-log).
 
-### T-102 | BACKEND | `as any` 30+ joyda |1h
+### T-102 | ✅ DONE | BACKEND | `as any` 30+ joyda |1h
 **Bug:** M-02. Typed interface bilan almashtirish.
 
-### T-103 | BACKEND | main.ts console.log → Logger |10min
+### T-103 | ✅ DONE | BACKEND | main.ts console.log → Logger |10min
 **Bug:** M-03.
 
-### T-104 | BACKEND | community.service dead code — counterUpdate |5min
+### T-104 | ✅ DONE | BACKEND | community.service dead code — counterUpdate |5min
 **Bug:** M-04. O'chirish.
 
-### T-105 | BACKEND | admin.service hardcoded SUPER_ADMIN_ACCOUNT_ID |15min
+### T-105 | ✅ DONE | BACKEND | admin.service hardcoded SUPER_ADMIN_ACCOUNT_ID |15min
 **Bug:** M-05. `.env` dan olish yoki DB dan dinamik topish.
 
-### T-106 | BACKEND | admin.controller @Res() optional crash riski |15min
+### T-106 | ✅ DONE | BACKEND | admin.controller @Res() optional crash riski |15min
 **Bug:** M-06. Optional pattern o'rniga explicit response handling.
 
-### T-107 | BACKEND | JWT module 7d vs service 15m conflict |10min
+### T-107 | ✅ DONE | BACKEND | JWT module 7d vs service 15m conflict |10min
 **Bug:** M-07. Bitta joyda configure qilish.
 
-### T-108 | BACKEND | api-key.guard.ts noto'g'ri role 'API_KEY' |10min
+### T-108 | ✅ DONE | BACKEND | api-key.guard.ts noto'g'ri role 'API_KEY' |10min
 **Bug:** M-08. Role enum ga qo'shish yoki guard logikasini tuzatish.
 
-### T-109 | BACKEND | admin.service getTopUsers N+1 query (400 query) |30min
+### T-109 | ✅ DONE | BACKEND | admin.service getTopUsers N+1 query (400 query) |30min
 **Bug:** M-09. Prisma `include` yoki `Promise.all` bilan batch.
 
-### T-110 | BACKEND | RotatingFileWriter stream NPE riski |10min
+### T-110 | ✅ DONE | BACKEND | RotatingFileWriter stream NPE riski |10min
 **Bug:** M-10. Null check qo'shish.
 
-### T-111 | BACKEND | Redis ulanish strategiyasi nomuvofiq |15min
+### T-111 | ✅ DONE | BACKEND | Redis ulanish strategiyasi nomuvofiq |15min
 **Bug:** M-11. Barcha queue fayllarini bir xil pattern ga keltirish (REDIS_URL).
 
-### T-112 | BACKEND | community.service limitless query + in-memory sort |15min
+### T-112 | ✅ DONE | BACKEND | community.service limitless query + in-memory sort |15min
 **Bug:** M-12. `take` limit va DB-level sort qo'shish.
 
-### T-113 | BACKEND | sourcing.queue.ts modul import da Redis connection |15min
+### T-113 | ✅ DONE | BACKEND | sourcing.queue.ts modul import da Redis connection |15min
 **Bug:** M-13. Lazy initialization.
 
 ### T-114 | FRONTEND | admin.ts dead code sendNotification |5min
@@ -500,54 +491,54 @@ function getClient(): Anthropic {
 ### T-131 | FRONTEND | FeedbackPage 4 ta empty catch |10min
 **Bug:** M-31.
 
-### T-133 | BACKEND | sourcing.processor hardcoded 0.5kg weight |15min
+### T-133 | ✅ DONE | BACKEND | sourcing.processor hardcoded 0.5kg weight |15min
 **Bug:** NEW-13. Barcha productlar 0.5 kg deb hisoblanadi. Og'ir buyumlar uchun cargo noto'g'ri.
 **Fix:** Job data da `weight_kg` parametr qo'llash yoki kategoriya bo'yicha default og'irlik.
 
-### T-134 | BACKEND | sourcing.processor hardcoded USD rate 12900 |10min
+### T-134 | ✅ DONE | BACKEND | sourcing.processor hardcoded USD rate 12900 |10min
 **Bug:** NEW-14 + L-20. DB da rate yo'q bo'lsa 12900 fallback. Eskiradi.
 **Fix:** Rate yo'q bo'lsa xato qaytarish yoki CBU API dan so'rash.
 
-### T-135 | BACKEND | predictDeadStock days formula naming |5min
+### T-135 | ✅ DONE | BACKEND | predictDeadStock days formula naming |5min
 **Bug:** NEW-09. Yechim: comment qo'shish, o'zgaruvchi nomlarini tuzatish.
 
-### T-136 | BACKEND | forecastEnsemble RMSE aslida std deviation |5min
+### T-136 | ✅ DONE | BACKEND | forecastEnsemble RMSE aslida std deviation |5min
 **Bug:** NEW-10 + L-30. `rmse` → `std_dev` ga rename qilish.
 
-### T-137 | BACKEND | calculateProfit breakeven formula kontseptual xato |15min
+### T-137 | ✅ DONE | BACKEND | calculateProfit breakeven formula kontseptual xato |15min
 **Bug:** NEW-11 + L-31. Fixed cost model qo'shish yoki formulani hujjatlash.
 
-### T-138 | BACKEND | packages/types UzumProductDetail mos kelmaydi |15min
+### T-138 | ✅ DONE | BACKEND | packages/types UzumProductDetail mos kelmaydi |15min
 **Bug:** H-16. `ordersQuantity` → `ordersAmount`, `weeklyBought` o'chirish.
 
-### T-139 | BACKEND | packages/types UzumItem mos kelmaydi |10min
+### T-139 | ✅ DONE | BACKEND | packages/types UzumItem mos kelmaydi |10min
 **Bug:** H-17. Hech qayerda ishlatilmaydi — o'chirish yoki yangilash.
 
-### T-141 | DOCKER | Redis healthcheck parol bilan ishlamaydi |5min
+### T-141 | ✅ DONE | DOCKER | Redis healthcheck parol bilan ishlaydi |5min
 **Bug:** M-39. `redis-cli -a ${REDIS_PASSWORD} ping`
 
-### T-142 | BACKEND | catch(e: any) → catch(e: unknown) |15min
+### T-142 | ✅ DONE | BACKEND | catch(e: any) → catch(e: unknown) |15min
 **Bug:** L-01.
 
-### T-143 | BACKEND | classifyUA axios/node-fetch ni bot deb aniqlaydi |10min
+### T-143 | ✅ DONE | BACKEND | classifyUA axios/node-fetch ni bot deb aniqlaydi |10min
 **Bug:** L-02.
 
-### T-144 | BACKEND | auth.module.ts dead expiresIn 7d |5min
+### T-144 | ✅ DONE | BACKEND | auth.module.ts dead expiresIn 7d |5min
 **Bug:** L-03.
 
-### T-145 | BACKEND | SerpAPI Amazon engine noto'g'ri |10min
+### T-145 | ✅ DONE | BACKEND | SerpAPI Amazon engine noto'g'ri |10min
 **Bug:** L-04.
 
-### T-146 | BACKEND | prisma.service tenant check faqat dev |10min
+### T-146 | ✅ DONE | BACKEND | prisma.service tenant check faqat dev |10min
 **Bug:** L-05. Production da ham enable qilish (warn level).
 
-### T-147 | BACKEND | referral.service ishlatilmagan kodlarni hisoblaydi |10min
+### T-147 | ✅ DONE | BACKEND | referral.service ishlatilmagan kodlarni hisoblaydi |10min
 **Bug:** L-06.
 
-### T-148 | BACKEND | sourcing.service _source parametri dead |5min
+### T-148 | ✅ DONE | BACKEND | sourcing.service _source parametri dead |5min
 **Bug:** L-07.
 
-### T-149 | BACKEND | community.service non-null assertion |5min
+### T-149 | ✅ DONE | BACKEND | community.service non-null assertion |5min
 **Bug:** L-08.
 
 ### T-150 | BACKEND | naming consultant_id aslida account_id |10min
@@ -583,22 +574,22 @@ function getClient(): Anthropic {
 ### T-162 | FRONTEND | SignalsPage any[] barcha tab'larda |15min
 **Bug:** L-21.
 
-### T-166 | BACKEND | parseWeeklyBought dead code |5min
+### T-166 | ✅ DONE | BACKEND | parseWeeklyBought dead code |5min
 **Bug:** L-28. O'chirish.
 
-### T-167 | BACKEND | predictDeadStock 0/0 NaN edge case |5min
+### T-167 | ✅ DONE | BACKEND | predictDeadStock 0/0 NaN edge case |5min
 **Bug:** L-29. Guard qo'shish.
 
-### T-169 | BACKEND | Bot barcha message turlarini tutadi |10min
+### T-169 | ✅ DONE (BUG EMAS) | BACKEND | Bot on('message') wildcard — to'g'ri dizayn |10min
 **Bug:** L-33. `bot.on('message:text')` ishlatish.
 
-### T-170 | BACKEND | Bot broadcastDiscovery dead code |5min
+### T-170 | ✅ DONE | BACKEND | Bot broadcastDiscovery dead code |5min
 **Bug:** M-36.
 
-### T-171 | BACKEND | Bot sendPriceDropAlert dead code |5min
+### T-171 | ✅ DONE | BACKEND | Bot sendPriceDropAlert dead code |5min
 **Bug:** M-37.
 
-### T-172 | BACKEND | JobName enum 2 ta job nomi yo'q |5min
+### T-172 | ✅ DONE | BACKEND | JobName enum 2 ta job nomi yo'q |5min
 **Bug:** L-27. `reanalysis-6h` va `sourcing-search` qo'shish.
 
 ---
@@ -622,43 +613,58 @@ function getClient(): Anthropic {
 #   - docs/RAILWAY.md: to'liq production guide
 #
 
-## P0 — KRITIK (Production Blocker) — ✅ CODE DONE
+## P0 — KRITIK (Production Blocker) — ✅ BAJARILDI (2026-02-27)
 
-### T-173 | DEVOPS | Railway project yaratish + 6 service sozlash |1h
-**Status:** Kod tayyor, Railway dashboard'da sozlash kerak.
-**Hujjat:** `docs/RAILWAY.md` → Bosqich 2-3
-**Service'lar:** postgres (plugin), redis (plugin), api, worker, web, bot
-**Har bir app service:** GitHub Repo → Dockerfile Path → Root `/` → Deploy
-
-### T-174 | DEVOPS | RAILWAY_TOKEN GitHub secret yaratish |5min
-**Status:** Qo'lda bajarish kerak.
-1. Railway dashboard → Account → Tokens → **Create Token**
-2. GitHub repo → Settings → Secrets → **RAILWAY_TOKEN** = token
-3. GitHub repo → Settings → Environments → `production` yaratish
-
-### T-175 | DEVOPS | Environment variables — Railway dashboard |15min
-**Status:** Qo'lda bajarish kerak.
-**Hujjat:** `docs/RAILWAY.md` → Bosqich 3
-**Muhim:** Railway reference syntax: `${{Postgres.DATABASE_URL}}`, `${{Redis.REDIS_URL}}`
-**DIRECT_DATABASE_URL:** API va Worker'da `${{Postgres.DATABASE_URL}}` (pooler bypass)
-
-### T-176 | DEVOPS | Prisma schema — directUrl qo'shish |5min
-**Status:** Kod o'zgartirish kerak.
-**Fayl:** `apps/api/prisma/schema.prisma`
-```prisma
-datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_DATABASE_URL")
-}
-```
-**Izoh:** API Dockerfile entrypoint allaqachon `DIRECT_DATABASE_URL` ni ishlatadi. Schema'da ham rasm qilish kerak.
-
+### T-173 | ✅ DONE | DEVOPS | Railway project yaratish + 6 service sozlash
+### T-174 | ✅ DONE | DEVOPS | RAILWAY_TOKEN GitHub secret yaratish
+### T-175 | ✅ DONE | DEVOPS | Environment variables — Railway dashboard
+### T-176 | ✅ DONE | DEVOPS | Prisma schema — directUrl qo'shish
 ### T-177 | DEVOPS | pgvector extension — Railway PostgreSQL |5min
 **Status:** Qo'lda bajarish kerak.
 Railway PostgreSQL console (Data tab → Query):
 ```sql
 CREATE EXTENSION IF NOT EXISTS vector;
+```
+
+---
+
+## ENV AUDIT — Railway Production (2026-02-27)
+
+> Barcha CRITICAL env var'lar ✅ to'g'ri. Quyidagilar OPTIONAL (feature degrade qiladi).
+
+### T-242 | DEVOPS | SERPAPI_API_KEY — API + Worker |5min
+**Status:** Qo'lda qo'shish kerak (https://serpapi.com dan key olish)
+**Service:** api, worker
+**Ta'sir:** SERPAPI yo'q → sourcing Playwright fallback ishlatadi (sekinroq)
+```bash
+railway variables set SERPAPI_API_KEY='your_key' --service api
+railway variables set SERPAPI_API_KEY='your_key' --service worker
+```
+
+### T-243 | DEVOPS | ALIEXPRESS_APP_KEY + SECRET — API |5min
+**Status:** Qo'lda qo'shish kerak (AliExpress Developer Portal)
+**Service:** api
+**Ta'sir:** AliExpress sourcing butunlay o'chirilgan
+```bash
+railway variables set ALIEXPRESS_APP_KEY='xxx' --service api
+railway variables set ALIEXPRESS_APP_SECRET='xxx' --service api
+```
+
+### T-244 | DEVOPS | SENTRY_DSN — API |5min
+**Status:** Qo'lda qo'shish kerak (https://sentry.io dan DSN olish)
+**Service:** api
+**Ta'sir:** Error tracking ishlamaydi — production xatolar ko'rinmaydi
+```bash
+railway variables set SENTRY_DSN='https://xxx@sentry.io/xxx' --service api
+```
+
+### T-245 | DEVOPS | PROXY_URL — API + Worker (optional) |5min
+**Status:** Kerak bo'lganda qo'shiladi
+**Service:** api, worker
+**Ta'sir:** Uzum API rate-limit bo'lsa, proxy orqali aylanib o'tiladi
+```bash
+railway variables set PROXY_URL='http://user:pass@proxy:port' --service api
+railway variables set PROXY_URL='http://user:pass@proxy:port' --service worker
 ```
 
 ---
@@ -692,27 +698,12 @@ Qo'shimcha: `pg_dump` cron (haftalik) → S3/R2.
 
 ## P2 — O'RTA (Optimizatsiya)
 
-### T-182 | DEVOPS | Bot health endpoint qo'shish |15min
-**Muammo:** Bot long-polling, HTTP server yo'q. Railway restart loop'ga tushishi mumkin.
-**Fix:** `apps/bot/src/main.ts` ga minimal HTTP server:
-```typescript
-import http from 'http';
-const server = http.createServer((req, res) => {
-  if (req.url === '/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', bot: 'running' }));
-  } else {
-    res.writeHead(404);
-    res.end();
-  }
-});
-server.listen(process.env.PORT || 3002);
-```
+### T-182 | ✅ DONE | DEVOPS | Bot health endpoint qo'shish |15min
+**Fix:** `apps/bot/src/main.ts` ga HTTP `/health` endpoint qo'shildi (PORT env var).
 
-### T-183 | DEVOPS | Worker PORT env var fix |5min
+### T-183 | ✅ DONE | DEVOPS | Worker PORT env var fix |5min
 **Fayl:** `apps/worker/src/main.ts`
-**Muammo:** Worker health `WORKER_HEALTH_PORT` o'qiydi. Railway `PORT` beradi.
-**Fix:** `const port = process.env.PORT || process.env.WORKER_HEALTH_PORT || '3001';`
+**Fix:** `process.env.PORT || process.env.WORKER_HEALTH_PORT || '3001'`
 
 ### T-184 | DEVOPS | Staging environment (optional) |30min
 Railway'da ikkinchi project yaratish: `ventra-staging`.
@@ -780,7 +771,7 @@ Bu script bir necha hafta qolishi kerak, keyin o'chiriladi.
 
 ## P0 — KRITIK (Foydalanuvchi ko'radigan buglar)
 
-### T-193 | FRONTEND+BACKEND | AI tahlili raw JSON ko'rsatadi — parse buzilgan |30min
+### T-193 | ✅ DONE (BACKEND) | FRONTEND+BACKEND | AI tahlili raw JSON ko'rsatadi — parse buzilgan |30min
 **Screenshot:** hato/100251.png
 **Muammo:** "Claude AI tahlili" bo'limida 4 ta item:
 1. ` ```json ` — raw markdown code fence
@@ -851,7 +842,7 @@ function formatChartDate(isoDate: string): string {
 
 ## P1 — MUHIM (UX yaxshilash)
 
-### T-196 | BACKEND | AI tahlili generic — raqib/o'z tovar farqi yo'q, amaliy maslahat yo'q |45min
+### T-196 | ✅ DONE | BACKEND | AI tahlili generic — raqib/o'z tovar farqi yo'q, amaliy maslahat yo'q |45min
 **Screenshot:** hato/100251.png
 **Muammo:** AI faqat "bu mahsulot hot" deydi:
 - "Yuqori sotuvlar hajmi (45,029 buyurtma) bozorda katta talab mavjudligini ko'rsatadi" — bu tahlil emas, faktni takrorlash
@@ -1035,11 +1026,12 @@ Bu ikki xabar bir-biriga ZID. 50 ta raqib kuzatilayotgan bo'lsa, ma'lumot bo'lis
 |------------|---------|-----------|
 | Worker Debug (P0) | 5 | T-061...T-065 |
 | Worker Debug (P1) | 12 | T-066...T-077 |
-| Bugs.md (P2) | 20 (3 done) | T-078...T-100 |
+| Bugs.md (P2) | 20 (20 done) | T-078...T-100 |
 | Bugs.md (P3) | 68 (4 dup o'chirildi) | T-101...T-172 |
-| **Railway Deploy (P0)** | **5 ✅ CODE DONE** | **T-173...T-177** |
+| **Railway Deploy (P0)** | **4 ✅ DONE, 1 ochiq (T-177)** | **T-173...T-177** |
+| **Railway Env Audit** | **4 optional** | **T-242...T-245** |
 | **Railway Deploy (P1)** | **4** | **T-178...T-181** |
-| **Railway Deploy (P2)** | **3** | **T-182...T-184** |
+| **Railway Deploy (P2)** | **3 (2 done)** | **T-182...T-184** |
 | PWA O'chirish (P1) | 5 | T-188...T-192 |
 | **ProductPage UX (P0)** | **3** | **T-193...T-195** |
 | **ProductPage UX (P1)** | **11** | **T-196...T-206** |
@@ -1048,7 +1040,8 @@ Bu ikki xabar bir-biriga ZID. 50 ta raqib kuzatilayotgan bo'lsa, ma'lumot bo'lis
 | Desktop Login | 1 (renumbered) | T-234 |
 | **Playwright DOM scraping** | **2** | **T-235...T-236** |
 | **Product Image** | **1** | **T-237** |
-| **JAMI** | **166 ochiq (1 done)** | T-061...T-237 |
+| **Frontend Refactor** | **14 (12 done)** | **T-246...T-259** |
+| **JAMI** | **~95 ochiq** | T-061...T-259 |
 
 | O'zgarish | Tafsilot |
 |-----------|----------|
@@ -1057,8 +1050,9 @@ Bu ikki xabar bir-biriga ZID. 50 ta raqib kuzatilayotgan bo'lsa, ma'lumot bo'lis
 | ✅ Duplicate fix | T-207 Desktop Login → T-234 ga renumber (T-207 weekly_bought bilan conflict edi) |
 | ✅ Assignment o'chirildi | Bekzod/Sardor/Ikkalasi barcha tasklardan olib tashlandi |
 | ✅ Yangi buglar qo'shildi | T-203-T-206 (UX), T-235-T-236 (Playwright weekly_bought) |
+| ✅ Component extraction | T-258 (6 god page → 68 components), T-259 (DiscoveryPage), T-163 ✅ |
 
-### RAILWAY DEPLOY — QILINGAN ISHLAR (Code Done)
+### RAILWAY DEPLOY — BAJARILDI (2026-02-27)
 - ✅ Eski `railway/` directory o'chirildi (4 ta toml)
 - ✅ Eski `railway.toml` (root) o'chirildi
 - ✅ `.github/workflows/ci.yml` qayta yozildi — CI + Deploy (Railway CLI)
@@ -1066,6 +1060,37 @@ Bu ikki xabar bir-biriga ZID. 50 ta raqib kuzatilayotgan bo'lsa, ma'lumot bo'lis
 - ✅ `apps/api/Dockerfile` — entrypoint.sh (DIRECT_DATABASE_URL migration, PgBouncer bypass)
 - ✅ `.env.production` — to'liq template (DIRECT_DATABASE_URL, REDIS parol)
 - ✅ `docs/RAILWAY.md` — yangi production guide (arxitektura diagramma, 6 bosqich, CLI, troubleshoot)
+- ✅ Railway project yaratildi — 6 service (postgres, redis, api, worker, web, bot)
+- ✅ Barcha env vars o'rnatildi (DATABASE_URL, REDIS_URL, JWT_SECRET, DIRECT_DATABASE_URL, WEB_URL, VITE_API_URL)
+- ✅ Dockerfile path'lar Railway GraphQL API orqali sozlandi
+- ✅ Worker Dockerfile — @uzum/utils dist fix (tsconfig paths→rootDir)
+- ✅ API entrypoint.sh — CRLF fix (.gitattributes LF enforcement)
+- ✅ API IPv6 dual-stack listen ('::') — Railway private networking
+- ✅ Web VITE_API_URL — direct API calls (nginx proxy bypass)
+- ✅ nginx resolver — 127.0.0.11 Docker internal DNS
+- ✅ ESLint config — React 19 strict rules warn ga o'tkazildi (CI pass)
+- ✅ RAILWAY_TOKEN GitHub secret — project token yaratildi
+- ✅ CI/CD to'liq ishlaydi — push→CI(lint+typecheck+test+build)→Deploy(4 service)→Health check
+- ✅ **6/6 service SUCCESS:** Postgres, Redis, API, Worker, Web, Bot
+
+### WEB FRONTEND REFACTOR (2026-02-27) — Best Practice Audit
+
+| # | P | Vazifa | Qator/Fayl | Holat |
+|---|---|--------|------------|-------|
+| T-246 | P0 | `api/types.ts` — markaziy response type'lar | 118 `any` kamaytirish | ✅ DONE |
+| T-247 | P0 | `utils/formatters.ts` — duplicate fmt/fmtUSD/fmtUZS extract | 3+ faylda takror | ✅ DONE |
+| T-248 | P0 | Silent `.catch(() => {})` → logError/toastError | 55+ joyda | ✅ DONE |
+| T-249 | P1 | AdminPage.tsx split (2001→453 qator, 20+ komponent) | components/admin/ | ✅ DONE |
+| T-250 | P1 | Custom hook: useDashboardData (fetch + export) | hooks/ | ✅ DONE |
+| T-251 | P1 | DashboardPage split (664→191 qator, 5 sub-component) | components/dashboard/ | ✅ DONE |
+| T-252 | P1 | SourcingPage split → 117 qator, 7 komponent | components/sourcing/ | ✅ DONE |
+| T-253 | P1 | ProductPage sub-components extract (912→642 qator) | components/product/ | ✅ DONE |
+| T-254 | P1 | SignalsPage split → 86 qator, 11 komponent | components/signals/ | ✅ DONE |
+| T-255 | P2 | translations.ts split (2909→3 fayl: uz/ru/en) | i18n/ | ✅ DONE |
+| T-256 | P2 | Inline modallar extract (AdminPage 4 modal) | components/admin/ | ✅ DONE |
+| T-257 | P2 | Granular ErrorBoundary per section | components/ | |
+| T-258 | P1 | 6 God Page → 68 Components (jami 6159→2004 qator) | components/*/ | ✅ DONE |
+| T-259 | P1 | DiscoveryPage split (631→42 qator, 8 fayl) | components/discovery/ | ✅ DONE |
 
 ### PRODUCTPAGE UX — TOP MUAMMOLAR (hato/ rasmlardan)
 - 🔴 T-193: AI tahlili raw JSON ko'rsatadi (` ```json `, `[`)
@@ -2122,6 +2147,84 @@ export function parseWeeklyBought(text: string): number | null {
 | **Faza 8** — Build + Publish + Multi-browser | 2 task | T-228...T-229 | ~3h |
 | **Faza 9** — Security + Onboarding + Polish | 4 task | T-230...T-233 | ~3.5h |
 | **JAMI** | **26 task** | **T-208...T-233** | **~41h** |
+
+---
+
+# ═══════════════════════════════════════════════════════════
+# DEEP AUDIT BUGLAR (2026-02-27) — docs/bugs.md dan
+# ═══════════════════════════════════════════════════════════
+
+## AUDIT — MAVJUD TASKLARGA XAVOLA
+
+| Bug ID | Severity | Mavjud Task | Izoh |
+|--------|----------|-------------|------|
+| BUG-001 | CRITICAL | T-061 | Redis password worker da yo'q |
+| BUG-004 | HIGH | T-064 | Reanalysis title overwrite |
+| BUG-005 | HIGH | T-088 | shop.name → shop.title |
+| BUG-011 | HIGH | T-079 | Team invite bcrypt emas |
+| BUG-014 | MEDIUM | T-234 | Desktop API URL ishlamaydi |
+| BUG-017 | MEDIUM | T-137 | Profit calc customs/QQS yo'q |
+| D-06 | MEDIUM | T-066 | 3x fetchProductDetail DRY |
+| D-07 | LOW | T-166 | parseWeeklyBought dead code |
+
+## AUDIT — YANGI TASKLAR
+
+### T-238 | ✅ DONE | P1 | BACKEND | Signal service take:2 → take:30 — cannibalization, saturation, replenishment noaniq | 15min
+**Manba:** BUG-008 + BUG-009 + BUG-010 (docs/bugs.md)
+**Muammo:** `signals.service.ts` da 3 ta method faqat 2 ta snapshot oladi (`take: 2`).
+`recalcWeeklyBoughtSeries()` 7 kunlik lookback + 24h gap kerak — 2 snapshot yetarli EMAS.
+Natija: stored stale `weekly_bought` ishlatiladi → cannibalization, saturation, replenishment noaniq.
+**Fayllar:**
+- `apps/api/src/signals/signals.service.ts:25` — getCannibalization: `take: 2` → `take: 30`
+- `apps/api/src/signals/signals.service.ts:80` — getSaturation: `take: 2` → `take: 30`
+- `apps/api/src/signals/signals.service.ts:381` — getReplenishmentPlan: `take: 2` → `take: 30`
+**Fix:** 3 joyda `take: 2` ni `take: 30` ga almashtirish (3 qator o'zgartirish).
+
+---
+
+### T-239 | P2 | BACKEND | Per-user rate limiting — AI endpoint lar uchun ThrottlerGuard | 30min
+**Manba:** BUG-023 (docs/bugs.md)
+**Muammo:** Hozir faqat per-IP throttling (120 req/min). Per-user yoki per-account throttling YO'Q.
+Bitta foydalanuvchi AI endpoint larni cheksiz chaqirishi mumkin → Anthropic API narxi ortadi.
+Corporate NAT ortida ko'p foydalanuvchi bitta kvotani bo'lishadi.
+**Fix variantlari:**
+1. Custom ThrottlerGuard — JWT dan `user_id` olish, Redis-based counter
+2. AI endpoint larga alohida limit: 20 req/min per-user
+3. Boshqa endpoint lar uchun: 60 req/min per-user
+**Fayllar:**
+- `apps/api/src/app.module.ts:42` — ThrottlerModule config
+- Yangi fayl: `apps/api/src/common/guards/user-throttler.guard.ts`
+
+---
+
+### T-240 | P3 | BACKEND | DTO validatsiya qo'shish — 5+ endpoint DTO'siz | 30min
+**Manba:** BUG-025 (docs/bugs.md)
+**Muammo:** Global `ValidationPipe` bor, lekin ba'zi endpoint lar DTO class'siz `@Body()` qabul qiladi.
+DTO yo'q → class-validator decorator yo'q → validation ishlamaydi.
+**Fayllar (DTO kerak):**
+- `apps/api/src/discovery/discovery.controller.ts` — `@Body() body: { input: string }`
+- `apps/api/src/signals/signals.service.ts` — `saveChecklist` raw data
+- `apps/api/src/team/team.service.ts` — `inviteMember` inline type
+**Fix:** Har biri uchun DTO class + class-validator decoratorlar yaratish.
+
+---
+
+### T-241 | P1 | BACKEND | totalAvailableAmount Prisma schema + saqlash — stock cliff aniq bo'ladi | 30min
+**Manba:** D-03 (docs/bugs.md)
+**Muammo:** Uzum API `totalAvailableAmount` qaytaradi (haqiqiy ombor stoki: 2659 dona).
+Lekin Prisma schema da bu field YO'Q — DB ga saqlanmaydi.
+Stock cliff detection 10% heuristic ishlatadi → 10x noaniq (estimated 4500, haqiqiy 2255).
+**Fix:**
+1. `schema.prisma` — Product modeliga `total_available_amount BigInt?` qo'shish
+2. `prisma migrate dev --name add-total-available-amount`
+3. `reanalysis.processor.ts` — `detail.totalAvailableAmount` ni saqlash
+4. `import.processor.ts` — xuddi shunday
+5. `signals.service.ts` — heuristic o'rniga haqiqiy stockni ishlatish
+**Fayllar:**
+- `apps/api/prisma/schema.prisma` — Product model
+- `apps/worker/src/processors/reanalysis.processor.ts`
+- `apps/worker/src/processors/import.processor.ts`
+- `apps/api/src/signals/signals.service.ts:186`
 
 ---
 

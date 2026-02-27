@@ -3,44 +3,7 @@ import { redisConnection } from '../redis';
 import { prisma } from '../prisma';
 import { calculateScore, getSupplyPressure, calcWeeklyBought, sleep } from '@uzum/utils';
 import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
-
-const UZUM_API = 'https://api.uzum.uz/api/v2';
-const HEADERS: Record<string, string> = {
-  'User-Agent':
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  Origin: 'https://uzum.uz',
-  Referer: 'https://uzum.uz/',
-  Accept: 'application/json',
-};
-
-interface UzumProductData {
-  id: number;
-  title: string;
-  rating: number;
-  ordersAmount: number;
-  reviewsAmount: number;
-  totalAvailableAmount: number;
-  skuList: Array<{
-    id: number;
-    purchasePrice: number;
-    fullPrice: number;
-    availableAmount: number;
-    stock: { type: string };
-  }>;
-}
-
-async function fetchProductFromUzum(productId: number): Promise<UzumProductData | null> {
-  try {
-    const res = await fetch(`${UZUM_API}/product/${productId}`, {
-      headers: HEADERS,
-    });
-    if (!res.ok) return null;
-    const json = (await res.json()) as any;
-    return json?.payload?.data ?? null;
-  } catch {
-    return null;
-  }
-}
+import { fetchUzumProductRaw } from './uzum-scraper';
 
 async function reanalyzeProduct(
   productId: bigint,
@@ -48,7 +11,7 @@ async function reanalyzeProduct(
   jobName: string,
 ): Promise<{ updated: boolean; weeklyBought: number | null }> {
   const numId = Number(productId);
-  const detail = await fetchProductFromUzum(numId);
+  const detail = await fetchUzumProductRaw(numId);
   if (!detail) {
     logJobInfo('reanalysis-queue', jobId, jobName, `API failed for product ${numId}`);
     return { updated: false, weeklyBought: null };
@@ -66,41 +29,8 @@ async function reanalyzeProduct(
 
   const weeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
 
-  // Update product
-  await prisma.product.update({
-    where: { id: productId },
-    data: {
-      title: detail.title,
-      rating: detail.rating ?? null,
-      feedback_quantity: detail.reviewsAmount ?? 0,
-      orders_quantity: BigInt(currentOrders),
-    },
-  });
-
-  // Update SKUs
+  // Calculate score before transaction
   const skuList = detail.skuList ?? [];
-  for (const sku of skuList) {
-    const stockType = sku.stock?.type === 'FBO' ? 'FBO' : 'FBS';
-    await prisma.sku.upsert({
-      where: { id: BigInt(sku.id) },
-      update: {
-        min_sell_price: BigInt(sku.purchasePrice ?? 0),
-        min_full_price: BigInt(sku.fullPrice ?? 0),
-        stock_type: stockType,
-        is_available: sku.availableAmount > 0,
-      },
-      create: {
-        id: BigInt(sku.id),
-        product_id: productId,
-        min_sell_price: BigInt(sku.purchasePrice ?? 0),
-        min_full_price: BigInt(sku.fullPrice ?? 0),
-        stock_type: stockType,
-        is_available: sku.availableAmount > 0,
-      },
-    });
-  }
-
-  // Calculate score
   const primarySku = skuList[0];
   const stockType = primarySku?.stock?.type === 'FBO' ? 'FBO' as const : 'FBS' as const;
   const supplyPressure = getSupplyPressure(stockType);
@@ -112,16 +42,51 @@ async function reanalyzeProduct(
     supply_pressure: supplyPressure,
   });
 
-  // Create new snapshot
-  await prisma.productSnapshot.create({
-    data: {
-      product_id: productId,
-      orders_quantity: BigInt(currentOrders),
-      weekly_bought: weeklyBought,
-      rating: detail.rating ?? null,
-      feedback_quantity: detail.reviewsAmount ?? 0,
-      score,
-    },
+  const title = detail.localizableTitle?.ru || detail.title;
+
+  // Atomic transaction: product + SKUs + snapshot
+  await prisma.$transaction(async (tx) => {
+    await tx.product.update({
+      where: { id: productId },
+      data: {
+        title,
+        rating: detail.rating ?? null,
+        feedback_quantity: detail.reviewsAmount ?? 0,
+        orders_quantity: BigInt(currentOrders),
+      },
+    });
+
+    for (const sku of skuList) {
+      const skuStockType = sku.stock?.type === 'FBO' ? 'FBO' : 'FBS';
+      await tx.sku.upsert({
+        where: { id: BigInt(sku.id) },
+        update: {
+          min_sell_price: BigInt(sku.purchasePrice ?? 0),
+          min_full_price: BigInt(sku.fullPrice ?? 0),
+          stock_type: skuStockType,
+          is_available: sku.availableAmount > 0,
+        },
+        create: {
+          id: BigInt(sku.id),
+          product_id: productId,
+          min_sell_price: BigInt(sku.purchasePrice ?? 0),
+          min_full_price: BigInt(sku.fullPrice ?? 0),
+          stock_type: skuStockType,
+          is_available: sku.availableAmount > 0,
+        },
+      });
+    }
+
+    await tx.productSnapshot.create({
+      data: {
+        product_id: productId,
+        orders_quantity: BigInt(currentOrders),
+        weekly_bought: weeklyBought,
+        rating: detail.rating ?? null,
+        feedback_quantity: detail.reviewsAmount ?? 0,
+        score,
+      },
+    });
   });
 
   return { updated: true, weeklyBought };

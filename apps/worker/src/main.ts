@@ -39,7 +39,7 @@ async function bootstrap() {
   console.log('Product reanalysis cron scheduled every 6 hours');
 
   // Health check HTTP server
-  const healthPort = parseInt(process.env.WORKER_HEALTH_PORT || '3001', 10);
+  const healthPort = parseInt(process.env.PORT || process.env.WORKER_HEALTH_PORT || '3001', 10);
   const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379';
   const redis = new Redis(redisUrl, { maxRetriesPerRequest: 1, connectTimeout: 3000, lazyConnect: true });
 

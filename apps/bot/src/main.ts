@@ -1,9 +1,7 @@
 import 'dotenv/config';
+import http from 'http';
 import { Bot, GrammyError, HttpError } from 'grammy';
 import { prisma } from './prisma';
-import { sendDiscoveryAlert } from './alerts';
-import { calculateScore, getSupplyPressure } from '@uzum/utils';
-
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 if (!TOKEN) {
   console.error('TELEGRAM_BOT_TOKEN env variable is required');
@@ -138,40 +136,6 @@ bot.on('message', async (ctx) => {
   );
 });
 
-// ─── Alert broadcaster ────────────────────────────────────────────────────────
-
-/**
- * Broadcast discovery results to all active subscribers.
- * Call this after a run completes (from worker or API).
- */
-export async function broadcastDiscovery(
-  categoryId: string,
-  winners: Array<{
-    rank: number;
-    title: string;
-    score: number | null;
-    weekly_bought: number | null;
-    orders_quantity: string | null;
-    sell_price: string | null;
-  }>,
-) {
-  const subs = await prisma.systemSetting.findMany({
-    where: {
-      key: { startsWith: 'telegram_subscriber_' },
-      value: 'active',
-    },
-  });
-
-  for (const sub of subs) {
-    const chatId = sub.key.replace('telegram_subscriber_', '');
-    try {
-      await sendDiscoveryAlert(bot, chatId, categoryId, winners);
-    } catch (err) {
-      console.error(`Failed to send to ${chatId}:`, err);
-    }
-  }
-}
-
 // ─── Error handling ───────────────────────────────────────────────────────────
 
 bot.catch((err) => {
@@ -191,6 +155,22 @@ bot.catch((err) => {
 
 async function bootstrap() {
   console.log('Telegram bot starting...');
+
+  // Health check HTTP server (Railway requires an HTTP endpoint)
+  const healthPort = parseInt(process.env.PORT || '3002', 10);
+  const healthServer = http.createServer((req, res) => {
+    if (req.url === '/health' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok', bot: 'running', timestamp: new Date().toISOString() }));
+    } else {
+      res.writeHead(404);
+      res.end();
+    }
+  });
+  healthServer.listen(healthPort, () => {
+    console.log(`Bot health check: http://localhost:${healthPort}/health`);
+  });
+
   await bot.start({
     onStart: (info) => {
       console.log(`Bot started: @${info.username}`);

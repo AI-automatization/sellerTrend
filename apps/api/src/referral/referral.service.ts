@@ -38,7 +38,7 @@ export class ReferralService {
     });
 
     const referrals = await this.prisma.referral.findMany({
-      where: { referrer_account_id: accountId },
+      where: { referrer_account_id: accountId, referred_account_id: { not: null } },
     });
 
     const total = referrals.length;

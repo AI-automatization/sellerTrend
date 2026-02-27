@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { teamApi } from '../../api/client';
 import { SectionCard, SectionHeader, Loading } from './shared';
+import { logError, toastError } from '../../utils/handleError';
 
 interface Member {
   id: string;
@@ -25,7 +26,7 @@ export function TeamTab() {
   useEffect(() => {
     Promise.all([teamApi.listMembers(), teamApi.listInvites()])
       .then(([m, i]) => { setMembers(m.data); setInvites(i.data); })
-      .catch(() => {})
+      .catch(logError)
       .finally(() => setLoading(false));
   }, []);
 
@@ -37,7 +38,7 @@ export function TeamTab() {
         setInvites([r.data, ...invites]);
         setForm({ email: '', role: 'USER' });
       })
-      .catch(() => {})
+      .catch((e) => toastError(e))
       .finally(() => setInviting(false));
   }
 

@@ -2,16 +2,24 @@ import { Queue } from 'bullmq';
 
 const QUEUE_NAME = 'import-batch';
 
+function getRedisConnection() {
+  const redisUrl = new URL(process.env.REDIS_URL ?? 'redis://localhost:6379');
+  return {
+    connection: {
+      host: redisUrl.hostname,
+      port: parseInt(redisUrl.port || '6379', 10),
+      username: redisUrl.username || undefined,
+      password: redisUrl.password || undefined,
+      maxRetriesPerRequest: null,
+    },
+  };
+}
+
 let queue: Queue | null = null;
 
 function getQueue(): Queue {
   if (!queue) {
-    queue = new Queue(QUEUE_NAME, {
-      connection: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-      },
-    });
+    queue = new Queue(QUEUE_NAME, getRedisConnection());
   }
   return queue;
 }

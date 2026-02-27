@@ -1,7 +1,8 @@
 // Barrel re-export — all API clients split into modular files
 // Existing imports from '../api/client' continue to work unchanged
 
-export { api, getTokenPayload } from './base';
+export { api, getTokenPayload, isTokenValid } from './base';
+export type { JwtTokenPayload } from './base';
 export { authApi } from './auth';
 export { productsApi, uzumApi, billingApi } from './products';
 export { discoveryApi, seasonalApi, nicheApi } from './discovery';

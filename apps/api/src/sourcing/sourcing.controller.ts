@@ -9,13 +9,14 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { BillingGuard } from '../billing/billing.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ActivityAction } from '../common/decorators/activity-action.decorator';
 import { SourcingService } from './sourcing.service';
 
 @ApiTags('sourcing')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, BillingGuard)
 @Controller('sourcing')
 export class SourcingController {
   constructor(private readonly sourcingService: SourcingService) {}
@@ -66,7 +67,6 @@ export class SourcingController {
   ) {
     return this.sourcingService.searchExternalPrices(
       body.query,
-      body.source || 'ALIBABA',
       account_id,
     );
   }
@@ -93,8 +93,11 @@ export class SourcingController {
 
   /** Get job status and results */
   @Get('jobs/:id')
-  getJob(@Param('id') id: string) {
-    return this.sourcingService.getSearchJob(id);
+  getJob(
+    @Param('id') id: string,
+    @CurrentUser('account_id') account_id: string,
+  ) {
+    return this.sourcingService.getSearchJob(id, account_id);
   }
 
   /** List recent search jobs */

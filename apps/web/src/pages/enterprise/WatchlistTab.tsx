@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { watchlistApi } from '../../api/client';
 import { SectionCard, SectionHeader, Loading, EmptyState } from './shared';
+import { logError, toastError } from '../../utils/handleError';
 
 interface Watchlist {
   id: string;
@@ -20,7 +21,7 @@ export function WatchlistTab() {
   useEffect(() => {
     watchlistApi.list()
       .then((r) => setLists(r.data))
-      .catch(() => {})
+      .catch(logError)
       .finally(() => setLoading(false));
   }, []);
 
@@ -30,14 +31,14 @@ export function WatchlistTab() {
     setCreating(true);
     watchlistApi.create({ name: form.name, product_ids: ids })
       .then((r) => { setLists([r.data, ...lists]); setForm({ name: '', product_ids: '' }); })
-      .catch(() => {})
+      .catch((e) => toastError(e))
       .finally(() => setCreating(false));
   }
 
   function share(id: string) {
     watchlistApi.share(id).then((r) => {
       setLists(lists.map((l) => l.id === id ? { ...l, share_token: r.data.share_token, is_public: true } : l));
-    }).catch(() => {});
+    }).catch((e) => toastError(e));
   }
 
   function copyLink(token: string) {

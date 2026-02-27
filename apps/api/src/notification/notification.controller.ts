@@ -33,8 +33,11 @@ export class NotificationController {
   /** Mark a notification as read */
   @Patch(':id/read')
   @UseGuards(JwtAuthGuard, BillingGuard)
-  markAsRead(@Param('id') notificationId: string) {
-    return this.notificationService.markAsRead(notificationId);
+  markAsRead(
+    @Param('id') notificationId: string,
+    @CurrentUser('account_id') accountId: string,
+  ) {
+    return this.notificationService.markAsRead(notificationId, accountId);
   }
 
   // ─── Admin Endpoints ───────────────────────────────────────────

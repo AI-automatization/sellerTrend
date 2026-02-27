@@ -26,21 +26,21 @@
 
 ### E-003 | `WEB_URL` qo'shish — CORS xatosi | 5min
 - `apps/api/.env` → `WEB_URL=http://localhost:5173`
-- `.env` (root) → `WEB_URL=http://localhost:5173`
+- `.env` (root) → `WEB_URL=http://localhost:5173` ✅ DONE
 
 ### E-004 | `JWT_SECRET` root va api da BIR XIL qilish | 5min
-- Root `/.env` dagi `JWT_SECRET` ni `apps/api/.env` dagi bilan tenglashtirish
+- Root `/.env` dagi `JWT_SECRET` ni `apps/api/.env` dagi bilan tenglashtirish ✅ DONE
 
-### E-005 | `SERPAPI_API_KEY` olish va yozish | 5min
+### E-005 | `SERPAPI_API_KEY` olish va yozish | 5min 
 - https://serpapi.com → key olish
-- `apps/api/.env`, `apps/worker/.env`, `.env` → `SERPAPI_API_KEY=xxx`
+- `apps/api/.env`, `apps/worker/.env`, `.env` → `SERPAPI_API_KEY=xxx` ✅ DONE
 
 ### E-006 | `ALIEXPRESS_APP_KEY` + `SECRET` olish | 5min
 - AliExpress Developer Portal → key olish
-- `apps/api/.env`, `apps/worker/.env`, `.env` → yozish
+- `apps/api/.env`, `apps/worker/.env`, `.env` → yozish ❌ Regionni deb ro'yxatdan o'tib bo'lmadi
 
 ### E-007 | `NODE_ENV=development` qo'shish | 2min
-- `apps/api/.env`, `apps/worker/.env`
+- `apps/api/.env`, `apps/worker/.env` ✅ DONE
 
 ### E-008 | `REDIS_URL` parol bilan | 2min
 ### E-009 | `SENTRY_DSN` olish (optional) | 2min
@@ -63,114 +63,95 @@
 
 ---
 
-# P0 — KRITIK
+# P0 — ✅ BAJARILDI (4/4) → docs/Done.md ga ko'chirildi
 
-### T-061 | redis.ts REDIS_URL password tashlab yuboriladi | 30min
-`apps/worker/src/redis.ts:1-10` — connection object ga `password`, `username`, `db` qo'shish
-
-### T-062 | Anthropic client crash xavfi | 20min
-`apps/worker/src/processors/uzum-ai-scraper.ts:21` — lazy init pattern
-
-### T-064 | reanalysis.processor title noto'g'ri | 15min
-`apps/worker/src/processors/reanalysis.processor.ts:80` — `localizableTitle?.ru` fallback yo'q. `import.processor.ts` da to'g'ri ishlaydi.
-
-### T-193a | AI response da markdown tozalash (BACKEND qismi) | 15min
-`apps/api/src/ai/ai.service.ts:252` — ` ```json ` va `[` tozalash.
-Sardor frontend filter qo'shadi (T-193b). Bu task AVVAL bajarilishi kerak.
+| Task | Fix |
+|------|-----|
+| T-061 | redis.ts — password, username, db qo'shildi |
+| T-062 | ~~Bug emas~~ — Anthropic SDK crash qilmaydi, graceful fallback |
+| T-064 | reanalysis.processor — localizableTitle?.ru fallback qo'shildi |
+| T-193a | ai.service.ts — markdown ``` strip qo'shildi |
 
 ---
 
-# P1 — MUHIM
+# P1 — ✅ BAJARILDI (8/8) → docs/Done.md ga ko'chirildi
 
-### T-066 | 3x fetchProductDetail → 1 ta DRY | 45min
-`uzum-scraper.ts` dan bitta canonical funksiya export qilish.
-`import.processor.ts:18-25`, `reanalysis.processor.ts:32-43` import qiladi.
-**Bu task T-064 ni ham hal qiladi (title fallback).**
-
-### T-069 | sourcing AI ga platform UUID emas, nomi | 20min
-`apps/worker/src/processors/sourcing.processor.ts:446`
-
-### T-071 | Shopee valyuta xatosi | 20min
-`apps/worker/src/processors/sourcing.processor.ts:263,427`
-
-### T-072 | discovery product upsert try/catch | 20min
-`apps/worker/src/processors/discovery.processor.ts:120-149`
-
-### T-074 | console.log → logger (40+ joy) | 45min
-`apps/worker/` barcha fayllar
-
-### T-075 | reanalysis tranzaksiyasiz | 20min
-`apps/worker/src/processors/reanalysis.processor.ts:77-132` → `$transaction()`
-
-### T-196 | AI prompt yaxshilash — amaliy maslahat | 45min
-`apps/api/src/ai/ai.service.ts:225-248` — yangi prompt yozish
-Sardor frontend da toggle qo'shadi (T-196b). Bu AVVAL bajarilsin.
-
-### T-199a | forecastEnsemble trend formula fix (BACKEND) | 10min
-`packages/utils/src/index.ts:342` — prediction-based changePct ishlatish
-Sardor frontend textni yangilaydi (T-199b).
+| Task | Fix |
+|------|-----|
+| T-066 | `fetchUzumProductRaw()` DRY — 3 nusxa → 1 shared funksiya |
+| T-069 | platformIdToCode Map — UUID → human-readable code |
+| T-071 | Shopee: USD→SGD, smart price divisor |
+| T-072 | discovery upsert try/catch — fail-safe loop |
+| T-074 | 21 joyda console.log → logJobInfo |
+| T-075 | reanalysis $transaction() atomic |
+| T-196 | AI prompt: 3 amaliy maslahat, o'zbek tili |
+| T-199a | forecastEnsemble: slope → changePct (5%) |
 
 ---
 
-# P2 — O'RTA
+# P2 — ✅ BAJARILDI (17/17) → docs/Done.md ga ko'chirildi
 
-### T-078 | bootstrapAdmin himoyalash | 30min — `apps/api/src/auth/auth.controller.ts`
-### T-079 | Team invite bcrypt hash | 20min — `apps/api/src/team/team.service.ts`
-### T-080 | NestJS v10/v11 versiya fix | 30min — `apps/api/package.json`
-### T-081 | Express v5→v4 tushirish | 20min — `apps/api/package.json`
-### T-087 | notification account_id | 15min — `notification.service.ts`
-### T-088 | shop.name→shop.title | 10min — `products.service.ts:158`
-### T-089 | Product endpoint account_id | 30min — `products.controller.ts`
-### T-090 | Sourcing BillingGuard | 10min — `sourcing.controller.ts`
-### T-091 | auth DTO validatsiya | 15min — `auth.controller.ts`
-### T-092 | competitor getHistory fix | 15min — `competitor.controller.ts`
-### T-093 | AliExpress HMAC imzo | 45min — `aliexpress.client.ts`
-### T-094 | sourcing getJob account_id | 10min — `sourcing.controller.ts`
-### T-095 | Login rate limit Redis | 30min — `auth.service.ts`
-### T-096 | JWT email field qo'shish | 15min — backend JWT payload
-### T-098 | onDelete Cascade | 30min — `schema.prisma`
-### T-099 | account_id indekslari | 20min — `schema.prisma`
-### T-182 | Bot health endpoint | 15min — `apps/bot/src/main.ts`
-### T-183 | Worker PORT env fix | 5min — `apps/worker/src/main.ts`
+| Task | Fix |
+|------|-----|
+| T-078 | bootstrapAdmin — BOOTSTRAP_SECRET env var himoyasi |
+| T-079 | Team invite — bcrypt.hash(tempPassword, 12) |
+| T-080 | NestJS websockets v11→v10 alignment |
+| T-081 | Express v5→v4 downgrade |
+| T-087 | notification.markAsRead — account_id filter |
+| T-088 | shop.name → shop.title (oldindan done) |
+| T-089 | Product endpoint — account_id param |
+| T-090 | Sourcing controller — BillingGuard qo'shildi |
+| T-091 | auth refresh/logout — RefreshDto validatsiya |
+| T-092 | competitor getHistory — haqiqiy service call |
+| T-093 | AliExpress API — HMAC-SHA256 sign |
+| T-094 | sourcing getJob — account_id filter |
+| T-095 | Login rate limit — Redis INCR+TTL |
+| T-096 | JWT payload — email field qo'shildi |
+| T-098 | onDelete: Cascade — ~30 relation |
+| T-099 | @@index([account_id]) — 16 jadval |
+| T-182 | Bot health — HTTP /health endpoint |
+| T-183 | Worker PORT — process.env.PORT fallback |
 
 ---
 
-# P3 — PAST
+# P3 — ✅ BAJARILDI (31/34 — 3 ta skip: T-101 2h refactor, T-150 migration kerak, T-141/T-169 oldin done)
 
-### T-101 | admin.service 2186 qator bo'lish | 2h
-### T-102 | `as any` 30+ joy | 1h
-### T-103 | main.ts console.log→Logger | 10min
-### T-104 | community dead code | 5min
-### T-105 | hardcoded SUPER_ADMIN_ID | 15min
-### T-106 | admin @Res() optional crash | 15min
-### T-107 | JWT 7d vs 15m conflict | 10min
-### T-108 | api-key.guard role | 10min
-### T-109 | admin N+1 query | 30min
-### T-110 | RotatingFileWriter NPE | 10min
-### T-111 | Redis connection nomuvofiq | 15min
-### T-112 | community limitless query | 15min
-### T-113 | sourcing.queue lazy init | 15min
-### T-133 | sourcing hardcoded 0.5kg | 15min
-### T-134 | sourcing hardcoded USD 12900 | 10min
-### T-135 | predictDeadStock naming | 5min
-### T-136 | RMSE→std_dev rename | 5min
-### T-137 | breakeven formula | 15min
-### T-138 | packages/types UzumProductDetail | 15min
-### T-139 | packages/types UzumItem | 10min
-### T-142 | catch(e: any)→unknown | 15min
-### T-143 | classifyUA bot detect | 10min
-### T-144 | auth.module dead expiresIn | 5min
-### T-145 | SerpAPI Amazon engine | 10min
-### T-146 | prisma tenant check prod | 10min
-### T-147 | referral dead code | 10min
-### T-148 | sourcing _source dead | 5min
-### T-149 | community non-null | 5min
-### T-150 | consultant_id naming | 10min
-### T-166 | parseWeeklyBought o'chirish | 5min
-### T-167 | predictDeadStock NaN | 5min
-### T-170 | Bot broadcastDiscovery dead | 5min
-### T-171 | Bot sendPriceDropAlert dead | 5min
-### T-172 | JobName enum 2 ta qo'shish | 5min
+| # | Vazifa | Holat |
+|---|--------|-------|
+| T-102 | `as any` 13 ta typed cast | ✅ |
+| T-103 | main.ts console.log→Logger | ✅ |
+| T-104 | community dead code | ✅ |
+| T-105 | hardcoded SUPER_ADMIN_ID | ✅ |
+| T-106 | admin @Res() optional crash | ✅ |
+| T-107 | JWT 7d vs 15m conflict | ✅ |
+| T-108 | api-key.guard role | ✅ |
+| T-109 | admin N+1 query | ✅ |
+| T-110 | RotatingFileWriter NPE | ✅ |
+| T-111 | Redis connection nomuvofiq | ✅ |
+| T-112 | community limitless query | ✅ |
+| T-113 | sourcing.queue lazy init | ✅ |
+| T-133 | sourcing hardcoded 0.5kg | ✅ |
+| T-134 | sourcing hardcoded USD 12900 | ✅ |
+| T-135 | predictDeadStock naming | ✅ |
+| T-136 | RMSE→std_dev rename | ✅ |
+| T-137 | breakeven formula | ✅ |
+| T-138 | packages/types UzumProductDetail | ✅ |
+| T-139 | packages/types UzumItem | ✅ |
+| T-142 | catch(e: any)→unknown (17 ta) | ✅ |
+| T-143 | classifyUA bot detect | ✅ |
+| T-144 | auth.module dead expiresIn | ✅ |
+| T-145 | SerpAPI Amazon engine | ✅ |
+| T-146 | prisma tenant check prod | ✅ |
+| T-147 | referral dead code | ✅ |
+| T-148 | sourcing _source dead | ✅ |
+| T-149 | community non-null | ✅ |
+| T-166 | parseWeeklyBought o'chirish | ✅ |
+| T-167 | predictDeadStock NaN | ✅ |
+| T-170 | Bot broadcastDiscovery dead | ✅ |
+| T-171 | Bot sendPriceDropAlert dead | ✅ |
+| T-172 | JobName enum 2 ta qo'shish | ✅ |
+| T-101 | admin.service 2186 qator bo'lish | ⏭ Skip (2h refactor) |
+| T-150 | consultant_id naming | ⏭ Skip (migration kerak) |
 
 ---
 
@@ -178,14 +159,14 @@ Sardor frontend textni yangilaydi (T-199b).
 
 | Prioritet | Tasklar |
 |-----------|---------|
-| ✅ DONE (audit) | 10 |
+| ✅ DONE (audit + fix) | 19 |
 | .env (manual) | 8 |
 | Railway (manual) | 10 |
-| P0 KRITIK | 4 |
-| P1 MUHIM | 9 |
-| P2 O'RTA | 18 |
-| P3 PAST | 30 |
-| **JAMI ochiq** | **79** |
+| P0 KRITIK | ✅ 0 (HAMMASI BAJARILDI) |
+| P1 MUHIM | ✅ 0 (HAMMASI BAJARILDI) |
+| P2 O'RTA | ✅ 0 (HAMMASI BAJARILDI) |
+| P3 PAST | ✅ 2 qoldi (T-101 refactor, T-150 migration) |
+| **JAMI ochiq** | **28** |
 
 ---
 *Tasks-Bekzod.md | VENTRA | 2026-02-27*

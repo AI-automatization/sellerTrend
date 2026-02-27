@@ -17,6 +17,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import type { ProductDetail } from './uzum-scraper';
+import { logJobInfo } from '../logger';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -44,7 +45,7 @@ export async function filterByCategory(
   categoryName: string,
 ): Promise<ProductDetail[]> {
   if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY.includes('YOUR_KEY')) {
-    console.log('[ai-scraper] No API key — skipping category filter');
+    logJobInfo('discovery-queue', '-', 'ai-scraper', 'No API key — skipping category filter');
     return products;
   }
 
@@ -74,7 +75,7 @@ No explanation, no text — just the JSON array.`;
     });
 
     const text = (response.content[0] as any).text?.trim() ?? '';
-    console.log(`[ai-scraper] Filter response: ${text.slice(0, 100)}`);
+    logJobInfo('discovery-queue', '-', 'ai-scraper', `Filter response: ${text.slice(0, 100)}`);
 
     const indexes: number[] = JSON.parse(text);
     if (!Array.isArray(indexes)) return products;
@@ -83,12 +84,10 @@ No explanation, no text — just the JSON array.`;
       .filter((i) => typeof i === 'number' && i >= 0 && i < products.length)
       .map((i) => products[i]);
 
-    console.log(
-      `[ai-scraper] Category filter: ${products.length} → ${filtered.length} products kept`,
-    );
+    logJobInfo('discovery-queue', '-', 'ai-scraper', `Category filter: ${products.length} → ${filtered.length} products kept`);
     return filtered.length > 0 ? filtered : products; // never return empty if filter fails
   } catch (err) {
-    console.error('[ai-scraper] Filter error:', err);
+    logJobInfo('discovery-queue', '-', 'ai-scraper', `Filter error: ${err}`);
     return products; // fallback: return unfiltered
   }
 }
@@ -111,12 +110,12 @@ export async function visionExtractProducts(
   categoryName: string,
 ): Promise<VisionProduct[]> {
   if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY.includes('YOUR_KEY')) {
-    console.log('[ai-scraper] No API key — skipping vision extraction');
+    logJobInfo('discovery-queue', '-', 'ai-scraper', 'No API key — skipping vision extraction');
     return [];
   }
 
   try {
-    console.log('[ai-scraper] Running vision extraction on screenshot...');
+    logJobInfo('discovery-queue', '-', 'ai-scraper', 'Running vision extraction on screenshot...');
 
     const response = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
@@ -150,17 +149,17 @@ If no products are visible, return empty array: []`,
     });
 
     const text = (response.content[0] as any).text?.trim() ?? '';
-    console.log(`[ai-scraper] Vision response: ${text.slice(0, 150)}`);
+    logJobInfo('discovery-queue', '-', 'ai-scraper', `Vision response: ${text.slice(0, 150)}`);
 
     // Extract JSON from response (might have markdown code block)
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (!jsonMatch) return [];
 
     const extracted: VisionProduct[] = JSON.parse(jsonMatch[0]);
-    console.log(`[ai-scraper] Vision extracted ${extracted.length} products`);
+    logJobInfo('discovery-queue', '-', 'ai-scraper', `Vision extracted ${extracted.length} products`);
     return extracted;
   } catch (err) {
-    console.error('[ai-scraper] Vision extraction error:', err);
+    logJobInfo('discovery-queue', '-', 'ai-scraper', `Vision extraction error: ${err}`);
     return [];
   }
 }

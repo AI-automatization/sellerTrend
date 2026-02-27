@@ -31,7 +31,7 @@ export const signalsApi = {
   getRanking: (productId: string) => api.get(`/signals/ranking/${productId}`),
   getChecklist: (productId?: string) =>
     api.get('/signals/checklist', { params: productId ? { product_id: productId } : {} }),
-  saveChecklist: (data: { product_id?: string; title: string; items: { key: string; label: string; done: boolean }[] }) =>
+  saveChecklist: (data: { product_id?: string; title: string; items: Array<{ text: string; checked: boolean }> }) =>
     api.post('/signals/checklist', data),
   createPriceTest: (data: { product_id: string; original_price: number; test_price: number }) =>
     api.post('/signals/price-tests', data),

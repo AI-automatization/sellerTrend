@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { communityApi } from '../../api/client';
 import { SectionCard, SectionHeader, Loading, EmptyState } from './shared';
+import { logError, toastError } from '../../utils/handleError';
 
 interface Insight {
   id: string;
@@ -26,7 +27,7 @@ export function CommunityTab() {
       communityApi.getCategories(),
     ])
       .then(([i, c]) => { setInsights(i.data); setCategories(c.data); })
-      .catch(() => {})
+      .catch(logError)
       .finally(() => setLoading(false));
   }, [filter]);
 
@@ -35,7 +36,7 @@ export function CommunityTab() {
     setCreating(true);
     communityApi.createInsight(form)
       .then((r) => { setInsights([r.data, ...insights]); setForm({ title: '', content: '', category: '' }); })
-      .catch(() => {})
+      .catch((e) => toastError(e))
       .finally(() => setCreating(false));
   }
 
@@ -46,7 +47,7 @@ export function CommunityTab() {
           ? { ...ins, upvotes: ins.upvotes + (v === 1 ? 1 : 0), downvotes: ins.downvotes + (v === -1 ? 1 : 0) }
           : ins,
       ));
-    }).catch(() => {});
+    }).catch((e) => toastError(e));
   }
 
   if (loading) return <SectionCard><Loading /></SectionCard>;

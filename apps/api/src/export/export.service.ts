@@ -50,7 +50,7 @@ export class ExportService {
       ...rows.map((r) =>
         headers
           .map((h) => {
-            const val = String((r as any)[h]);
+            const val = String((r as Record<string, unknown>)[h]);
             return val.includes(',') ? `"${val}"` : val;
           })
           .join(','),

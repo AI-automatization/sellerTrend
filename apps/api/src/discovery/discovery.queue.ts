@@ -1,25 +1,28 @@
 import { Queue } from 'bullmq';
 import type { CategoryDiscoveryJobData } from '@uzum/types';
 
-const redisUrl = new URL(process.env.REDIS_URL ?? 'redis://localhost:6379');
+function getRedisConnection() {
+  const redisUrl = new URL(process.env.REDIS_URL ?? 'redis://localhost:6379');
+  return {
+    connection: {
+      host: redisUrl.hostname,
+      port: parseInt(redisUrl.port || '6379', 10),
+      username: redisUrl.username || undefined,
+      password: redisUrl.password || undefined,
+      maxRetriesPerRequest: null,
+    },
+  };
+}
 
-const redisConnection = {
-  connection: {
-    host: redisUrl.hostname,
-    port: parseInt(redisUrl.port || '6379', 10),
-    username: redisUrl.username || undefined,
-    password: redisUrl.password || undefined,
-    maxRetriesPerRequest: null, // Required for BullMQ
-  },
-};
+let _queue: Queue<CategoryDiscoveryJobData> | null = null;
 
-export const discoveryQueue = new Queue<CategoryDiscoveryJobData>(
-  'discovery-queue',
-  redisConnection,
-);
+function getQueue(): Queue<CategoryDiscoveryJobData> {
+  if (!_queue) _queue = new Queue('discovery-queue', getRedisConnection());
+  return _queue;
+}
 
 export async function enqueueDiscovery(data: CategoryDiscoveryJobData) {
-  return discoveryQueue.add('category-discovery', data, {
-    attempts: 1, // Playwright scraping: no retry (Uzum service outage = persistent error)
+  return getQueue().add('category-discovery', data, {
+    attempts: 1,
   });
 }

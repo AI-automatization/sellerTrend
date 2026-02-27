@@ -2,21 +2,11 @@ import { useState, useEffect } from 'react';
 import { competitorApi } from '../api/client';
 import type { CompetitorProduct, DiscoveredCompetitor, CompetitorPricePoint } from '../api/competitor';
 import { getErrorMessage } from '../utils/getErrorMessage';
+import { logError, toastError } from '../utils/handleError';
+import { glassTooltip } from '../utils/formatters';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-
-const glassTooltip = {
-  contentStyle: {
-    background: 'var(--chart-tooltip-bg)',
-    backdropFilter: 'blur(8px)',
-    border: '1px solid var(--chart-tooltip-border)',
-    borderRadius: 12,
-    fontSize: 12,
-    color: 'var(--chart-tooltip-text)',
-  },
-  labelStyle: { color: 'var(--chart-tick)' },
-};
 
 interface Props {
   productId: string;
@@ -37,7 +27,7 @@ export function CompetitorSection({ productId, productPrice }: Props) {
   useEffect(() => {
     competitorApi.getTracked(productId)
       .then((r) => setTracked(Array.isArray(r.data) ? r.data : []))
-      .catch(() => {})
+      .catch(logError)
       .finally(() => setLoading(false));
   }, [productId]);
 
@@ -57,14 +47,14 @@ export function CompetitorSection({ productId, productPrice }: Props) {
         competitorApi.getTracked(productId).then((r) => setTracked(Array.isArray(r.data) ? r.data : []));
         setDiscovered((prev) => prev.filter((d) => d.product_id !== compId));
       })
-      .catch(() => {})
+      .catch((e) => toastError(e))
       .finally(() => setTrackingIds((s) => { const n = new Set(s); n.delete(compId); return n; }));
   }
 
   function handleUntrack(compProdId: string) {
     competitorApi.untrack(productId, compProdId)
       .then(() => setTracked((prev) => prev.filter((t) => t.competitor_product_id !== compProdId)))
-      .catch(() => {});
+      .catch((e) => toastError(e));
   }
 
   function loadHistory(compProdId: string) {

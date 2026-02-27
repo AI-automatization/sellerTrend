@@ -3,39 +3,78 @@
 
 ---
 
-## TUZATILGAN BUGLAR (50 ta)
+## TUZATILGAN BUGLAR (Sardor, 2026-02-27)
 
-### 2026-02-27 — Frontend bug fixes (Sardor, commit e121da8 + shu sessiya)
-
-| # | Task | Sana | Muammo | Fayl/Yechim |
-|---|------|------|--------|-------------|
-| BUG-029 | E-001 | 2026-02-27 | Desktop `.env` yo'q — login `app://api/v1` ga ketardi | `apps/desktop/.env` yaratildi: `VITE_API_URL=http://localhost:3000` |
-| BUG-030 | E-002 | 2026-02-27 | Desktop dev proxy yo'q — `/api/v1` backend ga yetmaydi | `electron.vite.config.ts` ga `/api/v1` proxy qo'shildi |
-| BUG-031 | T-084 | 2026-02-27 | RegisterPage: `setTokens()` chaqirilmaydi — Zustand yangilanmaydi | `RegisterPage.tsx` — `setTokens()` + `queryClient.clear()` qo'shildi |
-| BUG-032 | T-085 | 2026-02-27 | AnalyzePage: `setTracked(true)` try tashqarisida — xatoda ham true bo'lardi | `AnalyzePage.tsx` — `setTracked(true)` try ichiga ko'chirildi |
-| BUG-033 | T-086 | 2026-02-27 | ProductPage: `setTracked(true)` try tashqarisida | `ProductPage.tsx:278` — try ichiga ko'chirildi |
-| BUG-034 | T-188 | 2026-02-27 | Service Worker registered — PWA o'chirilishi kerak | `sw.js` o'chirildi, `index.html` ga unregister scripti qo'shildi |
-| BUG-035 | T-189 | 2026-02-27 | manifest.json va PWA meta taglar bor | `public/manifest.json` o'chirildi, meta taglar tozalandi |
-| BUG-036 | T-190 | 2026-02-27 | PWA-only iconlar bor (`icon-512`, `icon-maskable`, `apple-touch-icon`) | Uchala fayl o'chirildi, `favicon.svg` qoldi |
-| BUG-037 | T-191 | 2026-02-27 | `useNativeNotification.ts` dead code — hech qayerda import qilinmagan | Fayl o'chirildi |
-| BUG-038 | T-192 | 2026-02-27 | `dist/manifest.json` build artifact | `apps/web/dist/` qayta build da avtomatik tozalanadi |
-| BUG-039 | T-194 | 2026-02-27 | Chart X-axis "M02 27" format — `uz-UZ` locale ishlatilgan | `ProductPage.tsx:219` — `s.snapshot_at` ISO saqlashga o'tildi; ScoreChart `formatDay()` |
-| BUG-040 | T-195 | 2026-02-27 | "Ensemble: WMA + Holt's... MAE: X · RMSE: Y" texnik jargon | O'chirildi → "AI bashorat · X% ishonchlilik" |
-| BUG-041 | T-197 | 2026-02-27 | Score chart: bir kunda ko'p snapshot → zigzag | `dailySnapshots` useMemo — har kunning oxirgi scorei; ScoreChart ham aggregate qiladi |
-| BUG-042 | T-198 | 2026-02-27 | Haftalik sotuvlar chart noto'g'ri data, Y-axis labelsiz | `dailySnapshots.slice(-15)` + Y-axis "ta" unit + formatter |
-| BUG-043 | T-200 | 2026-02-27 | ML box: "confidence", "snapshot" inglizcha raw label | "Ishonchlilik" / "bashorat darajasi", "Tahlil soni" / "ta o'lcham" |
-| BUG-044 | T-201 | 2026-02-27 | Global bozor fetch xatosida bo'sh qoladi | `catch` da `setExtNote('Global bozor...')` qo'shildi |
-| BUG-045 | T-203 | 2026-02-27 | ML Prognoz 4 KPI box labelsiz — raqamlar tushunarsiz | Har boxga label: "7 kun score", "7 kun sotuv", "Ishonchlilik", "Tahlil soni" |
-| BUG-046 | T-204 | 2026-02-27 | WeeklyTrend BarChart — qora to'rtburchak (`<rect fill="black">`) | `<Cell>` ga almashtirildi, har bar uchun rang belgilandi |
-| BUG-047 | T-205 | 2026-02-27 | Footer da raw scoring formula ko'rinadi | `Score = 0.55×ln(...)` bloki to'liq o'chirildi |
-| BUG-048 | T-151 | 2026-02-27 | `useSocket.ts` — `useCallback(fn, [fn])` foydasiz, `fn` har render yangi | `socketRef` + `callbackRef` pattern: `useRef` ga o'tkazildi, WS reconnect yo'q |
-| BUG-049 | T-158 | 2026-02-27 | `AdminPage.tsx` — 30+ `any` type | 20+ typed interface qo'shildi (OverviewStats, RevenueStats, GrowthStats ...); `unknown` audit values; `tsc` clean |
-| BUG-050 | T-163 | 2026-02-27 | `AdminPage.tsx` 2163 qator — 400 qator limit buzilgan | 9 fayl ga bo'lindi: `adminTypes.ts`, `AdminComponents.tsx`, `AdminDashboardTab`, `AdminAccountsTab`, `AdminAnalyticsTab`, `AdminSystemTab`, `AdminFeedbackTab`, `AdminNotificationsTab`, `AdminAuditTab` — barcha fayllar ≤330 qator |
-| BUG-048 | T-097 | 2026-02-27 | WebSocket dev proxy yo'q — real-time notificationlar dev da ishlamaydi | `vite.config.ts` ga `/ws` proxy qo'shildi (`ws: true`, `ws://localhost:3000`) |
-| BUG-049 | T-234 | 2026-02-27 | Desktop production build da `VITE_API_URL` yo'q → `app://api/v1` URL | `apps/desktop/.env.production` yaratildi: `VITE_API_URL=https://app.ventra.uz` |
-| BUG-050 | T-202 | 2026-02-27 | ProductPage seksiya tartibi noto'g'ri — texnik bloklar AI tahlilidan oldin | Qayta tartib: Asosiy → AI tahlili → Haftalik → ScoreChart → ML Prognoz → Bashorat → Raqiblar → Global |
+| # | Task | Muammo | Fayl/Yechim |
+|---|------|--------|-------------|
+| BUG-029 | E-001 | Desktop `.env` yo'q — login `app://api/v1` ga ketardi | `apps/desktop/.env` yaratildi: `VITE_API_URL=http://localhost:3000` |
+| BUG-030 | E-002 | Desktop dev proxy yo'q — `/api/v1` backend ga yetmaydi | `electron.vite.config.ts` ga `/api/v1` proxy qo'shildi |
+| BUG-031 | T-084 | RegisterPage: `setTokens()` chaqirilmaydi | `RegisterPage.tsx` — `setTokens()` + `queryClient.clear()` |
+| BUG-032 | T-085 | AnalyzePage: `setTracked(true)` try tashqarisida | `AnalyzePage.tsx` — try ichiga ko'chirildi |
+| BUG-033 | T-086 | ProductPage: `setTracked(true)` try tashqarisida | `ProductPage.tsx:278` — try ichiga ko'chirildi |
+| BUG-034 | T-188 | Service Worker registered — PWA o'chirilishi kerak | `sw.js` o'chirildi, `index.html` ga unregister scripti |
+| BUG-035 | T-189 | manifest.json va PWA meta taglar bor | `public/manifest.json` o'chirildi, meta taglar tozalandi |
+| BUG-036 | T-190 | PWA-only iconlar bor | Uchala fayl o'chirildi, `favicon.svg` qoldi |
+| BUG-037 | T-191 | `useNativeNotification.ts` dead code | Fayl o'chirildi |
+| BUG-039 | T-194 | Chart X-axis "M02 27" format | `ProductPage.tsx:219` — ISO saqlashga o'tildi; ScoreChart `formatDay()` |
+| BUG-040 | T-195 | "MAE: X · RMSE: Y" texnik jargon | O'chirildi → "AI bashorat · X% ishonchlilik" |
+| BUG-041 | T-197 | Score chart: bir kunda ko'p snapshot → zigzag | `dailySnapshots` useMemo — har kunning oxirgi scorei |
+| BUG-042 | T-198 | Haftalik sotuvlar chart noto'g'ri data | `dailySnapshots.slice(-15)` + Y-axis "ta" unit |
+| BUG-043 | T-200 | ML box: "confidence", "snapshot" inglizcha raw label | "Ishonchlilik" / "Tahlil soni" |
+| BUG-044 | T-201 | Global bozor fetch xatosida bo'sh qoladi | `catch` da `setExtNote('Global bozor...')` |
+| BUG-045 | T-203 | ML Prognoz 4 KPI box labelsiz | Har boxga label qo'shildi |
+| BUG-046 | T-204 | WeeklyTrend BarChart — qora to'rtburchak | `<Cell>` ga almashtirildi |
+| BUG-047 | T-205 | Footer da raw scoring formula | `Score = 0.55×ln(...)` bloki o'chirildi |
+| BUG-048 | T-151 | `useSocket.ts` — `useCallback(fn, [fn])` foydasiz | `socketRef` + `callbackRef` pattern |
+| BUG-049 | T-158 | `AdminPage.tsx` — 30+ `any` type | 20+ typed interface; `unknown` audit values; tsc clean |
+| BUG-050 | T-163 | `AdminPage.tsx` 2163 qator | 9 fayl: adminTypes, AdminComponents, 7 tab component |
 
 ---
+
+## COMPONENT EXTRACTION — 6 God Page → 68 Components (Bekzod, 2026-02-27)
+
+### T-258 | FRONTEND | 6 ta god page → 68 ta component faylga ajratildi | Sardor | 1h
+**Commit:** `b3f8d00` — 75 fayl, +4994 / -4367 qator
+
+**Muammo:** 6 ta page fayl juda katta (jami 6159 qator), har biri ichida 5-14 ta inline komponent.
+**Yechim:** Har page dan inline komponentlar alohida fayllarga extract qilindi, page = thin orchestrator.
+
+| Page | Oldin | Keyin | Komponentlar | Papka |
+|------|-------|-------|-------------|-------|
+| AdminPage.tsx | 2001 | 453 | 21 fayl | components/admin/ |
+| SignalsPage.tsx | 870 | 86 | 17 fayl | components/signals/ |
+| SourcingPage.tsx | 971 | 117 | 10 fayl | components/sourcing/ |
+| ProductPage.tsx | 912 | 642 | 7 fayl | components/product/ |
+| DashboardPage.tsx | 774 | 664 | 7 fayl | components/dashboard/ |
+| DiscoveryPage.tsx | 631 | 42 | 8 fayl | components/discovery/ |
+| **Jami** | **6159** | **2004** | **68+6 index** | **6 papka** |
+
+**Qoidalar bajarildi:**
+- Logika O'ZGARMADI — faqat cut + paste + import/export
+- Har komponent uchun Props interface yozildi
+- Barrel export (index.ts) har papka uchun
+- Shared types → types.ts (har papkada)
+- `tsc --noEmit` — 0 error, `pnpm build` — muvaffaqiyatli, brauzer — 0 console error
+
+---
+
+## FRONTEND REFACTOR (2026-02-27)
+
+### T-246 | api/types.ts — Markaziy response types
+- `apps/web/src/api/types.ts` yaratildi — 17 ta interface/type markazlashtirildi
+- 8+ sahifadan inline type/interface olib tashlandi (AdminPage, AnalyzePage, DashboardPage, ProductPage, LeaderboardPage, FeedbackPage, ConsultationPage)
+- `any` → `unknown` (AuditEvent.old_value/new_value/details)
+
+### T-247 | utils/formatters.ts — Shared formatters
+- `apps/web/src/utils/formatters.ts` yaratildi — fmt, fmtUSD, fmtUZS, scoreColor, glassTooltip
+- ProductPage, DashboardPage, CompetitorSection dan duplicate funksiyalar olib tashlandi
+
+### T-248 | Silent .catch(() => {}) → logError/toastError
+- `apps/web/src/utils/handleError.ts` yaratildi — logError (dev console), toastError (toast notification)
+- 55+ joyda `.catch(() => {})` to'g'ri error handling bilan almashtirildi:
+  - useEffect background loading → `.catch(logError)` (dev console only)
+  - User-triggered actions → `.catch((e) => toastError(e))` (toast ko'rsatadi)
+- Tuzatilgan fayllar: AdminPage, Layout, DashboardPage, ProductPage, LeaderboardPage, ReferralPage, CompetitorSection, AccountDrawer, SeasonalCalendarTab, 8 signals tab, 5 enterprise tab
 
 ## TUZATILGAN BUGLAR (28 ta)
 
@@ -142,6 +181,46 @@
 | T-058 | Domain unit testlar | vitest setup + 52 unit tests: scoring, parse, forecast, profit, elasticity, signals (all pass) |
 | T-059 | Monorepo boundary lint | eslint.config.js no-restricted-imports: web cannot import from api/worker/bot |
 | T-060 | Feature usage telemetry | @ActivityAction decorator added to 14 key endpoints across 5 controllers |
+
+---
+
+## P3 VAZIFALAR — BAJARILDI (2026-02-27)
+
+| # | Vazifa | Yechim |
+|---|--------|--------|
+| T-101 | admin.service.ts 2178 qator → 5 service | admin-account (356), admin-user (572), admin-stats (666), admin-feedback (327), admin-log (240). Controller 5 ta DI. tsc --noEmit ✅ |
+| T-102 | `as any` → typed casts | 13 ta `as any` → UserRole/AccountStatus/FeedbackStatus/Prisma.InputJsonValue/Record<string,unknown>. admin, team, signals, export, error-tracker |
+| T-103 | main.ts console.log→Logger | NestJS Logger import, 6 ta console.log/error → logger.log/error |
+| T-104 | community dead code | counterUpdate o'zgaruvchisi o'chirildi (hisoblangan lekin ishlatilmagan) |
+| T-105 | hardcoded SUPER_ADMIN_ID | process.env.SUPER_ADMIN_ACCOUNT_ID ?? fallback |
+| T-106 | admin @Res() optional crash | @Res() res?: → @Res() res:, res!. → res., (row as any) → Record<string,unknown> |
+| T-107 | JWT 7d vs 15m conflict | signOptions: { expiresIn: '7d' } o'chirildi (service 15m override) |
+| T-108 | api-key.guard role | role: 'API_KEY' → role: 'USER' + sub: 'apikey:${accountId}' |
+| T-109 | admin N+1 query | getTopUsers: N+1 loop (4 query/user) → single Prisma findMany + nested include |
+| T-110 | RotatingFileWriter NPE | !this.stream guard + this.stream?.write() |
+| T-111 | Redis connection | discovery.queue + import.queue: REDIS_URL pattern + lazy getter (sourcing.queue allaqachon fix) |
+| T-112 | community limitless query | listInsights: take: 100 limit qo'shildi |
+| T-113 | sourcing.queue lazy init | Module-level Queue → lazy getQueue()/getQueueEvents() wrapper |
+| T-133 | sourcing hardcoded 0.5kg | Price-based heuristic: >$50→1kg, >$20→0.7kg, else→0.5kg |
+| T-134 | sourcing hardcoded USD 12900 | Fallback 12900 → 0 + warning log, usdToUzs>0 guard |
+| T-135 | predictDeadStock naming | JSDoc: days_to_dead formula hujjatlandi |
+| T-136 | RMSE→std_dev rename | ForecastResult.rmse → std_dev (aslida standart og'ish) |
+| T-137 | breakeven formula | calculateProfit: breakeven formula izohlar bilan hujjatlandi |
+| T-138 | UzumProductDetail | Eski noto'g'ri maydonlar o'chirildi → ordersAmount, reviewsAmount, totalAvailableAmount |
+| T-139 | UzumItem o'chirish | Interface hech joyda ishlatilmaydi — o'chirildi |
+| T-142 | catch(e: any)→unknown | 17 ta catch block: err.message → err instanceof Error ? err.message : String(err) |
+| T-143 | classifyUA bot detect | axios\|node-fetch bot regex dan olib tashlandi |
+| T-144 | auth.module dead expiresIn | signOptions o'chirildi (T-107 bilan birga) |
+| T-145 | SerpAPI Amazon engine | google_shopping + site:amazon.de → amazon engine + amazon_domain:'amazon.de' |
+| T-146 | prisma tenant check prod | NODE_ENV !== 'production' sharti olib tashlandi — barcha muhitda ishlaydi |
+| T-147 | referral dead code | getStats: referred_account_id: { not: null } filter |
+| T-148 | sourcing _source dead | searchExternalPrices: ishlatilmagan _source parametri olib tashlandi |
+| T-149 | community non-null | updated!.upvotes → updated?.upvotes ?? 0 |
+| T-166 | parseWeeklyBought o'chirish | Dead code: Uzum API actions.text olib tashlangan — funksiya o'chirildi |
+| T-167 | predictDeadStock NaN | dailyDecline guard: salesDeclineRate > 0 && avgOlder > 0 |
+| T-170 | Bot broadcastDiscovery dead | Butun funksiya + ishlatilmagan importlar olib tashlandi |
+| T-171 | Bot sendPriceDropAlert dead | Funksiya + ishlatilmagan prisma import olib tashlandi |
+| T-172 | JobName enum | 'reanalysis-6h' \| 'sourcing-search' qo'shildi |
 
 ---
 
@@ -254,4 +333,101 @@
 
 ---
 
-*Done.md | VENTRA Analytics Platform | 2026-02-26*
+## P2 FIX — 2026-02-27
+
+| # | Task | Fix |
+|---|------|-----|
+| T-078 | bootstrapAdmin himoyalash | `BOOTSTRAP_SECRET` env var + ForbiddenException |
+| T-079 | Team invite bcrypt hash | `crypto.randomBytes` → `bcrypt.hash(tempPassword, 12)` |
+| T-080 | NestJS version alignment | `@nestjs/websockets` + `platform-socket.io` v11 → v10 |
+| T-081 | Express v5→v4 | `express: ^5.2.1` → `^4.21.0` (NestJS v10 mos) |
+| T-087 | notification account_id | `markAsRead(id, accountId)` — cross-account himoyalandi |
+| T-089 | Product endpoint account_id | `getProduct` ga accountId qo'shildi + BillingGuard mavjud |
+| T-090 | Sourcing BillingGuard | `@UseGuards(JwtAuthGuard, BillingGuard)` qo'shildi |
+| T-091 | auth DTO validatsiya | `RefreshDto` (class-validator) — refresh/logout ga |
+| T-092 | competitor getHistory fix | Hardcoded string → haqiqiy `getCompetitorPriceHistory()` |
+| T-093 | AliExpress HMAC imzo | `crypto.createHmac('sha256')` TOP API signing qo'shildi |
+| T-094 | sourcing getJob account_id | `findFirst({id, account_id})` — cross-account himoyalandi |
+| T-095 | Login rate limit Redis | In-memory Map → Redis INCR + TTL (multi-instance safe) |
+| T-096 | JWT email field | `signAccessToken` ga `email` qo'shildi (register, login, refresh) |
+| T-098 | onDelete Cascade | 30+ relation ga `onDelete: Cascade/SetNull` qo'shildi |
+| T-099 | account_id indexes | 16 ta jadvalga `@@index([account_id])` qo'shildi |
+| T-182 | Bot health endpoint | HTTP server + `/health` endpoint (Railway healthcheck) |
+| T-183 | Worker PORT env fix | `process.env.PORT \|\| WORKER_HEALTH_PORT \|\| 3001` |
+
+---
+
+## P1 FIX — 2026-02-27
+
+| # | Task | Fix |
+|---|------|-----|
+| T-066 | 3x fetchProductDetail → DRY | `uzum-scraper.ts` da `UzumRawProduct` interface + `fetchUzumProductRaw()` export. `import.processor.ts` va `reanalysis.processor.ts` import qiladi — duplicate kod o'chirildi |
+| T-069 | sourcing AI ga platform UUID → name | `platformIdToCode` Map orqali UUID → human-readable code (`aliexpress`, `alibaba`) |
+| T-071 | Shopee valyuta xatosi | Default `'USD'` → `'SGD'`, narx `>1000` → `/100000` smart divisor |
+| T-072 | discovery product upsert try/catch | for loop ichida try/catch — bitta fail butun job ni o'ldirmaydi |
+| T-074 | console.log → logger (21 joy) | `sourcing.processor` (8), `uzum-scraper` (5), `uzum-ai-scraper` (8) → `logJobInfo` |
+| T-075 | reanalysis $transaction | Product update + SKU upserts + snapshot create → `prisma.$transaction()` |
+| T-196 | AI prompt yaxshilash | `explainWinner` prompt — 3 ta amaliy maslahat (sabab, strategiya, xavf), o'zbek tilida |
+| T-199a | forecastEnsemble trend formula | Absolute `slope>0.01` → prediction-based `changePct>5%` |
+
+---
+
+## DEEP AUDIT FIX — 2026-02-27
+
+| # | Task | Severity | Fix |
+|---|------|----------|-----|
+| T-061 (BUG-001) | Redis password worker da tushib qolgan | CRITICAL | `redis.ts` ga `password`, `username`, `db` qo'shildi |
+| T-064 (BUG-004) | Reanalysis title overwrite | HIGH | `localizableTitle?.ru \|\| detail.title` fallback qo'shildi |
+| T-088 (BUG-005) | shop.name → shop.title | HIGH | `products.service.ts:118` da `.name` → `.title` |
+| T-193a | AI response markdown tozalash | P0 | `ai.service.ts` da ` ```json ``` ` strip qo'shildi (extractAttributes + explainWinner) |
+| T-238 (BUG-008/009/010) | Signal service take:2 → take:30 | P1 | `signals.service.ts` 3 joyda: cannibalization, saturation, replenishment |
+
+### Audit DONE (tasdiqlangan — bug emas):
+
+| Task | Izoh |
+|------|------|
+| T-063 | `reviewsAmount ?? 0` to'g'ri ishlaydi |
+| T-065 | `reviewsAmount ?? 0` fallback to'g'ri |
+| T-067 | `reviewsAmount ?? feedbackQuantity ?? 0` tartib to'g'ri |
+| T-068 | `seller \|\| shop` fallback ishlaydi |
+| T-070 | SerpAPI engine nomlari valid |
+| T-073 | `$transaction` + atomic `decrement` — TOCTOU yo'q |
+| T-076 | `if (sellPrice)` null guard mavjud |
+| T-077 | `weekly_bought: null` INTENTIONAL |
+| T-082 | PgBouncer circular fix DONE |
+| T-083 | Redis REDIS_URL password fix DONE |
+| T-100 | Worker env vars fix DONE |
+| T-141 | Redis healthcheck parol bilan ishlaydi |
+| T-169 | Bot `on('message')` wildcard — to'g'ri dizayn |
+| T-207 | weekly_bought 6 joyda markaziy calcWeeklyBought() |
+
+---
+
+## RAILWAY PRODUCTION DEPLOYMENT — BAJARILDI (2026-02-27)
+
+| # | Vazifa | Yechim |
+|---|--------|--------|
+| T-173 | Railway project yaratish + 6 service sozlash | `uzum-trend-finder` project: postgres, redis, api, worker, web, bot — barchasi SUCCESS |
+| T-174 | RAILWAY_TOKEN GitHub secret yaratish | Railway GraphQL API orqali project token yaratildi, GitHub Secrets ga qo'shildi |
+| T-175 | Environment variables — Railway dashboard | DATABASE_URL, REDIS_URL, JWT_SECRET (strong random), DIRECT_DATABASE_URL, WEB_URL, VITE_API_URL, API_UPSTREAM |
+| T-176 | Prisma schema — directUrl qo'shish | `apps/api/prisma/schema.prisma` → `directUrl = env("DIRECT_DATABASE_URL")` |
+
+### Qo'shimcha deploy fixlar:
+| Fix | Tafsilot |
+|-----|----------|
+| Worker Dockerfile | `packages/utils/tsconfig.json` paths→rootDir fix — dist/index.js to'g'ri chiqadi |
+| API entrypoint.sh | Docker heredoc CRLF muammosi — alohida fayl + `.gitattributes` LF enforcement |
+| API IPv6 | `app.listen(port, '::')` — Railway private networking uchun dual-stack |
+| Web VITE_API_URL | `https://api-production-8057.up.railway.app` — nginx proxy bypass, direct API calls |
+| nginx resolver | `127.0.0.11` Docker internal DNS — `.railway.internal` resolve qiladi |
+| ESLint config | React 19 strict rules (purity, refs, set-state-in-effect) warn ga o'tkazildi |
+| CI/CD | GitHub Actions: CI (lint+typecheck+test+build) → Deploy (4 service) → Health check — to'liq ishlaydi |
+
+### Production URL'lar:
+- Web: `https://web-production-2c10.up.railway.app`
+- API: `https://api-production-8057.up.railway.app`
+- Swagger: `https://api-production-8057.up.railway.app/api/docs`
+
+---
+
+*Done.md | VENTRA Analytics Platform | 2026-02-27*

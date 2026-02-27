@@ -31,24 +31,22 @@ export class PrismaService
   async onModuleInit() {
     await this.$connect();
 
-    // Tenant-scoped safety net: log query events in development
-    if (process.env.NODE_ENV !== 'production') {
-      this.$on('query' as never, (e: { query: string }) => {
-        for (const model of TENANT_MODELS) {
-          const tableName = `"${model}"`;
-          if (
-            e.query.includes(tableName) &&
-            !e.query.includes('account_id') &&
-            !e.query.includes('"id"')
-          ) {
-            this.logger.warn(
-              `[TENANT] Query on ${model} without account_id filter`,
-            );
-            break;
-          }
+    // Tenant-scoped safety net: log queries missing account_id filter
+    this.$on('query' as never, (e: { query: string }) => {
+      for (const model of TENANT_MODELS) {
+        const tableName = `"${model}"`;
+        if (
+          e.query.includes(tableName) &&
+          !e.query.includes('account_id') &&
+          !e.query.includes('"id"')
+        ) {
+          this.logger.warn(
+            `[TENANT] Query on ${model} without account_id filter`,
+          );
+          break;
         }
-      });
-    }
+      }
+    });
   }
 
   async onModuleDestroy() {

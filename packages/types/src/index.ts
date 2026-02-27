@@ -6,41 +6,14 @@ export type TransactionType = 'CHARGE' | 'DEPOSIT' | 'REFUND';
 // Uzum types
 export type StockType = 'FBO' | 'FBS';
 
-export interface UzumItem {
-  catalogCard: {
-    id: number;
-    productId: number;
-    ordersQuantity: number;
-    feedbackQuantity: number;
-    rating: number;
-    minSellPrice: number;
-    minFullPrice: number;
-    title: string;
-    discount: {
-      discountPrice: number;
-      fullDiscountPercent: number;
-      sellDiscountPercent: number;
-      paymentOptionKey: string;
-    };
-    buyingOptions: {
-      defaultSkuId: number;
-      isBestPrice: boolean;
-      isSingleSku: boolean;
-      deliveryOptions: {
-        stockType: StockType;
-        shortDate: string;
-      };
-    };
-  };
-}
-
+/** Uzum REST API /api/v2/product/{id} response shape (payload.data) */
 export interface UzumProductDetail {
   productId: number;
   title: string;
-  weeklyBought: number | null;
-  ordersQuantity: number;
+  ordersAmount: number;
   rating: number;
-  feedbackQuantity: number;
+  reviewsAmount: number;
+  totalAvailableAmount: number;
 }
 
 // Scoring
@@ -270,7 +243,9 @@ export type JobName =
   | 'product-snapshot'
   | 'url-analyze'
   | 'competitor-snapshot'
-  | 'import-batch';
+  | 'import-batch'
+  | 'reanalysis-6h'
+  | 'sourcing-search';
 
 export interface UrlAnalyzeJobData {
   url: string;

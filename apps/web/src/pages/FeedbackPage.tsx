@@ -1,26 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { toast } from 'react-toastify';
 import { feedbackApi } from '../api/client';
-import { getErrorMessage } from '../utils/getErrorMessage';
-
-type Ticket = {
-  id: string;
-  subject: string;
-  type: string;
-  priority: string;
-  status: string;
-  created_at: string;
-  message_count?: number;
-  last_message?: string;
-};
-
-type Message = {
-  id: string;
-  content: string;
-  is_admin: boolean;
-  sender_email?: string;
-  created_at: string;
-};
+import type { Ticket, TicketMessage } from '../api/types';
+import { logError, toastError } from '../utils/handleError';
 
 const TYPE_OPTIONS = [
   { value: 'BUG', label: 'Bug report', color: 'badge-error' },
@@ -47,7 +28,7 @@ export function FeedbackPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<TicketMessage[]>([]);
   const [ticketDetail, setTicketDetail] = useState<Ticket | null>(null);
   const [msgLoading, setMsgLoading] = useState(false);
   const [newMsg, setNewMsg] = useState('');
@@ -74,7 +55,7 @@ export function FeedbackPage() {
     try {
       const r = await feedbackApi.getMyTickets();
       setTickets(r.data || []);
-    } catch (err: unknown) { toast.error(getErrorMessage(err)); }
+    } catch (e) { logError(e); }
     setLoading(false);
   }
 
@@ -90,7 +71,7 @@ export function FeedbackPage() {
       setType('QUESTION');
       setPriority('MEDIUM');
       loadTickets();
-    } catch (err: unknown) { toast.error(getErrorMessage(err)); }
+    } catch (e) { toastError(e); }
     setSubmitting(false);
   }
 
@@ -101,7 +82,7 @@ export function FeedbackPage() {
       const r = await feedbackApi.getTicket(ticketId);
       setTicketDetail(r.data);
       setMessages(r.data.messages || []);
-    } catch (err: unknown) { toast.error(getErrorMessage(err)); }
+    } catch (e) { logError(e); }
     setMsgLoading(false);
   }
 
@@ -114,7 +95,7 @@ export function FeedbackPage() {
       // Reload messages
       const r = await feedbackApi.getTicket(selectedTicket);
       setMessages(r.data.messages || []);
-    } catch (err: unknown) { toast.error(getErrorMessage(err)); }
+    } catch (e) { toastError(e); }
     setSending(false);
   }
 
@@ -238,8 +219,8 @@ export function FeedbackPage() {
                 <div>
                   <h3 className="font-semibold text-sm">{ticketDetail?.subject}</h3>
                   <div className="flex gap-2 mt-1">
-                    <span className={`badge badge-xs ${STATUS_MAP[ticketDetail?.status]?.color || ''}`}>
-                      {STATUS_MAP[ticketDetail?.status]?.label || ticketDetail?.status}
+                    <span className={`badge badge-xs ${STATUS_MAP[ticketDetail?.status as string]?.color || ''}`}>
+                      {STATUS_MAP[ticketDetail?.status as string]?.label || ticketDetail?.status}
                     </span>
                     <span className={`badge badge-xs ${PRIORITY_OPTIONS.find((o) => o.value === ticketDetail?.priority)?.color || ''}`}>
                       {PRIORITY_OPTIONS.find((o) => o.value === ticketDetail?.priority)?.label || ticketDetail?.priority}

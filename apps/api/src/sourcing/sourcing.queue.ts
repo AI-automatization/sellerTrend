@@ -1,20 +1,30 @@
 import { Queue, QueueEvents } from 'bullmq';
 
-const redisUrl = new URL(process.env.REDIS_URL ?? 'redis://localhost:6379');
+function getRedisConnection() {
+  const redisUrl = new URL(process.env.REDIS_URL ?? 'redis://localhost:6379');
+  return {
+    connection: {
+      host: redisUrl.hostname,
+      port: parseInt(redisUrl.port || '6379', 10),
+      username: redisUrl.username || undefined,
+      password: redisUrl.password || undefined,
+      maxRetriesPerRequest: null,
+    },
+  };
+}
 
-const redisConnection = {
-  connection: {
-    host: redisUrl.hostname,
-    port: parseInt(redisUrl.port || '6379', 10),
-    username: redisUrl.username || undefined,
-    password: redisUrl.password || undefined,
-    maxRetriesPerRequest: null,
-  },
-};
+let _queue: Queue | null = null;
+let _queueEvents: QueueEvents | null = null;
 
-export const sourcingSearchQueue = new Queue('sourcing-search', redisConnection);
+function getQueue(): Queue {
+  if (!_queue) _queue = new Queue('sourcing-search', getRedisConnection());
+  return _queue;
+}
 
-const queueEvents = new QueueEvents('sourcing-search', redisConnection);
+function getQueueEvents(): QueueEvents {
+  if (!_queueEvents) _queueEvents = new QueueEvents('sourcing-search', getRedisConnection());
+  return _queueEvents;
+}
 
 export interface SourcingSearchJobData {
   query: string;
@@ -41,14 +51,14 @@ export interface ExternalProduct {
 export async function enqueueSourcingSearch(
   query: string,
 ): Promise<ExternalProduct[]> {
-  const job = await sourcingSearchQueue.add(
+  const job = await getQueue().add(
     'search',
     { query } satisfies SourcingSearchJobData,
     { attempts: 1, removeOnComplete: 50, removeOnFail: 20 },
   );
 
   try {
-    const result = await job.waitUntilFinished(queueEvents, 60_000);
+    const result = await job.waitUntilFinished(getQueueEvents(), 60_000);
     return Array.isArray(result) ? result : [];
   } catch {
     return [];
@@ -62,7 +72,7 @@ export async function enqueueSourcingSearch(
 export async function enqueueSourcingJob(
   data: SourcingSearchJobData,
 ): Promise<void> {
-  await sourcingSearchQueue.add('full-search', data, {
+  await getQueue().add('full-search', data, {
     attempts: 2,
     backoff: { type: 'fixed', delay: 5000 },
     removeOnComplete: 100,

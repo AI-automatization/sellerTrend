@@ -1,4 +1,5 @@
 import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { UserRole, AccountStatus, FeedbackStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import * as path from 'path';
 import { PrismaService } from '../prisma/prisma.service';
@@ -9,7 +10,8 @@ import {
   type LogFilter,
 } from '../common/logger/file-logger';
 
-const SUPER_ADMIN_ACCOUNT_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
+// SUPER_ADMIN account excluded from stats — set via env or fallback to seed value
+const SUPER_ADMIN_ACCOUNT_ID = process.env.SUPER_ADMIN_ACCOUNT_ID ?? 'aaaaaaaa-0000-0000-0000-000000000001';
 
 @Injectable()
 export class AdminService {
@@ -227,7 +229,7 @@ export class AdminService {
     const account = await this.prisma.account.create({ data: { name: companyName } });
     const password_hash = await bcrypt.hash(password, 12);
     const user = await this.prisma.user.create({
-      data: { account_id: account.id, email, password_hash, role: role as any },
+      data: { account_id: account.id, email, password_hash, role: role as UserRole },
     });
 
     await this.prisma.auditEvent.create({
@@ -261,7 +263,7 @@ export class AdminService {
 
     const password_hash = await bcrypt.hash(password, 12);
     const user = await this.prisma.user.create({
-      data: { account_id: accountId, email, password_hash, role: role as any },
+      data: { account_id: accountId, email, password_hash, role: role as UserRole },
     });
 
     await this.prisma.auditEvent.create({
@@ -302,7 +304,7 @@ export class AdminService {
     if (!user) throw new NotFoundException('Foydalanuvchi topilmadi');
 
     await this.prisma.$transaction([
-      this.prisma.user.update({ where: { id: userId }, data: { role: role as any } }),
+      this.prisma.user.update({ where: { id: userId }, data: { role: role as UserRole } }),
       this.prisma.auditEvent.create({
         data: {
           account_id: user.account_id,
@@ -368,7 +370,7 @@ export class AdminService {
         user_email: e.user?.email ?? null,
         old_value: e.old_value,
         new_value: e.new_value,
-        details: null as any,
+        details: null,
         ip: null as string | null,
         source: 'admin' as const,
         created_at: e.created_at,
@@ -830,73 +832,63 @@ export class AdminService {
     };
   }
 
-  /** D5 — Top Users */
+  /** D5 — Top Users (batch queries to avoid N+1) */
   async getTopUsers(period: string, limit: number) {
     const days = period === 'week' ? 7 : period === 'month' ? 30 : 90;
     const since = new Date();
     since.setDate(since.getDate() - days);
 
+    // Single query: users with their tracked products + latest snapshots
     const users = await this.prisma.user.findMany({
       where: { is_active: true },
       select: {
         id: true,
         email: true,
         account_id: true,
-        account: { select: { name: true } },
+        account: {
+          select: {
+            name: true,
+            tracked_products: {
+              select: {
+                product: {
+                  select: { snapshots: { orderBy: { snapshot_at: 'desc' as const }, take: 1 } },
+                },
+              },
+              where: { is_active: true },
+            },
+            category_runs: {
+              select: { id: true },
+              where: { created_at: { gte: since } },
+            },
+          },
+        },
+        activities: {
+          select: { id: true },
+          where: { created_at: { gte: since } },
+        },
       },
     });
 
-    const userScores: {
-      id: string;
-      email: string;
-      account_name: string;
-      tracked_products: number;
-      avg_score: number;
-      total_weekly: number;
-      discovery_runs: number;
-      activity_count: number;
-      activity_score: number;
-    }[] = [];
+    const userScores = users.map((user) => {
+      const trackedCount = user.account.tracked_products.length;
+      const discoveryRuns = user.account.category_runs.length;
+      const activityCount = user.activities.length;
 
-    for (const user of users) {
-      const [trackedCount, discoveryRuns, activityCount, trackedProducts] = await Promise.all([
-        this.prisma.trackedProduct.count({
-          where: { account_id: user.account_id },
-        }),
-        this.prisma.categoryRun.count({
-          where: { account_id: user.account_id, created_at: { gte: since } },
-        }),
-        this.prisma.userActivity.count({
-          where: { user_id: user.id, created_at: { gte: since } },
-        }),
-        this.prisma.trackedProduct.findMany({
-          where: { account_id: user.account_id, is_active: true },
-          include: {
-            product: {
-              include: { snapshots: { orderBy: { snapshot_at: 'desc' }, take: 1 } },
-            },
-          },
-        }),
-      ]);
-
-      // Calculate avg_score and total_weekly from tracked products
       let totalScore = 0;
       let totalWeekly = 0;
       let scoreCount = 0;
-      for (const tp of trackedProducts) {
+      for (const tp of user.account.tracked_products) {
         const snap = tp.product.snapshots[0];
         if (snap) {
-          const score = Number(snap.score ?? 0);
-          totalScore += score;
+          totalScore += Number(snap.score ?? 0);
           totalWeekly += snap.weekly_bought ?? 0;
           scoreCount++;
         }
       }
 
-      // Weighted composite score
       const activityScore = activityCount * 1 + discoveryRuns * 5 + trackedCount * 3;
 
-      userScores.push({
+      return {
         id: user.id,
         email: user.email,
         account_name: user.account.name,
@@ -906,8 +898,8 @@ export class AdminService {
         discovery_runs: discoveryRuns,
         activity_count: activityCount,
         activity_score: activityScore,
-      });
-    }
+      };
+    });
 
     userScores.sort((a, b) => b.activity_score - a.activity_score);
 
@@ -1395,9 +1387,9 @@ export class AdminService {
           }
         }
         success++;
-      } catch (err: any) {
+      } catch (err: unknown) {
         failed++;
-        errors.push({ account_id: accountId, error: err.message ?? 'Unknown error' });
+        errors.push({ account_id: accountId, error: err instanceof Error ? err.message : 'Unknown error' });
       }
     }
 
@@ -1451,7 +1443,7 @@ export class AdminService {
     await this.prisma.$transaction([
       this.prisma.account.update({
         where: { id: accountId },
-        data: { status: status as any },
+        data: { status: status as AccountStatus },
       }),
       this.prisma.auditEvent.create({
         data: {
@@ -1657,7 +1649,7 @@ export class AdminService {
     await this.prisma.$transaction([
       this.prisma.feedbackTicket.update({
         where: { id: ticketId },
-        data: { status: status as any },
+        data: { status: status as FeedbackStatus },
       }),
       this.prisma.auditEvent.create({
         data: {

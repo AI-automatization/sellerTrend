@@ -114,8 +114,8 @@ export class UzumClient {
       // Fallback: return the leaf category ID
       this.logger.log(`Using leaf category ${cat.id} for slug "${slug}"`);
       return Number(cat.id);
-    } catch (err: any) {
-      this.logger.error(`resolveBySlugSearch failed: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.error(`resolveBySlugSearch failed: ${err instanceof Error ? err.message : String(err)}`);
       return null;
     }
   }
@@ -162,8 +162,8 @@ export class UzumClient {
       const payload = data?.payload ?? data;
       const products = payload?.products ?? payload?.data?.products ?? [];
       return products;
-    } catch (err: any) {
-      this.logger.error(`fetchCategoryProducts failed: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.error(`fetchCategoryProducts failed: ${err instanceof Error ? err.message : String(err)}`);
       return [];
     }
   }

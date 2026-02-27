@@ -108,8 +108,8 @@ export class AiService {
           error: opts.error,
         },
       });
-    } catch (err: any) {
-      this.logger.warn(`Failed to log AI usage: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.warn(`Failed to log AI usage: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
@@ -155,7 +155,9 @@ export class AiService {
         durationMs: Date.now() - startMs,
       });
 
-      const text = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+      let text = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+      // Strip markdown code fences (```json ... ```)
+      text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
       let parsed: any = {};
       try {
         parsed = JSON.parse(text);
@@ -185,9 +187,10 @@ export class AiService {
 
       this.logger.log(`Attributes extracted for product ${productId}`);
       return attrs;
-    } catch (err: any) {
-      await this.logUsage({ method: 'extractAttributes', model: 'claude-haiku-4-5-20251001', inputTokens: 0, outputTokens: 0, productId: productId.toString(), durationMs: Date.now() - startMs, error: err.message });
-      this.logger.error(`extractAttributes failed for ${productId}: ${err.message}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      await this.logUsage({ method: 'extractAttributes', model: 'claude-haiku-4-5-20251001', inputTokens: 0, outputTokens: 0, productId: productId.toString(), durationMs: Date.now() - startMs, error: msg });
+      this.logger.error(`extractAttributes failed for ${productId}: ${msg}`);
       return null;
     }
   }
@@ -223,14 +226,18 @@ export class AiService {
           {
             role: 'user',
             content:
+              `Sen Uzum marketplace sotuvchilariga maslahat beradigan mutaxassissan.\n\n` +
               `Mahsulot: ${opts.title}\n` +
               `Score: ${opts.score.toFixed(2)}\n` +
-              `So'nggi faollik (weekly_bought): ${opts.weeklyBought ?? 'N/A'}\n` +
+              `Haftalik sotuv: ${opts.weeklyBought ?? 'noma\'lum'}\n` +
               `Jami buyurtmalar: ${opts.ordersQuantity.toLocaleString()}\n` +
               `Chegirma: ${opts.discountPercent ?? 0}%\n` +
               `Reyting: ${opts.rating}\n\n` +
-              `Nima uchun bu mahsulot "hot" ekanligini 2-4 ta qisqa bulletda tushuntir.\n` +
-              `Faqat JSON massiv qaytir: ["...", "...", "..."]`,
+              `Sotuvchi uchun 3 ta AMALIY maslahat ber:\n` +
+              `1. Bu mahsulot nima uchun yaxshi sotilmoqda (sabab)\n` +
+              `2. Raqobatchi bo'lsa nima qilish kerak (strategiya)\n` +
+              `3. Xavf yoki e'tibor berish kerak bo'lgan narsa\n\n` +
+              `Har bir maslahat 1 jumla. O'zbek tilida. Faqat JSON massiv qaytir: ["...", "...", "..."]`,
           },
         ],
       });
@@ -244,7 +251,9 @@ export class AiService {
         durationMs: Date.now() - startMs,
       });
 
-      const text = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+      let text = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+      // Strip markdown code fences (```json ... ```)
+      text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
       let bullets: string[] = [];
       try {
         bullets = JSON.parse(text);
@@ -263,9 +272,10 @@ export class AiService {
 
       this.logger.log(`Explanation generated for product ${opts.productId}`);
       return bullets;
-    } catch (err: any) {
-      await this.logUsage({ method: 'explainWinner', model: 'claude-haiku-4-5-20251001', inputTokens: 0, outputTokens: 0, productId: opts.productId.toString(), durationMs: Date.now() - startMs, error: err.message });
-      this.logger.error(`explainWinner failed for ${opts.productId}: ${err.message}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      await this.logUsage({ method: 'explainWinner', model: 'claude-haiku-4-5-20251001', inputTokens: 0, outputTokens: 0, productId: opts.productId.toString(), durationMs: Date.now() - startMs, error: msg });
+      this.logger.error(`explainWinner failed for ${opts.productId}: ${msg}`);
       return null;
     }
   }
@@ -338,9 +348,10 @@ export class AiService {
         this.logger.warn(`AI search query parse failed: ${text.slice(0, 100)}`);
         return fallback;
       }
-    } catch (err: any) {
-      await this.logUsage({ method: 'generateSearchQuery', model: 'claude-haiku-4-5-20251001', inputTokens: 0, outputTokens: 0, durationMs: Date.now() - startMs, error: err.message });
-      this.logger.error(`generateSearchQuery failed: ${err.message}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      await this.logUsage({ method: 'generateSearchQuery', model: 'claude-haiku-4-5-20251001', inputTokens: 0, outputTokens: 0, durationMs: Date.now() - startMs, error: msg });
+      this.logger.error(`generateSearchQuery failed: ${msg}`);
       return fallback;
     }
   }
@@ -402,8 +413,8 @@ export class AiService {
         this.logger.warn(`AI description parse failed: ${text.slice(0, 100)}`);
         return fallback;
       }
-    } catch (err: any) {
-      this.logger.error(`generateDescription failed: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.error(`generateDescription failed: ${err instanceof Error ? err.message : String(err)}`);
       return fallback;
     }
   }
@@ -474,8 +485,8 @@ export class AiService {
         this.logger.warn(`AI sentiment parse failed: ${text.slice(0, 100)}`);
         return fallback;
       }
-    } catch (err: any) {
-      this.logger.error(`analyzeSentiment failed: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.error(`analyzeSentiment failed: ${err instanceof Error ? err.message : String(err)}`);
       return fallback;
     }
   }
@@ -529,8 +540,8 @@ export class AiService {
       } catch {
         return fallback;
       }
-    } catch (err: any) {
-      this.logger.error(`analyzeTrend failed: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.error(`analyzeTrend failed: ${err instanceof Error ? err.message : String(err)}`);
       return fallback;
     }
   }
@@ -593,8 +604,8 @@ export class AiService {
         this.logger.warn(`AI scoring parse failed: ${text.slice(0, 100)}`);
         return fallback;
       }
-    } catch (err: any) {
-      this.logger.error(`scoreExternalResults failed: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.error(`scoreExternalResults failed: ${err instanceof Error ? err.message : String(err)}`);
       return fallback;
     }
   }

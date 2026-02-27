@@ -4,30 +4,7 @@ import { getErrorMessage } from '../utils/getErrorMessage';
 import { FireIcon, MagnifyingGlassIcon } from '../components/icons';
 import { ScoreChart } from '../components/ScoreChart';
 import { useI18n } from '../i18n/I18nContext';
-
-interface AnalyzeResult {
-  product_id: number;
-  title: string;
-  rating: number;
-  feedback_quantity: number;
-  orders_quantity: number;
-  weekly_bought: number | null;
-  score: number;
-  sell_price: number | null;
-  ai_explanation: string[] | null;
-}
-
-interface Snapshot {
-  score: number;
-  weekly_bought: number | null;
-  orders_quantity: string;
-  snapshot_at: string;
-}
-
-interface ChartPoint {
-  date: string;
-  score: number;
-}
+import type { AnalyzeResult, Snapshot, ChartPoint } from '../api/types';
 
 const MAX_SCORE = 10;
 
@@ -179,7 +156,7 @@ export function AnalyzePage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <StatCard
               label={t('analyze.totalOrders')}
-              value={result.orders_quantity.toLocaleString()}
+              value={(result.orders_quantity ?? 0).toLocaleString()}
               accent="text-primary"
             />
             <StatCard
@@ -194,7 +171,7 @@ export function AnalyzePage() {
             />
             <StatCard
               label={t('analyze.reviews')}
-              value={result.feedback_quantity.toLocaleString()}
+              value={(result.feedback_quantity ?? 0).toLocaleString()}
               accent="text-secondary"
             />
             {result.sell_price != null && (

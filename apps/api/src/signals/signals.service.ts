@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   detectCannibalization,
@@ -22,7 +23,7 @@ export class SignalsService {
       include: {
         product: {
           include: {
-            snapshots: { orderBy: { snapshot_at: 'desc' }, take: 2 },
+            snapshots: { orderBy: { snapshot_at: 'desc' }, take: 30 },
           },
         },
       },
@@ -77,7 +78,7 @@ export class SignalsService {
     const products = await this.prisma.product.findMany({
       where: { category_id: BigInt(categoryId), is_active: true },
       include: {
-        snapshots: { orderBy: { snapshot_at: 'desc' }, take: 2 },
+        snapshots: { orderBy: { snapshot_at: 'desc' }, take: 30 },
       },
     });
 
@@ -261,7 +262,7 @@ export class SignalsService {
     if (existing) {
       const c = await this.prisma.productChecklist.update({
         where: { id: existing.id },
-        data: { title, items: items as any },
+        data: { title, items: items as Prisma.InputJsonValue },
       });
       return { ...c, product_id: c.product_id?.toString() ?? null };
     }
@@ -271,7 +272,7 @@ export class SignalsService {
         account_id: accountId,
         product_id: productId,
         title,
-        items: items as any,
+        items: items as Prisma.InputJsonValue,
       },
     });
     return { ...c, product_id: c.product_id?.toString() ?? null };
@@ -378,7 +379,7 @@ export class SignalsService {
       include: {
         product: {
           include: {
-            snapshots: { orderBy: { snapshot_at: 'desc' }, take: 2 },
+            snapshots: { orderBy: { snapshot_at: 'desc' }, take: 30 },
           },
         },
       },

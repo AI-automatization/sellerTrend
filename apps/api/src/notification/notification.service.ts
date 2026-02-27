@@ -78,9 +78,12 @@ export class NotificationService {
   /**
    * Mark a single notification as read.
    */
-  async markAsRead(notificationId: string) {
-    const notification = await this.prisma.notification.findUnique({
-      where: { id: notificationId },
+  async markAsRead(notificationId: string, accountId: string) {
+    const notification = await this.prisma.notification.findFirst({
+      where: {
+        id: notificationId,
+        OR: [{ account_id: accountId }, { account_id: null }],
+      },
     });
 
     if (!notification) {

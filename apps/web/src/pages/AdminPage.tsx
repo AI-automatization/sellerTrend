@@ -1,108 +1,99 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { adminApi } from '../api/client';
 import { getErrorMessage } from '../utils/getErrorMessage';
-
+import { logError } from '../utils/handleError';
 import {
+  type Tab, type Account, type User, type AuditEvent, type Role,
+  VALID_TABS, TAB_TITLES, ROLE_META,
   RoleBadge, StatusBadge,
-  CreateAccountModal, DepositModal, ChangePasswordModal, AccountDrawer, WhitelabelTab,
-} from '../components/admin/AdminComponents';
-import { AdminDashboardTab } from '../components/admin/AdminDashboardTab';
-import { AdminAccountsTab } from '../components/admin/AdminAccountsTab';
-import { AdminAnalyticsTab } from '../components/admin/AdminAnalyticsTab';
-import { AdminSystemTab } from '../components/admin/AdminSystemTab';
-import { AdminFeedbackTab } from '../components/admin/AdminFeedbackTab';
-import { AdminNotificationsTab } from '../components/admin/AdminNotificationsTab';
-import { AdminAuditTab, AdminPermissionsTab, AdminDepositsTab } from '../components/admin/AdminAuditTab';
+  CreateAccountModal, DepositModal, ChangePasswordModal, AccountDrawer,
+  DashboardTab, AccountsTab, AnalyticsTab, SystemTab,
+  FeedbackTab, NotificationsTab, AuditLogTab, PermissionsTab,
+  DepositsTab, WhitelabelTab,
+} from '../components/admin';
 
-import type {
-  Account, User, Role, AuditEvent,
-  OverviewStats, RevenueStats, GrowthStats, RealtimeStats,
-  TopUser, PopularProduct, PopularCategory,
-  SystemHealth, AiUsage, SystemErrors,
-  SearchResults, DepositEntry,
-  CategoryTrend, HeatmapEntry,
-  Tab,
-} from '../components/admin/adminTypes';
-import { VALID_TABS } from '../components/admin/adminTypes';
-
-// ─── Main page ────────────────────────────────────────────────────────────────
-
-const TAB_TITLES: Record<Tab, { title: string; desc: string }> = {
-  dashboard: { title: 'Dashboard', desc: 'Umumiy statistika va real-time ko\'rsatkichlar' },
-  accounts: { title: 'Akkauntlar', desc: 'Akkauntlar, userlar va to\'lov holati' },
-  analytics: { title: 'Analitika & Mashhur', desc: 'Top mahsulotlar, kategoriyalar va foydalanuvchilar' },
-  system: { title: 'Tizim', desc: 'API, Database, AI xarajatlari, xatolar' },
-  feedback: { title: 'Feedback Boshqaruv', desc: 'Foydalanuvchi murojatlari' },
-  notifications: { title: 'Xabarnomalar', desc: 'Shablon yoki custom xabar yuborish' },
-  audit: { title: 'Audit Log', desc: 'Admin amallar + foydalanuvchi faoliyati tarixi' },
-  permissions: { title: 'Ruxsatlar', desc: 'Rol va huquqlar tizimi' },
-  deposits: { title: 'Deposit Log', desc: 'Balans to\'ldirish tarixi' },
-  whitelabel: { title: 'White-label', desc: 'Branding, logo, ranglar va custom domain' },
-};
+// ─── Main page ──────────────────────────────────────────────────────────────
 
 export function AdminPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab') as Tab | null;
   const initialTab = tabFromUrl && VALID_TABS.includes(tabFromUrl) ? tabFromUrl : 'dashboard';
 
-  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [auditLog, setAuditLog] = useState<AuditEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [globalFeeInput, setGlobalFeeInput] = useState('');
-  const [savingGlobalFee, setSavingGlobalFee] = useState(false);
+  const [activeTab, setActiveTabState] = useState<Tab>(initialTab);
 
-  // Dashboard / Analytics stats
-  const [overview, setOverview] = useState<OverviewStats | null>(null);
-  const [revenue, setRevenue] = useState<RevenueStats | null>(null);
-  const [growth, setGrowth] = useState<GrowthStats | null>(null);
-  const [realtime, setRealtime] = useState<RealtimeStats | null>(null);
-  const [topUsers, setTopUsers] = useState<TopUser[]>([]);
-  const [popularProducts, setPopularProducts] = useState<PopularProduct[]>([]);
-  const [popularCategories, setPopularCategories] = useState<PopularCategory[]>([]);
-  const [categoryTrends, setCategoryTrends] = useState<CategoryTrend[]>([]);
-  const [productHeatmap, setProductHeatmap] = useState<HeatmapEntry[]>([]);
+  // Sync tab when URL changes
+  useEffect(() => {
+    const t = searchParams.get('tab') as Tab | null;
+    if (t === 'users' as unknown as Tab) { setSearchParams({ tab: 'accounts' }); return; }
+    if (t === 'popular' as unknown as Tab) { setSearchParams({ tab: 'analytics' }); return; }
+    const resolved = t && VALID_TABS.includes(t) ? t : 'dashboard';
+    if (resolved !== activeTab) setActiveTabState(resolved);
+  }, [searchParams, activeTab, setSearchParams]);
 
-  // System stats
-  const [health, setHealth] = useState<SystemHealth | null>(null);
-  const [aiUsage, setAiUsage] = useState<AiUsage | null>(null);
-  const [systemErrors, setSystemErrors] = useState<SystemErrors | null>(null);
-  const [errorsPage, setErrorsPage] = useState(1);
-
-  // Deposits log
-  const [depositLog, setDepositLog] = useState<DepositEntry[]>([]);
+  // Stats
+  const [overview, setOverview] = useState<Record<string, unknown> | null>(null);
+  const [revenue, setRevenue] = useState<Record<string, unknown> | null>(null);
+  const [growth, setGrowth] = useState<Record<string, unknown> | null>(null);
+  const [popularProducts, setPopularProducts] = useState<Record<string, unknown>[]>([]);
+  const [popularCategories, setPopularCategories] = useState<Record<string, unknown>[]>([]);
+  const [realtime, setRealtime] = useState<Record<string, unknown> | null>(null);
+  const [topUsers, setTopUsers] = useState<Record<string, unknown>[]>([]);
+  const [health, setHealth] = useState<Record<string, unknown> | null>(null);
+  const [feedbackTickets, setFeedbackTickets] = useState<Record<string, unknown>[]>([]);
+  const [feedbackStats, setFeedbackStats] = useState<Record<string, unknown> | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Record<string, unknown> | null>(null);
+  const [depositLog, setDepositLog] = useState<Record<string, unknown>[]>([]);
   const [depositLogTotal, setDepositLogTotal] = useState(0);
   const [depositLogPage, setDepositLogPage] = useState(1);
-
-  // Search
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<SearchResults | null>(null);
 
   // Modals
   const [depositTarget, setDepositTarget] = useState<Account | null>(null);
   const [showCreateAccount, setShowCreateAccount] = useState(false);
+  const [editingFee, setEditingFee] = useState<string | null>(null);
+  const [feeInput, setFeeInput] = useState('');
+  const [globalFeeInput, setGlobalFeeInput] = useState('');
+  const [savingGlobalFee, setSavingGlobalFee] = useState(false);
   const [drawerAccount, setDrawerAccount] = useState<Account | null>(null);
   const [passwordTarget, setPasswordTarget] = useState<{ id: string; email: string } | null>(null);
 
-  // Sync tab state from URL
-  useEffect(() => {
-    const t = searchParams.get('tab') as Tab | null;
-    if ((t as string) === 'users') { setSearchParams({ tab: 'accounts' }); return; }
-    if ((t as string) === 'popular') { setSearchParams({ tab: 'analytics' }); return; }
-    const resolved = t && VALID_TABS.includes(t) ? t : 'dashboard';
-    if (resolved !== activeTab) setActiveTab(resolved);
-  }, [searchParams]);
+  // Notifications
+  const [notifMsg, setNotifMsg] = useState('');
+  const [notifType, setNotifType] = useState('info');
+  const [notifSending, setNotifSending] = useState(false);
+  const [notifTarget, setNotifTarget] = useState<'all' | 'selected'>('all');
+  const [notifSelectedAccounts, setNotifSelectedAccounts] = useState<string[]>([]);
+  const [templates, setTemplates] = useState<Record<string, unknown>[]>([]);
+  const [newTmplName, setNewTmplName] = useState('');
+  const [newTmplMsg, setNewTmplMsg] = useState('');
+  const [newTmplType, setNewTmplType] = useState('info');
+
+  // Phone editing
+  const [editingPhone, setEditingPhone] = useState<string | null>(null);
+  const [phoneInput, setPhoneInput] = useState('');
+
+  // AI Usage + System Errors (System tab v6)
+  const [aiUsage, setAiUsage] = useState<Record<string, unknown> | null>(null);
+  const [systemErrors, setSystemErrors] = useState<Record<string, unknown> | null>(null);
+  const [errorsPage, setErrorsPage] = useState(1);
+
+  // Analytics charts data
+  const [categoryTrends, setCategoryTrends] = useState<Record<string, unknown>[]>([]);
+  const [productHeatmap, setProductHeatmap] = useState<Record<string, unknown>[]>([]);
 
   async function load() {
     setLoading(true);
     const [accRes, feeRes, auditRes, usersRes] = await Promise.all([
-      adminApi.listAccounts().catch(() => null),
-      adminApi.getGlobalFee().catch(() => null),
-      adminApi.getAuditLog(50).catch(() => null),
-      adminApi.listUsers().catch(() => null),
+      adminApi.listAccounts().catch((e) => { logError(e); return null; }),
+      adminApi.getGlobalFee().catch((e) => { logError(e); return null; }),
+      adminApi.getAuditLog(50).catch((e) => { logError(e); return null; }),
+      adminApi.listUsers().catch((e) => { logError(e); return null; }),
     ]);
     if (accRes) setAccounts(accRes.data);
     if (feeRes) setGlobalFeeInput(feeRes.data.daily_fee_default);
@@ -116,31 +107,47 @@ export function AdminPage() {
   // Load tab-specific data
   useEffect(() => {
     if (activeTab === 'dashboard') {
-      adminApi.getStatsOverview().then((r) => setOverview(r.data)).catch(() => {});
-      adminApi.getStatsRevenue().then((r) => setRevenue(r.data)).catch(() => {});
-      adminApi.getStatsGrowth().then((r) => setGrowth(r.data)).catch(() => {});
-      adminApi.getRealtimeStats().then((r) => setRealtime(r.data)).catch(() => {});
+      adminApi.getStatsOverview().then((r) => setOverview(r.data)).catch(logError);
+      adminApi.getStatsRevenue().then((r) => setRevenue(r.data)).catch(logError);
+      adminApi.getStatsGrowth().then((r) => setGrowth(r.data)).catch(logError);
+      adminApi.getRealtimeStats().then((r) => setRealtime(r.data)).catch(logError);
     } else if (activeTab === 'analytics') {
-      adminApi.getPopularProducts().then((r) => setPopularProducts(r.data || [])).catch(() => {});
-      adminApi.getPopularCategories().then((r) => setPopularCategories(r.data || [])).catch(() => {});
-      adminApi.getTopUsers().then((r) => setTopUsers(r.data || [])).catch(() => {});
-      adminApi.getStatsRevenue(30).then((r) => setRevenue(r.data)).catch(() => {});
-      adminApi.getStatsGrowth(30).then((r) => setGrowth(r.data)).catch(() => {});
-      adminApi.getCategoryTrends(8).then((r) => setCategoryTrends(r.data || [])).catch(() => {});
-      adminApi.getProductHeatmap('30d').then((r) => setProductHeatmap(r.data || [])).catch(() => {});
+      adminApi.getPopularProducts().then((r) => setPopularProducts(r.data || [])).catch(logError);
+      adminApi.getPopularCategories().then((r) => setPopularCategories(r.data || [])).catch(logError);
+      adminApi.getTopUsers().then((r) => setTopUsers(r.data || [])).catch(logError);
+      adminApi.getStatsRevenue(30).then((r) => setRevenue(r.data)).catch(logError);
+      adminApi.getStatsGrowth(30).then((r) => setGrowth(r.data)).catch(logError);
+      adminApi.getCategoryTrends(8).then((r) => setCategoryTrends(r.data || [])).catch(logError);
+      adminApi.getProductHeatmap('30d').then((r) => setProductHeatmap(r.data || [])).catch(logError);
     } else if (activeTab === 'system') {
-      adminApi.getSystemHealth().then((r) => setHealth(r.data)).catch(() => {});
-      adminApi.getAiUsageStats().then((r) => setAiUsage(r.data)).catch(() => {});
-      adminApi.getSystemErrors({ page: 1, limit: 50, period: 7 }).then((r) => setSystemErrors(r.data)).catch(() => {});
+      adminApi.getSystemHealth().then((r) => setHealth(r.data)).catch(logError);
+      adminApi.getAiUsageStats().then((r) => setAiUsage(r.data)).catch(logError);
+      adminApi.getSystemErrors({ page: 1, limit: 50, period: 7 }).then((r) => setSystemErrors(r.data)).catch(logError);
+    } else if (activeTab === 'notifications') {
+      adminApi.listNotificationTemplates().then((r) => setTemplates(Array.isArray(r.data) ? r.data : [])).catch(logError);
+    } else if (activeTab === 'feedback') {
+      adminApi.getAdminFeedback().then((r) => {
+        const items = r.data?.items ?? r.data;
+        setFeedbackTickets(Array.isArray(items) ? items : []);
+      }).catch(logError);
+      adminApi.getFeedbackStats().then((r) => setFeedbackStats(r.data)).catch(logError);
     } else if (activeTab === 'deposits') {
       adminApi.getDepositLog(depositLogPage).then((r) => {
         setDepositLog(Array.isArray(r.data?.items) ? r.data.items : []);
         setDepositLogTotal(r.data?.total ?? 0);
-      }).catch(() => {});
+      }).catch(logError);
     }
   }, [activeTab, depositLogPage]);
 
-  // ─── API Callbacks ────────────────────────────────────────────────────────
+  async function saveFee(accountId: string) {
+    const val = feeInput.trim();
+    const fee = val === '' ? null : parseInt(val);
+    try {
+      await adminApi.setFee(accountId, fee); setEditingFee(null);
+      setAccounts((prev) => prev.map((a) => a.id === accountId ? { ...a, daily_fee: fee?.toString() ?? null } : a));
+      toast.success(fee ? `Kunlik to'lov ${fee.toLocaleString()} so'm qilindi` : 'Global kunlik to\'lovga qaytarildi');
+    } catch (err: unknown) { toast.error(getErrorMessage(err, 'Kunlik to\'lovni o\'zgartirib bo\'lmadi')); }
+  }
 
   async function saveGlobalFee() {
     const fee = parseInt(globalFeeInput);
@@ -151,27 +158,11 @@ export function AdminPage() {
     finally { setSavingGlobalFee(false); }
   }
 
-  async function saveFee(accountId: string, fee: number | null) {
-    try {
-      await adminApi.setFee(accountId, fee);
-      setAccounts((prev) => prev.map((a) => a.id === accountId ? { ...a, daily_fee: fee?.toString() ?? null } : a));
-      toast.success(fee ? `Kunlik to'lov ${fee.toLocaleString()} so'm qilindi` : 'Global kunlik to\'lovga qaytarildi');
-    } catch (err: unknown) { toast.error(getErrorMessage(err, 'Kunlik to\'lovni o\'zgartirib bo\'lmadi')); throw err; }
-  }
-
-  async function savePhone(accountId: string, phone: string | null) {
-    try {
-      await adminApi.updateAccountPhone(accountId, phone);
-      setAccounts((prev) => prev.map((a) => a.id === accountId ? { ...a, phone } : a));
-      toast.success(phone ? `Telefon raqam saqlandi: ${phone}` : 'Telefon raqam o\'chirildi');
-    } catch (err: unknown) { toast.error(getErrorMessage(err, 'Telefon raqamni saqlab bo\'lmadi')); throw err; }
-  }
-
   async function handleRoleChange(userId: string, newRole: Role) {
     try {
       await adminApi.updateRole(userId, newRole);
       setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, role: newRole } : u));
-      toast.success(`Rol o'zgartirildi`);
+      toast.success(`Rol ${ROLE_META[newRole].label} ga o'zgartirildi`);
     } catch (err: unknown) { toast.error(getErrorMessage(err, 'Rolni o\'zgartirib bo\'lmadi')); }
   }
 
@@ -196,31 +187,94 @@ export function AdminPage() {
     if (!searchQuery.trim()) return;
     try {
       const r = await adminApi.globalSearch(searchQuery); setSearchResults(r.data);
-      const count = (r.data.users?.length || 0) + (r.data.accounts?.length || 0) + (r.data.products?.length || 0);
+      const data = r.data as Record<string, unknown>;
+      const count = ((data.users as unknown[])?.length || 0) + ((data.accounts as unknown[])?.length || 0) + ((data.products as unknown[])?.length || 0);
       if (count === 0) toast.info('Hech narsa topilmadi');
     } catch (err: unknown) { toast.error(getErrorMessage(err, 'Qidiruvda xatolik')); }
+  }
+
+  async function sendNotification() {
+    if (!notifMsg.trim()) return;
+    setNotifSending(true);
+    try {
+      const target = notifTarget === 'all' ? 'all' as const : notifSelectedAccounts;
+      if (notifTarget === 'selected' && notifSelectedAccounts.length === 0) {
+        toast.error('Kamida bitta account tanlang'); setNotifSending(false); return;
+      }
+      await adminApi.sendNotificationAdvanced({ message: notifMsg, type: notifType, target });
+      setNotifMsg(''); setNotifSelectedAccounts([]);
+      toast.success('Xabar yuborildi');
+    } catch (err: unknown) { toast.error(getErrorMessage(err, 'Xabar yuborib bo\'lmadi')); }
+    setNotifSending(false);
+  }
+
+  async function savePhone(accountId: string) {
+    const val = phoneInput.trim() || null;
+    try {
+      await adminApi.updateAccountPhone(accountId, val);
+      setEditingPhone(null);
+      setAccounts((prev) => prev.map((a) => a.id === accountId ? { ...a, phone: val } : a));
+      toast.success(val ? `Telefon raqam saqlandi: ${val}` : 'Telefon raqam o\'chirildi');
+    } catch (err: unknown) { toast.error(getErrorMessage(err, 'Telefon raqamni saqlab bo\'lmadi')); }
+  }
+
+  async function createTemplate() {
+    if (!newTmplName.trim() || !newTmplMsg.trim()) return;
+    try {
+      const r = await adminApi.createNotificationTemplate({ name: newTmplName, message: newTmplMsg, type: newTmplType });
+      setTemplates((prev) => [r.data, ...prev]);
+      setNewTmplName(''); setNewTmplMsg(''); setNewTmplType('info');
+      toast.success('Shablon yaratildi');
+    } catch (err: unknown) { toast.error(getErrorMessage(err, 'Shablon yaratib bo\'lmadi')); }
+  }
+
+  async function deleteTemplate(id: string) {
+    try {
+      await adminApi.deleteNotificationTemplate(id);
+      setTemplates((prev) => prev.filter((t) => (t.id as string) !== id));
+      toast.success('Shablon o\'chirildi');
+    } catch (err: unknown) { toast.error(getErrorMessage(err, 'Shablonni o\'chirib bo\'lmadi')); }
+  }
+
+  async function loadErrorsPage(page: number) {
+    setErrorsPage(page);
+    adminApi.getSystemErrors({ page, limit: 50, period: 7 }).then((r) => setSystemErrors(r.data)).catch(logError);
   }
 
   async function handleDeleteDeposit(id: string) {
     if (!confirm('Bu tranzaksiyani o\'chirmoqchimisiz?')) return;
     try {
       await adminApi.deleteDeposit(id);
-      setDepositLog((prev) => prev.filter((d) => d.id !== id));
+      setDepositLog((prev) => prev.filter((d) => (d.id as string) !== id));
       setDepositLogTotal((prev) => prev - 1);
       toast.success('Deposit yozuvi o\'chirildi');
     } catch (err: unknown) { toast.error(getErrorMessage(err, 'O\'chirib bo\'lmadi')); }
   }
 
-  async function loadErrorsPage(page: number) {
-    setErrorsPage(page);
-    adminApi.getSystemErrors({ page, limit: 50, period: 7 }).then((r) => setSystemErrors(r.data)).catch(() => {});
+  async function handleFeedbackStatus(ticketId: string, status: string) {
+    try {
+      await adminApi.updateFeedbackStatus(ticketId, status);
+      setFeedbackTickets((prev) => prev.map((t) => (t.id as string) === ticketId ? { ...t, status } : t));
+      toast.success(`Feedback statusi ${status} ga o'zgartirildi`);
+    } catch (err: unknown) { toast.error(getErrorMessage(err, 'Statusni o\'zgartirib bo\'lmadi')); }
   }
 
   if (loading) {
     return <div className="flex items-center justify-center h-[60vh]"><span className="loading loading-ring loading-lg text-primary" /></div>;
   }
 
-  const currentTab = TAB_TITLES[activeTab];
+  const activeAccounts = accounts.filter((a) => a.status === 'ACTIVE').length;
+  const dueAccounts = accounts.filter((a) => a.status === 'PAYMENT_DUE').length;
+  const suspendedAccounts = accounts.filter((a) => a.status === 'SUSPENDED').length;
+  const totalBalance = accounts.reduce((s, a) => s + Number(a.balance), 0);
+  const activeUsers = users.filter((u) => u.is_active).length;
+
+  const currentTab = {
+    ...TAB_TITLES[activeTab],
+    desc: activeTab === 'accounts'
+      ? `${accounts.length} akkaunt, ${users.length} user, ${activeUsers} faol`
+      : TAB_TITLES[activeTab].desc,
+  };
 
   return (
     <>
@@ -252,102 +306,141 @@ export function AdminPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
               <div>
                 <p className="text-xs text-base-content/50 mb-1">Userlar</p>
-                {(searchResults.users || []).map((u) => (
-                  <div key={u.id} className="py-1">{u.email} <RoleBadge role={u.role} /></div>
+                {((searchResults.users as Record<string, unknown>[]) || []).map((u) => (
+                  <div key={u.id as string} className="py-1">{u.email as string} <RoleBadge role={u.role as Role} /></div>
                 ))}
-                {!(searchResults.users?.length) && <p className="text-base-content/30 text-xs">Topilmadi</p>}
+                {!((searchResults.users as unknown[])?.length) && <p className="text-base-content/30 text-xs">Topilmadi</p>}
               </div>
               <div>
                 <p className="text-xs text-base-content/50 mb-1">Accountlar</p>
-                {(searchResults.accounts || []).map((a) => (
-                  <div key={a.id} className="py-1">{a.name} <StatusBadge status={a.status} /></div>
+                {((searchResults.accounts as Record<string, unknown>[]) || []).map((a) => (
+                  <div key={a.id as string} className="py-1">{a.name as string} <StatusBadge status={a.status as Account['status']} /></div>
                 ))}
-                {!(searchResults.accounts?.length) && <p className="text-base-content/30 text-xs">Topilmadi</p>}
+                {!((searchResults.accounts as unknown[])?.length) && <p className="text-base-content/30 text-xs">Topilmadi</p>}
               </div>
               <div>
                 <p className="text-xs text-base-content/50 mb-1">Mahsulotlar</p>
-                {(searchResults.products || []).map((p) => (
-                  <div key={p.id} className="py-1 truncate">{p.title}</div>
+                {((searchResults.products as Record<string, unknown>[]) || []).map((p) => (
+                  <div key={p.id as string} className="py-1 truncate">{p.title as string}</div>
                 ))}
-                {!(searchResults.products?.length) && <p className="text-base-content/30 text-xs">Topilmadi</p>}
+                {!((searchResults.products as unknown[])?.length) && <p className="text-base-content/30 text-xs">Topilmadi</p>}
               </div>
             </div>
           </div>
         )}
 
-        {/* ─── Tab Content ─────────────────────────────────────────────────── */}
-
+        {/* Tab content */}
         {activeTab === 'dashboard' && (
-          <AdminDashboardTab
-            accounts={accounts} users={users}
+          <DashboardTab
+            accounts={accounts} activeAccounts={activeAccounts} dueAccounts={dueAccounts}
+            users={users} activeUsers={activeUsers} totalBalance={totalBalance}
             overview={overview} revenue={revenue} growth={growth} realtime={realtime}
           />
         )}
 
         {activeTab === 'accounts' && (
-          <AdminAccountsTab
+          <AccountsTab
             accounts={accounts} users={users}
-            globalFeeInput={globalFeeInput} setGlobalFeeInput={setGlobalFeeInput}
-            savingGlobalFee={savingGlobalFee} onSaveGlobalFee={saveGlobalFee}
-            onSaveFee={saveFee} onSavePhone={savePhone}
-            onRoleChange={handleRoleChange} onToggleActive={handleToggleActive}
-            onStatusChange={handleStatusChange}
-            onDeposit={setDepositTarget} onOpenDrawer={setDrawerAccount}
-            onSetPassword={setPasswordTarget} onCreateAccount={() => setShowCreateAccount(true)}
+            activeAccounts={activeAccounts} dueAccounts={dueAccounts}
+            suspendedAccounts={suspendedAccounts} totalBalance={totalBalance}
+            globalFeeInput={globalFeeInput} savingGlobalFee={savingGlobalFee}
+            onGlobalFeeChange={setGlobalFeeInput} onSaveGlobalFee={saveGlobalFee}
+            onShowCreateAccount={() => setShowCreateAccount(true)}
+            onDepositTarget={setDepositTarget} onDrawerAccount={setDrawerAccount}
+            onStatusChange={handleStatusChange} onRoleChange={handleRoleChange}
+            onToggleActive={handleToggleActive}
+            onPasswordTarget={setPasswordTarget}
+            onSaveFee={saveFee} editingFee={editingFee} feeInput={feeInput}
+            onEditingFeeChange={setEditingFee} onFeeInputChange={setFeeInput}
+            editingPhone={editingPhone} phoneInput={phoneInput}
+            onEditingPhoneChange={setEditingPhone} onPhoneInputChange={setPhoneInput}
+            onSavePhone={savePhone}
           />
         )}
 
         {activeTab === 'analytics' && (
-          <AdminAnalyticsTab
-            topUsers={topUsers} popularProducts={popularProducts} popularCategories={popularCategories}
-            revenue={revenue} growth={growth} categoryTrends={categoryTrends} productHeatmap={productHeatmap}
+          <AnalyticsTab
+            topUsers={topUsers} popularProducts={popularProducts}
+            popularCategories={popularCategories}
+            revenue={revenue} growth={growth}
+            categoryTrends={categoryTrends} productHeatmap={productHeatmap}
           />
         )}
 
         {activeTab === 'system' && (
-          <AdminSystemTab
-            health={health} aiUsage={aiUsage} systemErrors={systemErrors}
-            errorsPage={errorsPage} onLoadErrorsPage={loadErrorsPage}
+          <SystemTab
+            health={health} aiUsage={aiUsage}
+            systemErrors={systemErrors} errorsPage={errorsPage}
+            onLoadErrorsPage={loadErrorsPage}
           />
         )}
 
-        {activeTab === 'feedback' && <AdminFeedbackTab />}
+        {activeTab === 'feedback' && (
+          <FeedbackTab
+            feedbackStats={feedbackStats}
+            feedbackTickets={feedbackTickets}
+            onFeedbackStatus={handleFeedbackStatus}
+          />
+        )}
 
-        {activeTab === 'notifications' && <AdminNotificationsTab accounts={accounts} />}
+        {activeTab === 'notifications' && (
+          <NotificationsTab
+            accounts={accounts}
+            notifMsg={notifMsg} notifType={notifType} notifSending={notifSending}
+            notifTarget={notifTarget} notifSelectedAccounts={notifSelectedAccounts}
+            templates={templates}
+            newTmplName={newTmplName} newTmplMsg={newTmplMsg} newTmplType={newTmplType}
+            onNotifMsgChange={setNotifMsg} onNotifTypeChange={setNotifType}
+            onNotifTargetChange={setNotifTarget} onNotifSelectedAccountsChange={setNotifSelectedAccounts}
+            onSendNotification={sendNotification}
+            onNewTmplNameChange={setNewTmplName} onNewTmplMsgChange={setNewTmplMsg}
+            onNewTmplTypeChange={setNewTmplType}
+            onCreateTemplate={createTemplate} onDeleteTemplate={deleteTemplate}
+            onUseTemplate={(message, type) => { setNotifMsg(message); setNotifType(type); }}
+          />
+        )}
 
-        {activeTab === 'audit' && <AdminAuditTab auditLog={auditLog} />}
+        {activeTab === 'audit' && <AuditLogTab auditLog={auditLog} />}
 
-        {activeTab === 'permissions' && <AdminPermissionsTab />}
+        {activeTab === 'permissions' && <PermissionsTab />}
 
         {activeTab === 'deposits' && (
-          <AdminDepositsTab
+          <DepositsTab
             depositLog={depositLog} depositLogTotal={depositLogTotal}
-            depositLogPage={depositLogPage} setDepositLogPage={setDepositLogPage}
+            depositLogPage={depositLogPage}
+            onDepositLogPageChange={setDepositLogPage}
             onDeleteDeposit={handleDeleteDeposit}
           />
         )}
-
-        {activeTab === 'whitelabel' && <WhitelabelTab />}
       </div>
+
+      {/* White-label tab — rendered outside the space-y-5 wrapper (matches original) */}
+      {activeTab === 'whitelabel' && <WhitelabelTab />}
 
       {/* Modals */}
       {showCreateAccount && <CreateAccountModal onClose={() => setShowCreateAccount(false)} onDone={load} />}
       {depositTarget && <DepositModal account={depositTarget} onClose={() => setDepositTarget(null)} onDone={load} />}
       {passwordTarget && <ChangePasswordModal user={passwordTarget} onClose={() => setPasswordTarget(null)} />}
 
+      {/* Account Detail Drawer */}
       {drawerAccount && (
         <AccountDrawer
-          account={drawerAccount} users={users}
-          onClose={() => setDrawerAccount(null)} onRefresh={load}
+          account={drawerAccount}
+          users={users}
+          onClose={() => setDrawerAccount(null)}
+          onRefresh={load}
         />
       )}
 
+      {/* Slide-in animation */}
       <style>{`
         @keyframes slideInRight {
           from { transform: translateX(100%); }
           to { transform: translateX(0); }
         }
-        .animate-slide-in-right { animation: slideInRight 0.25s ease-out; }
+        .animate-slide-in-right {
+          animation: slideInRight 0.25s ease-out;
+        }
       `}</style>
     </>
   );

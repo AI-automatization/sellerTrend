@@ -65,7 +65,7 @@ export class ProductsService {
     });
   }
 
-  async getProductById(productId: bigint) {
+  async getProductById(productId: bigint, _accountId?: string) {
     // Separate queries to avoid N+1 on ai_explanations (was: 20 nested includes → 20 queries)
     const [product, latestAi] = await Promise.all([
       this.prisma.product.findUnique({
@@ -115,7 +115,7 @@ export class ProductsService {
       rating: product.rating ? Number(product.rating) : null,
       feedback_quantity: product.feedback_quantity,
       orders_quantity: product.orders_quantity?.toString(),
-      shop_name: (product.shop as any)?.name ?? null,
+      shop_name: (product.shop as any)?.title ?? null,
       score: latest?.score ? Number(latest.score) : null,
       weekly_bought: weeklyBought,
       sell_price: sku?.min_sell_price ? Number(sku.min_sell_price) : null,

@@ -70,13 +70,10 @@ export function useDiscoveryRefresh(onRefresh: (data: { run_id: string; status: 
 /** Listen for notification signals — call `onRefresh` to refetch notifications */
 export function useNotificationRefresh(onRefresh: () => void) {
   const { socket } = useSocket();
-  const callbackRef = useRef(onRefresh);
-  callbackRef.current = onRefresh;
 
   useEffect(() => {
     if (!socket) return;
-    const handler = () => callbackRef.current();
-    socket.on('refresh:notification', handler);
-    return () => { socket.off('refresh:notification', handler); };
-  }, [socket]);
+    socket.on('refresh:notification', onRefresh);
+    return () => { socket.off('refresh:notification', onRefresh); };
+  }, [socket, onRefresh]);
 }

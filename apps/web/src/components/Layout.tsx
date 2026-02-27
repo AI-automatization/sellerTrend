@@ -31,6 +31,7 @@ import {
   MoonIcon,
 } from './icons';
 import { getTokenPayload, billingApi, notificationApi } from '../api/client';
+import { logError } from '../utils/handleError';
 import { useI18n } from '../i18n/I18nContext';
 import { useTheme } from '../hooks/useTheme';
 import type { Lang } from '../i18n/translations';
@@ -113,7 +114,7 @@ export function Layout() {
         setPaymentDue(true);
         setBalance(r.data.balance);
       }
-    }).catch(() => {});
+    }).catch(logError);
   }, []);
 
   useEffect(() => {
@@ -130,7 +131,7 @@ export function Layout() {
     notificationApi.getMy().then((r) => {
       const unread = (r.data || []).filter((n: { is_read: boolean }) => !n.is_read).length;
       setUnreadCount(unread);
-    }).catch(() => {});
+    }).catch(logError);
   }, []);
 
   const clearTokens = useAuthStore((s) => s.clearTokens);
@@ -139,7 +140,7 @@ export function Layout() {
     const rt = localStorage.getItem('refresh_token');
     if (rt) {
       import('../api/client').then(({ authApi }) =>
-        authApi.logout(rt).catch(() => {}),
+        authApi.logout(rt).catch(logError),
       );
     }
     // Clear all cached API data so next login starts fresh
