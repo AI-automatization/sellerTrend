@@ -2137,4 +2137,82 @@ export function parseWeeklyBought(text: string): number | null {
 
 ---
 
+# ═══════════════════════════════════════════════════════════
+# DEEP AUDIT BUGLAR (2026-02-27) — docs/bugs.md dan
+# ═══════════════════════════════════════════════════════════
+
+## AUDIT — MAVJUD TASKLARGA XAVOLA
+
+| Bug ID | Severity | Mavjud Task | Izoh |
+|--------|----------|-------------|------|
+| BUG-001 | CRITICAL | T-061 | Redis password worker da yo'q |
+| BUG-004 | HIGH | T-064 | Reanalysis title overwrite |
+| BUG-005 | HIGH | T-088 | shop.name → shop.title |
+| BUG-011 | HIGH | T-079 | Team invite bcrypt emas |
+| BUG-014 | MEDIUM | T-234 | Desktop API URL ishlamaydi |
+| BUG-017 | MEDIUM | T-137 | Profit calc customs/QQS yo'q |
+| D-06 | MEDIUM | T-066 | 3x fetchProductDetail DRY |
+| D-07 | LOW | T-166 | parseWeeklyBought dead code |
+
+## AUDIT — YANGI TASKLAR
+
+### T-238 | P1 | BACKEND | Signal service take:2 → take:30 — cannibalization, saturation, replenishment noaniq | 15min
+**Manba:** BUG-008 + BUG-009 + BUG-010 (docs/bugs.md)
+**Muammo:** `signals.service.ts` da 3 ta method faqat 2 ta snapshot oladi (`take: 2`).
+`recalcWeeklyBoughtSeries()` 7 kunlik lookback + 24h gap kerak — 2 snapshot yetarli EMAS.
+Natija: stored stale `weekly_bought` ishlatiladi → cannibalization, saturation, replenishment noaniq.
+**Fayllar:**
+- `apps/api/src/signals/signals.service.ts:25` — getCannibalization: `take: 2` → `take: 30`
+- `apps/api/src/signals/signals.service.ts:80` — getSaturation: `take: 2` → `take: 30`
+- `apps/api/src/signals/signals.service.ts:381` — getReplenishmentPlan: `take: 2` → `take: 30`
+**Fix:** 3 joyda `take: 2` ni `take: 30` ga almashtirish (3 qator o'zgartirish).
+
+---
+
+### T-239 | P2 | BACKEND | Per-user rate limiting — AI endpoint lar uchun ThrottlerGuard | 30min
+**Manba:** BUG-023 (docs/bugs.md)
+**Muammo:** Hozir faqat per-IP throttling (120 req/min). Per-user yoki per-account throttling YO'Q.
+Bitta foydalanuvchi AI endpoint larni cheksiz chaqirishi mumkin → Anthropic API narxi ortadi.
+Corporate NAT ortida ko'p foydalanuvchi bitta kvotani bo'lishadi.
+**Fix variantlari:**
+1. Custom ThrottlerGuard — JWT dan `user_id` olish, Redis-based counter
+2. AI endpoint larga alohida limit: 20 req/min per-user
+3. Boshqa endpoint lar uchun: 60 req/min per-user
+**Fayllar:**
+- `apps/api/src/app.module.ts:42` — ThrottlerModule config
+- Yangi fayl: `apps/api/src/common/guards/user-throttler.guard.ts`
+
+---
+
+### T-240 | P3 | BACKEND | DTO validatsiya qo'shish — 5+ endpoint DTO'siz | 30min
+**Manba:** BUG-025 (docs/bugs.md)
+**Muammo:** Global `ValidationPipe` bor, lekin ba'zi endpoint lar DTO class'siz `@Body()` qabul qiladi.
+DTO yo'q → class-validator decorator yo'q → validation ishlamaydi.
+**Fayllar (DTO kerak):**
+- `apps/api/src/discovery/discovery.controller.ts` — `@Body() body: { input: string }`
+- `apps/api/src/signals/signals.service.ts` — `saveChecklist` raw data
+- `apps/api/src/team/team.service.ts` — `inviteMember` inline type
+**Fix:** Har biri uchun DTO class + class-validator decoratorlar yaratish.
+
+---
+
+### T-241 | P1 | BACKEND | totalAvailableAmount Prisma schema + saqlash — stock cliff aniq bo'ladi | 30min
+**Manba:** D-03 (docs/bugs.md)
+**Muammo:** Uzum API `totalAvailableAmount` qaytaradi (haqiqiy ombor stoki: 2659 dona).
+Lekin Prisma schema da bu field YO'Q — DB ga saqlanmaydi.
+Stock cliff detection 10% heuristic ishlatadi → 10x noaniq (estimated 4500, haqiqiy 2255).
+**Fix:**
+1. `schema.prisma` — Product modeliga `total_available_amount BigInt?` qo'shish
+2. `prisma migrate dev --name add-total-available-amount`
+3. `reanalysis.processor.ts` — `detail.totalAvailableAmount` ni saqlash
+4. `import.processor.ts` — xuddi shunday
+5. `signals.service.ts` — heuristic o'rniga haqiqiy stockni ishlatish
+**Fayllar:**
+- `apps/api/prisma/schema.prisma` — Product model
+- `apps/worker/src/processors/reanalysis.processor.ts`
+- `apps/worker/src/processors/import.processor.ts`
+- `apps/api/src/signals/signals.service.ts:186`
+
+---
+
 *Tasks.md | VENTRA Analytics Platform | 2026-02-27*
