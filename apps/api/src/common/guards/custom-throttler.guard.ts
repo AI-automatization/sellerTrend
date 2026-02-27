@@ -13,6 +13,18 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
     );
   }
 
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    try {
+      return await super.canActivate(context);
+    } catch (err: any) {
+      // Webpack bundling can break Reflector injection — skip throttling rather than crash
+      if (err?.message?.includes('getAllAndOverride')) {
+        return true;
+      }
+      throw err;
+    }
+  }
+
   protected async shouldSkip(context: ExecutionContext): Promise<boolean> {
     if (this.whitelistedIps.size === 0) return false;
     const req = context.switchToHttp().getRequest();

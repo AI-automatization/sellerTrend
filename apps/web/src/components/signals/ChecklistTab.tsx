@@ -3,7 +3,7 @@ import { signalsApi } from '../../api/client';
 import { logError, toastError } from '../../utils/handleError';
 import { SectionCard } from './SectionCard';
 import { LoadingSpinner } from './LoadingSpinner';
-import type { ChecklistData, ChecklistItem } from './types';
+import type { ChecklistData } from './types';
 
 export function ChecklistTab() {
   const [checklist, setChecklist] = useState<ChecklistData | null>(null);

@@ -8,6 +8,7 @@ import {
   getSupplyPressure,
   calcWeeklyBought,
   sleep,
+  SNAPSHOT_MIN_GAP_MS,
 } from '@uzum/utils';
 
 @Injectable()
@@ -77,16 +78,37 @@ export class UzumService {
       },
     });
 
-    // 4. Centralized weekly_bought: 7-day lookback, 24h minimum gap (T-207)
+    // 4. Dedup guard (T-267): skip snapshot if last one is < 5 min old
     const currentOrders = detail.ordersQuantity ?? 0;
 
     const recentSnapshots = await this.prisma.productSnapshot.findMany({
       where: { product_id: BigInt(productId) },
       orderBy: { snapshot_at: 'desc' },
       take: 20,
-      select: { orders_quantity: true, snapshot_at: true },
+      select: { id: true, orders_quantity: true, snapshot_at: true, score: true, weekly_bought: true },
     });
 
+    const lastSnap = recentSnapshots[0];
+    if (lastSnap && Date.now() - lastSnap.snapshot_at.getTime() < SNAPSHOT_MIN_GAP_MS) {
+      this.logger.log(`Snapshot dedup (T-267): product=${productId}, skip — last snap ${Math.round((Date.now() - lastSnap.snapshot_at.getTime()) / 1000)}s ago`);
+      // Return cached data from last snapshot instead of creating duplicate
+      const cachedScore = lastSnap.score ? Number(lastSnap.score) : 0;
+      return {
+        product_id: productId,
+        title: detail.title,
+        rating: detail.rating,
+        feedback_quantity: detail.feedbackQuantity,
+        orders_quantity: detail.ordersQuantity,
+        weekly_bought: lastSnap.weekly_bought,
+        score: cachedScore,
+        snapshot_id: lastSnap.id,
+        sell_price: detail.skuList?.[0]?.sellPrice,
+        total_available_amount: detail.totalAvailableAmount ?? 0,
+        ai_explanation: null,
+      };
+    }
+
+    // 5. Centralized weekly_bought: 7-day lookback, 24h minimum gap (T-207)
     const weeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
     this.logger.log(
       `weekly_bought (T-207): product=${productId}, currentOrders=${currentOrders}, ` +

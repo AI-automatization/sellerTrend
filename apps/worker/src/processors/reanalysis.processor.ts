@@ -1,7 +1,7 @@
 import { Worker, Job } from 'bullmq';
 import { redisConnection } from '../redis';
 import { prisma } from '../prisma';
-import { calculateScore, getSupplyPressure, calcWeeklyBought, sleep } from '@uzum/utils';
+import { calculateScore, getSupplyPressure, calcWeeklyBought, sleep, SNAPSHOT_MIN_GAP_MS } from '@uzum/utils';
 import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
 import { fetchUzumProductRaw } from './uzum-scraper';
 
@@ -26,6 +26,13 @@ async function reanalyzeProduct(
     take: 20,
     select: { orders_quantity: true, snapshot_at: true },
   });
+
+  // Dedup guard (T-267): skip snapshot if last one is < 5 min old
+  const lastSnap = recentSnapshots[0];
+  if (lastSnap && Date.now() - lastSnap.snapshot_at.getTime() < SNAPSHOT_MIN_GAP_MS) {
+    logJobInfo('reanalysis-queue', jobId, jobName, `Snapshot dedup: product ${numId}, skip — last snap ${Math.round((Date.now() - lastSnap.snapshot_at.getTime()) / 1000)}s ago`);
+    return { updated: false, weeklyBought: null };
+  }
 
   const weeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
 

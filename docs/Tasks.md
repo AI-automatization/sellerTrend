@@ -2300,3 +2300,264 @@ Discovery Top 20 drawer'da sotuvchi qaror qabul qilish uchun kerakli ma'lumotlar
 - apps/worker/src/processors/discovery.processor.ts — winner saqlash
 - apps/api/src/discovery/discovery.service.ts — response enrichment
 - apps/web/src/components/discovery/ScannerTab.tsx — drawer UI
+
+---
+
+# ═══════════════════════════════════════════════════════════
+# BAJARISH KETMA-KETLIGI (T-260 — T-270)
+# ═══════════════════════════════════════════════════════════
+#
+# FAZA 1 — KRITIK: Score/Data to'g'rilash (avval local, keyin prod)
+#   1. T-267 → Snapshot dedup guard (BIRINCHI! yangi buzilgan data to'xtaydi)
+#   2. T-268 → Score instability fix (weekly_bought null fallback)
+#   3. T-269 → Eski noto'g'ri data tozalash (SQL: weekly_bought > 5000 → null)
+#   4. T-270 → Duplicate snapshot tozalash (SQL: kuniga 1 ta qoldirish)
+#      [T-269 → T-270 ketma-ket: avval bad values, keyin duplicates]
+#
+# FAZA 2 — DEVOPS: Railway production sozlash
+#   5. T-262 → Railway DB seed (cargo providers, platformalar)
+#   6. T-263 → SUPER_ADMIN user yaratish (T-262 dan keyin yoki to'g'ridan DB)
+#
+# FAZA 3 — Discovery UX yaxshilash
+#   7. T-260 → Category nomi ko'rsatish (frontend + backend)
+#   8. T-261 → Discovery drawer — sotuvchi data boyitish (schema migration!)
+#      [T-260 → T-261: ikkalasi discovery, 260 kichik, 261 katta]
+#
+# FAZA 4 — Frontend UX polish
+#   9.  T-264 → Admin route protection (non-admin redirect)
+#   10. T-265 → Enterprise 404 endpoint fix (stub yoki try/catch)
+#   11. T-266 → Empty state CTA (Shops, Leaderboard, Sourcing)
+#
+# ═══════════════════════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════
+# PRODUCTION TEST BUGLAR (2026-02-28) — Playwright page-by-page audit
+# ═══════════════════════════════════════════════════════════
+
+### T-262 | P0 | DEVOPS | Railway DB — `prisma db:seed` ishlatilmagan, test data yo'q | 15min
+**Manba:** Production Playwright test (2026-02-28)
+**Muammo:**
+Railway architecture rebuild (2026-02-26) yangi Postgres instance yaratdi.
+`prisma db:seed` hech qachon Railway DB da ishlatilmagan:
+- Faqat 1 ta account mavjud (self-registered admin@uzum-trend.uz)
+- admin@ventra.uz, demo@ventra.uz — yo'q (seed yaratadigan)
+- Cargo providers — yo'q (sourcing ishlamaydi)
+- Test userlar, platformalar — yo'q
+- Analitika sahifalari bo'sh ko'rinadi (eski 10 account + 200 product yo'qolgan)
+
+**Root cause:** Railway rebuild → yangi DB → seed never run
+**Fix:**
+1. Railway API service'ga SSH/exec: `pnpm exec prisma db:seed`
+2. Yoki Railway CLI: `railway run -s sellerTrend pnpm exec prisma db:seed`
+3. Seed muvaffaqiyatini tekshirish: accounts, users, cargo_providers jadvallar
+
+**Fayllar:**
+- apps/api/prisma/seed.ts — seed script
+
+### T-263 | P0 | DEVOPS | Railway — SUPER_ADMIN user yo'q, admin panel 403 Forbidden | 10min
+**Manba:** Production Playwright test (2026-02-28) — /admin sahifasi 8 ta 403 error
+**Muammo:**
+admin@uzum-trend.uz self-register orqali yaratilgan → role = "USER".
+Admin panel barcha API endpoint'lari 403 qaytaradi:
+- /api/v1/admin/users → 403
+- /api/v1/admin/accounts → 403
+- /api/v1/admin/global-fee → 403
+- /api/v1/admin/audit-log → 403
+- /api/v1/admin/stats/overview → 403
+- /api/v1/admin/stats/realtime → 403
+- /api/v1/admin/stats/growth → 403
+- /api/v1/admin/stats/revenue → 403
+
+Admin sahifasi render bo'ladi (0 qiymatlar ko'rinadi), lekin data hammasi bo'sh.
+
+**Fix (2 variant):**
+A) BOOTSTRAP_SECRET env var qo'yib, POST /auth/bootstrap-admin endpoint ishlatish
+B) Direct DB: `UPDATE users SET role='SUPER_ADMIN' WHERE email='admin@uzum-trend.uz'`
+
+**Fayllar:**
+- apps/api/src/auth/auth.service.ts — bootstrapAdmin() metodi
+- apps/api/src/admin/admin.controller.ts — @Roles('SUPER_ADMIN') guard
+
+### T-264 | P1 | FRONTEND | Admin panel — role USER bo'lsa /admin sahifaga redirect yo'q | 30min
+**Manba:** Production Playwright test (2026-02-28)
+**Muammo:**
+Sidebar'da "Admin" link yo'q (to'g'ri — faqat admin uchun ko'rinadi).
+Lekin URL orqali `/admin` ga to'g'ridan kirsa bo'ladi — sahifa render bo'lib, 8 ta 403 error beradi.
+Foydalanuvchi uchun noaniq: dashboard ko'rinadi lekin data hammasi 0/bo'sh.
+
+**Fix:**
+1. AdminPage.tsx da role tekshirish — agar user.role !== 'SUPER_ADMIN' → redirect '/' yoki "Ruxsat yo'q" ko'rsatish
+2. App.tsx dagi `/admin` route'ni AdminRoute wrapper bilan himoyalash
+
+**Fayllar:**
+- apps/web/src/pages/AdminPage.tsx
+- apps/web/src/App.tsx — route protection
+
+### T-265 | P1 | BACKEND | Enterprise page — 3 ta API endpoint 404 qaytaradi | 1h
+**Manba:** Production Playwright test (2026-02-28) — /enterprise sahifasi 3 console error
+**Muammo:**
+Enterprise sahifasida 3 ta API chaqiruvi 404 qaytaradi:
+1. GET /api/v1/billing/balance → 404 (endpoint mavjud emas yoki route noto'g'ri)
+2. GET /api/v1/ads/campaigns → 404 (AdsModule mavjud emas)
+3. GET /api/v1/notifications/my → 404 (NotificationsModule mavjud emas)
+
+Sahifa "Hali kampaniya yo'q" ko'rsatadi (graceful), lekin console errors yomon UX.
+
+**Fix:**
+1. Frontend: Enterprise page API call'larini try/catch bilan o'rash, 404 da silent fail
+2. YOKI Backend: stub endpoint'lar yaratish (bo'sh array qaytarsin)
+3. billing/balance — mavjud BillingModule da qo'shish yoki route tekshirish
+
+**Fayllar:**
+- apps/web/src/pages/EnterprisePage.tsx — API calls
+- apps/api/src/billing/billing.controller.ts — balance endpoint
+
+### T-266 | P2 | FRONTEND | Shops, Leaderboard, Sourcing — bo'sh sahifa, yo'naltiruvchi xabar yo'q | 30min
+**Manba:** Production Playwright test (2026-02-28)
+**Muammo:**
+Fresh DB da 3 ta sahifa bo'sh kontent ko'rsatadi, lekin foydalanuvchiga nima qilish kerakligini aytmaydi:
+- /shops — bo'sh (hech qanday do'kon kuzatilmagan)
+- /leaderboard — bo'sh (kam product)
+- /sourcing — bo'sh (cargo providers seed kerak, T-262)
+
+Foydalanuvchi tushunmaydi nima uchun bo'sh va nima qilish kerak.
+
+**Fix:**
+Empty state uchun CTA (Call to Action) qo'shish:
+- "Avval mahsulotlarni tahlil qiling" + URL Tahlil link
+- "Discovery orqali kategoriya skanerlang" + Discovery link
+- Sourcing: "Cargo providers sozlanmagan" (admin uchun)
+
+**Fayllar:**
+- apps/web/src/pages/ShopsPage.tsx
+- apps/web/src/pages/LeaderboardPage.tsx
+- apps/web/src/pages/SourcingPage.tsx
+
+---
+
+# ═══════════════════════════════════════════════════════════
+# ANALITIKA BUGLAR (2026-02-28) — Local DB tahlili
+# ═══════════════════════════════════════════════════════════
+
+### T-267 | P0 | BACKEND | Snapshot deduplication yo'q — bir product uchun sekundiga 10+ snapshot yaratiladi | 1h
+**Manba:** Local DB tahlili (2026-02-28)
+**Muammo:**
+3 ta joyda `productSnapshot.create()` chaqiriladi — **hech birida dedup yo'q**:
+1. `apps/api/src/uzum/uzum.service.ts:145` — har URL tahlil da
+2. `apps/worker/src/processors/import.processor.ts:108` — import job da
+3. `apps/worker/src/processors/reanalysis.processor.ts:80` — reanalysis cron da
+
+Dalil (product 118279): 5 kunda **80 ta** snapshot, ko'plari 1 sekund ichida:
+```
+16:19:17 | weekly_bought=474  | score=6.64
+16:19:22 | weekly_bought=null | score=3.25  ← 5 sekund keyin!
+16:19:22 | weekly_bought=null | score=3.25  ← duplicate
+16:19:25 | weekly_bought=null | score=3.25  ← 3 sekund keyin
+16:19:27 | weekly_bought=null | score=3.25  ← yana 2 sekund
+... (total 13 ta null snapshot 24 sekund ichida)
+```
+
+**Root cause:**
+- Frontend'dan bir sahifa yuklanganda bir nechta `analyzeProduct()` chaqiruvi ketadi
+- Birinchi snapshot yaratilganda `calcWeeklyBought()` 24h+ eski snapshotdan delta hisoblaydi → valid
+- 1 sekund keyin ikkinchi chaqiruvda hozirgina yaratilgan snapshot eng yangi bo'ladi → daysDiff < 0.5 → `null` qaytadi
+- Natija: score 6.64 dan 3.25 ga tushadi — **foydalanuvchi uchun noaniq**
+
+**Fix:**
+1. Snapshot yaratishdan oldin: oxirgi snapshot 5 minutdan yaqin bo'lsa — **yangi yaratmaslik**
+```typescript
+const lastSnap = await prisma.productSnapshot.findFirst({
+  where: { product_id: pid },
+  orderBy: { snapshot_at: 'desc' },
+});
+const MIN_GAP_MS = 5 * 60 * 1000; // 5 minut
+if (lastSnap && Date.now() - lastSnap.snapshot_at.getTime() < MIN_GAP_MS) {
+  return lastSnap; // skip, oxirgi snapshotni qaytar
+}
+```
+2. Barcha 3 ta joyga qo'shish (uzum.service.ts, import.processor.ts, reanalysis.processor.ts)
+3. YOKI: Prisma schema da @@unique([product_id, snapshot_window]) constraint
+
+**Fayllar:**
+- apps/api/src/uzum/uzum.service.ts:145
+- apps/worker/src/processors/import.processor.ts:108
+- apps/worker/src/processors/reanalysis.processor.ts:80
+
+### T-268 | P0 | BACKEND | Score instability — weekly_bought null bo'lganda score 50% ga tushadi | 30min
+**Manba:** Local DB tahlili (2026-02-28)
+**Muammo:**
+Bir xil product score'i tez-tez o'zgaradi chunki weekly_bought ba'zan hisoblanadi, ba'zan null:
+- weekly_bought=634 → score=6.80 (yuqori)
+- weekly_bought=null → score=3.25 (past) ← **50% farq!**
+
+`calculateScore()` formulasida `weekly_bought` 55% og'irlikka ega.
+Agar null bo'lsa, 55% ball yo'qoladi → score deyarli yarmiga tushadi.
+
+Bu frontend'da ko'rinadi:
+- Dashboard: mahsulot score bir kuni 6.80, ertasi 3.25
+- Trend: "down" ko'rsatadi (aslida o'zgarmagan, faqat snapshot timing muammosi)
+- Sotuvchi: "score tushdi, nega?" deb o'ylaydi
+
+**Fix:**
+1. Agar weekly_bought null bo'lsa — oxirgi valid snapshotdan olish (fallback):
+```typescript
+const weeklyBought = calcWeeklyBought(snaps, currentOrders)
+  ?? snaps.find(s => s.weekly_bought != null)?.weekly_bought
+  ?? null;
+```
+2. YOKI: Score formulasini o'zgartirish — weekly_bought null bo'lganda qolgan 45% ni 100% ga normallashtirish
+
+**Fayllar:**
+- packages/utils/src/index.ts — calculateScore()
+- apps/api/src/uzum/uzum.service.ts:137 — score hisoblash
+
+### T-269 | P1 | BACKEND | Eski noto'g'ri snapshot data — weekly_bought=44500 (rOrdersAmount) | 30min
+**Manba:** Local DB tahlili (2026-02-28)
+**Muammo:**
+370 ta snapshot'dan 30 tasida weekly_bought=44500 — bu aslida `rOrdersAmount` (JAMI rounded orders), haftalik emas!
+Bu eski bugdan qolgan (v5.2 da fix qilingan), lekin **eski data hali DB da**.
+
+Eski noto'g'ri data trend, forecast va signal hisob-kitoblarini buzadi:
+- 7 kunlik prognoz noto'g'ri
+- Score anomaly detection noto'g'ri alert beradi
+
+**Fix:**
+1. Eski snapshotlardagi anomal weekly_bought'ni null ga o'zgartirish:
+```sql
+UPDATE product_snapshots
+SET weekly_bought = NULL
+WHERE weekly_bought > 5000;  -- MAX_REASONABLE
+```
+2. score'ni qayta hisoblash yoki keyingi reanalysis'ga qoldirish
+
+**Fayllar:**
+- Migration yoki one-time script
+
+### T-270 | P1 | BACKEND | Duplicate snapshot'larni tozalash — 80 ta o'rniga ~20 bo'lishi kerak | 15min
+**Manba:** Local DB tahlili (2026-02-28)
+**Muammo:**
+370 snapshot'dan **184 tasi** (50%!) weekly_bought=null yoki 0.
+Product 118279 uchun 80 snapshot — ko'plari 1-2 sekund oraliqda duplicate.
+Bu trend, forecast, va daily breakdown hisob-kitoblarini buzadi.
+
+**Fix:**
+One-time cleanup script:
+```sql
+-- Har product uchun kun ichida faqat eng yaxshi (weekly_bought IS NOT NULL) snapshotni qoldirish
+DELETE FROM product_snapshots
+WHERE id IN (
+  SELECT id FROM (
+    SELECT id, product_id, snapshot_at::date as snap_date,
+           weekly_bought,
+           ROW_NUMBER() OVER (
+             PARTITION BY product_id, snapshot_at::date
+             ORDER BY weekly_bought DESC NULLS LAST, snapshot_at DESC
+           ) as rn
+    FROM product_snapshots
+  ) sub
+  WHERE rn > 1
+);
+```
+
+**Fayllar:**
+- One-time migration yoki manual SQL

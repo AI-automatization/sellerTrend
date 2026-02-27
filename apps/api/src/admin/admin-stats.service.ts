@@ -1,12 +1,45 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import Redis from 'ioredis';
 
 // SUPER_ADMIN account excluded from stats — set via env or fallback to seed value
 const SUPER_ADMIN_ACCOUNT_ID = process.env.SUPER_ADMIN_ACCOUNT_ID ?? 'aaaaaaaa-0000-0000-0000-000000000001';
 
+const QUEUE_NAMES = [
+  'discovery-queue',
+  'sourcing-search',
+  'import-batch',
+  'billing-queue',
+  'competitor-queue',
+  'reanalysis-queue',
+];
+
 @Injectable()
 export class AdminStatsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly redis: Redis;
+
+  constructor(private readonly prisma: PrismaService) {
+    const url = process.env.REDIS_URL ?? 'redis://localhost:6379';
+    this.redis = new Redis(url, {
+      maxRetriesPerRequest: 1,
+      connectTimeout: 3000,
+      lazyConnect: true,
+    });
+  }
+
+  private async getQueuePending(): Promise<number> {
+    try {
+      let total = 0;
+      for (const name of QUEUE_NAMES) {
+        const waiting = await this.redis.llen(`bull:${name}:wait`);
+        const active = await this.redis.llen(`bull:${name}:active`);
+        total += waiting + active;
+      }
+      return total;
+    } catch {
+      return 0;
+    }
+  }
 
   /** Stats Overview */
   async getStatsOverview() {
@@ -266,7 +299,7 @@ export class AdminStatsService {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    const [activeSessions, todayRequests, recentErrors, activityFeed] = await Promise.all([
+    const [activeSessions, todayRequests, recentErrors, activityFeed, queuePending] = await Promise.all([
       this.prisma.userSession.count({
         where: {
           logged_in_at: { gte: oneHourAgo },
@@ -290,11 +323,13 @@ export class AdminStatsService {
           user: { select: { email: true } },
         },
       }),
+      this.getQueuePending(),
     ]);
 
     return {
       active_sessions: activeSessions,
       today_requests: todayRequests,
+      queue_pending: queuePending,
       recent_errors: recentErrors,
       activity_feed: activityFeed.map((a) => ({
         id: a.id,

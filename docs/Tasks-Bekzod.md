@@ -150,7 +150,7 @@
 | T-170 | Bot broadcastDiscovery dead | ✅ |
 | T-171 | Bot sendPriceDropAlert dead | ✅ |
 | T-172 | JobName enum 2 ta qo'shish | ✅ |
-| T-101 | admin.service 2186 qator bo'lish | ⏭ Skip (2h refactor) |
+| T-101 | admin.service 2178 qator → 5 service | ✅ |
 | T-150 | consultant_id naming | ⏭ Skip (migration kerak) |
 
 ---
@@ -165,7 +165,7 @@
 | P0 KRITIK | ✅ 0 (HAMMASI BAJARILDI) |
 | P1 MUHIM | ✅ 0 (HAMMASI BAJARILDI) |
 | P2 O'RTA | ✅ 0 (HAMMASI BAJARILDI) |
-| P3 PAST | ✅ 2 qoldi (T-101 refactor, T-150 migration) |
+| P3 PAST | ✅ 1 qoldi (T-150 migration) |
 | **JAMI ochiq** | **28** |
 
 ---

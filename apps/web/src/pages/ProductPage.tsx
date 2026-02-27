@@ -387,7 +387,7 @@ export function ProductPage() {
             </h2>
             {weeklyTrend.last_updated && (
               <span className="text-xs text-base-content/40">
-                Yangilangan: {new Date(weeklyTrend.last_updated).toLocaleString('uz-UZ')}
+                Yangilangan: {new Date(weeklyTrend.last_updated).toLocaleString('ru-RU')}
               </span>
             )}
           </div>
@@ -451,7 +451,7 @@ export function ProductPage() {
                   <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
                   <Tooltip
                     {...glassTooltip}
-                    labelFormatter={(v) => new Date(v).toLocaleDateString('uz-UZ', { weekday: 'short', day: 'numeric', month: 'short' })}
+                    labelFormatter={(v) => new Date(v).toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' })}
                     formatter={(value: number) => [`${value} ta`, 'Kunlik sotuv']}
                   />
                   <Bar dataKey="daily_sold" radius={[4, 4, 0, 0]} name="Kunlik sotuv">

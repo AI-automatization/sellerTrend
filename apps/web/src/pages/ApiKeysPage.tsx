@@ -170,7 +170,7 @@ export function ApiKeysPage() {
                       </td>
                       <td className="text-center tabular-nums text-sm text-base-content/50">{k.daily_limit}</td>
                       <td className="text-xs text-base-content/50">
-                        {k.last_used_at ? new Date(k.last_used_at).toLocaleString('uz-UZ') : t('apikeys.notUsed')}
+                        {k.last_used_at ? new Date(k.last_used_at).toLocaleString('ru-RU') : t('apikeys.notUsed')}
                       </td>
                       <td>
                         <button

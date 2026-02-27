@@ -51,7 +51,7 @@ export function AnalyzePage() {
           .slice()
           .reverse()
           .map((s: Snapshot) => ({
-            date: new Date(s.snapshot_at).toLocaleDateString('uz-UZ', {
+            date: new Date(s.snapshot_at).toLocaleDateString('ru-RU', {
               month: 'short',
               day: 'numeric',
             }),

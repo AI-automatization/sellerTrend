@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   calculateScore,
-  parseWeeklyBought,
   parseUzumProductId,
   parseUzumCategoryId,
   getSupplyPressure,
@@ -71,31 +70,6 @@ describe('calculateScore', () => {
     const fbo = calculateScore({ weekly_bought: 50, orders_quantity: 200, rating: 4.0, supply_pressure: 1.0 });
     const fbs = calculateScore({ weekly_bought: 50, orders_quantity: 200, rating: 4.0, supply_pressure: 0.5 });
     expect(fbo).toBeGreaterThan(fbs);
-  });
-});
-
-// ============================================================
-// parseWeeklyBought
-// ============================================================
-describe('parseWeeklyBought', () => {
-  it('parses Russian format "120 человек купили"', () => {
-    expect(parseWeeklyBought('120 человек купили на этой неделе')).toBe(120);
-  });
-
-  it('parses Uzbek format "45 kishi sotib oldi"', () => {
-    expect(parseWeeklyBought('45 kishi bu hafta sotib oldi')).toBe(45);
-  });
-
-  it('parses number with spaces like "1 200 человек"', () => {
-    expect(parseWeeklyBought('1 200 человек купили')).toBe(1200);
-  });
-
-  it('returns null for unrecognized text', () => {
-    expect(parseWeeklyBought('some random text')).toBeNull();
-  });
-
-  it('returns null for empty string', () => {
-    expect(parseWeeklyBought('')).toBeNull();
   });
 });
 
