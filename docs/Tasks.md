@@ -1059,7 +1059,8 @@ Bu ikki xabar bir-biriga ZID. 50 ta raqib kuzatilayotgan bo'lsa, ma'lumot bo'lis
 | Weekly_bought fix | 1 ✅ DONE | T-207 |
 | Desktop Login | 1 (renumbered) | T-234 |
 | **Playwright DOM scraping** | **2** | **T-235...T-236** |
-| **JAMI** | **165 ochiq (1 done)** | T-061...T-236 |
+| **Product Image** | **1** | **T-237** |
+| **JAMI** | **166 ochiq (1 done)** | T-061...T-237 |
 
 | O'zgarish | Tafsilot |
 |-----------|----------|
@@ -1181,6 +1182,93 @@ export function parseWeeklyBought(text: string): number | null {
 #
 # T-235 (Playwright) implement qilingach, birinchi tahlil ANIQ,
 # keyingilari ±5% ichida bo'ladi.
+
+---
+
+# ═══════════════════════════════════════════════════════════
+# PRODUCT PAGE — MAHSULOT RASMLARI (2026-02-27)
+# ═══════════════════════════════════════════════════════════
+
+### T-237 | P1 | IKKALASI | ProductPage da mahsulot rasmi ko'rsatish — Uzum API dan photo olish | 2h
+**Muammo:** ProductPage da mahsulot rasmi umuman ko'rsatilmaydi. Foydalanuvchi qaysi mahsulotni ko'rayotganini vizual tushunmaydi. Uzum API `payload.data` ichida `photos`/`mediaFiles` qaytaradi, lekin `uzum.client.ts:fetchProductDetail()` ularni tashlab yuboradi. Prisma `Product` modelida ham image ustuni yo'q.
+**Sabab:** 3 ta joy tuzatish kerak — API client, DB schema, Frontend.
+
+**Fix — BACKEND (Bekzod):**
+
+1. **`apps/api/src/uzum/uzum.client.ts` — `fetchProductDetail()` (L-256..268):**
+   - Uzum API response dan `photos` / `mediaFiles` maydonini olish
+   - Uzum rasm URL formati: `https://images.uzum.uz/HASH/original.jpg` (yoki `t_product_540_high`)
+   - Return object ga qo'shish:
+   ```typescript
+   return {
+     id: d.id,
+     title: d.title,
+     // ... mavjud fieldlar ...
+     // YANGI: rasmlar
+     photos: (d.photos ?? d.mediaFiles ?? []).map((p: any) => ({
+       url: p.photo?.['540'] ?? p.photo?.original ?? p.url ?? '',
+       // yoki: `https://images.uzum.uz/${p.photoKey}/t_product_540_high.jpg`
+     })).filter((p: any) => p.url),
+   };
+   ```
+   - Avval Uzum API response ni console.log qilib `photos`/`mediaFiles` aniq field nomini aniqlash (har xil endpoint da har xil bo'lishi mumkin)
+
+2. **`apps/api/prisma/schema.prisma` — `Product` model:**
+   ```prisma
+   model Product {
+     // ... mavjud fieldlar ...
+     image_url     String?    @db.Text    // Asosiy rasm URL (birinchi photo)
+   }
+   ```
+   - Migration: `npx prisma migrate dev --name add-product-image-url`
+
+3. **`apps/api/src/uzum/uzum.service.ts` — `analyzeProduct()` / `upsertProduct()`:**
+   - `fetchProductDetail()` dan kelgan `photos[0].url` ni `image_url` ga saqlash
+   - Agar `photos` bo'sh → `image_url = null`
+   - Re-analysis da ham yangilanishi kerak (reanalysis.processor.ts)
+
+4. **`apps/api/src/products/products.service.ts` — response ga `image_url` qo'shish:**
+   - `getTrackedProducts()` → select ga `image_url` qo'shish
+   - `getProductById()` → response ga `image_url` qo'shish
+   - API response format: `{ id, title, image_url, score, ... }`
+
+**Fix — FRONTEND (Sardor):**
+
+5. **`apps/web/src/pages/ProductPage.tsx` — mahsulot rasmi ko'rsatish:**
+   - Sahifa yuqorisida (title yonida yoki ustida) mahsulot rasmi:
+   ```tsx
+   {product.image_url ? (
+     <img
+       src={product.image_url}
+       alt={product.title}
+       className="w-40 h-40 object-contain rounded-xl bg-base-200 border border-base-300"
+       onError={(e) => {
+         (e.target as HTMLImageElement).src = '/placeholder-product.svg';
+       }}
+     />
+   ) : (
+     <div className="w-40 h-40 rounded-xl bg-base-200 flex items-center justify-center text-4xl border border-base-300">
+       📦
+     </div>
+   )}
+   ```
+   - Rasm + title + score bir qatorda (flex row, gap-4)
+   - Rasm responsive: mobile da 100px, desktop da 160px
+   - `onError` fallback: placeholder SVG yoki emoji
+
+6. **`apps/web/src/pages/DashboardPage.tsx` — tracked products ro'yxatida thumbnail:**
+   - Har bir tracked product qatorida kichik thumbnail (40x40px, rounded)
+   - Image yo'q bo'lsa → 📦 emoji fallback
+
+7. **Placeholder asset:** `apps/web/public/placeholder-product.svg` — generic product placeholder
+
+**Uzum rasm URL haqida:**
+- Format odatda: `https://images.uzum.uz/{photoKey}/t_product_540_high.jpg`
+- Yoki: `https://images.uzum.uz/{hash}/original.jpg`
+- CDN: images.uzum.uz (CORS ochiq, to'g'ridan yuklash mumkin)
+- Hajmlar: `t_product_240_high`, `t_product_540_high`, `original`
+
+**Qabul kriterlari:** ProductPage da mahsulot rasmi ko'rinadi, Dashboard tracked products da thumbnail bor, rasm yuklanmasa fallback ko'rsatiladi.
 
 ---
 
