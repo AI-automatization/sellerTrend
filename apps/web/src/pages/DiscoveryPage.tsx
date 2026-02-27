@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { useI18n } from '../i18n/I18nContext';
 import { ArrowTrendingUpIcon } from '../components/icons';
 import { ScannerTab, SeasonalCalendarTab, NicheFinderTab } from '../components/discovery';
 
 export function DiscoveryPage() {
   const [tab, setTab] = useState<'scanner' | 'seasonal' | 'niche'>('scanner');
+  const { t } = useI18n();
 
   return (
     <div className="space-y-6 w-full">
@@ -11,10 +13,10 @@ export function DiscoveryPage() {
       <div>
         <h1 className="text-2xl lg:text-3xl font-bold flex items-center gap-2">
           <ArrowTrendingUpIcon className="w-6 h-6 lg:w-7 lg:h-7 text-primary" />
-          Category Discovery
+          {t('discovery.title')}
         </h1>
         <p className="text-base-content/50 text-sm mt-1">
-          Kategoriya skanerlash, mavsumiy trendlar va niche topish
+          {t('discovery.subtitle')}
         </p>
       </div>
 
@@ -22,15 +24,15 @@ export function DiscoveryPage() {
       <div role="tablist" className="tabs tabs-boxed bg-base-200 w-fit">
         <button role="tab" onClick={() => setTab('scanner')}
           className={`tab ${tab === 'scanner' ? 'tab-active' : ''}`}>
-          Skanerlash
+          {t('discovery.tabScanner')}
         </button>
         <button role="tab" onClick={() => setTab('seasonal')}
           className={`tab ${tab === 'seasonal' ? 'tab-active' : ''}`}>
-          Mavsumiy Kalendar
+          {t('discovery.tabSeasonal')}
         </button>
         <button role="tab" onClick={() => setTab('niche')}
           className={`tab ${tab === 'niche' ? 'tab-active' : ''}`}>
-          Niche Topish
+          {t('discovery.tabNiche')}
         </button>
       </div>
 

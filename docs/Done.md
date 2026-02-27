@@ -1,6 +1,38 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
 # Yangilangan: 2026-02-27
 
+---
+
+## TUZATILGAN BUGLAR (Sardor, 2026-02-27)
+
+| # | Task | Muammo | Fayl/Yechim |
+|---|------|--------|-------------|
+| BUG-029 | E-001 | Desktop `.env` yo'q — login `app://api/v1` ga ketardi | `apps/desktop/.env` yaratildi: `VITE_API_URL=http://localhost:3000` |
+| BUG-030 | E-002 | Desktop dev proxy yo'q — `/api/v1` backend ga yetmaydi | `electron.vite.config.ts` ga `/api/v1` proxy qo'shildi |
+| BUG-031 | T-084 | RegisterPage: `setTokens()` chaqirilmaydi | `RegisterPage.tsx` — `setTokens()` + `queryClient.clear()` |
+| BUG-032 | T-085 | AnalyzePage: `setTracked(true)` try tashqarisida | `AnalyzePage.tsx` — try ichiga ko'chirildi |
+| BUG-033 | T-086 | ProductPage: `setTracked(true)` try tashqarisida | `ProductPage.tsx:278` — try ichiga ko'chirildi |
+| BUG-034 | T-188 | Service Worker registered — PWA o'chirilishi kerak | `sw.js` o'chirildi, `index.html` ga unregister scripti |
+| BUG-035 | T-189 | manifest.json va PWA meta taglar bor | `public/manifest.json` o'chirildi, meta taglar tozalandi |
+| BUG-036 | T-190 | PWA-only iconlar bor | Uchala fayl o'chirildi, `favicon.svg` qoldi |
+| BUG-037 | T-191 | `useNativeNotification.ts` dead code | Fayl o'chirildi |
+| BUG-039 | T-194 | Chart X-axis "M02 27" format | `ProductPage.tsx:219` — ISO saqlashga o'tildi; ScoreChart `formatDay()` |
+| BUG-040 | T-195 | "MAE: X · RMSE: Y" texnik jargon | O'chirildi → "AI bashorat · X% ishonchlilik" |
+| BUG-041 | T-197 | Score chart: bir kunda ko'p snapshot → zigzag | `dailySnapshots` useMemo — har kunning oxirgi scorei |
+| BUG-042 | T-198 | Haftalik sotuvlar chart noto'g'ri data | `dailySnapshots.slice(-15)` + Y-axis "ta" unit |
+| BUG-043 | T-200 | ML box: "confidence", "snapshot" inglizcha raw label | "Ishonchlilik" / "Tahlil soni" |
+| BUG-044 | T-201 | Global bozor fetch xatosida bo'sh qoladi | `catch` da `setExtNote('Global bozor...')` |
+| BUG-045 | T-203 | ML Prognoz 4 KPI box labelsiz | Har boxga label qo'shildi |
+| BUG-046 | T-204 | WeeklyTrend BarChart — qora to'rtburchak | `<Cell>` ga almashtirildi |
+| BUG-047 | T-205 | Footer da raw scoring formula | `Score = 0.55×ln(...)` bloki o'chirildi |
+| BUG-048 | T-151 | `useSocket.ts` — `useCallback(fn, [fn])` foydasiz | `socketRef` + `callbackRef` pattern |
+| BUG-049 | T-158 | `AdminPage.tsx` — 30+ `any` type | 20+ typed interface; `unknown` audit values; tsc clean |
+| BUG-050 | T-163 | `AdminPage.tsx` 2163 qator | 9 fayl: adminTypes, AdminComponents, 7 tab component |
+| BUG-051 | T-084 | `RegisterPage.tsx` — `setTokens` ikki marta e'lon qilingan | Duplicate declaration o'chirildi |
+| BUG-052 | T-164 | 7 sahifada hardcoded Uzbek matn (i18n yo'q) | `useI18n` + `t()` — SignalsPage, DiscoveryPage, ReferralPage, FeedbackPage, ConsultationPage, SourcingPage, ProductPage |
+
+---
+
 ## P2 FRONTEND FIX — 30 Task Batch (2026-02-27)
 
 **Commit:** `cbb98c9` — 57 fayl, +4186/-3660 qator
