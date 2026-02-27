@@ -683,6 +683,223 @@ Bu script bir necha hafta qolishi kerak, keyin o'chiriladi.
 
 ---
 
+# ═══════════════════════════════════════════════════════════
+# PRODUCT PAGE UX/UI BUGLAR (2026-02-27) — hato/ rasmlardan
+# ═══════════════════════════════════════════════════════════
+#
+# Manba: 6 ta screenshot tahlili (hato/ papkasi)
+# Mahsulot: "Бумага листовая Svetocopy ECO" (Uzum.uz)
+# Muammo: Chartlar tushunarsiz, AI tahlili buzilgan, UX past
+
+## P0 — KRITIK (Foydalanuvchi ko'radigan buglar)
+
+### T-193 | FRONTEND+BACKEND | AI tahlili raw JSON ko'rsatadi — parse buzilgan | Ikkalasi | 30min
+**Screenshot:** hato/100251.png
+**Muammo:** "Claude AI tahlili" bo'limida 4 ta item:
+1. ` ```json ` — raw markdown code fence
+2. `[` — raw JSON array bracket
+3. Haqiqiy matn
+4. Haqiqiy matn
+**Sabab:** `ai.service.ts:252-258` — Claude Haiku ba'zan javobni ` ```json\n[...]\n``` ` formatida qaytaradi. `JSON.parse(text)` markdown fence tufayli fail → fallback `text.split('\n')` raw markdownni ham qo'shib yuboradi.
+**Fix (Backend — ai.service.ts:252):**
+```typescript
+// JSON parse qilishdan OLDIN markdown code fence va bo'sh qatorlarni tozalash
+let cleaned = text
+  .replace(/```json\s*/gi, '')
+  .replace(/```\s*/gi, '')
+  .trim();
+// Agar [] bilan boshlanmasa, tashqi [] qo'shish
+if (!cleaned.startsWith('[')) {
+  const lines = cleaned.split('\n').filter(l => l.trim().length > 0);
+  bullets = lines.map(l => l.replace(/^[\d.)\-*]+\s*/, '').replace(/^["']|["'],?$/g, '').trim()).filter(Boolean);
+} else {
+  bullets = JSON.parse(cleaned);
+}
+```
+**Fix (Frontend — ProductPage.tsx:736):** Har bir bullet'dan qolgan JSON artifact tozalash:
+```typescript
+<span>{bullet.replace(/^```json$/i, '').replace(/^[\[\]"`,]+$/g, '').trim()}</span>
+```
+Bo'sh bullet'larni filter qilish: `.filter(b => b && b.length > 3 && !b.match(/^[\[\]{}"`]+$/))`
+
+### T-194 | FRONTEND | Chart X-axis "M02 27" takrorlanadi — sanalar o'qib bo'lmaydi | Sardor | 30min
+**Screenshot:** hato/095147.png, hato/095238.png, hato/100612.png
+**Muammo:** Barcha chartlarda X-axis: `M02 27, M02 27, M02 27, M02 27...` (10+ marta takror). Sotuvchi hech narsa tushunmaydi.
+**Sabab 1:** `uz-UZ` locale oy nomini "M02" formatida beradi (oy nomi emas, raqami). "M02 27" = "Feb 27" o'rniga.
+**Sabab 2:** Bir kunda 4 ta snapshot olinadi (reanalysis 6h cron), hammasi bir xil sana. Vaqt ko'rsatilmaydi.
+**Fayllar:**
+- `ProductPage.tsx:645,649` — ML Prognoz chart: `toLocaleDateString('uz-UZ', { month: 'short', day: 'numeric' })`
+- `ScoreChart.tsx:32` — Score tarixi chart: X-axis `dataKey="date"` raw ISO string
+- `ProductPage.tsx:716` — Haftalik sotuvlar: raw `date` field
+**Fix:**
+1. Locale'ni o'zgartirish — `uz-UZ` → `ru-RU` yoki custom formatter:
+```typescript
+function formatChartDate(isoDate: string): string {
+  const d = new Date(isoDate);
+  const day = d.getDate();
+  const months = ['yan', 'fev', 'mar', 'apr', 'may', 'iyun', 'iyul', 'avg', 'sen', 'okt', 'noy', 'dek'];
+  return `${day} ${months[d.getMonth()]}`;
+}
+```
+2. Bir kunda 1+ snapshot bo'lsa, VAQTNI ko'rsatish: `"27 fev 06:00"`, `"27 fev 12:00"`
+3. Yoki — bir kunda faqat OXIRGI snapshot ko'rsatish (deduplicate by day)
+
+### T-195 | FRONTEND | "Ensemble: WMA + Holt's..." texnik jargon o'chirish | Sardor | 10min
+**Screenshot:** hato/095238.png, hato/100612.png
+**Muammo:** Pastki qatorda: `Ensemble: WMA + Holt's Exponential Smoothing + Linear Regression · MAE: 0.1031 · RMSE: 1.7655` — sotuvchi bu nima ekanligini bilmaydi. WMA, MAE, RMSE — texnik atamalar.
+**Fayl:** `ProductPage.tsx:697-699`
+```tsx
+<p className="text-xs text-base-content/30">
+  Ensemble: WMA + Holt's Exponential Smoothing + Linear Regression · MAE: {mlForecast.score_forecast.metrics?.mae ?? '—'} · RMSE: {mlForecast.score_forecast.metrics?.rmse ?? '—'}
+</p>
+```
+**Fix:** O'chirish yoki sodda tilda almashtirish:
+```tsx
+<p className="text-xs text-base-content/30">
+  AI bashorat · {(mlForecast.score_forecast.confidence * 100).toFixed(0)}% ishonchlilik
+</p>
+```
+
+---
+
+## P1 — MUHIM (UX yaxshilash)
+
+### T-196 | BACKEND | AI tahlili generic — raqib/o'z tovar farqi yo'q, amaliy maslahat yo'q | Bekzod | 45min
+**Screenshot:** hato/100251.png
+**Muammo:** AI faqat "bu mahsulot hot" deydi:
+- "Yuqori sotuvlar hajmi (45,029 buyurtma) bozorda katta talab mavjudligini ko'rsatadi" — bu tahlil emas, faktni takrorlash
+- "40% chegirma mavjud bo'lib, narxda sezilarli qisqartish xaridorlarni jalb qiladi" — amaliy maslahat yo'q
+- AI bu sotuvchining O'Z mahsuloti yoki RAQIB mahsuloti ekanligini bilmaydi
+**Fayl:** `apps/api/src/ai/ai.service.ts:225-248` — `explainWinner()` prompt
+**Hozirgi prompt:** `"Nima uchun bu mahsulot 'hot' ekanligini 2-4 ta qisqa bulletda tushuntir"`
+**Fix — Yangi prompt:**
+```typescript
+content:
+  `Sen Uzum.uz marketplace tahlilchisisan.\n` +
+  `Sotuvchi bu mahsulotni ko'ryapti — bu uning O'Z mahsuloti yoki RAQIB mahsuloti bo'lishi mumkin.\n\n` +
+  `Mahsulot: ${opts.title}\n` +
+  `VENTRA Score: ${opts.score.toFixed(2)}/10\n` +
+  `Haftalik sotuv: ${opts.weeklyBought ?? 'noaniq'} dona\n` +
+  `Jami buyurtmalar: ${opts.ordersQuantity.toLocaleString()}\n` +
+  `Chegirma: ${opts.discountPercent ?? 0}%\n` +
+  `Reyting: ${opts.rating}/5\n\n` +
+  `Qoidalar:\n` +
+  `1. Har bir nuqta AMALIY bo'lsin — sotuvchi nima QILISHI kerak\n` +
+  `2. Score yuqori (7+) bo'lsa: "kuchli raqib" yoki "yaxshi mahsulot" deb ayt\n` +
+  `3. Score past (1-4) bo'lsa: yaxshilash maslahatini ber\n` +
+  `4. Chegirma haqida: foiz katta bo'lsa margin past ekanini ayt\n` +
+  `5. Sodda, o'zbek tilida, texnik atamalar ISHLATMA\n` +
+  `6. Har bullet 1-2 jumla, QISQA\n\n` +
+  `3-4 ta bullet qaytir. Faqat JSON massiv: ["...", "...", "..."]`
+```
+**Qo'shimcha yaxshilash:**
+- ProductPage'da "Bu mening mahsulotim" / "Bu raqib mahsuloti" toggle qo'shish
+- AI prompt'ga bu kontekstni yuborish → boshqa turdagi maslahatlar
+
+### T-197 | FRONTEND | Score tarixi chart — bir kunda ko'p snapshot zigzag ko'rsatadi | Sardor | 20min
+**Screenshot:** hato/095300.png
+**Muammo:** Score chart zigzag shakl — bir kunda 4 ta snapshot (6h cron), har birida score bir oz farq qiladi. Natija: chiziq o'ynoqibop ko'rinadi, sotuvchi "score barqaror emas" deb o'ylaydi.
+**Fayl:** `ScoreChart.tsx` + `ProductPage.tsx:706-726`
+**Fix:** Snapshotlarni KUN bo'yicha aggregate qilish — har kunning OXIRGI score'ini olish:
+```typescript
+function aggregateByDay(snapshots: ChartPoint[]): ChartPoint[] {
+  const map = new Map<string, ChartPoint>();
+  for (const s of snapshots) {
+    const dayKey = s.date.split('T')[0]; // "2026-02-27"
+    map.set(dayKey, s); // oxirgisi qoladi
+  }
+  return Array.from(map.values());
+}
+```
+Chartga `aggregateByDay(snapshots)` berish.
+
+### T-198 | FRONTEND | Haftalik sotuvlar chart — noto'g'ri data ko'rsatadi | Sardor | 20min
+**Screenshot:** hato/095147.png
+**Muammo:** "Haftalik sotuvlar tarixi" bar chart — `snapshots.slice(-15)` dan `orders` field oladi. Lekin:
+1. `orders` bu snapshot'dagi `weekly_bought` yoki cumulative `orders_quantity`?
+2. Bir kunda 4 snapshot → 4 ta bar bir xil qiymat
+3. Bar chart nima ko'rsatayotgani noaniq
+**Fayl:** `ProductPage.tsx:716-725`
+```tsx
+<BarChart data={snapshots.slice(-15)}>
+  <Bar dataKey="orders" fill="#34d399" name="Haftalik sotuvlar" />
+</BarChart>
+```
+**Fix:**
+1. Snapshotlarni KUN bo'yicha aggregate qilish (T-197 bilan birga)
+2. `dataKey="orders"` → `dataKey="weekly_bought"` (haqiqiy haftalik sotuv)
+3. Agar `weekly_bought` null → bar ko'rsatmaslik
+4. Y-axis label: "dona/hafta"
+5. Bar tooltip: "27 fev: 514 dona haftalik sotuv"
+
+### T-199 | FRONTEND | "7 kunlik bashorat" trend badge noto'g'ri — 3.25→9.14 = "Barqaror"? | Sardor+Bekzod | 20min
+**Screenshot:** hato/095147.png
+**Muammo:** Score 3.25 dan 9.14 ga oshishi bashorat qilingan, lekin trend badge "Barqaror" ko'rsatadi. Sotuvchi: "Score 3x oshadi, lekin barqaror?"
+**Sabab:** `forecastEnsemble()` da slope threshold `0.01`. Historical data mostly flat → slope ~0. Forecast prediction 9.14 bo'lsa ham, slope kichik.
+**Fayl:** `packages/utils/src/index.ts:342`
+```typescript
+const trend = slope > 0.01 ? 'up' : slope < -0.01 ? 'down' : 'flat';
+```
+**Fix:** Prediction-based trend aniqlash:
+```typescript
+const lastValue = values[values.length - 1];
+const forecastValue = ensemble[ensemble.length - 1];
+const changePct = lastValue > 0 ? (forecastValue - lastValue) / lastValue : 0;
+const trend = changePct > 0.05 ? 'up' : changePct < -0.05 ? 'down' : 'flat';
+```
+**Frontend fix:** "Barqaror" → "O'sish kutilmoqda" / "Pasayish kutilmoqda" / "Barqaror" — foiz bilan:
+```tsx
+const trendText = trend === 'up' ? `+${pct}% o'sish` : trend === 'down' ? `${pct}% pasayish` : 'Barqaror';
+```
+
+### T-200 | FRONTEND | ML Prognoz — "confidence", "snapshot" texnik so'zlar | Sardor | 10min
+**Screenshot:** hato/095238.png
+**Muammo:** ML Prognoz card'da:
+- "confidence" — inglizcha texnik termin → "ishonchlilik" yozilgan, lekin tagida yana "confidence"
+- "snapshot" — "58 snapshot" → sotuvchi "snapshot" nima ekanini bilmaydi
+- "Tushunarsiz" badge ko'rsatilmoqda (score 2.94)
+**Fayl:** `ProductPage.tsx:614-630`
+**Fix:**
+```tsx
+// "confidence" → o'chirish
+<p className="text-xs text-base-content/40">darajasi</p>
+
+// "snapshot" → "tahlil"
+<p className="font-bold text-lg">{mlForecast.data_points}</p>
+<p className="text-xs text-base-content/40">tahlil</p>
+
+// Score badge — tushunarliroq:
+// < 3: "Past"  3-5: "O'rtacha"  5-7: "Yaxshi"  7+: "A'lo"
+```
+
+### T-201 | FRONTEND | Raqiblar Narx Kuzatuvi + Global Bozor — loading/bo'sh | Sardor | 15min
+**Screenshot:** hato/095300.png
+**Muammo:** "Raqiblar Narx Kuzatuvi" va "Global Bozor Taqqoslash" seksiyalari loading holati yoki bo'sh. Sotuvchi hech qanday data ko'rmaydi.
+**Sabab:** API xatosi yoki data yo'q. `catch` empty → silent fail.
+**Fayl:** `ProductPage.tsx` — tegishli useEffect va API call'lar
+**Fix:**
+1. Loading state'ga timeout qo'shish (10s keyin "Ma'lumot topilmadi" ko'rsatish)
+2. Bo'sh data bo'lsa: "Bu mahsulot uchun raqib ma'lumotlari hali yo'q" matn ko'rsatish
+3. API error bo'lsa: `toast.error()` bilan xabar berish
+4. Agar feature foydalanilmasa (raqib track qilinmagan) — seksiyani yashirish
+
+### T-202 | FRONTEND | ProductPage overall UX — sotuvchi uchun soddalash | Sardor | 1h
+**Screenshot:** Barchasi
+**Muammo:** Sahifa juda "developer-oriented". Oddiy Uzum sotuvchisi uchun murakkab:
+1. "Score" nima ekanini bilmaydi → qisqa tooltip/info icon kerak
+2. "VENTRA Score 3.25" — bu yaxshimi yomoni? → rang va matn: "Past (3.25/10)"
+3. Chartlar orasida bog'lanish yo'q — nimani nimaga solishtiryapti?
+4. Juda ko'p seksiya — prioritet tartibi kerak
+**Fix — Seksiya tartibi qayta ko'rish:**
+1. **Asosiy ma'lumot** — narx, stok, reyting, haftalik sotuv (eng muhim)
+2. **AI tahlili** — amaliy maslahat (eng foydali)
+3. **Haftalik trend** — sotuv dinamikasi (grafik bilan)
+4. **Bashorat** — 7 kunlik prognoz (sodda tilda)
+5. **Raqiblar** — agar bor bo'lsa
+6. **Texnik** — score tarixi, global taqqoslash (pastda, kamroq muhim)
+
+---
+
 ## XULOSA
 
 | Kategoriya | Tasklar | Diapazoni |
@@ -695,15 +912,17 @@ Bu script bir necha hafta qolishi kerak, keyin o'chiriladi.
 | **Railway Deploy (P1)** | **4** | **T-178...T-181** |
 | **Railway Deploy (P2)** | **3** | **T-182...T-184** |
 | PWA O'chirish (P1) | 5 | T-188...T-192 |
-| **JAMI YANGI** | **129** | T-061...T-192 |
+| **ProductPage UX (P0)** | **3** | **T-193...T-195** |
+| **ProductPage UX (P1)** | **7** | **T-196...T-202** |
+| **JAMI YANGI** | **139** | T-061...T-202 |
 
 | Prioritet | Eski | Yangi | Jami |
 |-----------|------|-------|------|
-| P0 KRITIK | 9 ✅ | 10 (5 code done) | 10 ochiq |
-| P1 MUHIM | 15 ✅ | 21 | 21 ochiq |
+| P0 KRITIK | 9 ✅ | 13 (5 code done) | 13 ochiq |
+| P1 MUHIM | 15 ✅ | 28 | 28 ochiq |
 | P2 O'RTA | 17 ✅ | 26 | 26 ochiq |
 | P3 PAST | 19 ✅ | 72 | 72 ochiq |
-| **JAMI** | **60 ✅** | **129** | **129 ochiq** |
+| **JAMI** | **60 ✅** | **139** | **139 ochiq** |
 
 ### RAILWAY DEPLOY — QILINGAN ISHLAR (Code Done)
 - ✅ Eski `railway/` directory o'chirildi (4 ta toml)
@@ -713,6 +932,18 @@ Bu script bir necha hafta qolishi kerak, keyin o'chiriladi.
 - ✅ `apps/api/Dockerfile` — entrypoint.sh (DIRECT_DATABASE_URL migration, PgBouncer bypass)
 - ✅ `.env.production` — to'liq template (DIRECT_DATABASE_URL, REDIS parol)
 - ✅ `docs/RAILWAY.md` — yangi production guide (arxitektura diagramma, 6 bosqich, CLI, troubleshoot)
+
+### PRODUCTPAGE UX — TOP MUAMMOLAR (hato/ rasmlardan)
+- 🔴 T-193: AI tahlili raw JSON ko'rsatadi (` ```json `, `[`)
+- 🔴 T-194: X-axis "M02 27" 10+ marta takrorlanadi
+- 🔴 T-195: "WMA + Holt's + Linear Regression · MAE · RMSE" texnik jargon
+- 🟡 T-196: AI tahlili generic — raqib/o'z tovar farqi yo'q
+- 🟡 T-197: Score chart zigzag — bir kunda ko'p snapshot
+- 🟡 T-198: Haftalik sotuvlar chart noto'g'ri data
+- 🟡 T-199: "Barqaror" trend badge noto'g'ri (3.25→9.14)
+- 🟡 T-200: "confidence", "snapshot" texnik so'zlar
+- 🟡 T-201: Raqiblar/Global Bozor loading/bo'sh
+- 🟡 T-202: Sahifa tartibi sotuvchi uchun optimal emas
 
 ---
 
