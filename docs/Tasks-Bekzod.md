@@ -1,6 +1,24 @@
 # BEKZOD — Vazifalar
 # Fayllar: apps/api/, apps/worker/, apps/bot/, packages/*, docker-*, .github/*, prisma
 # Yangilangan: 2026-02-27
+# Oxirgi audit: 2026-02-27 (kod tekshiruvi)
+
+---
+
+# ✅ AUDIT NATIJASI — DONE (kod tekshiruvida tasdiqlangan)
+
+| Task | Holat | Izoh |
+|------|-------|------|
+| T-063 | ✅ DONE | `reviewsAmount ?? 0` to'g'ri ishlaydi |
+| T-065 | ✅ DONE | `reviewsAmount ?? 0` fallback to'g'ri |
+| T-067 | ✅ DONE | `reviewsAmount ?? feedbackQuantity ?? 0` tartib to'g'ri |
+| T-068 | ✅ DONE | `seller \|\| shop` — fallback orqali ishlaydi |
+| T-070 | ✅ DONE | SerpAPI engine nomlari valid (`1688`, `taobao`, `alibaba`) |
+| T-073 | ✅ DONE | `prisma.$transaction` + atomic `decrement` — TOCTOU yo'q |
+| T-076 | ✅ DONE | `if (sellPrice)` null guard mavjud |
+| T-077 | ✅ BUG EMAS | `weekly_bought: null` — snapshot delta yo'q, INTENTIONAL |
+| T-141 | ✅ DONE | Prod da Redis healthcheck parol bilan ishlaydi |
+| T-169 | ✅ BUG EMAS | `bot.on('message')` — wildcard handler, to'g'ri dizayn |
 
 ---
 
@@ -53,14 +71,8 @@
 ### T-062 | Anthropic client crash xavfi | 20min
 `apps/worker/src/processors/uzum-ai-scraper.ts:21` — lazy init pattern
 
-### T-063 | reanalysis.processor feedback_quantity 0 ga yozadi | 30min
-`apps/worker/src/processors/reanalysis.processor.ts:82` — `feedbackQuantity` field
-
 ### T-064 | reanalysis.processor title noto'g'ri | 15min
-`apps/worker/src/processors/reanalysis.processor.ts:80` — `localizableTitle?.ru`
-
-### T-065 | import.processor feedback_quantity doim 0 | 15min
-`apps/worker/src/processors/import.processor.ts:75` — `feedbackQuantity` fallback
+`apps/worker/src/processors/reanalysis.processor.ts:80` — `localizableTitle?.ru` fallback yo'q. `import.processor.ts` da to'g'ri ishlaydi.
 
 ### T-193a | AI response da markdown tozalash (BACKEND qismi) | 15min
 `apps/api/src/ai/ai.service.ts:252` — ` ```json ` va `[` tozalash.
@@ -73,19 +85,10 @@ Sardor frontend filter qo'shadi (T-193b). Bu task AVVAL bajarilishi kerak.
 ### T-066 | 3x fetchProductDetail → 1 ta DRY | 45min
 `uzum-scraper.ts` dan bitta canonical funksiya export qilish.
 `import.processor.ts:18-25`, `reanalysis.processor.ts:32-43` import qiladi.
-**Bu task T-063, T-064, T-065 ni ham hal qiladi.**
-
-### T-067 | uzum-scraper feedbackQuantity tartib | 10min
-`apps/worker/src/processors/uzum-scraper.ts:194` → `feedbackQuantity ?? reviewsAmount`
-
-### T-068 | import.processor seller→shop | 10min
-`apps/worker/src/processors/import.processor.ts:41` → `detail.shop || detail.seller`
+**Bu task T-064 ni ham hal qiladi (title fallback).**
 
 ### T-069 | sourcing AI ga platform UUID emas, nomi | 20min
 `apps/worker/src/processors/sourcing.processor.ts:446`
-
-### T-070 | SerpAPI engine nomlari noto'g'ri | 30min
-`apps/worker/src/processors/sourcing.processor.ts:341-343`
 
 ### T-071 | Shopee valyuta xatosi | 20min
 `apps/worker/src/processors/sourcing.processor.ts:263,427`
@@ -93,20 +96,11 @@ Sardor frontend filter qo'shadi (T-193b). Bu task AVVAL bajarilishi kerak.
 ### T-072 | discovery product upsert try/catch | 20min
 `apps/worker/src/processors/discovery.processor.ts:120-149`
 
-### T-073 | billing TOCTOU race condition | 30min
-`apps/worker/src/processors/billing.processor.ts:31-55` → `SELECT FOR UPDATE`
-
 ### T-074 | console.log → logger (40+ joy) | 45min
 `apps/worker/` barcha fayllar
 
 ### T-075 | reanalysis tranzaksiyasiz | 20min
 `apps/worker/src/processors/reanalysis.processor.ts:77-132` → `$transaction()`
-
-### T-076 | competitor null sellPrice false alert | 15min
-`apps/worker/src/processors/competitor.processor.ts:61-84`
-
-### T-077 | discovery weekly_bought doim null | 30min
-`apps/worker/src/processors/discovery.processor.ts:108`
 
 ### T-196 | AI prompt yaxshilash — amaliy maslahat | 45min
 `apps/api/src/ai/ai.service.ts:225-248` — yangi prompt yozish
@@ -163,7 +157,6 @@ Sardor frontend textni yangilaydi (T-199b).
 ### T-137 | breakeven formula | 15min
 ### T-138 | packages/types UzumProductDetail | 15min
 ### T-139 | packages/types UzumItem | 10min
-### T-141 | Redis healthcheck parol | 5min
 ### T-142 | catch(e: any)→unknown | 15min
 ### T-143 | classifyUA bot detect | 10min
 ### T-144 | auth.module dead expiresIn | 5min
@@ -175,7 +168,6 @@ Sardor frontend textni yangilaydi (T-199b).
 ### T-150 | consultant_id naming | 10min
 ### T-166 | parseWeeklyBought o'chirish | 5min
 ### T-167 | predictDeadStock NaN | 5min
-### T-169 | Bot message:text filter | 10min
 ### T-170 | Bot broadcastDiscovery dead | 5min
 ### T-171 | Bot sendPriceDropAlert dead | 5min
 ### T-172 | JobName enum 2 ta qo'shish | 5min
@@ -186,13 +178,14 @@ Sardor frontend textni yangilaydi (T-199b).
 
 | Prioritet | Tasklar |
 |-----------|---------|
+| ✅ DONE (audit) | 10 |
 | .env (manual) | 8 |
 | Railway (manual) | 10 |
-| P0 KRITIK | 6 |
-| P1 MUHIM | 15 |
+| P0 KRITIK | 4 |
+| P1 MUHIM | 9 |
 | P2 O'RTA | 18 |
-| P3 PAST | 34 |
-| **JAMI** | **91** |
+| P3 PAST | 30 |
+| **JAMI ochiq** | **79** |
 
 ---
 *Tasks-Bekzod.md | VENTRA | 2026-02-27*
