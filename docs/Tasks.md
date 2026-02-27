@@ -31,6 +31,122 @@
 ---
 
 # ═══════════════════════════════════════════════════════════
+# 🔴 QO'LDA QILINADIGAN ISHLAR — .env KALITLARI VA CONFIG
+# ═══════════════════════════════════════════════════════════
+#
+# Bu ishlar KOD yozish bilan emas, QIYMAT kiritish bilan hal bo'ladi.
+# Har bir kalit qaysi faylga yozilishi ANIQ ko'rsatilgan.
+
+## ENV-P0 — KRITIK (Ilovasiz ishlamaydi)
+
+### E-001 | DESKTOP | `apps/desktop/.env` fayl YARATISH — login ishlamaydi | 5min
+**Muammo:** Desktop app da login xatosi. Sabab: `VITE_API_URL` env variable yo'q.
+`apps/web/src/api/base.ts:5` da `import.meta.env.VITE_API_URL ?? ''` — bo'sh string qaytadi.
+Desktop app `app://./index.html` protokolidan yuklanganda API URL `app://api/v1/auth/login` bo'ladi — bu ISHLAMAYDI.
+**Fayl yaratish:** `apps/desktop/.env`
+```env
+VITE_API_URL=http://localhost:3000
+```
+
+### E-002 | DESKTOP | `electron.vite.config.ts` ga proxy qo'shish — dev mode login | 10min
+**Muammo:** Web app da `/api/v1` proxy bor (`apps/web/vite.config.ts:15-20`), lekin desktop electron.vite config da proxy YO'Q.
+**Fayl:** `apps/desktop/electron.vite.config.ts` — renderer.server bo'limiga:
+```typescript
+server: {
+  port: 5173,
+  proxy: {
+    '/api/v1': {
+      target: 'http://localhost:3000',
+      changeOrigin: true,
+    },
+  },
+},
+```
+
+### E-003 | CONFIG | `WEB_URL` hech qaysi .env faylda yo'q — CORS xatosi | 5min
+**Muammo:** `apps/api/src/main.ts` da CORS `WEB_URL` dan o'qiydi. Hech qaysi dev .env da yo'q → CORS bloklaydi.
+**Fayllar:** Quyidagi BARCHA fayllarga qo'shish:
+- `apps/api/.env` → `WEB_URL=http://localhost:5173`
+- `.env` (root) → `WEB_URL=http://localhost:5173`
+
+### E-004 | CONFIG | `JWT_SECRET` root va api .env da FARQLI — token xatosi xavfi | 5min
+**Muammo:**
+- Root `/.env`: `JWT_SECRET=bekzodmirzaaliyev...`
+- `apps/api/.env`: `JWT_SECRET=uzum-trend-finder-super-...`
+- `apps/bot/.env`: `JWT_SECRET=uzum-trend-finder-super-...`
+API `apps/api/.env` dan o'qiydi, root ni o'qimaydi — lekin bu CONFUSION yaratadi.
+**Fix:** Root `/.env` dagi `JWT_SECRET` ni `apps/api/.env` dagi bilan BIR XIL qilish.
+
+## ENV-P1 — MUHIM (Feature'lar ishlamaydi)
+
+### E-005 | CONFIG | `SERPAPI_API_KEY` hech qayerda yo'q — sourcing qidirishi fail | 5min
+**Muammo:** `apps/api/src/sourcing/platforms/serpapi.client.ts` va `apps/worker/src/processors/sourcing.processor.ts` da ishlatiladi, lekin HECH QAYSI .env faylda yo'q.
+**Fix:** SerpAPI dan API key olish (https://serpapi.com) va quyidagilarga yozish:
+- `apps/api/.env` → `SERPAPI_API_KEY=your_key_here`
+- `apps/worker/.env` → `SERPAPI_API_KEY=your_key_here`
+- `.env` (root) → `SERPAPI_API_KEY=your_key_here`
+
+### E-006 | CONFIG | `ALIEXPRESS_APP_KEY` + `ALIEXPRESS_APP_SECRET` yo'q | 5min
+**Muammo:** `apps/api/src/sourcing/platforms/aliexpress.client.ts` da ishlatiladi. Hech qaysi .env da yo'q.
+**Fix:** AliExpress Developer Portal dan key olish va yozish:
+- `apps/api/.env` → `ALIEXPRESS_APP_KEY=xxx` + `ALIEXPRESS_APP_SECRET=xxx`
+- `apps/worker/.env` → (same)
+- `.env` (root) → (same)
+
+### E-007 | CONFIG | `NODE_ENV` api/bot/worker .env larda yo'q | 2min
+**Muammo:** `apps/api/src/prisma/prisma.service.ts` da `NODE_ENV` tekshiriladi. Faqat root `.env` da bor.
+**Fix:** Quyidagilarga qo'shish:
+- `apps/api/.env` → `NODE_ENV=development`
+- `apps/worker/.env` → `NODE_ENV=development`
+
+### E-008 | CONFIG | `REDIS_URL` dev da parolsiz — production bilan mos emas | 2min
+**Muammo:** Barcha dev .env larda `REDIS_URL=redis://localhost:6379` (parolsiz). Production da `redis://:PASSWORD@redis:6379`. Development ham parol bilan ishlashi kerak (docker-compose da `REDIS_PASSWORD` bor).
+**Fix:** Agar docker-compose dev da ham parol ishlatsa:
+- Barcha .env: `REDIS_URL=redis://:devpassword@localhost:6379`
+
+## ENV-P2 — O'RTA (Optional, lekin foydalanilmaydi)
+
+### E-009 | CONFIG | `SENTRY_DSN` yo'q — error tracking o'chirilgan | 2min
+**Fayl:** `apps/api/src/common/sentry.ts` da `SENTRY_DSN` tekshiriladi. Yo'q bo'lsa Sentry o'chirilgan.
+**Fix:** Sentry.io dan DSN olish va `apps/api/.env` + `.env` ga yozish.
+
+### E-010 | CONFIG | `PROXY_URL` yo'q — Uzum API block qilsa kerak bo'ladi | 2min
+**Fayl:** `apps/api/src/uzum/uzum.client.ts` va `apps/worker/src/processors/uzum-scraper.ts`
+**Fix:** Proxy kerak bo'lganda `.env` ga yozish: `PROXY_URL=http://proxy:port`
+
+---
+
+# ═══════════════════════════════════════════════════════════
+# DESKTOP APP LOGIN BUG (2026-02-27)
+# ═══════════════════════════════════════════════════════════
+
+## P0 — KRITIK
+
+### T-207 | DESKTOP | Login ishlamaydi — VITE_API_URL yo'q, URL `app://api/v1` bo'ladi | 30min
+**Root cause:** Desktop Electron app production mode da `app://./index.html` dan yuklaydi. `VITE_API_URL` env variable yo'q → `base.ts:5` da `''` qaytadi → Axios `app://api/v1/auth/login` ga request yuboradi → FAIL.
+**Fayllar:**
+- `apps/web/src/api/base.ts:5` — `import.meta.env.VITE_API_URL ?? ''`
+- `apps/desktop/electron.vite.config.ts:25-43` — proxy yo'q
+- `apps/desktop/src/main/window.ts:74-78` — `app://` protocol
+**Fix (3 qadam):**
+1. `apps/desktop/.env` yaratish: `VITE_API_URL=http://localhost:3000` (E-001)
+2. `electron.vite.config.ts` renderer.server ga proxy qo'shish (E-002)
+3. Production build uchun: `apps/desktop/package.json` scripts ni yangilash:
+   ```json
+   "build": "VITE_API_URL=https://app.ventra.uz electron-vite build"
+   ```
+4. Yoki: Electron main process da IPC proxy yaratish (API calls main process orqali):
+   ```typescript
+   // apps/desktop/src/main/ipc.ts ga qo'shish:
+   ipcMain.handle('api-request', async (_, { method, url, data }) => {
+     const resp = await fetch(`http://localhost:3000${url}`, { method, body: JSON.stringify(data) });
+     return resp.json();
+   });
+   ```
+
+---
+
+# ═══════════════════════════════════════════════════════════
 # YANGI VAZIFALAR — WORKER DEBUG AUDIT (2026-02-27)
 # ═══════════════════════════════════════════════════════════
 
