@@ -100,16 +100,9 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
-      # ── Post-deploy: DB migration ──
-      - name: Run database migration
-        run: railway run --service api -- pnpm exec prisma db push --skip-generate --accept-data-loss
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-
+      # DB migration runs automatically via API entrypoint.sh (prisma db push)
       - name: Verify API health
         run: |
-          sleep 30
-          railway run --service api -- wget -qO- http://localhost:3000/api/v1/health || echo "Health check will be verified via Railway dashboard"
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          sleep 60
+          curl -sf https://api-production-8057.up.railway.app/api/v1/health || echo "Health check pending — verify on Railway dashboard"
         continue-on-error: true
