@@ -71,7 +71,7 @@ function sanitizeObj(obj: any): any {
 export function classifyUA(ua: string): LogEntry['ua_type'] {
   if (!ua || ua === '-') return 'unknown';
   const lower = ua.toLowerCase();
-  if (/bot|crawler|spider|scrapy|curl|wget|python-requests|axios|node-fetch|got\//i.test(lower)) return 'bot';
+  if (/bot|crawler|spider|scrapy|curl|wget|python-requests|got\//i.test(lower)) return 'bot';
   if (/mobile|android|iphone|ipad/i.test(lower)) return 'mobile';
   if (/x-api-key|bearer/i.test(lower)) return 'api-key';
   if (/mozilla|chrome|safari|firefox|edge|opera/i.test(lower)) return 'browser';
@@ -96,11 +96,11 @@ export class RotatingFileWriter {
 
   write(entry: Record<string, any>) {
     const today = new Date().toISOString().split('T')[0];
-    if (today !== this.currentDate) {
+    if (today !== this.currentDate || !this.stream) {
       this.rotate(today);
     }
     const line = JSON.stringify(entry) + '\n';
-    this.stream!.write(line);
+    this.stream?.write(line);
   }
 
   private rotate(date: string) {

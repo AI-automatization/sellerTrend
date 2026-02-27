@@ -75,8 +75,8 @@ export class SerpApiClient {
         external_id: item.product_id ?? null,
         platform_code: 'google_shopping',
       })).filter((p: SerpApiProduct) => p.title && p.price_usd > 0);
-    } catch (err: any) {
-      this.logger.error(`SerpAPI google_shopping error: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.error(`SerpAPI google_shopping error: ${err instanceof Error ? err.message : String(err)}`);
       return [];
     }
   }
@@ -86,30 +86,29 @@ export class SerpApiClient {
     try {
       const params = new URLSearchParams({
         api_key: this.apiKey,
-        engine: 'google_shopping',
-        q: query + ' site:amazon.de',
-        num: '8',
-        gl: 'de',
+        engine: 'amazon',
+        amazon_domain: 'amazon.de',
+        q: query,
       });
       const res = await fetch(`https://serpapi.com/search.json?${params}`);
       if (!res.ok) return [];
       const data = await res.json() as any;
-      const results = data.shopping_results ?? [];
+      const results = data.organic_results ?? [];
       return results.slice(0, 8).map((item: any) => ({
         title: item.title ?? '',
-        price_usd: this.parsePrice(item.extracted_price ?? item.price),
-        price_local: this.parsePrice(item.extracted_price ?? item.price),
+        price_usd: this.parsePrice(item.price?.raw ?? item.price?.value ?? item.price),
+        price_local: this.parsePrice(item.price?.raw ?? item.price?.value ?? item.price),
         currency: 'EUR',
-        url: item.link ?? item.product_link ?? '',
+        url: item.link ?? '',
         image_url: item.thumbnail ?? null,
-        seller_name: item.source ?? 'Amazon.de',
-        seller_rating: item.rating ? parseFloat(item.rating) : null,
+        seller_name: 'Amazon.de',
+        seller_rating: item.rating ? parseFloat(String(item.rating)) : null,
         min_order_qty: null,
-        external_id: item.product_id ?? null,
+        external_id: item.asin ?? null,
         platform_code: 'amazon_de',
       })).filter((p: SerpApiProduct) => p.title && p.price_usd > 0);
-    } catch (err: any) {
-      this.logger.error(`SerpAPI amazon_de error: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.error(`SerpAPI amazon_de error: ${err instanceof Error ? err.message : String(err)}`);
       return [];
     }
   }
@@ -154,8 +153,8 @@ export class SerpApiClient {
           platform_code: platformCode,
         };
       }).filter((p: SerpApiProduct) => p.title && p.price_usd > 0);
-    } catch (err: any) {
-      this.logger.error(`SerpAPI ${engine} error: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.error(`SerpAPI ${engine} error: ${err instanceof Error ? err.message : String(err)}`);
       return [];
     }
   }

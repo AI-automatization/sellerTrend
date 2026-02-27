@@ -1,11 +1,13 @@
 import { NestFactory, HttpAdapterHost } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { GlobalLoggerInterceptor } from './common/interceptors/global-logger.interceptor';
 import { ErrorTrackerFilter } from './common/filters/error-tracker.filter';
 import { PrismaService } from './prisma/prisma.service';
 import { initSentry } from './common/sentry';
+
+const logger = new Logger('Bootstrap');
 
 const SWAGGER_HTML = `<!DOCTYPE html>
 <html>
@@ -91,22 +93,22 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port, '::');
-  console.log(`API running on http://localhost:${port} (dual-stack IPv4+IPv6)`);
-  console.log(`Swagger docs: http://localhost:${port}/api/docs`);
+  logger.log(`API running on http://localhost:${port} (dual-stack IPv4+IPv6)`);
+  logger.log(`Swagger docs: http://localhost:${port}/api/docs`);
 
   const shutdown = async (signal: string) => {
-    console.log(`[${signal}] Graceful shutdown...`);
+    logger.log(`[${signal}] Graceful shutdown...`);
     const timeout = setTimeout(() => {
-      console.error('Shutdown timeout (30s), forcing exit');
+      logger.error('Shutdown timeout (30s), forcing exit');
       process.exit(1);
     }, 30_000);
     try {
       await app.close();
       clearTimeout(timeout);
-      console.log('Shutdown complete');
+      logger.log('Shutdown complete');
       process.exit(0);
     } catch (err) {
-      console.error('Shutdown error:', err);
+      logger.error('Shutdown error:', err);
       process.exit(1);
     }
   };

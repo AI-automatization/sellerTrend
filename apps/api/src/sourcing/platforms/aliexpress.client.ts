@@ -90,8 +90,8 @@ export class AliExpressClient {
         external_id: item.product_id ? String(item.product_id) : null,
         platform_code: 'aliexpress' as const,
       })).filter((p: AliExpressProduct) => p.title && p.price_usd > 0);
-    } catch (err: any) {
-      this.logger.error(`AliExpress search error: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.error(`AliExpress search error: ${err instanceof Error ? err.message : String(err)}`);
       return [];
     }
   }

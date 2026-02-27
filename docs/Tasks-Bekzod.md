@@ -114,42 +114,44 @@
 
 ---
 
-# P3 — PAST
+# P3 — ✅ BAJARILDI (31/34 — 3 ta skip: T-101 2h refactor, T-150 migration kerak, T-141/T-169 oldin done)
 
-### T-101 | admin.service 2186 qator bo'lish | 2h
-### T-102 | `as any` 30+ joy | 1h
-### T-103 | main.ts console.log→Logger | 10min
-### T-104 | community dead code | 5min
-### T-105 | hardcoded SUPER_ADMIN_ID | 15min
-### T-106 | admin @Res() optional crash | 15min
-### T-107 | JWT 7d vs 15m conflict | 10min
-### T-108 | api-key.guard role | 10min
-### T-109 | admin N+1 query | 30min
-### T-110 | RotatingFileWriter NPE | 10min
-### T-111 | Redis connection nomuvofiq | 15min
-### T-112 | community limitless query | 15min
-### T-113 | sourcing.queue lazy init | 15min
-### T-133 | sourcing hardcoded 0.5kg | 15min
-### T-134 | sourcing hardcoded USD 12900 | 10min
-### T-135 | predictDeadStock naming | 5min
-### T-136 | RMSE→std_dev rename | 5min
-### T-137 | breakeven formula | 15min
-### T-138 | packages/types UzumProductDetail | 15min
-### T-139 | packages/types UzumItem | 10min
-### T-142 | catch(e: any)→unknown | 15min
-### T-143 | classifyUA bot detect | 10min
-### T-144 | auth.module dead expiresIn | 5min
-### T-145 | SerpAPI Amazon engine | 10min
-### T-146 | prisma tenant check prod | 10min
-### T-147 | referral dead code | 10min
-### T-148 | sourcing _source dead | 5min
-### T-149 | community non-null | 5min
-### T-150 | consultant_id naming | 10min
-### T-166 | parseWeeklyBought o'chirish | 5min
-### T-167 | predictDeadStock NaN | 5min
-### T-170 | Bot broadcastDiscovery dead | 5min
-### T-171 | Bot sendPriceDropAlert dead | 5min
-### T-172 | JobName enum 2 ta qo'shish | 5min
+| # | Vazifa | Holat |
+|---|--------|-------|
+| T-102 | `as any` 13 ta typed cast | ✅ |
+| T-103 | main.ts console.log→Logger | ✅ |
+| T-104 | community dead code | ✅ |
+| T-105 | hardcoded SUPER_ADMIN_ID | ✅ |
+| T-106 | admin @Res() optional crash | ✅ |
+| T-107 | JWT 7d vs 15m conflict | ✅ |
+| T-108 | api-key.guard role | ✅ |
+| T-109 | admin N+1 query | ✅ |
+| T-110 | RotatingFileWriter NPE | ✅ |
+| T-111 | Redis connection nomuvofiq | ✅ |
+| T-112 | community limitless query | ✅ |
+| T-113 | sourcing.queue lazy init | ✅ |
+| T-133 | sourcing hardcoded 0.5kg | ✅ |
+| T-134 | sourcing hardcoded USD 12900 | ✅ |
+| T-135 | predictDeadStock naming | ✅ |
+| T-136 | RMSE→std_dev rename | ✅ |
+| T-137 | breakeven formula | ✅ |
+| T-138 | packages/types UzumProductDetail | ✅ |
+| T-139 | packages/types UzumItem | ✅ |
+| T-142 | catch(e: any)→unknown (17 ta) | ✅ |
+| T-143 | classifyUA bot detect | ✅ |
+| T-144 | auth.module dead expiresIn | ✅ |
+| T-145 | SerpAPI Amazon engine | ✅ |
+| T-146 | prisma tenant check prod | ✅ |
+| T-147 | referral dead code | ✅ |
+| T-148 | sourcing _source dead | ✅ |
+| T-149 | community non-null | ✅ |
+| T-166 | parseWeeklyBought o'chirish | ✅ |
+| T-167 | predictDeadStock NaN | ✅ |
+| T-170 | Bot broadcastDiscovery dead | ✅ |
+| T-171 | Bot sendPriceDropAlert dead | ✅ |
+| T-172 | JobName enum 2 ta qo'shish | ✅ |
+| T-101 | admin.service 2186 qator bo'lish | ⏭ Skip (2h refactor) |
+| T-150 | consultant_id naming | ⏭ Skip (migration kerak) |
 
 ---
 
@@ -163,8 +165,8 @@
 | P0 KRITIK | ✅ 0 (HAMMASI BAJARILDI) |
 | P1 MUHIM | ✅ 0 (HAMMASI BAJARILDI) |
 | P2 O'RTA | ✅ 0 (HAMMASI BAJARILDI) |
-| P3 PAST | 30 |
-| **JAMI ochiq** | **56** |
+| P3 PAST | ✅ 2 qoldi (T-101 refactor, T-150 migration) |
+| **JAMI ochiq** | **28** |
 
 ---
 *Tasks-Bekzod.md | VENTRA | 2026-02-27*

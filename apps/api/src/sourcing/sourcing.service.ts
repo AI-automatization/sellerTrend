@@ -214,7 +214,6 @@ export class SourcingService {
 
   async searchExternalPrices(
     query: string,
-    _source: string,
     account_id: string,
   ) {
     // Playwright worker orqali real mahsulotlari

@@ -29,7 +29,7 @@ export class ErrorTrackerFilter extends BaseExceptionFilter {
     if (status >= 400) {
       const message =
         exception instanceof HttpException
-          ? (exception.getResponse() as any)?.message || exception.message
+          ? (exception.getResponse() as Record<string, unknown>)?.message || exception.message
           : exception.message || 'Unknown error';
 
       try {

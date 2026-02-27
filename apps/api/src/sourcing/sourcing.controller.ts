@@ -67,7 +67,6 @@ export class SourcingController {
   ) {
     return this.sourcingService.searchExternalPrices(
       body.query,
-      body.source || 'ALIBABA',
       account_id,
     );
   }

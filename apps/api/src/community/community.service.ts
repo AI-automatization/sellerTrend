@@ -41,12 +41,8 @@ export class CommunityService {
 
     const insights = await this.prisma.communityInsight.findMany({
       where,
-      orderBy: [
-        // Order by net votes (upvotes - downvotes) desc
-        // Since Prisma doesn't support computed fields in orderBy,
-        // we fetch all and sort in-memory
-        { created_at: 'desc' },
-      ],
+      take: 100,
+      orderBy: { created_at: 'desc' },
       include: {
         account: { select: { name: true } },
       },
@@ -107,20 +103,7 @@ export class CommunityService {
         data: { vote: normalizedVote },
       });
 
-      // Update counters: remove old vote, add new vote
-      const counterUpdate: any = {};
-      if (existingVote.vote === 1) {
-        counterUpdate.upvotes = { decrement: 1 };
-      } else {
-        counterUpdate.downvotes = { decrement: 1 };
-      }
-      if (normalizedVote === 1) {
-        counterUpdate.upvotes = { ...(counterUpdate.upvotes ?? {}), increment: 1 };
-      } else {
-        counterUpdate.downvotes = { ...(counterUpdate.downvotes ?? {}), increment: 1 };
-      }
-
-      // Use two separate updates to handle counter changes correctly
+      // Swap counters: decrement old direction, increment new
       if (existingVote.vote === 1) {
         await this.prisma.communityInsight.update({
           where: { id: insightId },
@@ -164,9 +147,9 @@ export class CommunityService {
     return {
       insight_id: insightId,
       vote: normalizedVote,
-      upvotes: updated!.upvotes,
-      downvotes: updated!.downvotes,
-      net_votes: updated!.upvotes - updated!.downvotes,
+      upvotes: updated?.upvotes ?? 0,
+      downvotes: updated?.downvotes ?? 0,
+      net_votes: (updated?.upvotes ?? 0) - (updated?.downvotes ?? 0),
     };
   }
 

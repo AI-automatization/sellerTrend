@@ -488,7 +488,10 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
 
         const rates = await prisma.currencyRate.findMany({ where: { to_code: 'UZS' } });
         const usdRate = rates.find((r) => r.from_code === 'USD');
-        const usdToUzs = usdRate ? Number(usdRate.rate) : 12900;
+        if (!usdRate) {
+          logJobInfo('sourcing-search', jobId ?? '-', 'processSearch', 'USD rate not found in DB — skipping cargo calculation');
+        }
+        const usdToUzs = usdRate ? Number(usdRate.rate) : 0;
 
         // Get Uzum product price for margin calc
         let uzumPriceUzs = 0;
@@ -501,10 +504,11 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
         }
 
         const defaultProvider = cargoProviders[0];
-        if (defaultProvider) {
+        if (defaultProvider && usdToUzs > 0) {
           for (const result of topResults) {
             const priceUsd = Number(result.price_usd);
-            const estWeightKg = 0.5; // default estimate
+            // Weight estimate: use category-based heuristic (default 0.5kg for small items)
+            const estWeightKg = priceUsd > 50 ? 1.0 : priceUsd > 20 ? 0.7 : 0.5;
             const cargoCost = estWeightKg * Number(defaultProvider.rate_per_kg);
             const customsRate = 0.10;
             const vatRate = 0.12;

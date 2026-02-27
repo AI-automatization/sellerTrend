@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcryptjs';
@@ -36,7 +37,7 @@ export class TeamService {
       data: {
         account_id: accountId,
         email: data.email,
-        role: (data.role as any) ?? 'USER',
+        role: (data.role as UserRole) ?? 'USER',
         token,
         invited_by: invitedBy,
         expires_at: expiresAt,

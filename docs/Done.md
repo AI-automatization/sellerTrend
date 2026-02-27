@@ -1,5 +1,5 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
-# Yangilangan: 2026-02-26
+# Yangilangan: 2026-02-27
 
 ## TUZATILGAN BUGLAR (28 ta)
 
@@ -106,6 +106,45 @@
 | T-058 | Domain unit testlar | vitest setup + 52 unit tests: scoring, parse, forecast, profit, elasticity, signals (all pass) |
 | T-059 | Monorepo boundary lint | eslint.config.js no-restricted-imports: web cannot import from api/worker/bot |
 | T-060 | Feature usage telemetry | @ActivityAction decorator added to 14 key endpoints across 5 controllers |
+
+---
+
+## P3 VAZIFALAR — BAJARILDI (2026-02-27)
+
+| # | Vazifa | Yechim |
+|---|--------|--------|
+| T-102 | `as any` → typed casts | 13 ta `as any` → UserRole/AccountStatus/FeedbackStatus/Prisma.InputJsonValue/Record<string,unknown>. admin, team, signals, export, error-tracker |
+| T-103 | main.ts console.log→Logger | NestJS Logger import, 6 ta console.log/error → logger.log/error |
+| T-104 | community dead code | counterUpdate o'zgaruvchisi o'chirildi (hisoblangan lekin ishlatilmagan) |
+| T-105 | hardcoded SUPER_ADMIN_ID | process.env.SUPER_ADMIN_ACCOUNT_ID ?? fallback |
+| T-106 | admin @Res() optional crash | @Res() res?: → @Res() res:, res!. → res., (row as any) → Record<string,unknown> |
+| T-107 | JWT 7d vs 15m conflict | signOptions: { expiresIn: '7d' } o'chirildi (service 15m override) |
+| T-108 | api-key.guard role | role: 'API_KEY' → role: 'USER' + sub: 'apikey:${accountId}' |
+| T-109 | admin N+1 query | getTopUsers: N+1 loop (4 query/user) → single Prisma findMany + nested include |
+| T-110 | RotatingFileWriter NPE | !this.stream guard + this.stream?.write() |
+| T-111 | Redis connection | discovery.queue + import.queue: REDIS_URL pattern + lazy getter (sourcing.queue allaqachon fix) |
+| T-112 | community limitless query | listInsights: take: 100 limit qo'shildi |
+| T-113 | sourcing.queue lazy init | Module-level Queue → lazy getQueue()/getQueueEvents() wrapper |
+| T-133 | sourcing hardcoded 0.5kg | Price-based heuristic: >$50→1kg, >$20→0.7kg, else→0.5kg |
+| T-134 | sourcing hardcoded USD 12900 | Fallback 12900 → 0 + warning log, usdToUzs>0 guard |
+| T-135 | predictDeadStock naming | JSDoc: days_to_dead formula hujjatlandi |
+| T-136 | RMSE→std_dev rename | ForecastResult.rmse → std_dev (aslida standart og'ish) |
+| T-137 | breakeven formula | calculateProfit: breakeven formula izohlar bilan hujjatlandi |
+| T-138 | UzumProductDetail | Eski noto'g'ri maydonlar o'chirildi → ordersAmount, reviewsAmount, totalAvailableAmount |
+| T-139 | UzumItem o'chirish | Interface hech joyda ishlatilmaydi — o'chirildi |
+| T-142 | catch(e: any)→unknown | 17 ta catch block: err.message → err instanceof Error ? err.message : String(err) |
+| T-143 | classifyUA bot detect | axios\|node-fetch bot regex dan olib tashlandi |
+| T-144 | auth.module dead expiresIn | signOptions o'chirildi (T-107 bilan birga) |
+| T-145 | SerpAPI Amazon engine | google_shopping + site:amazon.de → amazon engine + amazon_domain:'amazon.de' |
+| T-146 | prisma tenant check prod | NODE_ENV !== 'production' sharti olib tashlandi — barcha muhitda ishlaydi |
+| T-147 | referral dead code | getStats: referred_account_id: { not: null } filter |
+| T-148 | sourcing _source dead | searchExternalPrices: ishlatilmagan _source parametri olib tashlandi |
+| T-149 | community non-null | updated!.upvotes → updated?.upvotes ?? 0 |
+| T-166 | parseWeeklyBought o'chirish | Dead code: Uzum API actions.text olib tashlangan — funksiya o'chirildi |
+| T-167 | predictDeadStock NaN | dailyDecline guard: salesDeclineRate > 0 && avgOlder > 0 |
+| T-170 | Bot broadcastDiscovery dead | Butun funksiya + ishlatilmagan importlar olib tashlandi |
+| T-171 | Bot sendPriceDropAlert dead | Funksiya + ishlatilmagan prisma import olib tashlandi |
+| T-172 | JobName enum | 'reanalysis-6h' \| 'sourcing-search' qo'shildi |
 
 ---
 

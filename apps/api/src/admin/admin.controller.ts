@@ -597,9 +597,9 @@ export class AdminController {
   /** Export — Revenue CSV */
   @Get('export/revenue')
   async exportRevenue(
+    @Res() res: Response,
     @Query('from') from?: string,
     @Query('to') to?: string,
-    @Res() res?: Response,
   ) {
     const data = await this.adminService.getExportRevenueData(
       from ? new Date(from) : undefined,
@@ -611,7 +611,7 @@ export class AdminController {
 
     for (const row of data) {
       csvRows.push(headers.map((h) => {
-        const val = (row as any)[h];
+        const val = (row as Record<string, unknown>)[h];
         const str = String(val ?? '');
         return str.includes(',') || str.includes('"')
           ? `"${str.replace(/"/g, '""')}"`
@@ -621,17 +621,17 @@ export class AdminController {
 
     const csv = csvRows.join('\n');
 
-    res!.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res!.setHeader('Content-Disposition', 'attachment; filename=revenue_export.csv');
-    res!.send(csv);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename=revenue_export.csv');
+    res.send(csv);
   }
 
   /** Export — Activity CSV */
   @Get('export/activity')
   async exportActivity(
+    @Res() res: Response,
     @Query('from') from?: string,
     @Query('to') to?: string,
-    @Res() res?: Response,
   ) {
     const data = await this.adminService.getExportActivityData(
       from ? new Date(from) : undefined,
@@ -643,7 +643,7 @@ export class AdminController {
 
     for (const row of data) {
       csvRows.push(headers.map((h) => {
-        const val = (row as any)[h];
+        const val = (row as Record<string, unknown>)[h];
         const str = String(val ?? '');
         return str.includes(',') || str.includes('"')
           ? `"${str.replace(/"/g, '""')}"`
@@ -653,8 +653,8 @@ export class AdminController {
 
     const csv = csvRows.join('\n');
 
-    res!.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res!.setHeader('Content-Disposition', 'attachment; filename=activity_export.csv');
-    res!.send(csv);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename=activity_export.csv');
+    res.send(csv);
   }
 }

@@ -401,40 +401,40 @@ function getClient(): Anthropic {
 ### T-101 | BACKEND | admin.service.ts 2186 qator (400+ rule) |2h
 **Bug:** M-01. Service ni 4-5 ta kichik service ga bo'lish.
 
-### T-102 | BACKEND | `as any` 30+ joyda |1h
+### T-102 | ✅ DONE | BACKEND | `as any` 30+ joyda |1h
 **Bug:** M-02. Typed interface bilan almashtirish.
 
-### T-103 | BACKEND | main.ts console.log → Logger |10min
+### T-103 | ✅ DONE | BACKEND | main.ts console.log → Logger |10min
 **Bug:** M-03.
 
-### T-104 | BACKEND | community.service dead code — counterUpdate |5min
+### T-104 | ✅ DONE | BACKEND | community.service dead code — counterUpdate |5min
 **Bug:** M-04. O'chirish.
 
-### T-105 | BACKEND | admin.service hardcoded SUPER_ADMIN_ACCOUNT_ID |15min
+### T-105 | ✅ DONE | BACKEND | admin.service hardcoded SUPER_ADMIN_ACCOUNT_ID |15min
 **Bug:** M-05. `.env` dan olish yoki DB dan dinamik topish.
 
-### T-106 | BACKEND | admin.controller @Res() optional crash riski |15min
+### T-106 | ✅ DONE | BACKEND | admin.controller @Res() optional crash riski |15min
 **Bug:** M-06. Optional pattern o'rniga explicit response handling.
 
-### T-107 | BACKEND | JWT module 7d vs service 15m conflict |10min
+### T-107 | ✅ DONE | BACKEND | JWT module 7d vs service 15m conflict |10min
 **Bug:** M-07. Bitta joyda configure qilish.
 
-### T-108 | BACKEND | api-key.guard.ts noto'g'ri role 'API_KEY' |10min
+### T-108 | ✅ DONE | BACKEND | api-key.guard.ts noto'g'ri role 'API_KEY' |10min
 **Bug:** M-08. Role enum ga qo'shish yoki guard logikasini tuzatish.
 
-### T-109 | BACKEND | admin.service getTopUsers N+1 query (400 query) |30min
+### T-109 | ✅ DONE | BACKEND | admin.service getTopUsers N+1 query (400 query) |30min
 **Bug:** M-09. Prisma `include` yoki `Promise.all` bilan batch.
 
-### T-110 | BACKEND | RotatingFileWriter stream NPE riski |10min
+### T-110 | ✅ DONE | BACKEND | RotatingFileWriter stream NPE riski |10min
 **Bug:** M-10. Null check qo'shish.
 
-### T-111 | BACKEND | Redis ulanish strategiyasi nomuvofiq |15min
+### T-111 | ✅ DONE | BACKEND | Redis ulanish strategiyasi nomuvofiq |15min
 **Bug:** M-11. Barcha queue fayllarini bir xil pattern ga keltirish (REDIS_URL).
 
-### T-112 | BACKEND | community.service limitless query + in-memory sort |15min
+### T-112 | ✅ DONE | BACKEND | community.service limitless query + in-memory sort |15min
 **Bug:** M-12. `take` limit va DB-level sort qo'shish.
 
-### T-113 | BACKEND | sourcing.queue.ts modul import da Redis connection |15min
+### T-113 | ✅ DONE | BACKEND | sourcing.queue.ts modul import da Redis connection |15min
 **Bug:** M-13. Lazy initialization.
 
 ### T-114 | FRONTEND | admin.ts dead code sendNotification |5min
@@ -491,54 +491,54 @@ function getClient(): Anthropic {
 ### T-131 | FRONTEND | FeedbackPage 4 ta empty catch |10min
 **Bug:** M-31.
 
-### T-133 | BACKEND | sourcing.processor hardcoded 0.5kg weight |15min
+### T-133 | ✅ DONE | BACKEND | sourcing.processor hardcoded 0.5kg weight |15min
 **Bug:** NEW-13. Barcha productlar 0.5 kg deb hisoblanadi. Og'ir buyumlar uchun cargo noto'g'ri.
 **Fix:** Job data da `weight_kg` parametr qo'llash yoki kategoriya bo'yicha default og'irlik.
 
-### T-134 | BACKEND | sourcing.processor hardcoded USD rate 12900 |10min
+### T-134 | ✅ DONE | BACKEND | sourcing.processor hardcoded USD rate 12900 |10min
 **Bug:** NEW-14 + L-20. DB da rate yo'q bo'lsa 12900 fallback. Eskiradi.
 **Fix:** Rate yo'q bo'lsa xato qaytarish yoki CBU API dan so'rash.
 
-### T-135 | BACKEND | predictDeadStock days formula naming |5min
+### T-135 | ✅ DONE | BACKEND | predictDeadStock days formula naming |5min
 **Bug:** NEW-09. Yechim: comment qo'shish, o'zgaruvchi nomlarini tuzatish.
 
-### T-136 | BACKEND | forecastEnsemble RMSE aslida std deviation |5min
+### T-136 | ✅ DONE | BACKEND | forecastEnsemble RMSE aslida std deviation |5min
 **Bug:** NEW-10 + L-30. `rmse` → `std_dev` ga rename qilish.
 
-### T-137 | BACKEND | calculateProfit breakeven formula kontseptual xato |15min
+### T-137 | ✅ DONE | BACKEND | calculateProfit breakeven formula kontseptual xato |15min
 **Bug:** NEW-11 + L-31. Fixed cost model qo'shish yoki formulani hujjatlash.
 
-### T-138 | BACKEND | packages/types UzumProductDetail mos kelmaydi |15min
+### T-138 | ✅ DONE | BACKEND | packages/types UzumProductDetail mos kelmaydi |15min
 **Bug:** H-16. `ordersQuantity` → `ordersAmount`, `weeklyBought` o'chirish.
 
-### T-139 | BACKEND | packages/types UzumItem mos kelmaydi |10min
+### T-139 | ✅ DONE | BACKEND | packages/types UzumItem mos kelmaydi |10min
 **Bug:** H-17. Hech qayerda ishlatilmaydi — o'chirish yoki yangilash.
 
 ### T-141 | ✅ DONE | DOCKER | Redis healthcheck parol bilan ishlaydi |5min
 **Bug:** M-39. `redis-cli -a ${REDIS_PASSWORD} ping`
 
-### T-142 | BACKEND | catch(e: any) → catch(e: unknown) |15min
+### T-142 | ✅ DONE | BACKEND | catch(e: any) → catch(e: unknown) |15min
 **Bug:** L-01.
 
-### T-143 | BACKEND | classifyUA axios/node-fetch ni bot deb aniqlaydi |10min
+### T-143 | ✅ DONE | BACKEND | classifyUA axios/node-fetch ni bot deb aniqlaydi |10min
 **Bug:** L-02.
 
-### T-144 | BACKEND | auth.module.ts dead expiresIn 7d |5min
+### T-144 | ✅ DONE | BACKEND | auth.module.ts dead expiresIn 7d |5min
 **Bug:** L-03.
 
-### T-145 | BACKEND | SerpAPI Amazon engine noto'g'ri |10min
+### T-145 | ✅ DONE | BACKEND | SerpAPI Amazon engine noto'g'ri |10min
 **Bug:** L-04.
 
-### T-146 | BACKEND | prisma.service tenant check faqat dev |10min
+### T-146 | ✅ DONE | BACKEND | prisma.service tenant check faqat dev |10min
 **Bug:** L-05. Production da ham enable qilish (warn level).
 
-### T-147 | BACKEND | referral.service ishlatilmagan kodlarni hisoblaydi |10min
+### T-147 | ✅ DONE | BACKEND | referral.service ishlatilmagan kodlarni hisoblaydi |10min
 **Bug:** L-06.
 
-### T-148 | BACKEND | sourcing.service _source parametri dead |5min
+### T-148 | ✅ DONE | BACKEND | sourcing.service _source parametri dead |5min
 **Bug:** L-07.
 
-### T-149 | BACKEND | community.service non-null assertion |5min
+### T-149 | ✅ DONE | BACKEND | community.service non-null assertion |5min
 **Bug:** L-08.
 
 ### T-150 | BACKEND | naming consultant_id aslida account_id |10min
@@ -586,22 +586,22 @@ function getClient(): Anthropic {
 ### T-164 | i18n | 7 ta sahifada hardcoded Uzbek matn |30min
 **Bug:** L-23. `t()` funksiya bilan almashtirish.
 
-### T-166 | BACKEND | parseWeeklyBought dead code |5min
+### T-166 | ✅ DONE | BACKEND | parseWeeklyBought dead code |5min
 **Bug:** L-28. O'chirish.
 
-### T-167 | BACKEND | predictDeadStock 0/0 NaN edge case |5min
+### T-167 | ✅ DONE | BACKEND | predictDeadStock 0/0 NaN edge case |5min
 **Bug:** L-29. Guard qo'shish.
 
 ### T-169 | ✅ DONE (BUG EMAS) | BACKEND | Bot on('message') wildcard — to'g'ri dizayn |10min
 **Bug:** L-33. `bot.on('message:text')` ishlatish.
 
-### T-170 | BACKEND | Bot broadcastDiscovery dead code |5min
+### T-170 | ✅ DONE | BACKEND | Bot broadcastDiscovery dead code |5min
 **Bug:** M-36.
 
-### T-171 | BACKEND | Bot sendPriceDropAlert dead code |5min
+### T-171 | ✅ DONE | BACKEND | Bot sendPriceDropAlert dead code |5min
 **Bug:** M-37.
 
-### T-172 | BACKEND | JobName enum 2 ta job nomi yo'q |5min
+### T-172 | ✅ DONE | BACKEND | JobName enum 2 ta job nomi yo'q |5min
 **Bug:** L-27. `reanalysis-6h` va `sourcing-search` qo'shish.
 
 ---

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   detectCannibalization,
@@ -261,7 +262,7 @@ export class SignalsService {
     if (existing) {
       const c = await this.prisma.productChecklist.update({
         where: { id: existing.id },
-        data: { title, items: items as any },
+        data: { title, items: items as Prisma.InputJsonValue },
       });
       return { ...c, product_id: c.product_id?.toString() ?? null };
     }
@@ -271,7 +272,7 @@ export class SignalsService {
         account_id: accountId,
         product_id: productId,
         title,
-        items: items as any,
+        items: items as Prisma.InputJsonValue,
       },
     });
     return { ...c, product_id: c.product_id?.toString() ?? null };

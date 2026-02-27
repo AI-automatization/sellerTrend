@@ -73,9 +73,9 @@ export class AuthService {
         this.logger.log(
           `Referral code ${dto.referral_code} applied for account ${account.id}`,
         );
-      } catch (e: any) {
+      } catch (e: unknown) {
         this.logger.warn(
-          `Referral code ${dto.referral_code} failed: ${e.message}`,
+          `Referral code ${dto.referral_code} failed: ${e instanceof Error ? e.message : String(e)}`,
         );
       }
     }

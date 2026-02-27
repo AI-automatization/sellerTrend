@@ -1,5 +1,4 @@
 import { Bot } from 'grammy';
-import { prisma } from './prisma';
 
 /**
  * Send alert to a Telegram chat when a product score spikes.
@@ -38,28 +37,6 @@ export async function sendDiscoveryAlert(
     `🏆 <b>Category #${categoryId} — Top 5 Trending</b>\n\n` +
     lines.join('\n\n') +
     `\n\n<i>🤖 VENTRA Analytics</i>`;
-
-  await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
-}
-
-/**
- * Send a price drop alert.
- */
-export async function sendPriceDropAlert(
-  bot: Bot,
-  chatId: string | number,
-  productTitle: string,
-  oldPrice: number,
-  newPrice: number,
-  productId: string,
-) {
-  const dropPct = Math.round(((oldPrice - newPrice) / oldPrice) * 100);
-  const message =
-    `📉 <b>Narx tushdi!</b>\n\n` +
-    `<b>${escapeHtml(productTitle)}</b>\n` +
-    `💰 ${oldPrice.toLocaleString()} → ${newPrice.toLocaleString()} so'm\n` +
-    `📉 -${dropPct}% chegirma\n` +
-    `🆔 Product #${productId}`;
 
   await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
 }

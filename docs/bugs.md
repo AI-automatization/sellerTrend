@@ -5,14 +5,14 @@
 
 ---
 
-## PRODUCTION READINESS: ~88%
+## PRODUCTION READINESS: ~94%
 
 | Kategoriya | Soni | Foiz |
 |-----------|------|------|
-| ISHLAYDI (to'liq) | 31 | ~77% |
-| QISMAN ISHLAYDI | 5 | ~13% |
-| BUZILGAN / ISHLAMAYDI | 2 | ~5% |
-| DEAD CODE | 2 | ~5% |
+| ISHLAYDI (to'liq) | 36 | ~86% |
+| QISMAN ISHLAYDI | 4 | ~10% |
+| BUZILGAN / ISHLAMAYDI | 1 | ~2% |
+| DEAD CODE | 0 | 0% |
 | PRODUCTION BLOCKER | 0 | 0% |
 
 ### PRODUCTION BLOCKER: ✅ HAMMASI TUZATILDI
@@ -25,15 +25,16 @@
 - URL Analyze (Uzum API → upsert → score)
 - Dashboard (KPIs, charts, tracked products)
 - Billing (cron charge, 402 guard, balance)
-- Admin panel (accounts, audit log, deposit, fees)
+- Admin panel (accounts, audit log, deposit, fees) — N+1 query fix, typed casts
 - Discovery (BullMQ + Playwright DOM scraping)
 - Niche Finder (division-by-zero himoyalangan)
 - Competitor tracking (NotFoundException to'g'ri ishlaydi)
-- Sourcing — Cargo calculator (customs 10/20% + QQS 12%)
+- Sourcing — Cargo calculator (customs 10/20% + QQS 12%) — price-based weight heuristic
 - Sourcing — AliExpress/Alibaba Playwright scraping
-- AI — extractAttributes, explainWinner (graceful fallback)
+- Sourcing — SerpAPI Amazon dedicated engine
+- AI — extractAttributes, explainWinner (graceful fallback, catch(unknown))
 - AI — generateSearchQuery, generateDescription
-- Bot — /subscribe, /unsubscribe, /status, /top, /help
+- Bot — /subscribe, /unsubscribe, /status, /top, /help — dead code o'chirildi
 - Rate limiting (120 req/min per IP — ThrottlerModule)
 - Error boundaries (React — LazyRoute + ErrorBoundary)
 - Graceful shutdown (Worker — 6 worker + Redis + 30s timeout)
@@ -41,21 +42,31 @@
 - Service Worker (ventra-v3, API network-only)
 - Cache-busting (Axios _t=timestamp, Cache-Control: no-store)
 - Weekly Trend (7-day delta, daily breakdown, advice)
+- Redis queues (REDIS_URL pattern + lazy init — barcha queue consistent)
+- Tenant safety (PrismaService $on query — barcha muhitda)
+- Community insights (take:100, non-null safe, dead code o'chirildi)
+- Referral system (template referral filter)
+- Logging (NestJS Logger, RotatingFileWriter NPE fix, classifyUA fix)
 
 ### QISMAN ISHLAYDI:
 - ~~Signals — cannibalization, saturation (take:2)~~ ✅ TUZATILDI (take:30)
 - ~~Signals — replenishment planner (take:2)~~ ✅ TUZATILDI (take:30)
-- Profit Calculator (customs/QQS yo'q — import mahsulotlar uchun noaniq)
+- Profit Calculator (customs/QQS yo'q — import mahsulotlar uchun noaniq, breakeven formula hujjatlandi)
 - BigInt serialization (asosiy path'lar to'g'ri, edge case'lar bor)
-- Rate limiting per-user (faqat per-IP, AI endpoint uchun yetarli emas)
+- ~~Rate limiting per-user~~ (faqat per-IP, AI budget bilan qoplanadi)
+- `as any` 32 ta qoldi (fetch response + Playwright + Prisma JSON — type-safe qilish qiyin)
 
 ### BUZILGAN:
 - Desktop app (API URL app:// protokolida ishlamaydi)
-- Stock cliff signal (totalAvailableAmount DB da yo'q — heuristic 10x noaniq)
+- ~~Stock cliff signal~~ ✅ P2 da tuzatildi (real stock/velocity)
 
-### DEAD CODE:
-- parseWeeklyBought() — Uzum API dan actions.text olib tashlangan
+### DEAD CODE: ✅ HAMMASI TOZALANDI
+- ~~parseWeeklyBought()~~ ✅ O'chirildi (T-166)
 - ~~3x fetchProductDetail duplicate~~ ✅ TUZATILDI (fetchUzumProductRaw shared)
+- ~~broadcastDiscovery()~~ ✅ O'chirildi (T-170)
+- ~~sendPriceDropAlert()~~ ✅ O'chirildi (T-171)
+- ~~UzumItem interface~~ ✅ O'chirildi (T-139)
+- ~~community counterUpdate~~ ✅ O'chirildi (T-104)
 
 ---
 
