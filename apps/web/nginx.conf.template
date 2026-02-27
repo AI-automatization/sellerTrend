@@ -4,8 +4,8 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
-    # DNS resolver for Railway private networking (re-resolve on service restarts)
-    resolver 1.1.1.1 8.8.8.8 valid=10s;
+    # DNS resolver for Railway private networking (Docker embedded DNS → resolves .railway.internal)
+    resolver 127.0.0.11 valid=10s ipv6=on;
 
     # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;

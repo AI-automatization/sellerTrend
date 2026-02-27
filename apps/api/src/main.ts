@@ -90,8 +90,8 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   const port = process.env.PORT ?? 3000;
-  await app.listen(port);
-  console.log(`API running on http://localhost:${port}`);
+  await app.listen(port, '::');
+  console.log(`API running on http://localhost:${port} (dual-stack IPv4+IPv6)`);
   console.log(`Swagger docs: http://localhost:${port}/api/docs`);
 
   const shutdown = async (signal: string) => {
