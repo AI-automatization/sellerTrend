@@ -34,7 +34,7 @@ export class AuthService {
     this.redis = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
       maxRetriesPerRequest: 0,
       connectTimeout: 3000,
-      commandTimeout: 3000,
+      enableOfflineQueue: false,
       lazyConnect: true,
       retryStrategy: () => null,
     });

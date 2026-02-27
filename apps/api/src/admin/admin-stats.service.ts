@@ -23,7 +23,7 @@ export class AdminStatsService {
     this.redis = new Redis(url, {
       maxRetriesPerRequest: 0,
       connectTimeout: 3000,
-      commandTimeout: 3000,
+      enableOfflineQueue: false,
       lazyConnect: true,
       retryStrategy: () => null,
     });
