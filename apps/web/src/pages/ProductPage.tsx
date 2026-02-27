@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useI18n } from '../i18n/I18nContext';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { uzumApi, productsApi, sourcingApi } from '../api/client';
 import { getErrorMessage } from '../utils/getErrorMessage';
@@ -42,6 +43,7 @@ function extractSearchQuery(title: string): string {
 }
 
 export function ProductPage() {
+  const { t } = useI18n();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -171,8 +173,8 @@ export function ProductPage() {
       <div className="flex flex-col items-center justify-center h-72 gap-4">
         <span className="loading loading-spinner loading-lg text-primary" />
         <div className="text-center">
-          <p className="font-medium">Uzumdan ma'lumot olinmoqda...</p>
-          <p className="text-xs text-base-content/40 mt-1">Mahsulot yangilanmoqda va AI tahlil qilinmoqda</p>
+          <p className="font-medium">{t('product.loading.fetching')}</p>
+          <p className="text-xs text-base-content/40 mt-1">{t('product.loading.analyzing')}</p>
         </div>
       </div>
     );
@@ -182,26 +184,26 @@ export function ProductPage() {
     return (
       <div className="w-full space-y-4">
         <div role="alert" className="alert alert-error">
-          <span>{error || 'Mahsulot topilmadi'}</span>
+          <span>{error || t('product.notFound')}</span>
         </div>
-        <button onClick={() => navigate(-1)} className="btn btn-ghost btn-sm">← Orqaga</button>
+        <button onClick={() => navigate(-1)} className="btn btn-ghost btn-sm">{t('product.backBtn')}</button>
       </div>
     );
   }
 
   const uzumUrl = `https://uzum.uz/ru/product/${result.product_id}`;
   const scoreLevel =
-    result.score >= 7 ? { text: "Juda zo'r mahsulot", color: 'text-primary' }
-    : result.score >= 5 ? { text: 'Yaxshi mahsulot', color: 'text-success' }
-    : result.score >= 3 ? { text: "O'rtacha mahsulot", color: 'text-warning' }
-    : { text: 'Zaif mahsulot', color: 'text-error' };
+    result.score >= 7 ? { text: t('product.scoreExcellent'), color: 'text-primary' }
+    : result.score >= 5 ? { text: t('product.scoreGood'), color: 'text-success' }
+    : result.score >= 3 ? { text: t('product.scoreAverage'), color: 'text-warning' }
+    : { text: t('product.scorePoor'), color: 'text-error' };
 
   return (
     <div className="w-full space-y-4 lg:space-y-6">
       {/* Back + breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-base-content/50">
         <button onClick={() => navigate(-1)} className="hover:text-base-content transition-colors">
-          ← Orqaga
+          {t('product.backBtn')}
         </button>
         <span>/</span>
         <span className="text-base-content truncate max-w-xs lg:max-w-md">{result.title}</span>
@@ -229,13 +231,13 @@ export function ProductPage() {
         <div className="flex gap-2 flex-wrap pt-1 border-t border-base-300/50">
           <button onClick={handleTrack} disabled={tracked}
             className={`btn btn-sm gap-2 ${tracked ? 'btn-success' : 'btn-outline btn-success'}`}>
-            {tracked ? '✓ Kuzatuvda' : '+ Kuzatuvga qo\'shish'}
+            {tracked ? t('product.tracking') : t('product.addTracking')}
           </button>
           <button onClick={() => loadData(true)} disabled={refreshing} className="btn btn-sm btn-outline gap-2">
-            {refreshing ? <span className="loading loading-spinner loading-xs" /> : '↻'} Yangilash
+            {refreshing ? <span className="loading loading-spinner loading-xs" /> : '↻'} {t('product.refresh')}
           </button>
           <a href={uzumUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-ghost gap-1">
-            Uzumda ko'rish ↗
+            {t('product.viewOnUzum')}
           </a>
           <Link to="/analyze" className="btn btn-sm btn-ghost gap-1">
             <MagnifyingGlassIcon className="w-4 h-4" /> URL Tahlil
@@ -246,14 +248,14 @@ export function ProductPage() {
       {/* Key metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <StatCard
-          label="Jami buyurtmalar"
+          label={t('product.totalOrders')}
           value={result.orders_quantity != null ? Number(result.orders_quantity).toLocaleString() : '—'}
-          sub="barcha vaqt uchun" accent="text-primary"
+          sub={t('product.allTime')} accent="text-primary"
           icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>}
         />
         <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 lg:p-4">
           <div className="flex items-start justify-between mb-1">
-            <p className="text-xs text-base-content/50">Haftalik sotuv</p>
+            <p className="text-xs text-base-content/50">{t('product.weeklySales')}</p>
             <svg className="w-4 h-4 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
           </div>
           <div className="flex items-baseline gap-2">
@@ -279,39 +281,39 @@ export function ProductPage() {
           <p className="text-xs text-base-content/40 mt-0.5">
             {weeklyTrend?.delta_pct != null
               ? `7 kun ichida ${weeklyTrend.delta_pct > 0 ? '+' : ''}${weeklyTrend.delta_pct}%`
-              : 'oxirgi 7 kun'}
+              : t('product.lastWeek')}
           </p>
         </div>
         <StatCard
-          label="Reyting"
+          label={t('product.rating')}
           value={result.rating != null ? `${result.rating}` : '—'}
-          sub={result.feedback_quantity ? `${result.feedback_quantity.toLocaleString()} sharh` : ''} accent="text-yellow-400"
+          sub={result.feedback_quantity ? `${result.feedback_quantity.toLocaleString()} ${t('product.reviews')}` : ''} accent="text-yellow-400"
           icon={<svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>}
         />
         {result.sell_price != null && (
           <StatCard
-            label="Narx"
-            value={`${result.sell_price.toLocaleString()} so'm`}
-            sub="minimal SKU narxi" accent="text-accent"
+            label={t('product.price')}
+            value={`${result.sell_price.toLocaleString()} ${t('sourcing.currency')}`}
+            sub={t('product.minSkuPrice')} accent="text-accent"
             icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>}
           />
         )}
         <StatCard
-          label="Ombor stok"
+          label={t('product.inventory')}
           value={result.total_available_amount != null && result.total_available_amount > 0
-            ? result.total_available_amount.toLocaleString() + ' dona'
+            ? result.total_available_amount.toLocaleString() + ' ' + t('product.units')
             : '—'}
-          sub="jami mavjud" accent={result.total_available_amount && result.total_available_amount > 100 ? 'text-success' : 'text-warning'}
+          sub={t('product.totalAvailable')} accent={result.total_available_amount && result.total_available_amount > 100 ? 'text-success' : 'text-warning'}
           icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>}
         />
         <StatCard
-          label="Conversion"
+          label={t('product.conversion')}
           value={
             result.orders_quantity && result.feedback_quantity && result.feedback_quantity > 0
               ? `${((result.feedback_quantity / Number(result.orders_quantity)) * 100).toFixed(1)}%`
               : '—'
           }
-          sub="sharh/buyurtma" accent="text-info"
+          sub={t('product.reviewsPerOrder')} accent="text-info"
         />
       </div>
 
@@ -320,7 +322,7 @@ export function ProductPage() {
         <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-6 space-y-4">
           <h2 className="font-bold text-base lg:text-lg flex items-center gap-2">
             <ArrowTrendingUpIcon className="w-5 h-5 text-primary" />
-            7 kunlik bashorat
+            {t('product.forecast7d')}
           </h2>
           {(() => {
             // T-199: derive trend from actual values, not just slope
@@ -329,12 +331,12 @@ export function ProductPage() {
             return (
               <div className="flex items-center gap-4 lg:gap-6 flex-wrap">
                 <div className="text-center">
-                  <p className="text-xs text-base-content/50 mb-1">Hozirgi score</p>
+                  <p className="text-xs text-base-content/50 mb-1">{t('product.currentScore')}</p>
                   <p className="text-2xl font-bold tabular-nums">{result.score.toFixed(2)}</p>
                 </div>
                 <div className="text-2xl text-base-content/30">→</div>
                 <div className="text-center">
-                  <p className="text-xs text-base-content/50 mb-1">7 kun keyin</p>
+                  <p className="text-xs text-base-content/50 mb-1">{t('product.scoreIn7Days')}</p>
                   <p className={`text-2xl font-bold tabular-nums ${
                     derivedTrend === 'up' ? 'text-success' : derivedTrend === 'down' ? 'text-error' : 'text-base-content'
                   }`}>{forecast.forecast_7d.toFixed(2)}</p>
@@ -383,7 +385,7 @@ export function ProductPage() {
           <div className="flex items-center justify-between flex-wrap gap-2">
             <h2 className="font-bold text-base lg:text-lg flex items-center gap-2">
               <svg className="w-5 h-5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-              7 kunlik sotuv dinamikasi
+              {t('product.weeklySalesTrend')}
             </h2>
             {weeklyTrend.last_updated && (
               <span className="text-xs text-base-content/40">
@@ -395,21 +397,21 @@ export function ProductPage() {
           {/* Summary row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 text-center">
-              <p className="text-xs text-base-content/50">Bu hafta</p>
+              <p className="text-xs text-base-content/50">{t('product.thisWeek')}</p>
               <p className="font-bold text-xl tabular-nums text-success">
                 {weeklyTrend.weekly_sold != null ? weeklyTrend.weekly_sold.toLocaleString() : '—'}
               </p>
-              <p className="text-xs text-base-content/40">sotuv</p>
+              <p className="text-xs text-base-content/40">{t('product.sales')}</p>
             </div>
             <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 text-center">
-              <p className="text-xs text-base-content/50">O'tgan hafta</p>
+              <p className="text-xs text-base-content/50">{t('product.lastWeek')}</p>
               <p className="font-bold text-xl tabular-nums">
                 {weeklyTrend.prev_weekly_sold != null ? weeklyTrend.prev_weekly_sold.toLocaleString() : '—'}
               </p>
-              <p className="text-xs text-base-content/40">sotuv</p>
+              <p className="text-xs text-base-content/40">{t('product.sales')}</p>
             </div>
             <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 text-center">
-              <p className="text-xs text-base-content/50">Farq</p>
+              <p className="text-xs text-base-content/50">{t('product.difference')}</p>
               <p className={`font-bold text-xl tabular-nums ${
                 weeklyTrend.delta != null && weeklyTrend.delta > 0 ? 'text-success' :
                 weeklyTrend.delta != null && weeklyTrend.delta < 0 ? 'text-error' : ''
@@ -419,11 +421,11 @@ export function ProductPage() {
                   : '—'}
               </p>
               <p className="text-xs text-base-content/40">
-                {weeklyTrend.delta_pct != null ? `${weeklyTrend.delta_pct > 0 ? '+' : ''}${weeklyTrend.delta_pct}%` : 'sotuv'}
+                {weeklyTrend.delta_pct != null ? `${weeklyTrend.delta_pct > 0 ? '+' : ''}${weeklyTrend.delta_pct}%` : t('product.sales')}
               </p>
             </div>
             <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 text-center">
-              <p className="text-xs text-base-content/50">Trend</p>
+              <p className="text-xs text-base-content/50">{t('product.trend')}</p>
               <div className="flex justify-center mt-1">
                 <TrendBadge trend={weeklyTrend.trend} />
               </div>
@@ -438,7 +440,7 @@ export function ProductPage() {
           {/* Daily sales chart */}
           {weeklyTrend.daily_breakdown.length > 1 && (
             <div>
-              <p className="text-xs text-base-content/50 mb-2">Kunlik sotuv (taxminiy)</p>
+              <p className="text-xs text-base-content/50 mb-2">{t('product.dailySales')} (taxminiy)</p>
               <ResponsiveContainer width="100%" height={160}>
                 <BarChart data={weeklyTrend.daily_breakdown} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
@@ -485,7 +487,7 @@ export function ProductPage() {
                 </span>
                 <h3 className="font-bold text-sm">{weeklyTrend.advice.title}</h3>
                 {weeklyTrend.advice.urgency === 'high' && (
-                  <span className="badge badge-error badge-xs">Shoshilinch</span>
+                  <span className="badge badge-error badge-xs">{t('product.urgent')}</span>
                 )}
               </div>
               <p className="text-sm text-base-content/80">{weeklyTrend.advice.message}</p>
@@ -499,7 +501,7 @@ export function ProductPage() {
         <div className="rounded-2xl bg-base-200/60 border border-primary/20 p-4 lg:p-6 space-y-4">
           <div className="flex items-center gap-2">
             <span className="text-xl">🧠</span>
-            <h2 className="font-bold text-base lg:text-lg">ML Prognoz (Ensemble)</h2>
+            <h2 className="font-bold text-base lg:text-lg">{t('product.mlForecast')}</h2>
             <span className="badge badge-primary badge-sm ml-auto">AI+ML</span>
           </div>
 
@@ -512,7 +514,7 @@ export function ProductPage() {
               {/* Score & Sales forecast summaries */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3">
-                  <p className="text-xs text-base-content/50">7 kun score</p>
+                  <p className="text-xs text-base-content/50">{t('product.score7d')}</p>
                   <p className={`font-bold text-lg tabular-nums ${
                     mlForecast.score_forecast.trend === 'up' ? 'text-success' :
                     mlForecast.score_forecast.trend === 'down' ? 'text-error' : ''
@@ -522,7 +524,7 @@ export function ProductPage() {
                   <TrendBadge trend={mlForecast.score_forecast.trend} />
                 </div>
                 <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3">
-                  <p className="text-xs text-base-content/50">7 kun sotuv</p>
+                  <p className="text-xs text-base-content/50">{t('product.sales7d')}</p>
                   <p className={`font-bold text-lg tabular-nums ${
                     mlForecast.sales_forecast.trend === 'up' ? 'text-success' :
                     mlForecast.sales_forecast.trend === 'down' ? 'text-error' : ''
@@ -532,16 +534,16 @@ export function ProductPage() {
                   <TrendBadge trend={mlForecast.sales_forecast.trend} />
                 </div>
                 <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3">
-                  <p className="text-xs text-base-content/50">Ishonchlilik</p>
+                  <p className="text-xs text-base-content/50">{t('product.confidence')}</p>
                   <p className="font-bold text-lg tabular-nums">
                     {(mlForecast.score_forecast.confidence * 100).toFixed(0)}%
                   </p>
-                  <p className="text-xs text-base-content/40">aniqlik</p>
+                  <p className="text-xs text-base-content/40">{t('product.accuracy')}</p>
                 </div>
                 <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3">
-                  <p className="text-xs text-base-content/50">Tahlillar soni</p>
+                  <p className="text-xs text-base-content/50">{t('product.analysisCount')}</p>
                   <p className="font-bold text-lg tabular-nums">{mlForecast.data_points}</p>
-                  <p className="text-xs text-base-content/40">ta tahlil</p>
+                  <p className="text-xs text-base-content/40">{t('product.analyses')}</p>
                 </div>
               </div>
 
@@ -616,11 +618,11 @@ export function ProductPage() {
       {snapshots.length > 1 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-5">
-            <h2 className="font-bold text-sm text-base-content/70 mb-3">Score tarixi</h2>
+            <h2 className="font-bold text-sm text-base-content/70 mb-3">{t('product.scoreHistory')}</h2>
             <ScoreChart data={snapshots} />
           </div>
           <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-5">
-            <h2 className="font-bold text-sm text-base-content/70 mb-3">Haftalik sotuvlar tarixi</h2>
+            <h2 className="font-bold text-sm text-base-content/70 mb-3">{t('product.salesHistory')}</h2>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={snapshots.filter((s) => s.orders > 0).slice(-15)} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
@@ -639,7 +641,7 @@ export function ProductPage() {
         <div className="rounded-2xl bg-base-200/60 border border-primary/20 p-4 lg:p-6 space-y-4">
           <div className="flex items-center gap-2">
             <span className="text-xl">🤖</span>
-            <h2 className="font-bold text-base lg:text-lg">Claude AI tahlili</h2>
+            <h2 className="font-bold text-base lg:text-lg">{t('product.aiAnalysis')}</h2>
             <span className="badge badge-primary badge-sm ml-auto">AI</span>
           </div>
           <ul className="space-y-3">
@@ -668,7 +670,7 @@ export function ProductPage() {
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="h-4 w-4 shrink-0 stroke-current">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <span>Score haftalik faollik, jami buyurtmalar, reyting va ombor zaxirasiga asoslanib real vaqtda hisoblanadi</span>
+        <span>{t('product.scoreExplanation')}</span>
       </div>
     </div>
   );

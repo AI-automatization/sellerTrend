@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useI18n } from '../i18n/I18nContext';
 import { useSearchParams } from 'react-router-dom';
 import { sourcingApi } from '../api/client';
 import { logError } from '../utils/handleError';
@@ -15,6 +16,7 @@ import type { CurrencyRates, CargoProvider, Tab } from '../components/sourcing';
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function SourcingPage() {
+  const { t } = useI18n();
   const [searchParams] = useSearchParams();
   const prefillName = searchParams.get('q') ?? '';
   const prefillPrice = searchParams.get('price') ?? '';
@@ -53,9 +55,9 @@ export function SourcingPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold">Sourcing Engine</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold">{t('sourcing.title')}</h1>
           <p className="text-base-content/60 text-sm mt-1">
-            Xitoy / Yevropa narxlarini solishtiring, AI orqali eng yaxshi variantni toping
+            {t('sourcing.subtitle')}
           </p>
         </div>
 
@@ -75,7 +77,7 @@ export function SourcingPage() {
               <span className="text-success font-bold">{fmt(rates.EUR)}</span>
               <span className="text-xs text-base-content/40">so'm</span>
             </>
-          ) : <span className="text-base-content/40 text-xs">Kurslar yuklanmadi</span>}
+          ) : <span className="text-base-content/40 text-xs">{t('sourcing.ratesNotLoaded')}</span>}
           <button onClick={refreshRates} className="btn btn-ghost btn-xs" title="CBU dan yangilash">↻</button>
         </div>
       </div>
@@ -83,16 +85,16 @@ export function SourcingPage() {
       {/* Tabs */}
       <div className="tabs tabs-boxed bg-base-200 w-fit">
         {([
-          ['calculator', '🧮 Kalkulyator'],
-          ['search', '🔍 Tez Qidirish'],
-          ['import', '🌍 Import Tahlil'],
-          ['jobs', '📊 Qidiruvlar'],
-          ['history', '📋 Tarix'],
-        ] as [Tab, string][]).map(([t, label]) => (
+          ['calculator', `🧮 ${t('sourcing.tab.calculator')}`],
+          ['search', `🔍 ${t('sourcing.tab.quickSearch')}`],
+          ['import', `🌍 ${t('sourcing.tab.importAnalysis')}`],
+          ['jobs', `📊 ${t('sourcing.tab.searches')}`],
+          ['history', `📋 ${t('sourcing.tab.history')}`],
+        ] as [Tab, string][]).map(([tabKey, label]) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`tab ${tab === t ? 'tab-active' : ''}`}
+            key={tabKey}
+            onClick={() => setTab(tabKey)}
+            className={`tab ${tab === tabKey ? 'tab-active' : ''}`}
           >
             {label}
           </button>
