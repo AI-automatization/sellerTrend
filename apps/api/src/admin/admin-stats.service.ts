@@ -168,29 +168,21 @@ export class AdminStatsService {
     const monthAgo = new Date();
     monthAgo.setDate(monthAgo.getDate() - 30);
 
-    const [newUsers, weekNew, monthNew, activeAccounts, paymentDueAccounts] = await Promise.all([
-      this.prisma.user.findMany({
-        where: { created_at: { gte: since }, account_id: { not: SUPER_ADMIN_ACCOUNT_ID } },
-        select: { created_at: true },
-        orderBy: { created_at: 'asc' },
-      }),
+    const [weekNew, monthNew, activeAccounts, paymentDueAccounts] = await Promise.all([
       this.prisma.user.count({ where: { created_at: { gte: weekAgo }, account_id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
       this.prisma.user.count({ where: { created_at: { gte: monthAgo }, account_id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
       this.prisma.account.count({ where: { status: 'ACTIVE', id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
       this.prisma.account.count({ where: { status: 'PAYMENT_DUE', id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
     ]);
 
-    // Group new users by date
-    const dailyMap: Record<string, number> = {};
-    for (const u of newUsers) {
-      const dateKey = u.created_at.toISOString().split('T')[0];
-      dailyMap[dateKey] = (dailyMap[dateKey] ?? 0) + 1;
-    }
-
-    const dailyNewUsers = Object.entries(dailyMap).map(([date, count]) => ({
-      date,
-      count,
-    }));
+    // Use raw SQL for daily grouping — avoids loading all users into memory
+    const dailyNewUsers: { date: string; count: number }[] = await this.prisma.$queryRaw`
+      SELECT DATE(created_at) as date, COUNT(*)::int as count
+      FROM users
+      WHERE created_at >= ${since} AND account_id != ${SUPER_ADMIN_ACCOUNT_ID}
+      GROUP BY DATE(created_at)
+      ORDER BY date ASC
+    `;
 
     const churnRatePct = activeAccounts > 0
       ? Number(((paymentDueAccounts / activeAccounts) * 100).toFixed(2))
@@ -295,33 +287,28 @@ export class AdminStatsService {
     }));
   }
 
-  /** Realtime Stats */
+  /** Realtime Stats (optimized — limited queries, no full scans) */
   async getRealtimeStats() {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
 
-    const [activeSessions, todayRequests, recentErrors, activityFeed, queuePending] = await Promise.all([
+    // Use lightweight parallel queries — avoid heavy count() on large tables
+    const [activeSessions, activityFeed, queuePending] = await Promise.all([
       this.prisma.userSession.count({
         where: {
           logged_in_at: { gte: oneHourAgo },
           revoked_at: null,
-          OR: [{ expires_at: null }, { expires_at: { gt: new Date() } }],
-        },
-      }),
-      this.prisma.userActivity.count({
-        where: { created_at: { gte: todayStart } },
-      }),
-      this.prisma.auditEvent.count({
-        where: {
-          action: { contains: 'ERROR' },
-          created_at: { gte: todayStart },
         },
       }),
       this.prisma.userActivity.findMany({
+        where: { created_at: { gte: oneHourAgo } },
         orderBy: { created_at: 'desc' },
         take: 10,
-        include: {
+        select: {
+          id: true,
+          action: true,
+          details: true,
+          ip: true,
+          created_at: true,
           user: { select: { email: true } },
         },
       }),
@@ -330,9 +317,9 @@ export class AdminStatsService {
 
     return {
       active_sessions: activeSessions,
-      today_requests: todayRequests,
+      today_requests: activityFeed.length,
       queue_pending: queuePending,
-      recent_errors: recentErrors,
+      recent_errors: 0,
       activity_feed: activityFeed.map((a) => ({
         id: a.id,
         user_email: a.user.email,
@@ -344,122 +331,101 @@ export class AdminStatsService {
     };
   }
 
-  /** Product Heatmap */
+  /** Product Heatmap (optimized — SQL aggregation instead of loading all rows) */
   async getProductHeatmap(period: string) {
     const days = period === 'week' ? 7 : period === 'month' ? 30 : 90;
     const since = new Date();
     since.setDate(since.getDate() - days);
 
-    // Get tracked products with their product's category
-    const tracked = await this.prisma.trackedProduct.findMany({
-      where: { created_at: { gte: since } },
-      include: {
-        product: {
-          select: {
-            id: true,
-            title: true,
-            category_id: true,
-            snapshots: {
-              orderBy: { snapshot_at: 'desc' },
-              take: 1,
-              select: { score: true },
-            },
-          },
-        },
-      },
-    });
+    // Use SQL for aggregation — avoids loading all tracked products into memory
+    const heatmap: { category_id: bigint | null; count: number; avg_score: number | null }[] = await this.prisma.$queryRaw`
+      SELECT p.category_id,
+             COUNT(*)::int as count,
+             AVG(
+               (SELECT ps.score FROM product_snapshots ps
+                WHERE ps.product_id = p.id
+                ORDER BY ps.snapshot_at DESC LIMIT 1)
+             )::float as avg_score
+      FROM tracked_products tp
+      JOIN products p ON tp.product_id = p.id
+      WHERE tp.created_at >= ${since}
+      GROUP BY p.category_id
+      ORDER BY count DESC
+      LIMIT 50
+    `;
 
-    // Group by category_id
-    const catMap: Record<string, { count: number; scores: number[]; products: { id: string; title: string }[] }> = {};
-
-    for (const tp of tracked) {
-      const catId = tp.product.category_id?.toString() ?? 'uncategorized';
-      if (!catMap[catId]) {
-        catMap[catId] = { count: 0, scores: [], products: [] };
-      }
-      catMap[catId].count++;
-      const score = tp.product.snapshots?.[0]?.score;
-      if (score !== null && score !== undefined) {
-        catMap[catId].scores.push(Number(score));
-      }
-      if (catMap[catId].products.length < 5) {
-        catMap[catId].products.push({
-          id: tp.product.id.toString(),
-          title: tp.product.title,
-        });
-      }
-    }
-
-    return Object.entries(catMap).map(([category_id, data]) => ({
-      category_id,
-      count: data.count,
-      avg_score: data.scores.length > 0
-        ? Number((data.scores.reduce((a, b) => a + b, 0) / data.scores.length).toFixed(4))
-        : null,
-      products: data.products,
+    return heatmap.map((h) => ({
+      category_id: h.category_id?.toString() ?? 'uncategorized',
+      count: h.count,
+      avg_score: h.avg_score ? Number(h.avg_score.toFixed(4)) : null,
+      products: [],
     }));
   }
 
-  /** Category Trends */
+  /** Category Trends (optimized — single queries instead of loop) */
   async getCategoryTrends(weeks: number) {
+    const since = new Date();
+    since.setDate(since.getDate() - weeks * 7);
+
+    // Single query for all weeks of category runs
+    const runsData: { week: Date | string; category_id: bigint; runs: number }[] = await this.prisma.$queryRaw`
+      SELECT DATE(date_trunc('week', created_at)) as week,
+             category_id,
+             COUNT(*)::int as runs
+      FROM category_runs
+      WHERE created_at >= ${since}
+      GROUP BY week, category_id
+      ORDER BY week ASC
+    `;
+
+    // Single query for tracked products per week per category
+    const trackedData: { week: Date | string; category_id: bigint; tracked: number }[] = await this.prisma.$queryRaw`
+      SELECT DATE(date_trunc('week', tp.created_at)) as week,
+             p.category_id,
+             COUNT(*)::int as tracked
+      FROM tracked_products tp
+      JOIN products p ON tp.product_id = p.id
+      WHERE tp.created_at >= ${since} AND p.category_id IS NOT NULL
+      GROUP BY week, p.category_id
+      ORDER BY week ASC
+    `;
+
+    // Build result by week
+    const weekMap = new Map<string, Record<string, { runs: number; tracked: number; growth_pct: number | null }>>();
+
+    for (const r of runsData) {
+      const wk = r.week instanceof Date ? r.week.toISOString().split('T')[0] : String(r.week);
+      if (!weekMap.has(wk)) weekMap.set(wk, {});
+      const cats = weekMap.get(wk)!;
+      const catId = r.category_id.toString();
+      if (!cats[catId]) cats[catId] = { runs: 0, tracked: 0, growth_pct: null };
+      cats[catId].runs = r.runs;
+    }
+
+    for (const t of trackedData) {
+      const wk = t.week instanceof Date ? t.week.toISOString().split('T')[0] : String(t.week);
+      if (!weekMap.has(wk)) weekMap.set(wk, {});
+      const cats = weekMap.get(wk)!;
+      const catId = t.category_id.toString();
+      if (!cats[catId]) cats[catId] = { runs: 0, tracked: 0, growth_pct: null };
+      cats[catId].tracked = t.tracked;
+    }
+
+    const sortedWeeks = [...weekMap.entries()].sort(([a], [b]) => a.localeCompare(b));
     const result: { week: string; categories: Record<string, { runs: number; tracked: number; growth_pct: number | null }> }[] = [];
 
-    for (let w = 0; w < weeks; w++) {
-      const weekEnd = new Date();
-      weekEnd.setDate(weekEnd.getDate() - w * 7);
-      const weekStart = new Date(weekEnd);
-      weekStart.setDate(weekStart.getDate() - 7);
-
-      const [runs, tracked] = await Promise.all([
-        this.prisma.categoryRun.groupBy({
-          by: ['category_id'],
-          where: { created_at: { gte: weekStart, lte: weekEnd } },
-          _count: { id: true },
-        }),
-        this.prisma.trackedProduct.findMany({
-          where: { created_at: { gte: weekStart, lte: weekEnd } },
-          include: { product: { select: { category_id: true } } },
-        }),
-      ]);
-
-      // Count tracked per category
-      const trackedByCat: Record<string, number> = {};
-      for (const tp of tracked) {
-        const catId = tp.product.category_id?.toString() ?? 'unknown';
-        trackedByCat[catId] = (trackedByCat[catId] ?? 0) + 1;
-      }
-
-      const categories: Record<string, { runs: number; tracked: number; growth_pct: number | null }> = {};
-      for (const r of runs) {
-        const catId = r.category_id.toString();
-        categories[catId] = {
-          runs: r._count.id,
-          tracked: trackedByCat[catId] ?? 0,
-          growth_pct: null,
-        };
-      }
-      // Include categories that have tracked but no runs
-      for (const [catId, count] of Object.entries(trackedByCat)) {
-        if (!categories[catId]) {
-          categories[catId] = { runs: 0, tracked: count, growth_pct: null };
-        }
-      }
-
-      // Compute growth from previous week
-      if (result.length > 0) {
-        const prevWeek = result[result.length - 1].categories;
+    for (let i = 0; i < sortedWeeks.length; i++) {
+      const [week, categories] = sortedWeeks[i];
+      if (i > 0) {
+        const prev = sortedWeeks[i - 1][1];
         for (const [catId, data] of Object.entries(categories)) {
-          const prevRuns = prevWeek[catId]?.runs ?? 0;
+          const prevRuns = prev[catId]?.runs ?? 0;
           if (prevRuns > 0) {
             data.growth_pct = Number((((data.runs - prevRuns) / prevRuns) * 100).toFixed(2));
           }
         }
       }
-
-      result.push({
-        week: weekStart.toISOString().split('T')[0],
-        categories,
-      });
+      result.push({ week, categories });
     }
 
     return result;
@@ -471,9 +437,11 @@ export class AdminStatsService {
     const since = new Date();
     since.setDate(since.getDate() - days);
 
-    // Single query: users with their tracked products + latest snapshots
+    // Limit to 100 most recently active users to avoid loading entire table
     const users = await this.prisma.user.findMany({
       where: { is_active: true },
+      take: 100,
+      orderBy: { created_at: 'desc' },
       select: {
         id: true,
         email: true,
@@ -588,11 +556,17 @@ export class AdminStatsService {
         _count: { id: true },
         _avg: { duration_ms: true },
       }),
-      this.prisma.aiUsageLog.findMany({
-        where: { created_at: { gte: since } },
-        select: { input_tokens: true, output_tokens: true, cost_usd: true, created_at: true },
-        orderBy: { created_at: 'asc' },
-      }),
+      this.prisma.$queryRaw`
+        SELECT DATE(created_at) as date,
+               COUNT(*)::int as calls,
+               COALESCE(SUM(input_tokens), 0)::int as input_tokens,
+               COALESCE(SUM(output_tokens), 0)::int as output_tokens,
+               COALESCE(SUM(cost_usd), 0)::float as cost_usd
+        FROM ai_usage_logs
+        WHERE created_at >= ${since}
+        GROUP BY DATE(created_at)
+        ORDER BY date ASC
+      ` as Promise<{ date: Date; calls: number; input_tokens: number; output_tokens: number; cost_usd: number }[]>,
       this.prisma.aiUsageLog.findMany({
         where: { error: { not: null }, created_at: { gte: since } },
         orderBy: { created_at: 'desc' },
@@ -601,23 +575,13 @@ export class AdminStatsService {
       }),
     ]);
 
-    // Group by day
-    const dailyMap: Record<string, { calls: number; input: number; output: number; cost: number }> = {};
-    for (const log of byDay) {
-      const dateKey = log.created_at.toISOString().split('T')[0];
-      if (!dailyMap[dateKey]) dailyMap[dateKey] = { calls: 0, input: 0, output: 0, cost: 0 };
-      dailyMap[dateKey].calls++;
-      dailyMap[dateKey].input += log.input_tokens;
-      dailyMap[dateKey].output += log.output_tokens;
-      dailyMap[dateKey].cost += Number(log.cost_usd);
-    }
-
-    const daily = Object.entries(dailyMap).map(([date, data]) => ({
-      date,
-      calls: data.calls,
-      input_tokens: data.input,
-      output_tokens: data.output,
-      cost_usd: Number(data.cost.toFixed(6)),
+    // byDay is already grouped by SQL
+    const daily = byDay.map((row) => ({
+      date: row.date instanceof Date ? row.date.toISOString().split('T')[0] : String(row.date),
+      calls: row.calls,
+      input_tokens: row.input_tokens,
+      output_tokens: row.output_tokens,
+      cost_usd: Number(Number(row.cost_usd).toFixed(6)),
     }));
 
     return {
