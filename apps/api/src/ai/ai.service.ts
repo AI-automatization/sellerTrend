@@ -155,7 +155,9 @@ export class AiService {
         durationMs: Date.now() - startMs,
       });
 
-      const text = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+      let text = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+      // Strip markdown code fences (```json ... ```)
+      text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
       let parsed: any = {};
       try {
         parsed = JSON.parse(text);
@@ -244,7 +246,9 @@ export class AiService {
         durationMs: Date.now() - startMs,
       });
 
-      const text = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+      let text = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+      // Strip markdown code fences (```json ... ```)
+      text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
       let bullets: string[] = [];
       try {
         bullets = JSON.parse(text);

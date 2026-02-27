@@ -22,7 +22,7 @@ export class SignalsService {
       include: {
         product: {
           include: {
-            snapshots: { orderBy: { snapshot_at: 'desc' }, take: 2 },
+            snapshots: { orderBy: { snapshot_at: 'desc' }, take: 30 },
           },
         },
       },
@@ -77,7 +77,7 @@ export class SignalsService {
     const products = await this.prisma.product.findMany({
       where: { category_id: BigInt(categoryId), is_active: true },
       include: {
-        snapshots: { orderBy: { snapshot_at: 'desc' }, take: 2 },
+        snapshots: { orderBy: { snapshot_at: 'desc' }, take: 30 },
       },
     });
 
@@ -378,7 +378,7 @@ export class SignalsService {
       include: {
         product: {
           include: {
-            snapshots: { orderBy: { snapshot_at: 'desc' }, take: 2 },
+            snapshots: { orderBy: { snapshot_at: 'desc' }, take: 30 },
           },
         },
       },

@@ -5,6 +5,9 @@ export const redisConnection = {
   connection: {
     host: url.hostname,
     port: parseInt(url.port || '6379', 10),
+    password: url.password || undefined,
+    username: url.username || undefined,
+    db: url.pathname ? parseInt(url.pathname.slice(1), 10) || 0 : 0,
     maxRetriesPerRequest: null, // Required for BullMQ
   },
 };

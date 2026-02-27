@@ -220,4 +220,35 @@
 
 ---
 
-*Done.md | VENTRA Analytics Platform | 2026-02-26*
+## DEEP AUDIT FIX — 2026-02-27
+
+| # | Task | Severity | Fix |
+|---|------|----------|-----|
+| T-061 (BUG-001) | Redis password worker da tushib qolgan | CRITICAL | `redis.ts` ga `password`, `username`, `db` qo'shildi |
+| T-064 (BUG-004) | Reanalysis title overwrite | HIGH | `localizableTitle?.ru \|\| detail.title` fallback qo'shildi |
+| T-088 (BUG-005) | shop.name → shop.title | HIGH | `products.service.ts:118` da `.name` → `.title` |
+| T-193a | AI response markdown tozalash | P0 | `ai.service.ts` da ` ```json ``` ` strip qo'shildi (extractAttributes + explainWinner) |
+| T-238 (BUG-008/009/010) | Signal service take:2 → take:30 | P1 | `signals.service.ts` 3 joyda: cannibalization, saturation, replenishment |
+
+### Audit DONE (tasdiqlangan — bug emas):
+
+| Task | Izoh |
+|------|------|
+| T-063 | `reviewsAmount ?? 0` to'g'ri ishlaydi |
+| T-065 | `reviewsAmount ?? 0` fallback to'g'ri |
+| T-067 | `reviewsAmount ?? feedbackQuantity ?? 0` tartib to'g'ri |
+| T-068 | `seller \|\| shop` fallback ishlaydi |
+| T-070 | SerpAPI engine nomlari valid |
+| T-073 | `$transaction` + atomic `decrement` — TOCTOU yo'q |
+| T-076 | `if (sellPrice)` null guard mavjud |
+| T-077 | `weekly_bought: null` INTENTIONAL |
+| T-082 | PgBouncer circular fix DONE |
+| T-083 | Redis REDIS_URL password fix DONE |
+| T-100 | Worker env vars fix DONE |
+| T-141 | Redis healthcheck parol bilan ishlaydi |
+| T-169 | Bot `on('message')` wildcard — to'g'ri dizayn |
+| T-207 | weekly_bought 6 joyda markaziy calcWeeklyBought() |
+
+---
+
+*Done.md | VENTRA Analytics Platform | 2026-02-27*

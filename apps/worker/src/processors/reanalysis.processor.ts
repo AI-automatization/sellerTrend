@@ -16,6 +16,7 @@ const HEADERS: Record<string, string> = {
 interface UzumProductData {
   id: number;
   title: string;
+  localizableTitle?: { ru?: string; uz?: string };
   rating: number;
   ordersAmount: number;
   reviewsAmount: number;
@@ -67,10 +68,11 @@ async function reanalyzeProduct(
   const weeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
 
   // Update product
+  const title = detail.localizableTitle?.ru || detail.title;
   await prisma.product.update({
     where: { id: productId },
     data: {
-      title: detail.title,
+      title,
       rating: detail.rating ?? null,
       feedback_quantity: detail.reviewsAmount ?? 0,
       orders_quantity: BigInt(currentOrders),

@@ -86,7 +86,7 @@ FBO/FBS turi                     stockType                        stock_type
 
 ## BUG-001 | CRITICAL | Redis password worker da tushib qolgan
 
-**Holat:** OCHIQ
+**Holat:** ✅ TUZATILDI (2026-02-27)
 **Fayl:** `apps/worker/src/redis.ts`
 
 **Muammo:**
@@ -117,7 +117,7 @@ password: url.password || undefined,
 
 ## BUG-004 | HIGH | Reanalysis har 6 soatda product title ni buzadi
 
-**Holat:** OCHIQ
+**Holat:** ✅ TUZATILDI (2026-02-27)
 **Fayl:** `apps/worker/src/processors/reanalysis.processor.ts:73`
 
 **Muammo:**
@@ -146,7 +146,7 @@ Yoki `UzumProductData` interface ga `localizableTitle` qo'shish.
 
 ## BUG-005 | HIGH | shop.name doim null — shop.title bo'lishi kerak
 
-**Holat:** OCHIQ
+**Holat:** ✅ TUZATILDI (2026-02-27)
 **Fayl:** `apps/api/src/products/products.service.ts:118`
 
 **Muammo:**
@@ -166,7 +166,7 @@ shop_name: (product.shop as any)?.title ?? null,
 
 ## BUG-008 | MEDIUM | Signal cannibalization take:2 — noaniq weekly_bought
 
-**Holat:** OCHIQ
+**Holat:** ✅ TUZATILDI (2026-02-27)
 **Fayl:** `apps/api/src/signals/signals.service.ts:25`
 
 **Muammo:**
@@ -184,7 +184,7 @@ Natija: stored `weekly_bought` ishlatiladi (stale bo'lishi mumkin).
 
 ## BUG-009 | MEDIUM | Signal saturation take:2 — noaniq weekly_bought
 
-**Holat:** OCHIQ
+**Holat:** ✅ TUZATILDI (2026-02-27)
 **Fayl:** `apps/api/src/signals/signals.service.ts:80`
 
 **Muammo:** BUG-008 bilan bir xil. Category saturation index noaniq weekly_bought bilan hisoblanadi.
@@ -195,7 +195,7 @@ Natija: stored `weekly_bought` ishlatiladi (stale bo'lishi mumkin).
 
 ## BUG-010 | HIGH | Signal replenishment take:2 — xato buyurtma miqdori
 
-**Holat:** OCHIQ
+**Holat:** ✅ TUZATILDI (2026-02-27)
 **Fayl:** `apps/api/src/signals/signals.service.ts:381`
 
 **Muammo:** BUG-008 bilan bir xil, lekin severity yuqoriroq.

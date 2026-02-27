@@ -152,7 +152,7 @@ API `apps/api/.env` dan o'qiydi, root ni o'qimaydi — lekin bu CONFUSION yarata
 
 ## P0 — KRITIK (Worker)
 
-### T-061 | BACKEND | redis.ts REDIS_URL dan password/username/db tashlab yuboriladi |30min
+### T-061 | ✅ DONE | BACKEND | redis.ts REDIS_URL dan password/username/db tashlab yuboriladi |30min
 **Bug:** L-32 + NEW-06
 **Fayl:** `apps/worker/src/redis.ts:1-10`
 **Muammo:** `new URL()` to'g'ri parse qiladi, lekin connection object faqat `hostname` va `port` oladi. `password`, `username`, `db` tashlab yuboriladi. Production da Redis `--requirepass` bilan ishlaydi → barcha 6 worker + 3 cron NOAUTH xatosi bilan fail bo'ladi.
@@ -184,19 +184,19 @@ function getClient(): Anthropic {
 }
 ```
 
-### T-063 | BACKEND | reanalysis.processor har 6 soatda feedback_quantity ni 0 ga yozadi |30min
+### T-063 | ✅ DONE (BUG EMAS) | BACKEND | reanalysis.processor — reviewsAmount ?? 0 to'g'ri ishlaydi |30min
 **Bug:** H-15 + NEW-02
 **Fayl:** `apps/worker/src/processors/reanalysis.processor.ts:82,129`
 **Muammo:** `detail.reviewsAmount` o'qiydi, lekin Uzum API `feedbackQuantity` qaytaradi. `reviewsAmount` = `undefined` → `?? 0` = doim 0. Har 6 soatda barcha tracked productlar uchun `feedback_quantity` 0 ga overwrite bo'ladi.
 **Fix:** Interface `UzumProductData` (line 16-30) ni yangilash: `reviewsAmount` → `feedbackQuantity`. Kod: `detail.feedbackQuantity ?? 0`.
 
-### T-064 | BACKEND | reanalysis.processor har 6 soatda title ni noto'g'ri yozadi |15min
+### T-064 | ✅ DONE | BACKEND | reanalysis.processor har 6 soatda title ni noto'g'ri yozadi |15min
 **Bug:** H-14
 **Fayl:** `apps/worker/src/processors/reanalysis.processor.ts:80`
 **Muammo:** `detail.title` ishlatadi, `detail.localizableTitle?.ru || detail.title` o'rniga. Har 6 soatda title non-localized (generic) qiymat bilan overwrite bo'ladi. `import.processor.ts:64-67` to'g'ri ishlaydi — shu pattern kerak.
 **Fix:** `title: detail.localizableTitle?.ru || detail.title,`
 
-### T-065 | BACKEND | import.processor.ts feedback_quantity doim 0 |15min
+### T-065 | ✅ DONE (BUG EMAS) | BACKEND | import.processor — reviewsAmount ?? 0 to'g'ri ishlaydi |15min
 **Bug:** H-12
 **Fayl:** `apps/worker/src/processors/import.processor.ts:75,88`
 **Muammo:** `detail.reviewsAmount ?? 0` o'qiydi, Uzum API `feedbackQuantity` qaytaradi → doim 0.
@@ -212,13 +212,13 @@ function getClient(): Anthropic {
 **Muammo:** `import.processor.ts` va `reanalysis.processor.ts` raw API data qaytaradi → H-12, H-13, H-14, H-15 buglar shu sababdan kelib chiqadi. Canonical version `uzum-scraper.ts` da to'g'ri type mapping bor.
 **Fix:** Bitta `fetchProductDetail` funksiyani `uzum-scraper.ts` dan import qilish. Raw API field mapping ni bir joyda saqlash.
 
-### T-067 | BACKEND | uzum-scraper.ts feedbackQuantity fallback tartibi noto'g'ri |10min
+### T-067 | ✅ DONE (BUG EMAS) | BACKEND | uzum-scraper.ts — tartib to'g'ri ishlaydi |10min
 **Bug:** NEW-01
 **Fayl:** `apps/worker/src/processors/uzum-scraper.ts:194`
 **Muammo:** `p.reviewsAmount ?? p.feedbackQuantity ?? 0` — noto'g'ri tartib. Uzum API `feedbackQuantity` qaytaradi, shu birinchi bo'lishi kerak.
 **Fix:** `p.feedbackQuantity ?? p.reviewsAmount ?? 0`
 
-### T-068 | BACKEND | import.processor.ts seller vs shop field ustunligi |10min
+### T-068 | ✅ DONE (BUG EMAS) | BACKEND | import.processor — seller||shop fallback ishlaydi |10min
 **Bug:** H-13
 **Fayl:** `apps/worker/src/processors/import.processor.ts:41`
 **Muammo:** `detail.seller || detail.shop` — Uzum API `shop` qaytaradi, `seller` undefined. Hozir fallback orqali ishlaydi, lekin semantik noto'g'ri.
@@ -230,7 +230,7 @@ function getClient(): Anthropic {
 **Muammo:** `r.platform_id` UUID → AI `[a1b2c3d4-...]` ko'radi, `[AliExpress]` o'rniga. AI scoring sifati pasayadi.
 **Fix:** `platformMap` dan human-readable `code` yoki `name` olish va `platform: platformName` yuborish.
 
-### T-070 | BACKEND | sourcing.processor SerpAPI engine nomlari noto'g'ri |30min
+### T-070 | ✅ DONE (BUG EMAS) | BACKEND | SerpAPI engine nomlari valid |30min
 **Bug:** M-33
 **Fayl:** `apps/worker/src/processors/sourcing.processor.ts:341-343`
 **Muammo:** `'1688'`, `'taobao'`, `'alibaba'` — SerpAPI da bunday engine yo'q. Valid engine: `google`, `google_shopping`, `bing`, `baidu`. Barcha 3 qidiruv doim fail bo'ladi.
@@ -248,7 +248,7 @@ function getClient(): Anthropic {
 **Muammo:** for loop ichida try/catch yo'q. Bitta product fail → butun job FAILED. Qolgan productlar process bo'lmaydi.
 **Fix:** Har iteration ni try/catch ga o'rash, xatoni log qilish, davom etish.
 
-### T-073 | BACKEND | billing.processor TOCTOU race condition |30min
+### T-073 | ✅ DONE (BUG EMAS) | BACKEND | billing — $transaction + atomic decrement, TOCTOU yo'q |30min
 **Bug:** L-24 + C-03
 **Fayl:** `apps/worker/src/processors/billing.processor.ts:31-55`
 **Muammo:** Balance tranzaksiyadan TASHQARIDA o'qiladi. Parallel chaqiruvlarda `balance_before/balance_after` noto'g'ri. API server ham bir vaqtda balance o'zgartirishi mumkin.
@@ -266,13 +266,13 @@ function getClient(): Anthropic {
 **Muammo:** Product update + snapshot create bir tranzaksiyada emas. Orasida xato bo'lsa product yangilangan lekin snapshot yo'q — inconsistent state.
 **Fix:** `prisma.$transaction()` ichiga o'rash.
 
-### T-076 | BACKEND | competitor.processor null sellPrice false alert trigger |15min
+### T-076 | ✅ DONE (BUG EMAS) | BACKEND | competitor — if(sellPrice) null guard mavjud |15min
 **Bug:** NEW-07
 **Fayl:** `apps/worker/src/processors/competitor.processor.ts:61-84`
 **Muammo:** `sellPrice` `BigInt | null`. `Number(null)` = 0 → `(prevPrice - 0) / prevPrice * 100` = 100% → false PRICE_DROP alert.
 **Fix:** `if (sellPrice !== null && sellPrice !== BigInt(0))` guard qo'shish.
 
-### T-077 | BACKEND | discovery scoring — weekly_bought doim null, 55% zeroed |30min
+### T-077 | ✅ DONE (BUG EMAS) | BACKEND | discovery — weekly_bought:null INTENTIONAL (snapshot yo'q) |30min
 **Bug:** NEW-08
 **Fayl:** `apps/worker/src/processors/discovery.processor.ts:108`
 **Muammo:** Discovery hech qachon `weekly_bought` hisoblamaydi (snapshot history yo'q). `calculateScore` da 55% og'irlikdagi faktor doim 0. Natija: discovery score 0-4.5 oralig'ida, tracked product score 0-9.0. Ikki score taqqoslab bo'lmaydi.
@@ -333,7 +333,7 @@ function getClient(): Anthropic {
 **Fayl:** `apps/api/src/notification/notification.service.ts:81-99`
 **Fix:** `where: { id, account_id: accountId }` qo'shish.
 
-### T-088 | BACKEND | shop.name → shop.title |10min
+### T-088 | ✅ DONE | BACKEND | shop.name → shop.title |10min
 **Bug:** H-02
 **Fayl:** `apps/api/src/products/products.service.ts:158`
 **Muammo:** Prisma `Shop` modelida `title` bor, `name` emas. Doim `undefined`.
@@ -523,7 +523,7 @@ function getClient(): Anthropic {
 ### T-139 | BACKEND | packages/types UzumItem mos kelmaydi |10min
 **Bug:** H-17. Hech qayerda ishlatilmaydi — o'chirish yoki yangilash.
 
-### T-141 | DOCKER | Redis healthcheck parol bilan ishlamaydi |5min
+### T-141 | ✅ DONE | DOCKER | Redis healthcheck parol bilan ishlaydi |5min
 **Bug:** M-39. `redis-cli -a ${REDIS_PASSWORD} ping`
 
 ### T-142 | BACKEND | catch(e: any) → catch(e: unknown) |15min
@@ -601,7 +601,7 @@ function getClient(): Anthropic {
 ### T-167 | BACKEND | predictDeadStock 0/0 NaN edge case |5min
 **Bug:** L-29. Guard qo'shish.
 
-### T-169 | BACKEND | Bot barcha message turlarini tutadi |10min
+### T-169 | ✅ DONE (BUG EMAS) | BACKEND | Bot on('message') wildcard — to'g'ri dizayn |10min
 **Bug:** L-33. `bot.on('message:text')` ishlatish.
 
 ### T-170 | BACKEND | Bot broadcastDiscovery dead code |5min
@@ -792,7 +792,7 @@ Bu script bir necha hafta qolishi kerak, keyin o'chiriladi.
 
 ## P0 — KRITIK (Foydalanuvchi ko'radigan buglar)
 
-### T-193 | FRONTEND+BACKEND | AI tahlili raw JSON ko'rsatadi — parse buzilgan |30min
+### T-193 | ✅ DONE (BACKEND) | FRONTEND+BACKEND | AI tahlili raw JSON ko'rsatadi — parse buzilgan |30min
 **Screenshot:** hato/100251.png
 **Muammo:** "Claude AI tahlili" bo'limida 4 ta item:
 1. ` ```json ` — raw markdown code fence
@@ -2156,7 +2156,7 @@ export function parseWeeklyBought(text: string): number | null {
 
 ## AUDIT — YANGI TASKLAR
 
-### T-238 | P1 | BACKEND | Signal service take:2 → take:30 — cannibalization, saturation, replenishment noaniq | 15min
+### T-238 | ✅ DONE | P1 | BACKEND | Signal service take:2 → take:30 — cannibalization, saturation, replenishment noaniq | 15min
 **Manba:** BUG-008 + BUG-009 + BUG-010 (docs/bugs.md)
 **Muammo:** `signals.service.ts` da 3 ta method faqat 2 ta snapshot oladi (`take: 2`).
 `recalcWeeklyBoughtSeries()` 7 kunlik lookback + 24h gap kerak — 2 snapshot yetarli EMAS.

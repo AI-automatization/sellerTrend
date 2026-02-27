@@ -63,20 +63,14 @@
 
 ---
 
-# P0 — KRITIK
+# P0 — ✅ BAJARILDI (4/4) → docs/Done.md ga ko'chirildi
 
-### T-061 | redis.ts REDIS_URL password tashlab yuboriladi | 30min
-`apps/worker/src/redis.ts:1-10` — connection object ga `password`, `username`, `db` qo'shish
-
-### T-062 | Anthropic client crash xavfi | 20min
-`apps/worker/src/processors/uzum-ai-scraper.ts:21` — lazy init pattern
-
-### T-064 | reanalysis.processor title noto'g'ri | 15min
-`apps/worker/src/processors/reanalysis.processor.ts:80` — `localizableTitle?.ru` fallback yo'q. `import.processor.ts` da to'g'ri ishlaydi.
-
-### T-193a | AI response da markdown tozalash (BACKEND qismi) | 15min
-`apps/api/src/ai/ai.service.ts:252` — ` ```json ` va `[` tozalash.
-Sardor frontend filter qo'shadi (T-193b). Bu task AVVAL bajarilishi kerak.
+| Task | Fix |
+|------|-----|
+| T-061 | redis.ts — password, username, db qo'shildi |
+| T-062 | ~~Bug emas~~ — Anthropic SDK crash qilmaydi, graceful fallback |
+| T-064 | reanalysis.processor — localizableTitle?.ru fallback qo'shildi |
+| T-193a | ai.service.ts — markdown ``` strip qo'shildi |
 
 ---
 
@@ -119,7 +113,7 @@ Sardor frontend textni yangilaydi (T-199b).
 ### T-080 | NestJS v10/v11 versiya fix | 30min — `apps/api/package.json`
 ### T-081 | Express v5→v4 tushirish | 20min — `apps/api/package.json`
 ### T-087 | notification account_id | 15min — `notification.service.ts`
-### T-088 | shop.name→shop.title | 10min — `products.service.ts:158`
+### ~~T-088~~ | ✅ DONE → Done.md | shop.name→shop.title fix
 ### T-089 | Product endpoint account_id | 30min — `products.controller.ts`
 ### T-090 | Sourcing BillingGuard | 10min — `sourcing.controller.ts`
 ### T-091 | auth DTO validatsiya | 15min — `auth.controller.ts`
@@ -178,14 +172,14 @@ Sardor frontend textni yangilaydi (T-199b).
 
 | Prioritet | Tasklar |
 |-----------|---------|
-| ✅ DONE (audit) | 10 |
+| ✅ DONE (audit + fix) | 19 |
 | .env (manual) | 8 |
 | Railway (manual) | 10 |
-| P0 KRITIK | 4 |
-| P1 MUHIM | 9 |
-| P2 O'RTA | 18 |
+| P0 KRITIK | ✅ 0 (HAMMASI BAJARILDI) |
+| P1 MUHIM | 8 |
+| P2 O'RTA | 17 |
 | P3 PAST | 30 |
-| **JAMI ochiq** | **79** |
+| **JAMI ochiq** | **73** |
 
 ---
 *Tasks-Bekzod.md | VENTRA | 2026-02-27*
