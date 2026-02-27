@@ -640,6 +640,47 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 ---
 
+## ENV AUDIT — Railway Production (2026-02-27)
+
+> Barcha CRITICAL env var'lar ✅ to'g'ri. Quyidagilar OPTIONAL (feature degrade qiladi).
+
+### T-242 | DEVOPS | SERPAPI_API_KEY — API + Worker |5min
+**Status:** Qo'lda qo'shish kerak (https://serpapi.com dan key olish)
+**Service:** api, worker
+**Ta'sir:** SERPAPI yo'q → sourcing Playwright fallback ishlatadi (sekinroq)
+```bash
+railway variables set SERPAPI_API_KEY='your_key' --service api
+railway variables set SERPAPI_API_KEY='your_key' --service worker
+```
+
+### T-243 | DEVOPS | ALIEXPRESS_APP_KEY + SECRET — API |5min
+**Status:** Qo'lda qo'shish kerak (AliExpress Developer Portal)
+**Service:** api
+**Ta'sir:** AliExpress sourcing butunlay o'chirilgan
+```bash
+railway variables set ALIEXPRESS_APP_KEY='xxx' --service api
+railway variables set ALIEXPRESS_APP_SECRET='xxx' --service api
+```
+
+### T-244 | DEVOPS | SENTRY_DSN — API |5min
+**Status:** Qo'lda qo'shish kerak (https://sentry.io dan DSN olish)
+**Service:** api
+**Ta'sir:** Error tracking ishlamaydi — production xatolar ko'rinmaydi
+```bash
+railway variables set SENTRY_DSN='https://xxx@sentry.io/xxx' --service api
+```
+
+### T-245 | DEVOPS | PROXY_URL — API + Worker (optional) |5min
+**Status:** Kerak bo'lganda qo'shiladi
+**Service:** api, worker
+**Ta'sir:** Uzum API rate-limit bo'lsa, proxy orqali aylanib o'tiladi
+```bash
+railway variables set PROXY_URL='http://user:pass@proxy:port' --service api
+railway variables set PROXY_URL='http://user:pass@proxy:port' --service worker
+```
+
+---
+
 ## P1 — MUHIM (Post-deploy stabillik)
 
 ### T-178 | DEVOPS | Custom domain + SSL — web service |10min
@@ -1000,6 +1041,7 @@ Bu ikki xabar bir-biriga ZID. 50 ta raqib kuzatilayotgan bo'lsa, ma'lumot bo'lis
 | Bugs.md (P2) | 20 (20 done) | T-078...T-100 |
 | Bugs.md (P3) | 68 (4 dup o'chirildi) | T-101...T-172 |
 | **Railway Deploy (P0)** | **4 ✅ DONE, 1 ochiq (T-177)** | **T-173...T-177** |
+| **Railway Env Audit** | **4 optional** | **T-242...T-245** |
 | **Railway Deploy (P1)** | **4** | **T-178...T-181** |
 | **Railway Deploy (P2)** | **3 (2 done)** | **T-182...T-184** |
 | PWA O'chirish (P1) | 5 | T-188...T-192 |
