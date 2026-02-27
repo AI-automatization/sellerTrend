@@ -4,6 +4,36 @@
 
 ---
 
+# BIRINCHI QILISH TARTIBI (Bekzodga bog'liq EMAS)
+
+| # | Task | Nima | Vaqt |
+|---|------|------|------|
+| 1 | E-001 + E-002 | Desktop .env yaratish + proxy qo'shish | 15min |
+| 2 | T-234 | Desktop login to'liq fix (production build ham) | 30min |
+| 3 | T-205 | Footer da raw scoring formula O'CHIRISH | 10min |
+| 4 | T-195 | Texnik jargon (WMA, MAE, RMSE) o'chirish | 10min |
+| 5 | T-194 | Chart X-axis "M02 27" takrorlanadi — formatter | 30min |
+| 6 | T-203 | ML Prognoz KPI box labelsiz — label qo'shish | 20min |
+| 7 | T-204 | Qora to'rtburchak render bug fix | 15min |
+| 8 | T-206 | Raqiblar "50 ta" + "topilmadi" ziddiyat | 10min |
+| 9 | T-084 | RegisterPage auth store bypass | 20min |
+| 10 | T-085 + T-086 | AnalyzePage + ProductPage tracked=true bug | 20min |
+| 11 | T-197 | Score chart zigzag — kunlik aggregate | 20min |
+| 12 | T-198 | Haftalik sotuvlar chart fix | 20min |
+| 13 | T-200 | "confidence", "snapshot" → o'zbekcha | 10min |
+| 14 | T-201 | Raqiblar bo'sh holat UX | 15min |
+| 15 | T-202 | ProductPage seksiya tartibi qayta ko'rish | 1h |
+| 16 | T-188...T-192 | PWA to'liq o'chirish (5 ta task) | 45min |
+| 17 | T-097 | WebSocket dev proxy | 15min |
+| 18 | T-114...T-164 | P3 buglar (32 ta) | ~6h |
+| 19 | L-001...L-024 | Landing page (24 ta) | ~10h |
+| 20 | T-208...T-233 | Chrome Extension (26 ta) | ~35h |
+
+**Izoh:** 1-16 gacha MUSTAQIL — Bekzodni kutish shart emas.
+17+ dan keyin Bekzod bog'liq tasklar (T-193b, T-196b, T-199b, T-237b) ham tayyor bo'ladi.
+
+---
+
 # QO'LDA QILINADIGAN ISHLAR (.env + config)
 
 ### E-001 | `apps/desktop/.env` fayl YARATISH — login ishlamaydi | 5min
