@@ -9,7 +9,7 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .pnpmfile.cjs ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
-RUN pnpm install --frozen-lockfile --filter api --filter @uzum/types --filter @uzum/utils
+RUN pnpm install --no-frozen-lockfile --filter api --filter @uzum/types --filter @uzum/utils
 
 # ── build ─────────────────────────────────────────────────────
 FROM deps AS builder
@@ -32,7 +32,7 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .pnpmfile.cjs ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
-RUN pnpm install --frozen-lockfile --prod --filter api --filter @uzum/types --filter @uzum/utils
+RUN pnpm install --no-frozen-lockfile --prod --filter api --filter @uzum/types --filter @uzum/utils
 
 # Ensure swagger-ui-dist top-level symlink exists for NestJS Swagger static serving
 RUN ln -sf /app/node_modules/.pnpm/swagger-ui-dist@5.17.14/node_modules/swagger-ui-dist \
