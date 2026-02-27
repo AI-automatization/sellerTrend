@@ -308,18 +308,15 @@ function getClient(): Anthropic {
 ### T-083 | DOCKER | ✅ DONE — Redis REDIS_URL password fix |10min
 **Bug:** C-07 — `docker-compose.prod.yml` da allaqachon fix qilindi (Railway arxitektura rebuild).
 
-### T-084 | FRONTEND | RegisterPage auth store bypass |20min
-**Bug:** C-08
-**Fayl:** `apps/web/src/pages/RegisterPage.tsx:30-31`
-**Muammo:** `useAuthStore.setTokens()` va `queryClient.clear()` chaqirmaydi. Zustand state yangilanmaydi.
-**Fix:** LoginPage bilan bir xil pattern ishlatish.
+### T-084 | ✅ DONE | FRONTEND | RegisterPage auth store bypass |20min
+**Bug:** C-08. FIX: Allaqachon to'g'ri — `setTokens()` va `queryClient.clear()` chaqirilmoqda.
 
 ### T-085 | FRONTEND | AnalyzePage tracked=true API xatosida ham o'rnatiladi |10min
 **Bug:** C-09
 **Fayl:** `apps/web/src/pages/AnalyzePage.tsx:94-102`
 **Fix:** `setTracked(true)` ni try bloki ichiga ko'chirish.
 
-### T-086 | FRONTEND | ProductPage tracked=true API xatosida ham o'rnatiladi |10min
+### T-086 | ✅ DONE | FRONTEND | ProductPage tracked=true API xatosida ham o'rnatiladi |10min
 **Bug:** C-10
 **Fayl:** `apps/web/src/pages/ProductPage.tsx:261-265`
 **Fix:** `setTracked(true)` ni try bloki ichiga ko'chirish.
@@ -437,58 +434,58 @@ function getClient(): Anthropic {
 ### T-113 | ✅ DONE | BACKEND | sourcing.queue.ts modul import da Redis connection |15min
 **Bug:** M-13. Lazy initialization.
 
-### T-114 | FRONTEND | admin.ts dead code sendNotification |5min
-**Bug:** M-14. O'chirish.
+### T-114 | ✅ DONE | FRONTEND | admin.ts dead code sendNotification |5min
+**Bug:** M-14. FIX: `sendNotification` method o'chirildi, `params?: any` → `Record<string, unknown>`.
 
-### T-115 | FRONTEND | authStore email field JWT da yo'q |10min
-**Bug:** M-15. T-096 bilan birgalikda fix.
+### T-115 | ✅ DONE | FRONTEND | authStore email field JWT da yo'q |5min
+**Bug:** M-15. FIX: Allaqachon mavjud — `TokenPayload.email` bor, `decodePayload()` extract qiladi.
 
-### T-116 | FRONTEND | DashboardPage getTracked .catch() yo'q |10min
-**Bug:** M-16. `.catch(toast.error)` qo'shish.
+### T-116 | ✅ DONE | FRONTEND | DashboardPage getTracked .catch() yo'q |10min
+**Bug:** M-16. FIX: useDashboardData hook da `.catch(logError)` qo'shildi.
 
-### T-117 | FRONTEND | DashboardPage scoreColor(0) gray |5min
-**Bug:** M-17. `if (score === null || score === undefined)` ishlatish.
+### T-117 | ✅ DONE | FRONTEND | DashboardPage scoreColor(0) gray |5min
+**Bug:** M-17. FIX: `if (!score)` → `if (score == null)` — score 0 endi gray emas, to'g'ri rang qaytaradi.
 
-### T-118 | FRONTEND | AdminPage deposits useEffect dependency yo'q |5min
-**Bug:** M-18. `[depositLogPage]` dependency qo'shish.
+### T-118 | ✅ DONE | FRONTEND | AdminPage deposits useEffect dependency yo'q |5min
+**Bug:** M-18. FIX: `depositLogPage` dependency array ga qo'shildi.
 
-### T-119 | FRONTEND | ProductPage Recharts rect → Cell |10min
+### T-119 | ✅ DONE | FRONTEND | ProductPage Recharts rect → Cell |10min
 **Bug:** M-19. `<Cell>` component ishlatish.
 
-### T-120 | FRONTEND | SourcingPage refreshRates() catch yo'q |5min
-**Bug:** M-20.
+### T-120 | ✅ DONE | FRONTEND | SourcingPage refreshRates() catch yo'q |5min
+**Bug:** M-20. `catch(logError)` qo'shildi — refreshRates() va useEffect Promise.all.
 
-### T-121 | FRONTEND | SourcingPage stale closure xavfi |10min
-**Bug:** M-21. `useCallback` dependencies to'g'irlash.
+### T-121 | ✅ DONE | FRONTEND | SourcingPage stale closure xavfi |10min
+**Bug:** M-21. Barcha sourcing komponentlarda `.catch(logError)` qo'shildi — ExternalSearch, JobsList, CalculationHistory. `useCallback` kerak emas (plain function, stale closure yo'q).
 
-### T-122 | FRONTEND | AdminPage void setActiveTab dead no-op |5min
-**Bug:** M-22.
+### T-122 | ✅ DONE | FRONTEND | AdminPage void setActiveTab dead no-op |5min
+**Bug:** M-22. FIX: `setActiveTab` dead function o'chirildi.
 
-### T-123 | FRONTEND | AdminPage useEffect stale activeTab |10min
-**Bug:** M-23. Dependency array to'g'irlash.
+### T-123 | ✅ DONE | FRONTEND | AdminPage useEffect stale activeTab |10min
+**Bug:** M-23. FIX: `[searchParams, activeTab, setSearchParams]` dependency array to'ldirildi.
 
-### T-124 | FRONTEND | ProductPage loadData useEffect dependency yo'q |10min
+### T-124 | ✅ DONE | FRONTEND | ProductPage loadData useEffect dependency yo'q |10min
 **Bug:** M-24.
 
-### T-125 | FRONTEND | ProductPage extSearched reset bo'lmaydi |10min
+### T-125 | ✅ DONE | FRONTEND | ProductPage extSearched reset bo'lmaydi |10min
 **Bug:** M-25. Product o'zgarganda external search qayta boshlash.
 
-### T-126 | FRONTEND | ConsultationPage timezone muammo |15min
-**Bug:** M-26. UTC conversion to'g'irlash.
+### T-126 | ✅ DONE | FRONTEND | ConsultationPage timezone muammo |15min
+**Bug:** M-26. FIX: min date uses local date (not UTC), past booking validation added.
 
-### T-127 | FRONTEND | ConsultationPage 3 ta empty catch |10min
+### T-127 | ✅ DONE | FRONTEND | ConsultationPage 3 ta empty catch |10min
 **Bug:** M-27. Toast notification qo'shish.
 
-### T-128 | FRONTEND | DiscoveryPage 2 ta empty catch |10min
+### T-128 | ✅ DONE | FRONTEND | DiscoveryPage 2 ta empty catch |10min
 **Bug:** M-28.
 
-### T-129 | FRONTEND | ReferralPage empty catch |5min
+### T-129 | ✅ DONE | FRONTEND | ReferralPage empty catch |5min
 **Bug:** M-29.
 
-### T-130 | FRONTEND | ApiKeysPage 3 ta empty catch |10min
+### T-130 | ✅ DONE | FRONTEND | ApiKeysPage 3 ta empty catch |10min
 **Bug:** M-30.
 
-### T-131 | FRONTEND | FeedbackPage 4 ta empty catch |10min
+### T-131 | ✅ DONE | FRONTEND | FeedbackPage 4 ta empty catch |10min
 **Bug:** M-31.
 
 ### T-133 | ✅ DONE | BACKEND | sourcing.processor hardcoded 0.5kg weight |15min
@@ -544,35 +541,41 @@ function getClient(): Anthropic {
 ### T-150 | BACKEND | naming consultant_id aslida account_id |10min
 **Bug:** L-09.
 
-### T-152 | FRONTEND | any type api fayllarida 6 ta |10min
-**Bug:** L-11.
+### T-151 | ✅ DONE | FRONTEND | useCallback(fn, [fn]) foydasiz |5min
+**Bug:** L-10. FIX: `useCallback(onRefresh, [onRefresh])` olib tashlandi — `onRefresh` to'g'ridan uzatiladi.
 
-### T-153 | FRONTEND | ErrorBoundary console.error env check yo'q |5min
-**Bug:** L-12.
+### T-152 | ✅ DONE | FRONTEND | any type api fayllarida 6 ta |15min
+**Bug:** L-11. FIX: admin.ts, enterprise.ts, base.ts dagi `any` → `Record<string, unknown>` + typed interfaces.
 
-### T-154 | FRONTEND | getTokenPayload return type tor |10min
-**Bug:** L-13.
+### T-153 | ✅ DONE | FRONTEND | ErrorBoundary console.error env check yo'q |5min
+**Bug:** L-12. FIX: `if (import.meta.env.DEV)` check qo'shildi.
 
-### T-155 | FRONTEND | isAuthenticated() token expiry tekshirmaydi |15min
-**Bug:** L-14. Expired token → flash UI.
+### T-154 | ✅ DONE | FRONTEND | getTokenPayload return type tor |10min
+**Bug:** L-13. FIX: `JwtTokenPayload` interface yaratildi (sub, email, role, account_id, exp, iat).
 
-### T-156 | FRONTEND | DashboardPage sparkline useMemo yo'q |5min
-**Bug:** L-15.
+### T-155 | ✅ DONE | FRONTEND | isAuthenticated() token expiry tekshirmaydi |15min
+**Bug:** L-14. FIX: `isTokenValid()` funksiya — JWT exp tekshiradi, expired bo'lsa localStorage tozalaydi.
 
-### T-157 | FRONTEND | DashboardPage CSV export empty catch |5min
-**Bug:** L-16.
+### T-156 | ✅ DONE | FRONTEND | DashboardPage sparkline useMemo yo'q |5min
+**Bug:** L-15. FIX: `scoreSparkline` va `salesSparkline` `useMemo` bilan o'raldi.
 
-### T-159 | FRONTEND | ProductPage any — mlForecast, trendAnalysis |10min
+### T-157 | ✅ DONE | FRONTEND | DashboardPage CSV export empty catch |5min
+**Bug:** L-16. FIX: empty catch → `toastError(err, 'CSV eksport xatosi')`.
+
+### T-158 | ✅ DONE | FRONTEND | AdminPage 30+ any type |30min
+**Bug:** L-17. FIX: `Record<string, unknown>` + proper interfaces. `params?: any` → `params?: Record<string, unknown>`.
+
+### T-159 | ✅ DONE | FRONTEND | ProductPage any — mlForecast, trendAnalysis |10min
 **Bug:** L-18.
 
-### T-160 | FRONTEND | ProductPage effect ikki marta trigger |10min
+### T-160 | ✅ DONE | FRONTEND | ProductPage effect ikki marta trigger |10min
 **Bug:** L-19.
 
-### T-161 | FRONTEND | ProductPage hardcoded USD rate 12900 |10min
+### T-161 | ✅ DONE | FRONTEND | ProductPage hardcoded USD rate 12900 |10min
 **Bug:** L-20. T-134 bilan birga fix (API dan olish).
 
-### T-162 | FRONTEND | SignalsPage any[] barcha tab'larda |15min
-**Bug:** L-21.
+### T-162 | ✅ DONE | FRONTEND | SignalsPage any[] barcha tab'larda |15min
+**Bug:** L-21. FIX: 10 ta signal component da any[] o'rniga typed interfaces (types.ts). RankingTab/SaturationTab silent catch → logError.
 
 ### T-166 | ✅ DONE | BACKEND | parseWeeklyBought dead code |5min
 **Bug:** L-28. O'chirish.
@@ -750,7 +753,7 @@ Bu script bir necha hafta qolishi kerak, keyin o'chiriladi.
 - `apps/web/public/apple-touch-icon.svg` — faqat iOS home screen uchun kerak edi
 **QOLADI:** `favicon.svg` — brauzer tab icon sifatida kerak.
 
-### T-191 | FRONTEND | useNativeNotification.ts dead code o'chirish |5min
+### T-191 | ✅ DONE | FRONTEND | useNativeNotification.ts dead code o'chirish |5min
 **Fayl:** `apps/web/src/hooks/useNativeNotification.ts` — O'CHIRISH (21 qator)
 **Muammo:** Hech qayerda import qilinmagan — DEAD CODE. Web Notification API + Electron bridge ishlatadi, lekin hech qanday component chaqirmaydi.
 **Eslatma:** Agar kelajakda desktop notification kerak bo'lsa, qayta yoziladi.
@@ -800,7 +803,7 @@ if (!cleaned.startsWith('[')) {
 ```
 Bo'sh bullet'larni filter qilish: `.filter(b => b && b.length > 3 && !b.match(/^[\[\]{}"`]+$/))`
 
-### T-194 | FRONTEND | Chart X-axis "M02 27" takrorlanadi — sanalar o'qib bo'lmaydi |30min
+### T-194 | ✅ DONE | FRONTEND | Chart X-axis "M02 27" takrorlanadi — sanalar o'qib bo'lmaydi |30min
 **Screenshot:** hato/095147.png, hato/095238.png, hato/100612.png
 **Muammo:** Barcha chartlarda X-axis: `M02 27, M02 27, M02 27, M02 27...` (10+ marta takror). Sotuvchi hech narsa tushunmaydi.
 **Sabab 1:** `uz-UZ` locale oy nomini "M02" formatida beradi (oy nomi emas, raqami). "M02 27" = "Feb 27" o'rniga.
@@ -822,7 +825,7 @@ function formatChartDate(isoDate: string): string {
 2. Bir kunda 1+ snapshot bo'lsa, VAQTNI ko'rsatish: `"27 fev 06:00"`, `"27 fev 12:00"`
 3. Yoki — bir kunda faqat OXIRGI snapshot ko'rsatish (deduplicate by day)
 
-### T-195 | FRONTEND | "Ensemble: WMA + Holt's..." texnik jargon o'chirish |10min
+### T-195 | ✅ DONE | FRONTEND | "Ensemble: WMA + Holt's..." texnik jargon o'chirish |10min
 **Screenshot:** hato/095238.png, hato/100612.png
 **Muammo:** Pastki qatorda: `Ensemble: WMA + Holt's Exponential Smoothing + Linear Regression · MAE: 0.1031 · RMSE: 1.7655` — sotuvchi bu nima ekanligini bilmaydi. WMA, MAE, RMSE — texnik atamalar.
 **Fayl:** `ProductPage.tsx:697-699`
@@ -874,7 +877,7 @@ content:
 - ProductPage'da "Bu mening mahsulotim" / "Bu raqib mahsuloti" toggle qo'shish
 - AI prompt'ga bu kontekstni yuborish → boshqa turdagi maslahatlar
 
-### T-197 | FRONTEND | Score tarixi chart — bir kunda ko'p snapshot zigzag ko'rsatadi |20min
+### T-197 | ✅ DONE | FRONTEND | Score tarixi chart — bir kunda ko'p snapshot zigzag ko'rsatadi |20min
 **Screenshot:** hato/095300.png
 **Muammo:** Score chart zigzag shakl — bir kunda 4 ta snapshot (6h cron), har birida score bir oz farq qiladi. Natija: chiziq o'ynoqibop ko'rinadi, sotuvchi "score barqaror emas" deb o'ylaydi.
 **Fayl:** `ScoreChart.tsx` + `ProductPage.tsx:706-726`
@@ -910,7 +913,7 @@ Chartga `aggregateByDay(snapshots)` berish.
 4. Y-axis label: "dona/hafta"
 5. Bar tooltip: "27 fev: 514 dona haftalik sotuv"
 
-### T-199 | FRONTEND | "7 kunlik bashorat" trend badge noto'g'ri — 3.25→9.14 = "Barqaror"? |20min
+### T-199 | ✅ DONE | FRONTEND | "7 kunlik bashorat" trend badge noto'g'ri — 3.25→9.14 = "Barqaror"? |20min
 **Screenshot:** hato/095147.png
 **Muammo:** Score 3.25 dan 9.14 ga oshishi bashorat qilingan, lekin trend badge "Barqaror" ko'rsatadi. Sotuvchi: "Score 3x oshadi, lekin barqaror?"
 **Sabab:** `forecastEnsemble()` da slope threshold `0.01`. Historical data mostly flat → slope ~0. Forecast prediction 9.14 bo'lsa ham, slope kichik.
@@ -930,7 +933,7 @@ const trend = changePct > 0.05 ? 'up' : changePct < -0.05 ? 'down' : 'flat';
 const trendText = trend === 'up' ? `+${pct}% o'sish` : trend === 'down' ? `${pct}% pasayish` : 'Barqaror';
 ```
 
-### T-200 | FRONTEND | ML Prognoz — "confidence", "snapshot" texnik so'zlar |10min
+### T-200 | ✅ DONE | FRONTEND | ML Prognoz — "confidence", "snapshot" texnik so'zlar |10min
 **Screenshot:** hato/095238.png
 **Muammo:** ML Prognoz card'da:
 - "confidence" — inglizcha texnik termin → "ishonchlilik" yozilgan, lekin tagida yana "confidence"
@@ -976,7 +979,7 @@ const trendText = trend === 'up' ? `+${pct}% o'sish` : trend === 'down' ? `${pct
 5. **Raqiblar** — agar bor bo'lsa
 6. **Texnik** — score tarixi, global taqqoslash (pastda, kamroq muhim)
 
-### T-203 | FRONTEND | ML Prognoz 4 ta KPI box labelsiz — raqamlar tushunarsiz | 20min
+### T-203 | ✅ DONE | FRONTEND | ML Prognoz 4 ta KPI box labelsiz — raqamlar tushunarsiz | 20min
 **Screenshot:** hato/095238.png, hato/100612.png
 **Muammo:** ML Prognoz bo'limida 4 ta KPI box bor:
 - `2.94` + qizil "Tushyapti" badge
@@ -991,7 +994,7 @@ Bundan tashqari `Tushyapti` (qizil) va `O'sayapti` (yashil) bir vaqtda ko'rsatil
 2. Contradictory badge larni tuzatish — score va sotuv trend badge ALOHIDA ko'rsatilishi kerak
 3. Score uchun rang: < 3 qizil, 3-5 sariq, 5-7 yashil, 7+ ko'k
 
-### T-204 | FRONTEND | "7 kunlik sotuv dinamikasi" card da qora to'rtburchak (render bug) | 15min
+### T-204 | ✅ DONE | FRONTEND | "7 kunlik sotuv dinamikasi" card da qora to'rtburchak (render bug) | 15min
 **Screenshot:** hato/095147.png
 **Muammo:** "7 kunlik sotuv dinamikasi" bo'limidagi kartochkalardan biri to'liq QORA TO'RTBURCHAK ko'rsatadi. Image load fail yoki CSS rendering xatosi.
 **Fayl:** `ProductPage.tsx` — weekly trend cards section
@@ -1000,7 +1003,7 @@ Bundan tashqari `Tushyapti` (qizil) va `O'sayapti` (yashil) bir vaqtda ko'rsatil
 2. `onError` handler: qora blok o'rniga "Ma'lumot yo'q" matn ko'rsatish
 3. CSS `background-color` va `overflow: hidden` tekshirish
 
-### T-205 | FRONTEND | Footer da raw scoring formula ko'rinadi — foydalanuvchiga ko'rsatilmasligi kerak | 10min
+### T-205 | ✅ DONE | FRONTEND | Footer da raw scoring formula ko'rinadi — foydalanuvchiga ko'rsatilmasligi kerak | 10min
 **Screenshot:** hato/095300.png
 **Muammo:** Sahifa pastida footer bar: `Score = 0.5*(in1) (daily) + 0.3*(in1) (price) + 0.5*fn rating + 0.1*fn review - 0.1*fn seolon · Real vaqtda hisoblab berlamasan` — bu raw scoring formula. Oddiy sotuvchi uchun hech qanday ma'no bermaydi va professional ko'rinmaydi.
 **Fayl:** `ProductPage.tsx` — page footer/bottom section
@@ -1027,7 +1030,7 @@ Bu ikki xabar bir-biriga ZID. 50 ta raqib kuzatilayotgan bo'lsa, ma'lumot bo'lis
 | Worker Debug (P0) | 5 | T-061...T-065 |
 | Worker Debug (P1) | 12 | T-066...T-077 |
 | Bugs.md (P2) | 20 (20 done) | T-078...T-100 |
-| Bugs.md (P3) | 68 (4 dup o'chirildi) | T-101...T-172 |
+| Bugs.md (P3) | 68 (4 dup o'chirildi, 52 done) | T-101...T-172 |
 | **Railway Deploy (P0)** | **4 ✅ DONE, 1 ochiq (T-177)** | **T-173...T-177** |
 | **Railway Env Audit** | **4 optional** | **T-242...T-245** |
 | **Railway Deploy (P1)** | **4** | **T-178...T-181** |
@@ -1040,8 +1043,8 @@ Bu ikki xabar bir-biriga ZID. 50 ta raqib kuzatilayotgan bo'lsa, ma'lumot bo'lis
 | Desktop Login | 1 (renumbered) | T-234 |
 | **Playwright DOM scraping** | **2** | **T-235...T-236** |
 | **Product Image** | **1** | **T-237** |
-| **Frontend Refactor** | **14 (12 done)** | **T-246...T-259** |
-| **JAMI** | **~95 ochiq** | T-061...T-259 |
+| **Frontend Refactor** | **14 (14 done)** | **T-246...T-259** |
+| **JAMI** | **~65 ochiq** | T-061...T-259 |
 
 | O'zgarish | Tafsilot |
 |-----------|----------|
@@ -1051,6 +1054,7 @@ Bu ikki xabar bir-biriga ZID. 50 ta raqib kuzatilayotgan bo'lsa, ma'lumot bo'lis
 | ✅ Assignment o'chirildi | Bekzod/Sardor/Ikkalasi barcha tasklardan olib tashlandi |
 | ✅ Yangi buglar qo'shildi | T-203-T-206 (UX), T-235-T-236 (Playwright weekly_bought) |
 | ✅ Component extraction | T-258 (6 god page → 68 components), T-259 (DiscoveryPage), T-163 ✅ |
+| ✅ P2 frontend fix (2026-02-27) | T-114..T-158: 30 P2 task — type safety, error handling, i18n split, DRY, JWT expiry |
 
 ### RAILWAY DEPLOY — BAJARILDI (2026-02-27)
 - ✅ Eski `railway/` directory o'chirildi (4 ta toml)
@@ -1093,19 +1097,19 @@ Bu ikki xabar bir-biriga ZID. 50 ta raqib kuzatilayotgan bo'lsa, ma'lumot bo'lis
 | T-259 | P1 | DiscoveryPage split (631→42 qator, 8 fayl) | components/discovery/ | ✅ DONE |
 
 ### PRODUCTPAGE UX — TOP MUAMMOLAR (hato/ rasmlardan)
-- 🔴 T-193: AI tahlili raw JSON ko'rsatadi (` ```json `, `[`)
-- 🔴 T-194: X-axis "M02 27" 10+ marta takrorlanadi
-- 🔴 T-195: "WMA + Holt's + Linear Regression · MAE · RMSE" texnik jargon
+- ✅ T-193: AI tahlili raw JSON — BACKEND DONE, frontend qismi ichida hal bo'lgan
+- ✅ T-194: X-axis "M02 27" 10+ marta takrorlanadi — DONE (manual date format)
+- ✅ T-195: "WMA + Holt's + Linear Regression · MAE · RMSE" texnik jargon — DONE
 - 🟡 T-196: AI tahlili generic — raqib/o'z tovar farqi yo'q
-- 🟡 T-197: Score chart zigzag — bir kunda ko'p snapshot
+- ✅ T-197: Score chart zigzag — DONE (KUN bo'yicha aggregate)
 - 🟡 T-198: Haftalik sotuvlar chart noto'g'ri data
-- 🟡 T-199: "Barqaror" trend badge noto'g'ri (3.25→9.14)
-- 🟡 T-200: "confidence", "snapshot" texnik so'zlar
+- ✅ T-199: "Barqaror" trend badge — DONE (changePct>5% = up)
+- ✅ T-200: "confidence", "snapshot" — DONE (o'zbekcha tarjima)
 - 🟡 T-201: Raqiblar/Global Bozor loading/bo'sh
 - 🟡 T-202: Sahifa tartibi sotuvchi uchun optimal emas
-- 🟡 T-203: ML Prognoz KPI boxlar labelsiz — 2.94, 81, 74%, 58 nima?
-- 🟡 T-204: "7 kunlik sotuv dinamikasi" da qora to'rtburchak
-- 🟡 T-205: Footer da raw scoring formula ko'rinadi
+- ✅ T-203: ML Prognoz KPI boxlar labelsiz — DONE (labellar aniqroq)
+- ✅ T-204: "7 kunlik sotuv dinamikasi" qora to'rtburchak — DONE (rect → Cell)
+- ✅ T-205: Footer da raw scoring formula — DONE (oddiy tushuntirish)
 - 🟡 T-206: Raqiblar "50 ta kuzatilmoqda" + "topilmadi" ziddiyat
 
 ---
@@ -2228,4 +2232,71 @@ Stock cliff detection 10% heuristic ishlatadi → 10x noaniq (estimated 4500, ha
 
 ---
 
+### T-260 | P1 | FRONTEND+BACKEND | Discovery — kategoriya nomi ko'rsatish (faqat ID emas) | 1.5h
+**Manba:** Production test (2026-02-27)
+**Muammo:** Discovery sahifasida foydalanuvchi faqat "#879", "#10012" kabi raqamlarni ko'radi.
+Skanerlashlar jadvalida, Top 20 drawer'da, va quick-select tugmalarida kategoriya NOMI ko'rinmaydi.
+Mijoz uchun "#879" eslab qolish qiyin — "Smartfonlar" deb yozilishi kerak.
+**Qayerlarda ko'rinishi kerak:**
+1. Skanerlashlar jadvali — "Kategoriya ID" ustunida "#879" o'rniga "Smartfonlar (#879)"
+2. Top 20 drawer sarlavhasi — "Kategoriya #879" o'rniga "Smartfonlar — Top 20"
+3. Discovery run history — nomi bilan saqlanishi kerak
+**Fix (Backend):**
+1. `discovery.service.ts` — Uzum API dan category name olish: `GET /api/v2/category/{id}` yoki scraper'dan
+2. `DiscoveryRun` Prisma modeliga `category_name String?` field qo'shish
+3. `prisma migrate dev --name add-discovery-category-name`
+4. Run yaratilganda category name saqlash
+5. GET `/discovery/runs` response'da `categoryName` qaytarish
+**Fix (Frontend):**
+1. `DiscoveryPage.tsx` (yoki `components/discovery/`) — jadvalda category name ko'rsatish
+2. G'oliblar drawer sarlavhasida category name ishlatish
+3. Quick-select tugmalari allaqachon nomli — ulardan foydalanish mumkin (client-side mapping)
+**Fayllar:**
+- `apps/api/src/discovery/discovery.service.ts`
+- `apps/api/prisma/schema.prisma` — DiscoveryRun model
+- `apps/web/src/components/discovery/` yoki `DiscoveryPage.tsx`
+
+---
+
 *Tasks.md | VENTRA Analytics Platform | 2026-02-27*
+
+---
+
+### T-261 | P1 | IKKALASI | Discovery natijalar drawer — sotuvchi uchun kerakli ma'lumotlar yo'q | 3h
+**Manba:** Production test (2026-02-27) — "Ko'rish" bosilganda faqat 5 ustun, Faollik doim "—"
+**Muammo:**
+Discovery Top 20 drawer'da sotuvchi qaror qabul qilish uchun kerakli ma'lumotlar ko'rinmaydi:
+- **Faollik** ustuni doim "—" ko'rsatadi (weekly_bought = null, chunki snapshot delta kerak, lekin discovery'da tarix yo'q)
+- **Rating** — Uzum API dan olinadi, lekin CategoryWinner jadvaliga saqlanmaydi
+- **Sharhlar soni** — olinadi, saqlanmaydi
+- **Ombor stoki** — totalAvailableAmount olinadi, saqlanmaydi
+- **FBO/FBS turi** — stockType olinadi, saqlanmaydi
+- Score formulasi 55% = weekly_bought (null) → scoring faqat 45% aniqlikda ishlaydi
+
+**Hozirgi holat (ScannerTab.tsx):**
+| # | Mahsulot | Score | Faollik(—) | Narx |
+
+**Kerakli holat (sotuvchi uchun):**
+| # | Mahsulot | Score | Buyurtma | Reyting | Sharhlar | Stok | Turi | Narx | Track |
+
+**Fix (Backend — discovery.processor.ts + schema.prisma):**
+1. CategoryWinner modeliga yangi fieldlar:
+   - rating Decimal? @db.Decimal(3,2)
+   - feedback_quantity Int?
+   - total_available_amount BigInt?
+   - stock_type String?
+2. prisma migrate dev --name add-discovery-winner-details
+3. discovery.processor.ts — winner yaratilganda yangi fieldlarni saqlash
+4. discovery.service.ts — getRun() response da yangi fieldlarni qaytarish
+5. Faollik ustunini orders_quantity (jami buyurtma) bilan almashtirish
+
+**Fix (Frontend — components/discovery/ScannerTab.tsx):**
+1. Drawer jadvaliga yangi ustunlar: Buyurtma, Reyting, Sharhlar, Stok, Turi
+2. Responsive dizayn — kichik ekranlarda scroll
+3. Track tugmasi → Tahlil + Track (bir marta bosib tahlil va kuzatuvga qoshish)
+
+**Fayllar:**
+- apps/api/prisma/schema.prisma — CategoryWinner model
+- apps/worker/src/processors/discovery.processor.ts — winner saqlash
+- apps/api/src/discovery/discovery.service.ts — response enrichment
+- apps/web/src/components/discovery/ScannerTab.tsx — drawer UI

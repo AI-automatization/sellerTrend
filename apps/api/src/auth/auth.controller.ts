@@ -19,7 +19,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(200)
-  @Throttle({ default: { ttl: 60000, limit: 10 } })
+  @Throttle({ default: { ttl: 60000, limit: 30 } })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
   }
