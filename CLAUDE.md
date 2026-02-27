@@ -175,6 +175,26 @@ pnpm --filter web exec tsc --noEmit
 
 ---
 
+## SCREENSHOT VA TEMP FAYLLAR
+
+**Root papkani musorga to'ldirmaslik uchun:**
+
+| Fayl/Papka | Maqsad | .gitignore |
+|-------------|--------|------------|
+| `screenshots/` | Playwright, MCP, debug screenshotlar | ✅ ignore |
+| `test-results/` | Playwright test natijalari | ✅ ignore |
+| `*.png` (root) | Tasodifiy screenshot | ✅ ignore |
+| `tmp_*.json` | Vaqtinchalik debug JSON fayllar | ✅ ignore |
+| `hato/` | Xato loglar papkasi | ✅ ignore |
+
+**Qoidalar:**
+- Screenshot olsang — `screenshots/` papkaga saqla, root'ga EMAS
+- Playwright test: `--output screenshots/` flag ishlatish
+- `apps/web/public/**/*.png` va `apps/desktop/resources/**/*.png` — BUNDAN MUSTASNO (asset)
+- Root'da `.png` yoki `tmp_*.json` paydo bo'lsa — tegishli papkaga ko'chirish
+
+---
+
 ## XAVFLI ZONALAR (IKKALA DASTURCHI UCHUN)
 
 ```
@@ -187,4 +207,4 @@ pnpm --filter web exec tsc --noEmit
 
 ---
 
-*CLAUDE.md | VENTRA Analytics Platform | 2026-02-26*
+*CLAUDE.md | VENTRA Analytics Platform | 2026-02-28*

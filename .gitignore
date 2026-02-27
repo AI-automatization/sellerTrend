@@ -10,5 +10,14 @@ apps/api/logs/
 apps/worker/logs/
 apps/worker/bg_playwright.js
 .playwright-mcp/
+screenshots/
+test-results/
+*.png
+!apps/web/public/**/*.png
+!apps/desktop/resources/**/*.png
 apps/desktop/out/
 apps/desktop/release/
+tmp_*.json
+hato/
+mahsulot.md
+perm

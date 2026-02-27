@@ -119,6 +119,7 @@ model AuditEvent {
   user    User?    @relation(fields: [user_id], references: [id], onDelete: SetNull)
 
   @@index([account_id])
+  @@index([created_at])
   @@map("audit_events")
 }
 
@@ -249,6 +250,7 @@ model CategoryRun {
   winners  CategoryWinner[]
 
   @@index([account_id])
+  @@index([created_at])
   @@map("category_runs")
 }
 
@@ -287,6 +289,7 @@ model TrackedProduct {
   product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
 
   @@unique([account_id, product_id])
+  @@index([created_at])
   @@map("tracked_products")
 }
 
@@ -898,6 +901,7 @@ model Notification {
   account Account? @relation(fields: [account_id], references: [id])
 
   @@index([account_id, is_read])
+  @@index([created_at])
   @@map("notifications")
 }
 

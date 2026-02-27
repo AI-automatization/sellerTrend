@@ -95,10 +95,10 @@ export function AdminPage() {
       adminApi.getAuditLog(50).catch((e) => { logError(e); return null; }),
       adminApi.listUsers().catch((e) => { logError(e); return null; }),
     ]);
-    if (accRes) setAccounts(accRes.data);
+    if (accRes) setAccounts(accRes.data?.items ?? accRes.data);
     if (feeRes) setGlobalFeeInput(feeRes.data.daily_fee_default);
     if (auditRes) setAuditLog(auditRes.data);
-    if (usersRes) setUsers(usersRes.data);
+    if (usersRes) setUsers(usersRes.data?.items ?? usersRes.data);
     setLoading(false);
   }
 

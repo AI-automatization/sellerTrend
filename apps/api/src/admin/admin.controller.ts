@@ -41,10 +41,16 @@ export class AdminController {
   // ACCOUNT ENDPOINTS
   // ============================================================
 
-  /** List all accounts */
+  /** List all accounts (paginated) */
   @Get('accounts')
-  listAccounts() {
-    return this.accountService.listAccounts();
+  listAccounts(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.accountService.listAccounts(
+      page ? parseInt(page) : 1,
+      limit ? parseInt(limit) : 50,
+    );
   }
 
   /** Single account with transaction history */
@@ -202,10 +208,16 @@ export class AdminController {
   // USER ENDPOINTS
   // ============================================================
 
-  /** List all users across all accounts */
+  /** List all users across all accounts (paginated) */
   @Get('users')
-  listUsers() {
-    return this.userService.listUsers();
+  listUsers(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.userService.listUsers(
+      page ? parseInt(page) : 1,
+      limit ? parseInt(limit) : 50,
+    );
   }
 
   /** Change user password (admin action) */
