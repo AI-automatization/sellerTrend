@@ -29,6 +29,7 @@
 | BUG-049 | T-158 | `AdminPage.tsx` — 30+ `any` type | 20+ typed interface; `unknown` audit values; tsc clean |
 | BUG-050 | T-163 | `AdminPage.tsx` 2163 qator | 9 fayl: adminTypes, AdminComponents, 7 tab component |
 | BUG-051 | T-084 | `RegisterPage.tsx` — `setTokens` ikki marta e'lon qilingan | Duplicate declaration o'chirildi |
+| BUG-052 | T-164 | 7 sahifada hardcoded Uzbek matn (i18n yo'q) | `useI18n` + `t()` — SignalsPage, DiscoveryPage, ReferralPage, FeedbackPage, ConsultationPage, SourcingPage, ProductPage |
 
 ---
 

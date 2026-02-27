@@ -84,7 +84,7 @@
 ### T-161 | ProductPage hardcoded USD rate 12900 | 10min
 ### T-162 | SignalsPage any[] barcha tab'larda | 15min
 ### T-163 | AdminPage 900+ qator (400 limit) | 1h
-### T-164 | i18n — 7 ta sahifada hardcoded Uzbek matn | 30min
+### ✅ T-164 | i18n — 7 ta sahifada hardcoded Uzbek matn | DONE 2026-02-28
 
 ---
 
