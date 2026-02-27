@@ -1,6 +1,51 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
 # Yangilangan: 2026-02-27
 
+## COMPONENT EXTRACTION — 6 God Page → 68 Components (2026-02-27)
+
+### T-258 | FRONTEND | 6 ta god page → 68 ta component faylga ajratildi | Sardor | 1h
+**Commit:** `b3f8d00` — 75 fayl, +4994 / -4367 qator
+
+**Muammo:** 6 ta page fayl juda katta (jami 6159 qator), har biri ichida 5-14 ta inline komponent.
+**Yechim:** Har page dan inline komponentlar alohida fayllarga extract qilindi, page = thin orchestrator.
+
+| Page | Oldin | Keyin | Komponentlar | Papka |
+|------|-------|-------|-------------|-------|
+| AdminPage.tsx | 2001 | 453 | 21 fayl | components/admin/ |
+| SignalsPage.tsx | 870 | 86 | 17 fayl | components/signals/ |
+| SourcingPage.tsx | 971 | 117 | 10 fayl | components/sourcing/ |
+| ProductPage.tsx | 912 | 642 | 7 fayl | components/product/ |
+| DashboardPage.tsx | 774 | 664 | 7 fayl | components/dashboard/ |
+| DiscoveryPage.tsx | 631 | 42 | 8 fayl | components/discovery/ |
+| **Jami** | **6159** | **2004** | **68+6 index** | **6 papka** |
+
+**Qoidalar bajarildi:**
+- Logika O'ZGARMADI — faqat cut + paste + import/export
+- Har komponent uchun Props interface yozildi
+- Barrel export (index.ts) har papka uchun
+- Shared types → types.ts (har papkada)
+- `tsc --noEmit` — 0 error, `pnpm build` — muvaffaqiyatli, brauzer — 0 console error
+
+---
+
+## FRONTEND REFACTOR (2026-02-27)
+
+### T-246 | api/types.ts — Markaziy response types
+- `apps/web/src/api/types.ts` yaratildi — 17 ta interface/type markazlashtirildi
+- 8+ sahifadan inline type/interface olib tashlandi (AdminPage, AnalyzePage, DashboardPage, ProductPage, LeaderboardPage, FeedbackPage, ConsultationPage)
+- `any` → `unknown` (AuditEvent.old_value/new_value/details)
+
+### T-247 | utils/formatters.ts — Shared formatters
+- `apps/web/src/utils/formatters.ts` yaratildi — fmt, fmtUSD, fmtUZS, scoreColor, glassTooltip
+- ProductPage, DashboardPage, CompetitorSection dan duplicate funksiyalar olib tashlandi
+
+### T-248 | Silent .catch(() => {}) → logError/toastError
+- `apps/web/src/utils/handleError.ts` yaratildi — logError (dev console), toastError (toast notification)
+- 55+ joyda `.catch(() => {})` to'g'ri error handling bilan almashtirildi:
+  - useEffect background loading → `.catch(logError)` (dev console only)
+  - User-triggered actions → `.catch((e) => toastError(e))` (toast ko'rsatadi)
+- Tuzatilgan fayllar: AdminPage, Layout, DashboardPage, ProductPage, LeaderboardPage, ReferralPage, CompetitorSection, AccountDrawer, SeasonalCalendarTab, 8 signals tab, 5 enterprise tab
+
 ## TUZATILGAN BUGLAR (28 ta)
 
 | # | Sana | Tur | Muammo | Fayl |
@@ -113,6 +158,7 @@
 
 | # | Vazifa | Yechim |
 |---|--------|--------|
+| T-101 | admin.service.ts 2178 qator → 5 service | admin-account (356), admin-user (572), admin-stats (666), admin-feedback (327), admin-log (240). Controller 5 ta DI. tsc --noEmit ✅ |
 | T-102 | `as any` → typed casts | 13 ta `as any` → UserRole/AccountStatus/FeedbackStatus/Prisma.InputJsonValue/Record<string,unknown>. admin, team, signals, export, error-tracker |
 | T-103 | main.ts console.log→Logger | NestJS Logger import, 6 ta console.log/error → logger.log/error |
 | T-104 | community dead code | counterUpdate o'zgaruvchisi o'chirildi (hisoblangan lekin ishlatilmagan) |
