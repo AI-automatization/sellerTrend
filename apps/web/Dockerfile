@@ -3,6 +3,7 @@ RUN npm install -g pnpm@10.30.1
 
 FROM base AS deps
 WORKDIR /app
+ENV HUSKY=0
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .pnpmfile.cjs ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/types/package.json ./packages/types/

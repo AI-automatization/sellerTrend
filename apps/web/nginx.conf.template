@@ -21,6 +21,13 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
+    # Railway healthcheck — nginx o'zi javob beradi (API ga proxy qilmasdan)
+    location = /api/v1/health {
+        access_log off;
+        return 200 'ok';
+        add_header Content-Type text/plain;
+    }
+
     # API proxy → NestJS
     location /api/ {
         proxy_pass http://${API_UPSTREAM};
