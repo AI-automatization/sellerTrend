@@ -2,129 +2,19 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell, PieChart, Pie, LineChart, Line,
+  ResponsiveContainer, Cell, PieChart, Pie,
 } from 'recharts';
 import { productsApi, billingApi, exportApi, getTokenPayload } from '../api/client';
+import { logError } from '../utils/handleError';
+import type { TrackedProduct, Balance } from '../api/types';
+import { scoreColor } from '../utils/formatters';
 import {
   FireIcon, WalletIcon, ArrowTrendingUpIcon, MagnifyingGlassIcon,
 } from '../components/icons';
 import { useI18n } from '../i18n/I18nContext';
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-interface TrackedProduct {
-  product_id: string;
-  title: string;
-  rating: number | string | null;
-  feedback_quantity: number | null;
-  orders_quantity: string | null;
-  score: number | null;
-  prev_score: number | null;
-  trend: 'up' | 'flat' | 'down' | null;
-  weekly_bought: number | null;
-  sell_price: number | null;
-  tracked_since: string;
-}
-
-interface Balance {
-  balance: string;
-  status: string;
-  daily_fee: string;
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function scoreColor(score: number | null) {
-  if (!score) return '#4b5563';
-  if (score >= 6) return '#22c55e';
-  if (score >= 4) return '#f59e0b';
-  return '#6b7280';
-}
-
-function AnimatedNumber({ value, decimals = 0 }: { value: number; decimals?: number }) {
-  const [display, setDisplay] = useState(0);
-  useEffect(() => {
-    const steps = 30;
-    const inc = value / steps;
-    let current = 0;
-    let frame = 0;
-    const timer = setInterval(() => {
-      frame++;
-      current = Math.min(current + inc, value);
-      setDisplay(current);
-      if (frame >= steps) clearInterval(timer);
-    }, 16);
-    return () => clearInterval(timer);
-  }, [value]);
-  return <>{decimals > 0 ? display.toFixed(decimals) : Math.round(display).toLocaleString()}</>;
-}
-
-function MiniSparkline({ data, color, height = 32 }: { data: number[]; color: string; height?: number }) {
-  if (data.length < 2) return null;
-  const chartData = data.map((v, i) => ({ i, v }));
-  return (
-    <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={chartData} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>
-        <Line type="monotone" dataKey="v" stroke={color} strokeWidth={1.5} dot={false} />
-      </LineChart>
-    </ResponsiveContainer>
-  );
-}
-
-function ScorePill({ score }: { score: number | null }) {
-  if (score === null) return <span className="text-base-content/20 text-xs">—</span>;
-  const cls =
-    score >= 6 ? 'bg-success/12 text-success border-success/15'
-    : score >= 4 ? 'bg-warning/12 text-warning border-warning/15'
-    : 'bg-base-300/50 text-base-content/40 border-base-300/30';
-  return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-[10px] text-[11px] font-bold tabular-nums border ${cls}`}>
-      {score.toFixed(2)}
-    </span>
-  );
-}
-
-function TrendChip({ trend }: { trend: 'up' | 'flat' | 'down' | null }) {
-  if (trend === 'up')
-    return <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-success/10 text-success text-[10px] font-bold">↗</span>;
-  if (trend === 'down')
-    return <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-error/10 text-error text-[10px] font-bold">↘</span>;
-  if (trend === 'flat')
-    return <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-base-300/30 text-base-content/25 text-[10px]">→</span>;
-  return <span className="text-base-content/10">—</span>;
-}
-
-// Glass tooltip
-interface TooltipPayloadItem { value: number; name: string; color?: string; fill?: string; }
-interface ChartTooltipProps { active?: boolean; payload?: TooltipPayloadItem[]; label?: string; fmt?: (v: number, n: string) => string; }
-
-function GlassTooltip({ active, payload, label, fmt }: ChartTooltipProps) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-base-100/95 backdrop-blur-xl border border-base-300/40 rounded-xl px-3.5 py-2.5 shadow-2xl">
-      {label && <p className="text-[10px] text-base-content/35 mb-1.5 font-medium uppercase tracking-wide">{label}</p>}
-      {payload.map((p, i: number) => (
-        <div key={i} className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: p.color || p.fill }} />
-          <span className="text-sm font-bold tabular-nums">{fmt ? fmt(p.value, p.name) : p.value}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ─── Entrance animation helper ────────────────────────────────────────────────
-
-function FadeIn({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
-  return (
-    <div
-      className={`animate-[fadeSlideUp_0.5s_ease-out_both] ${className}`}
-      style={{ animationDelay: `${delay}ms` }}
-    >
-      {children}
-    </div>
-  );
-}
+import {
+  AnimatedNumber, MiniSparkline, ScorePill, TrendChip, GlassTooltip, FadeIn,
+} from '../components/dashboard';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -142,7 +32,7 @@ export function DashboardPage() {
     setLoading(true);
     const promises: Promise<unknown>[] = [productsApi.getTracked().then((r) => setProducts(r.data))];
     if (!isSuperAdmin) {
-      promises.push(billingApi.getBalance().then((r) => setBalance(r.data)).catch(() => {}));
+      promises.push(billingApi.getBalance().then((r) => setBalance(r.data)).catch(logError));
     }
     Promise.all(promises).finally(() => setLoading(false));
   }, [isSuperAdmin]);

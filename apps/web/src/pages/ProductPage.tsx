@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { uzumApi, productsApi, sourcingApi } from '../api/client';
 import { getErrorMessage } from '../utils/getErrorMessage';
+import { logError } from '../utils/handleError';
 import { ScoreChart } from '../components/ScoreChart';
 import {
   AreaChart,
@@ -16,54 +17,16 @@ import {
 } from 'recharts';
 import { MagnifyingGlassIcon, ArrowTrendingUpIcon } from '../components/icons';
 import { CompetitorSection } from '../components/CompetitorSection';
-
-interface AnalyzeResult {
-  product_id: number;
-  title: string;
-  rating: number | null;
-  feedback_quantity: number | null;
-  orders_quantity: number | null;
-  weekly_bought: number | null;
-  score: number;
-  sell_price: number | null;
-  total_available_amount?: number;
-  ai_explanation: string[] | null;
-  snapshot_id?: string;
-}
-
-interface WeeklyTrend {
-  weekly_sold: number | null;
-  prev_weekly_sold: number | null;
-  delta: number | null;
-  delta_pct: number | null;
-  trend: 'up' | 'flat' | 'down';
-  daily_breakdown: Array<{ date: string; orders: number; daily_sold: number }>;
-  advice: { type: string; title: string; message: string; urgency: 'high' | 'medium' | 'low' };
-  score_change: number | null;
-  last_updated: string | null;
-}
-
-interface Forecast {
-  forecast_7d: number;
-  trend: 'up' | 'flat' | 'down';
-  slope: number;
-}
-
-interface Snapshot {
-  score: number;
-  weekly_bought: number | null;
-  orders_quantity: string;
-  snapshot_at: string;
-}
-
-interface ExternalItem {
-  title: string;
-  price: string;
-  source: string;
-  link: string;
-  image: string;
-  store: string;
-}
+import {
+  ScoreRadial,
+  StatCard,
+  ScoreMeter,
+  TrendBadge,
+  GlobalPriceComparison,
+} from '../components/product';
+import type { ExternalItem } from '../components/product';
+import type { AnalyzeResult, WeeklyTrend, Forecast, Snapshot } from '../api/types';
+import { glassTooltip } from '../utils/formatters';
 
 function extractSearchQuery(title: string): string {
   const stopWords = new Set([
@@ -75,93 +38,6 @@ function extractSearchQuery(title: string): string {
     .split(/\s+/)
     .filter((w) => w.length > 2 && !stopWords.has(w.toLowerCase()));
   return words.slice(0, 5).join(' ');
-}
-
-const SOURCE_META: Record<string, { label: string; flag: string; color: string }> = {
-  EBAY:          { label: 'eBay',          flag: '🛒', color: 'badge-warning' },
-  JOOM:          { label: 'Joom',          flag: '🌍', color: 'badge-primary' },
-  BANGGOOD:       { label: 'Banggood',       flag: '🛍️', color: 'badge-accent' },
-  SHOPEE:         { label: 'Shopee',        flag: '🛒', color: 'badge-success' },
-  ALIBABA:       { label: 'Alibaba',       flag: '🇨🇳', color: 'badge-secondary' },
-  ALIEXPRESS:    { label: 'AliExpress',    flag: '🛍️', color: 'badge-error' },
-  DHGATE:        { label: 'DHgate',        flag: '🏪', color: 'badge-accent' },
-  MADE_IN_CHINA: { label: 'MadeInChina',  flag: '🏭', color: 'badge-neutral' },
-  SERPAPI:       { label: 'Google',        flag: '🔍', color: 'badge-info' },
-};
-
-const MAX_SCORE = 10;
-
-const glassTooltip = {
-  contentStyle: {
-    background: 'var(--chart-tooltip-bg)',
-    backdropFilter: 'blur(8px)',
-    border: '1px solid var(--chart-tooltip-border)',
-    borderRadius: 12,
-    fontSize: 12,
-    color: 'var(--chart-tooltip-text)',
-  },
-  labelStyle: { color: 'var(--chart-tick)' },
-};
-
-function ScoreRadial({ score }: { score: number }) {
-  const pct = Math.min((score / MAX_SCORE) * 100, 100);
-  const color = score >= 6 ? '#22c55e' : score >= 4 ? '#f59e0b' : '#6b7280';
-  return (
-    <div
-      className="radial-progress text-2xl lg:text-3xl font-bold"
-      style={{ '--value': pct, '--size': '8rem', '--thickness': '7px', color } as any}
-      role="progressbar"
-    >
-      {score.toFixed(2)}
-    </div>
-  );
-}
-
-function StatCard({
-  label, value, sub, accent, icon,
-}: {
-  label: string; value: string; sub?: string; accent?: string; icon?: React.ReactNode;
-}) {
-  return (
-    <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 lg:p-4">
-      <div className="flex items-start justify-between mb-1">
-        <p className="text-xs text-base-content/50">{label}</p>
-        {icon && <span className="text-base-content/30">{icon}</span>}
-      </div>
-      <p className={`font-bold text-lg tabular-nums leading-tight ${accent ?? ''}`}>{value}</p>
-      {sub && <p className="text-xs text-base-content/40 mt-0.5">{sub}</p>}
-    </div>
-  );
-}
-
-function ScoreMeter({ score }: { score: number }) {
-  const segments = [
-    { label: 'Zaif', max: 3, color: 'bg-error' },
-    { label: "O'rtacha", max: 5, color: 'bg-warning' },
-    { label: 'Yaxshi', max: 7, color: 'bg-success' },
-    { label: 'Zo\'r', max: 10, color: 'bg-primary' },
-  ];
-  const active = segments.findIndex((s) => score <= s.max);
-  const seg = segments[active === -1 ? 3 : active];
-  return (
-    <div className="space-y-1">
-      <div className="flex gap-1 h-2">
-        {segments.map((s, i) => (
-          <div
-            key={i}
-            className={`flex-1 rounded-full ${i <= (active === -1 ? 3 : active) ? s.color : 'bg-base-300'} opacity-${i === (active === -1 ? 3 : active) ? '100' : '50'}`}
-          />
-        ))}
-      </div>
-      <p className="text-xs text-base-content/50 text-right">{seg.label} daraja</p>
-    </div>
-  );
-}
-
-function TrendBadge({ trend }: { trend: 'up' | 'flat' | 'down' }) {
-  if (trend === 'up') return <span className="badge badge-success">↗ O'sayapti</span>;
-  if (trend === 'down') return <span className="badge badge-error">↘ Tushayapti</span>;
-  return <span className="badge badge-ghost">→ Barqaror</span>;
 }
 
 export function ProductPage() {
@@ -225,7 +101,7 @@ export function ProductPage() {
   useEffect(() => {
     sourcingApi.getCurrencyRates()
       .then((r) => { if (r.data?.USD) setUsdRate(r.data.USD); })
-      .catch(() => {});
+      .catch(logError);
   }, []);
 
   // Load ML forecast + weekly trend when product is loaded
@@ -254,7 +130,7 @@ export function ProductPage() {
         setExtItems((res.data.results ?? []).slice(0, 12));
         if (res.data.note) setExtNote(res.data.note);
       })
-      .catch(() => {})
+      .catch(logError)
       .finally(() => setExtLoading(false));
   }, [result?.title]);
 
@@ -761,152 +637,6 @@ export function ProductPage() {
         </svg>
         <span>Score = 0.55×ln(1+faollik) + 0.25×ln(1+jami) + 0.10×reyting + 0.10×ombor · Real vaqtda Uzumdan hisoblangan</span>
       </div>
-    </div>
-  );
-}
-
-// ─── Global Price Comparison ──────────────────────────────────────────────────
-
-function GlobalPriceComparison({
-  items, loading, note, uzumPrice, productTitle, usdRate,
-}: {
-  items: ExternalItem[]; loading: boolean; note: string;
-  uzumPrice: number | null; productTitle: string; usdRate: number;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const visible = expanded ? items : items.slice(0, 6);
-  const USD_RATE = usdRate;
-
-  function parsePrice(priceStr: string): number | null {
-    const m = priceStr.match(/[\d.,]+/);
-    if (!m) return null;
-    const n = parseFloat(m[0].replace(',', '.'));
-    if (isNaN(n)) return null;
-    if (priceStr.includes('$') || n < 10000) return n * USD_RATE;
-    return n;
-  }
-
-  function marginLabel(extPriceUzs: number): { text: string; cls: string } | null {
-    if (!uzumPrice || uzumPrice <= 0) return null;
-    const landed = extPriceUzs * 1.3;
-    const margin = ((uzumPrice - landed) / uzumPrice) * 100;
-    if (margin >= 30) return { text: `+${margin.toFixed(0)}% margin`, cls: 'text-success' };
-    if (margin >= 15) return { text: `+${margin.toFixed(0)}% margin`, cls: 'text-warning' };
-    if (margin > 0)   return { text: `+${margin.toFixed(0)}% margin`, cls: 'text-error' };
-    return { text: 'Zararli', cls: 'text-error' };
-  }
-
-  return (
-    <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-6 space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div>
-          <h2 className="font-bold text-base lg:text-lg flex items-center gap-2">
-            <span>🌏</span> Global Bozor Taqqoslash
-          </h2>
-          <p className="text-xs text-base-content/50 mt-0.5">
-            Shu mahsulot uchun Banggood va Shopee global narxlari
-          </p>
-        </div>
-        <Link to="/sourcing" className="btn btn-outline btn-xs gap-1">
-          Cargo kalkulyator ↗
-        </Link>
-      </div>
-
-      {loading && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-base-300/60 rounded-xl p-4 space-y-2 animate-pulse">
-              <div className="h-20 bg-base-content/5 rounded-lg" />
-              <div className="h-3 bg-base-content/10 rounded w-3/4" />
-              <div className="h-4 bg-base-content/10 rounded w-1/2" />
-            </div>
-          ))}
-        </div>
-      )}
-
-      {!loading && note && (
-        <div className="flex items-start gap-2 bg-base-300/60 rounded-xl px-4 py-3 text-sm">
-          <span className="text-base-content/40 text-xs shrink-0 mt-0.5">ℹ️</span>
-          <p className="text-base-content/70">{note}</p>
-        </div>
-      )}
-
-      {!loading && items.length > 0 && (
-        <>
-          {uzumPrice && (() => {
-            const prices = items.map((it) => parsePrice(it.price)).filter((p): p is number => p !== null);
-            if (prices.length === 0) return null;
-            const minExt = Math.min(...prices);
-            const diff = ((uzumPrice - minExt) / uzumPrice) * 100;
-            return (
-              <div className="grid grid-cols-3 gap-2 bg-base-300/60 border border-base-300/40 rounded-xl p-3 lg:p-4">
-                <div className="text-center">
-                  <p className="text-xs text-base-content/40">Uzumda narx</p>
-                  <p className="font-bold text-sm">{uzumPrice.toLocaleString()} so'm</p>
-                </div>
-                <div className="text-center flex items-center justify-center">
-                  <span className="text-2xl">↔</span>
-                </div>
-                <div className="text-center">
-                  <p className="text-xs text-base-content/40">Eng arzon xalq. narx</p>
-                  <p className="font-bold text-sm text-primary">{minExt.toLocaleString()} so'm</p>
-                  {diff > 0 && <p className="text-xs text-success mt-0.5">Farq: {diff.toFixed(0)}%</p>}
-                </div>
-              </div>
-            );
-          })()}
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-            {visible.map((item, i) => {
-              const meta = SOURCE_META[item.source] ?? { label: item.source, flag: '🌐', color: 'badge-ghost' };
-              const extPriceUzs = parsePrice(item.price);
-              const mg = extPriceUzs ? marginLabel(extPriceUzs) : null;
-
-              return (
-                <div key={i} className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 flex flex-col gap-2 hover:bg-base-content/5 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <span className={`badge badge-xs ${meta.color}`}>{meta.flag} {meta.label}</span>
-                    {mg && <span className={`text-xs font-medium ${mg.cls}`}>{mg.text}</span>}
-                  </div>
-                  {item.image ? (
-                    <img src={item.image} alt={item.title}
-                      className="w-full h-24 object-contain rounded-lg bg-base-200"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                  ) : (
-                    <div className="w-full h-24 rounded-lg bg-base-200 flex items-center justify-center text-3xl">📦</div>
-                  )}
-                  <p className="text-xs leading-snug line-clamp-2 text-base-content/80 flex-1">{item.title}</p>
-                  <p className="font-bold text-base text-primary leading-none">{item.price}</p>
-                  {extPriceUzs && <p className="text-xs text-base-content/40">≈ {extPriceUzs.toLocaleString()} so'm</p>}
-                  {item.store && <p className="text-xs text-base-content/40 truncate">{item.store}</p>}
-                  <div className="flex gap-1 mt-auto">
-                    {item.link && item.link !== '#' ? (
-                      <a href={item.link} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-xs flex-1">Ko'rish ↗</a>
-                    ) : (
-                      <span className="btn btn-xs btn-disabled flex-1">Demo</span>
-                    )}
-                    <Link to={`/sourcing?q=${encodeURIComponent(productTitle)}&price=${extPriceUzs ?? ''}`}
-                      className="btn btn-ghost btn-xs" title="Cargo kalkulyatorda hisoblash">🧮</Link>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {items.length > 6 && (
-            <button onClick={() => setExpanded(!expanded)} className="btn btn-ghost btn-sm w-full">
-              {expanded ? '↑ Kamroq ko\'rsatish' : `↓ Yana ${items.length - 6} ta natija`}
-            </button>
-          )}
-        </>
-      )}
-
-      {!loading && items.length === 0 && !note && (
-        <div className="text-center py-8 text-base-content/30">
-          <p className="text-3xl mb-2">🔍</p>
-          <p className="text-sm">Global bozorda natija topilmadi</p>
-        </div>
-      )}
     </div>
   );
 }
