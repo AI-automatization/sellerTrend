@@ -8,7 +8,7 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .pnpmfile.cjs ./
 COPY apps/worker/package.json ./apps/worker/
 COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
-RUN pnpm install --frozen-lockfile --filter worker --filter @uzum/types --filter @uzum/utils
+RUN pnpm install --no-frozen-lockfile --filter worker --filter @uzum/types --filter @uzum/utils
 
 COPY tsconfig.base.json ./
 COPY packages/ ./packages/
@@ -60,7 +60,7 @@ COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
 
 # Install production deps
-RUN pnpm install --frozen-lockfile --prod --filter worker --filter @uzum/types --filter @uzum/utils
+RUN pnpm install --no-frozen-lockfile --prod --filter worker --filter @uzum/types --filter @uzum/utils
 
 # Copy built @uzum package dist (after pnpm install to prevent overwrite)
 COPY --from=builder /app/packages/types/dist ./packages/types/dist
