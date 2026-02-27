@@ -24,8 +24,6 @@ export function RegisterPage() {
     t('auth.regFeature5'),
   ];
 
-  const setTokens = useAuthStore((s) => s.setTokens);
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
