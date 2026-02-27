@@ -1,7 +1,7 @@
 import { Worker, Job } from 'bullmq';
 import { redisConnection } from '../redis';
 import { prisma } from '../prisma';
-import { parseUzumProductId, calculateScore, getSupplyPressure, sleep } from '@uzum/utils';
+import { parseUzumProductId, calculateScore, getSupplyPressure, calcWeeklyBought, sleep } from '@uzum/utils';
 import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
 
 interface ImportBatchJobData {
@@ -96,25 +96,17 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
       },
     });
 
-    // Create snapshot
-    // rOrdersAmount = ROUNDED total orders (haftalik EMAS!) → delta hisob kerak
+    // Centralized weekly_bought: 7-day lookback, 24h minimum gap (T-207)
     const currentOrders = detail.ordersAmount ?? 0;
-    let weeklyBought: number | null = null;
 
-    const prevSnapshot = await prisma.productSnapshot.findFirst({
+    const recentSnapshots = await prisma.productSnapshot.findMany({
       where: { product_id: pid },
       orderBy: { snapshot_at: 'desc' },
+      take: 20,
       select: { orders_quantity: true, snapshot_at: true },
     });
 
-    if (prevSnapshot && prevSnapshot.orders_quantity != null) {
-      const daysDiff =
-        (Date.now() - prevSnapshot.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
-      const ordersDiff = currentOrders - Number(prevSnapshot.orders_quantity);
-      if (daysDiff > 0 && ordersDiff >= 0) {
-        weeklyBought = Math.round((ordersDiff * 7) / daysDiff);
-      }
-    }
+    const weeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
 
     const stockType = detail.skuList?.[0]?.stock?.type;
     const supplyPressure = getSupplyPressure(

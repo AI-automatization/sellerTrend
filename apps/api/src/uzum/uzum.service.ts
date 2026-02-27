@@ -6,6 +6,7 @@ import {
   parseUzumProductId,
   calculateScore,
   getSupplyPressure,
+  calcWeeklyBought,
   sleep,
 } from '@uzum/utils';
 
@@ -76,37 +77,21 @@ export class UzumService {
       },
     });
 
-    // 4. Calculate weekly_bought from ordersAmount delta (snapshot tarixidan)
-    // ESLATMA: rOrdersAmount = rounded total orders (haftalik EMAS!)
-    // actions.text = Uzum API dan olib tashlangan (undefined)
-    // Yechim: oxirgi snapshot'dagi ordersAmount bilan hozirgi ordersAmount farqi
+    // 4. Centralized weekly_bought: 7-day lookback, 24h minimum gap (T-207)
     const currentOrders = detail.ordersQuantity ?? 0;
-    let weeklyBought: number | null = null;
 
-    const prevSnapshot = await this.prisma.productSnapshot.findFirst({
+    const recentSnapshots = await this.prisma.productSnapshot.findMany({
       where: { product_id: BigInt(productId) },
       orderBy: { snapshot_at: 'desc' },
+      take: 20,
       select: { orders_quantity: true, snapshot_at: true },
     });
 
-    if (prevSnapshot && prevSnapshot.orders_quantity != null) {
-      const daysDiff =
-        (Date.now() - prevSnapshot.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
-      const ordersDiff = currentOrders - Number(prevSnapshot.orders_quantity);
-
-      if (daysDiff > 0 && ordersDiff >= 0) {
-        // Normalize to 7-day period
-        weeklyBought = Math.round((ordersDiff * 7) / daysDiff);
-      }
-      this.logger.log(
-        `weekly_bought delta: current=${currentOrders}, prev=${prevSnapshot.orders_quantity}, ` +
-        `daysDiff=${daysDiff.toFixed(1)}, ordersDiff=${ordersDiff}, weeklyBought=${weeklyBought}`,
-      );
-    } else {
-      this.logger.log(
-        `weekly_bought: no previous snapshot for product ${productId}, first analysis`,
-      );
-    }
+    const weeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
+    this.logger.log(
+      `weekly_bought (T-207): product=${productId}, currentOrders=${currentOrders}, ` +
+      `snapshots=${recentSnapshots.length}, weeklyBought=${weeklyBought}`,
+    );
 
     // 5. Upsert SKUs
     const skuList = detail.skuList ?? [];

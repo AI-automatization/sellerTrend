@@ -75,6 +75,130 @@ export function sleep(ms: number): Promise<void> {
 }
 
 // ============================================================
+// Centralized weekly_bought calculation (T-207)
+// ============================================================
+
+/**
+ * Central weekly_bought calculator — 7-day lookback, 24h minimum gap.
+ * Replaces all scattered inline calculations across the codebase.
+ *
+ * @param snapshots Ordered by snapshot_at DESC
+ * @param currentOrders Current total orders count
+ * @param currentTime Timestamp to measure from (default: Date.now()).
+ *        Write path: Date.now() (fresh API data).
+ *        Read path: latest snapshot_at.getTime() (historical data).
+ * @returns weekly_bought or null if insufficient data
+ */
+export function calcWeeklyBought(
+  snapshots: Array<{ orders_quantity: bigint | number | null; snapshot_at: Date }>,
+  currentOrders: number,
+  currentTime?: number,
+): number | null {
+  const MAX_REASONABLE = 5000;
+  const now = currentTime ?? Date.now();
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+  // 1. Prefer snapshot closest to 7 days before currentTime (best accuracy, ~×1.0 extrapolation)
+  const sevenDaysAgo = now - SEVEN_DAYS_MS;
+  let ref: (typeof snapshots)[0] | null = null;
+
+  for (const snap of snapshots) {
+    if (snap.orders_quantity != null && snap.snapshot_at.getTime() <= sevenDaysAgo) {
+      ref = snap;
+      break; // DESC: first match is closest to 7 days ago
+    }
+  }
+
+  // 2. Fallback: any snapshot >= 24h before currentTime (prevent 6h ×28 extrapolation)
+  if (!ref) {
+    const oneDayAgo = now - ONE_DAY_MS;
+    for (const snap of snapshots) {
+      if (snap.orders_quantity != null && snap.snapshot_at.getTime() <= oneDayAgo) {
+        ref = snap;
+        break;
+      }
+    }
+  }
+
+  if (!ref || ref.orders_quantity == null) return null;
+
+  const daysDiff = (now - ref.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
+  const ordersDiff = currentOrders - Number(ref.orders_quantity);
+
+  if (daysDiff < 0.5 || ordersDiff < 0) return null;
+
+  const wb = Math.round((ordersDiff * 7) / daysDiff);
+  return wb <= MAX_REASONABLE ? wb : null;
+}
+
+/**
+ * Recalculate weekly_bought for a time series of snapshots.
+ * Uses wider lookback (not just consecutive) with 7-day target and 24h minimum gap.
+ * Replaces the old consecutive-delta approach that caused extrapolation errors.
+ *
+ * @param snapshots Ordered by snapshot_at ASC
+ * @returns Array of weekly_bought values (same length as input)
+ */
+export function recalcWeeklyBoughtSeries(
+  snapshots: Array<{
+    orders_quantity: bigint | number | null;
+    weekly_bought?: number | null;
+    snapshot_at: Date;
+  }>,
+): number[] {
+  const MAX_REASONABLE = 5000;
+  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+  const SEVEN_DAYS_MS = 7 * ONE_DAY_MS;
+
+  return snapshots.map((snap, i) => {
+    const stored = snap.weekly_bought ?? 0;
+    if (i === 0 || snap.orders_quantity == null) {
+      return stored > MAX_REASONABLE ? 0 : stored;
+    }
+
+    const snapTime = snap.snapshot_at.getTime();
+
+    // Find best reference: closest to 7 days before this snapshot (search backwards in ASC array)
+    const targetTime = snapTime - SEVEN_DAYS_MS;
+    let ref: (typeof snapshots)[0] | null = null;
+
+    for (let j = i - 1; j >= 0; j--) {
+      if (snapshots[j].orders_quantity != null && snapshots[j].snapshot_at.getTime() <= targetTime) {
+        ref = snapshots[j];
+        break;
+      }
+    }
+
+    // Fallback: any snapshot >= 24h before this one
+    if (!ref) {
+      const minTime = snapTime - ONE_DAY_MS;
+      for (let j = i - 1; j >= 0; j--) {
+        if (snapshots[j].orders_quantity != null && snapshots[j].snapshot_at.getTime() <= minTime) {
+          ref = snapshots[j];
+          break;
+        }
+      }
+    }
+
+    if (!ref || ref.orders_quantity == null) {
+      return stored > MAX_REASONABLE ? 0 : stored;
+    }
+
+    const daysDiff = (snapTime - ref.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
+    const curr = Number(snap.orders_quantity);
+    const prevVal = Number(ref.orders_quantity);
+
+    if (daysDiff < 0.5 || curr < prevVal) {
+      return stored > MAX_REASONABLE ? 0 : stored;
+    }
+
+    const calculated = Math.round(((curr - prevVal) * 7) / daysDiff);
+    return calculated <= MAX_REASONABLE ? calculated : (stored > MAX_REASONABLE ? 0 : stored);
+  });
+}
+
+// ============================================================
 // Feature 03 — Shop Trust Score
 // ============================================================
 

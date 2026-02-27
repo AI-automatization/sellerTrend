@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { forecastEnsemble } from '@uzum/utils';
+import { forecastEnsemble, calcWeeklyBought, recalcWeeklyBoughtSeries } from '@uzum/utils';
 
 @Injectable()
 export class ProductsService {
@@ -31,18 +31,8 @@ export class ProductsService {
       const latest = snaps[0];
       const sku = t.product.skus[0];
 
-      // Find a "prev" snapshot with meaningful time gap (>1 hour) from latest
-      const MIN_GAP_MS = 60 * 60 * 1000; // 1 hour
-      let prev = snaps[1];
-      if (latest) {
-        for (let i = 1; i < snaps.length; i++) {
-          if (latest.snapshot_at.getTime() - snaps[i].snapshot_at.getTime() >= MIN_GAP_MS) {
-            prev = snaps[i];
-            break;
-          }
-        }
-      }
-
+      // Score trend from last two snapshots with meaningful gap
+      const prev = snaps.length > 1 ? snaps[1] : null;
       const latestScore = latest?.score ? Number(latest.score) : null;
       const prevScore = prev?.score ? Number(prev.score) : null;
       const trend =
@@ -54,19 +44,10 @@ export class ProductsService {
             : 'flat'
           : null;
 
-      // Recalculate weekly_bought from orders_quantity delta
-      let weeklyBought = latest?.weekly_bought ?? null;
-      if (latest && prev && latest.orders_quantity != null && prev.orders_quantity != null) {
-        const curr = Number(latest.orders_quantity);
-        const prevVal = Number(prev.orders_quantity);
-        const daysDiff =
-          (latest.snapshot_at.getTime() - prev.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
-        if (daysDiff > 0.01 && curr >= prevVal) {
-          const calculated = Math.round(((curr - prevVal) * 7) / daysDiff);
-          if (calculated <= 5000) weeklyBought = calculated;
-        }
-      }
-      if ((weeklyBought ?? 0) > 5000) weeklyBought = 0;
+      // Centralized weekly_bought: 7-day lookback, 24h minimum gap (T-207)
+      const currentOrders = Number(latest?.orders_quantity ?? t.product.orders_quantity ?? 0);
+      const currentTime = latest?.snapshot_at?.getTime() ?? Date.now();
+      const weeklyBought = calcWeeklyBought(snaps, currentOrders, currentTime);
 
       return {
         product_id: t.product.id.toString(),
@@ -123,31 +104,10 @@ export class ProductsService {
       }
     }
 
-    // Find a "prev" snapshot with meaningful time gap (>1 hour)
-    const MIN_GAP_MS = 60 * 60 * 1000;
-    let prev = snaps[1];
-    if (latest) {
-      for (let i = 1; i < snaps.length; i++) {
-        if (latest.snapshot_at.getTime() - snaps[i].snapshot_at.getTime() >= MIN_GAP_MS) {
-          prev = snaps[i];
-          break;
-        }
-      }
-    }
-
-    // Recalculate weekly_bought from orders_quantity delta
-    let weeklyBought = latest?.weekly_bought ?? null;
-    if (latest && prev && latest.orders_quantity != null && prev.orders_quantity != null) {
-      const curr = Number(latest.orders_quantity);
-      const prevVal = Number(prev.orders_quantity);
-      const daysDiff =
-        (latest.snapshot_at.getTime() - prev.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
-      if (daysDiff > 0.01 && curr >= prevVal) {
-        const calculated = Math.round(((curr - prevVal) * 7) / daysDiff);
-        if (calculated <= 5000) weeklyBought = calculated;
-      }
-    }
-    if ((weeklyBought ?? 0) > 5000) weeklyBought = 0;
+    // Centralized weekly_bought: 7-day lookback, 24h minimum gap (T-207)
+    const currentOrders = Number(latest?.orders_quantity ?? product.orders_quantity ?? 0);
+    const currentTime = latest?.snapshot_at?.getTime() ?? Date.now();
+    const weeklyBought = calcWeeklyBought(snaps, currentOrders, currentTime);
 
     return {
       product_id: product.id.toString(),
@@ -196,9 +156,13 @@ export class ProductsService {
       },
     });
 
-    return rows.map((s) => ({
+    // Recalculate weekly_bought with 7-day lookback (fix stale stored values) (T-207)
+    const asc = [...rows].reverse();
+    const wbValues = recalcWeeklyBoughtSeries(asc);
+
+    return rows.map((s, idx) => ({
       score: s.score ? Number(s.score) : null,
-      weekly_bought: s.weekly_bought,
+      weekly_bought: wbValues[rows.length - 1 - idx],
       orders_quantity: s.orders_quantity ? Number(s.orders_quantity) : null,
       rating: s.rating ? Number(s.rating) : null,
       snapshot_at: s.snapshot_at,
@@ -270,25 +234,8 @@ export class ProductsService {
 
     const scoreValues = rows.map((s) => Number(s.score ?? 0));
 
-    // Recalculate weekly_bought from orders_quantity deltas (fix for corrupted old data)
-    const MAX_REASONABLE = 5000;
-    const wbValues = rows.map((s, i) => {
-      const stored = s.weekly_bought ?? 0;
-      if (i > 0) {
-        const prev = rows[i - 1];
-        if (s.orders_quantity != null && prev.orders_quantity != null) {
-          const curr = Number(s.orders_quantity);
-          const prevVal = Number(prev.orders_quantity);
-          const daysDiff =
-            (s.snapshot_at.getTime() - prev.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
-          if (daysDiff > 0.01 && curr >= prevVal) {
-            const calculated = Math.round(((curr - prevVal) * 7) / daysDiff);
-            if (calculated <= MAX_REASONABLE) return calculated;
-          }
-        }
-      }
-      return stored > MAX_REASONABLE ? 0 : stored;
-    });
+    // Centralized weekly_bought recalculation with 7-day lookback (T-207)
+    const wbValues = recalcWeeklyBoughtSeries(rows);
 
     const dates = rows.map((s) => s.snapshot_at.toISOString());
 

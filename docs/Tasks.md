@@ -975,4 +975,16 @@ Bu ikki xabar bir-biriga ZID. 50 ta raqib kuzatilayotgan bo'lsa, ma'lumot bo'lis
 
 ---
 
+# ═══════════════════════════════════════════════════════════
+# WEEKLY_BOUGHT MARKAZLASHTIRISH (2026-02-27) — DATA CONSISTENCY
+# ═══════════════════════════════════════════════════════════
+
+### T-207 | P0 | BACKEND+WORKER | weekly_bought 6 joyda 6 xil — markaziy calcWeeklyBought() | 1h
+**Muammo:** Bitta product 4 xil weekly_bought: Dashboard=523, Stat=134, Chart=142, Trend=134
+**Sabab:** 6 ta turli joy o'z formulasi, har biri boshqa snapshot, boshqa daysDiff
+**Yechim:** `calcWeeklyBought(prisma, productId, currentOrders)` — 7 kunlik lookback + min 24h fallback
+**Fayllar:** products.service.ts, uzum.service.ts, reanalysis.processor.ts, import.processor.ts, signals.service.ts
+
+---
+
 *Tasks.md | VENTRA Analytics Platform | 2026-02-27*

@@ -8,41 +8,12 @@ import {
   detectEarlySignals,
   detectStockCliff,
   planReplenishment,
+  recalcWeeklyBoughtSeries,
 } from '@uzum/utils';
 
 @Injectable()
 export class SignalsService {
   constructor(private readonly prisma: PrismaService) {}
-
-  /**
-   * Recalculate weekly_bought from consecutive snapshot orders_quantity deltas.
-   * Old snapshots stored ordersAmount (cumulative total) as weekly_bought — this fixes that.
-   * Snapshots MUST be ordered by snapshot_at ASC.
-   */
-  private recalcWeeklyBought(
-    snapshots: Array<{ orders_quantity: bigint | null; weekly_bought: number | null; snapshot_at: Date }>,
-  ): number[] {
-    const MAX_REASONABLE = 5000;
-    return snapshots.map((snap, i) => {
-      const stored = snap.weekly_bought ?? 0;
-      if (i > 0) {
-        const prev = snapshots[i - 1];
-        if (snap.orders_quantity != null && prev.orders_quantity != null) {
-          const curr = Number(snap.orders_quantity);
-          const prevVal = Number(prev.orders_quantity);
-          const daysDiff =
-            (snap.snapshot_at.getTime() - prev.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
-          if (daysDiff > 0.01 && curr >= prevVal) {
-            const calculated = Math.round(((curr - prevVal) * 7) / daysDiff);
-            // If snapshots are too close, extrapolation gives wild numbers — keep stored value
-            if (calculated <= MAX_REASONABLE) return calculated;
-          }
-        }
-      }
-      // First snapshot, missing data, or extrapolation unreasonable: use stored but cap
-      return stored > MAX_REASONABLE ? 0 : stored;
-    });
-  }
 
   /** Feature 21 — Cannibalization Alert */
   async getCannibalization(accountId: string) {
@@ -59,7 +30,7 @@ export class SignalsService {
 
     const products = tracked.map((t) => {
       const snaps = [...t.product.snapshots].reverse(); // ASC order
-      const weeklyValues = this.recalcWeeklyBought(snaps);
+      const weeklyValues = recalcWeeklyBoughtSeries(snaps);
       const latest = snaps[snaps.length - 1];
       return {
         id: t.product.id.toString(),
@@ -89,7 +60,7 @@ export class SignalsService {
 
     return tracked
       .map((t) => {
-        const weeklyValues = this.recalcWeeklyBought(t.product.snapshots);
+        const weeklyValues = recalcWeeklyBoughtSeries(t.product.snapshots);
         const snaps = t.product.snapshots.map((s, i) => ({
           score: Number(s.score ?? 0),
           weekly_bought: weeklyValues[i],
@@ -112,7 +83,7 @@ export class SignalsService {
 
     const data = products.map((p) => {
       const snaps = [...p.snapshots].reverse(); // ASC
-      const weeklyValues = this.recalcWeeklyBought(snaps);
+      const weeklyValues = recalcWeeklyBoughtSeries(snaps);
       const latest = snaps[snaps.length - 1];
       return {
         score: latest?.score ? Number(latest.score) : 0,
@@ -175,7 +146,7 @@ export class SignalsService {
     });
 
     const products = tracked.map((t) => {
-      const weeklyValues = this.recalcWeeklyBought(t.product.snapshots);
+      const weeklyValues = recalcWeeklyBoughtSeries(t.product.snapshots);
       return {
         product_id: t.product.id.toString(),
         title: t.product.title,
@@ -206,7 +177,7 @@ export class SignalsService {
 
     const products = tracked.map((t) => {
       const snaps = [...t.product.snapshots].reverse(); // ASC order
-      const weeklyValues = this.recalcWeeklyBought(snaps);
+      const weeklyValues = recalcWeeklyBoughtSeries(snaps);
       return {
         product_id: t.product.id.toString(),
         title: t.product.title,
@@ -415,7 +386,7 @@ export class SignalsService {
 
     const products = tracked.map((t) => {
       const snaps = [...t.product.snapshots].reverse(); // ASC
-      const weeklyValues = this.recalcWeeklyBought(snaps);
+      const weeklyValues = recalcWeeklyBoughtSeries(snaps);
       return {
         product_id: t.product.id.toString(),
         title: t.product.title,
