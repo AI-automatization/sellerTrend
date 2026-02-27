@@ -398,8 +398,8 @@ function getClient(): Anthropic {
 
 ## P3 — PAST (Bugs.md Medium + Low + Worker Low)
 
-### T-101 | BACKEND | admin.service.ts 2186 qator (400+ rule) |2h
-**Bug:** M-01. Service ni 4-5 ta kichik service ga bo'lish.
+### T-101 | ✅ DONE | BACKEND | admin.service.ts 2178 qator → 5 ta service ga bo'lish |2h
+**Bug:** M-01. Service ni 5 ta kichik service ga bo'lindi (admin-account, admin-user, admin-stats, admin-feedback, admin-log).
 
 ### T-102 | ✅ DONE | BACKEND | `as any` 30+ joyda |1h
 **Bug:** M-02. Typed interface bilan almashtirish.
@@ -580,8 +580,8 @@ function getClient(): Anthropic {
 ### T-162 | FRONTEND | SignalsPage any[] barcha tab'larda |15min
 **Bug:** L-21.
 
-### T-163 | FRONTEND | AdminPage 900+ qator (400 limit) |1h
-**Bug:** L-22. Komponentlarga bo'lish.
+### T-163 | ✅ DONE | FRONTEND | AdminPage 900+ qator (400 limit) |1h
+**Bug:** L-22. T-258 da 6 ta page komponentlarga bo'lindi (AdminPage 2001→453, jami 6159→2004 qator).
 
 ### T-164 | i18n | 7 ta sahifada hardcoded Uzbek matn |30min
 **Bug:** L-23. `t()` funksiya bilan almashtirish.
@@ -1052,7 +1052,8 @@ Bu ikki xabar bir-biriga ZID. 50 ta raqib kuzatilayotgan bo'lsa, ma'lumot bo'lis
 | Desktop Login | 1 (renumbered) | T-234 |
 | **Playwright DOM scraping** | **2** | **T-235...T-236** |
 | **Product Image** | **1** | **T-237** |
-| **JAMI** | **166 ochiq (1 done)** | T-061...T-237 |
+| **Frontend Refactor** | **14 (12 done)** | **T-246...T-259** |
+| **JAMI** | **~95 ochiq** | T-061...T-259 |
 
 | O'zgarish | Tafsilot |
 |-----------|----------|
@@ -1061,6 +1062,7 @@ Bu ikki xabar bir-biriga ZID. 50 ta raqib kuzatilayotgan bo'lsa, ma'lumot bo'lis
 | ✅ Duplicate fix | T-207 Desktop Login → T-234 ga renumber (T-207 weekly_bought bilan conflict edi) |
 | ✅ Assignment o'chirildi | Bekzod/Sardor/Ikkalasi barcha tasklardan olib tashlandi |
 | ✅ Yangi buglar qo'shildi | T-203-T-206 (UX), T-235-T-236 (Playwright weekly_bought) |
+| ✅ Component extraction | T-258 (6 god page → 68 components), T-259 (DiscoveryPage), T-163 ✅ |
 
 ### RAILWAY DEPLOY — BAJARILDI (2026-02-27)
 - ✅ Eski `railway/` directory o'chirildi (4 ta toml)
@@ -1082,6 +1084,25 @@ Bu ikki xabar bir-biriga ZID. 50 ta raqib kuzatilayotgan bo'lsa, ma'lumot bo'lis
 - ✅ RAILWAY_TOKEN GitHub secret — project token yaratildi
 - ✅ CI/CD to'liq ishlaydi — push→CI(lint+typecheck+test+build)→Deploy(4 service)→Health check
 - ✅ **6/6 service SUCCESS:** Postgres, Redis, API, Worker, Web, Bot
+
+### WEB FRONTEND REFACTOR (2026-02-27) — Best Practice Audit
+
+| # | P | Vazifa | Qator/Fayl | Holat |
+|---|---|--------|------------|-------|
+| T-246 | P0 | `api/types.ts` — markaziy response type'lar | 118 `any` kamaytirish | ✅ DONE |
+| T-247 | P0 | `utils/formatters.ts` — duplicate fmt/fmtUSD/fmtUZS extract | 3+ faylda takror | ✅ DONE |
+| T-248 | P0 | Silent `.catch(() => {})` → logError/toastError | 55+ joyda | ✅ DONE |
+| T-249 | P1 | AdminPage.tsx split (2001→453 qator, 20+ komponent) | components/admin/ | ✅ DONE |
+| T-250 | P1 | Custom hook: useDashboardData (fetch + export) | hooks/ | ✅ DONE |
+| T-251 | P1 | DashboardPage split (664→191 qator, 5 sub-component) | components/dashboard/ | ✅ DONE |
+| T-252 | P1 | SourcingPage split → 117 qator, 7 komponent | components/sourcing/ | ✅ DONE |
+| T-253 | P1 | ProductPage sub-components extract (912→642 qator) | components/product/ | ✅ DONE |
+| T-254 | P1 | SignalsPage split → 86 qator, 11 komponent | components/signals/ | ✅ DONE |
+| T-255 | P2 | translations.ts split (2909→3 fayl: uz/ru/en) | i18n/ | ✅ DONE |
+| T-256 | P2 | Inline modallar extract (AdminPage 4 modal) | components/admin/ | ✅ DONE |
+| T-257 | P2 | Granular ErrorBoundary per section | components/ | |
+| T-258 | P1 | 6 God Page → 68 Components (jami 6159→2004 qator) | components/*/ | ✅ DONE |
+| T-259 | P1 | DiscoveryPage split (631→42 qator, 8 fayl) | components/discovery/ | ✅ DONE |
 
 ### PRODUCTPAGE UX — TOP MUAMMOLAR (hato/ rasmlardan)
 - 🔴 T-193: AI tahlili raw JSON ko'rsatadi (` ```json `, `[`)
