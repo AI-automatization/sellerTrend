@@ -29,5 +29,5 @@ ENV API_UPSTREAM=api:3000
 
 EXPOSE 80
 
-# At startup: extract DNS resolver from /etc/resolv.conf, then envsubst into nginx config
-CMD ["/bin/sh", "-c", "export NGINX_RESOLVER=$(awk '/^nameserver/{print $2; exit}' /etc/resolv.conf) && envsubst '${PORT} ${API_UPSTREAM} ${NGINX_RESOLVER}' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+# At startup: extract DNS resolver from /etc/resolv.conf (wrap IPv6 in brackets), then envsubst
+CMD ["/bin/sh", "-c", "NS=$(awk '/^nameserver/{print $2; exit}' /etc/resolv.conf) && case \"$NS\" in *:*) NS=\"[$NS]\";; esac && export NGINX_RESOLVER=$NS && envsubst '${PORT} ${API_UPSTREAM} ${NGINX_RESOLVER}' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
