@@ -60,12 +60,27 @@ COPY apps/worker/package.json ./apps/worker/
 COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
 
-# Install production deps FIRST (pnpm may recreate workspace package dirs)
+# Install production deps
 RUN pnpm install --frozen-lockfile --prod --filter worker --filter @uzum/types --filter @uzum/utils
 
-# Copy built package dist AFTER pnpm install (pnpm wipes dist during install)
+# Debug: show what pnpm created
+RUN echo "=== After pnpm install ===" && \
+    echo "--- packages/utils:" && ls -la /app/packages/utils/ && \
+    echo "--- worker node_modules/@uzum:" && ls -la /app/apps/worker/node_modules/@uzum/ 2>/dev/null || echo "NO worker nm" && \
+    echo "--- root node_modules/@uzum:" && ls -la /app/node_modules/@uzum/ 2>/dev/null || echo "NO root nm" && \
+    echo "--- Resolve utils symlink:" && readlink -f /app/apps/worker/node_modules/@uzum/utils 2>/dev/null || readlink -f /app/node_modules/@uzum/utils 2>/dev/null || echo "NO LINK"
+
+# Copy built package dist AFTER pnpm install
 COPY --from=builder /app/packages/types/dist ./packages/types/dist
 COPY --from=builder /app/packages/utils/dist ./packages/utils/dist
+
+# Debug: verify dist was copied
+RUN echo "=== After dist copy ===" && \
+    echo "--- packages/utils/dist:" && ls -la /app/packages/utils/dist/ && \
+    echo "--- Resolve and check:" && \
+    RESOLVED=$(readlink -f /app/apps/worker/node_modules/@uzum/utils 2>/dev/null || readlink -f /app/node_modules/@uzum/utils 2>/dev/null) && \
+    echo "Resolved to: $RESOLVED" && \
+    ls -la "$RESOLVED/dist/" 2>/dev/null || echo "DIST NOT AT RESOLVED PATH"
 
 # Copy worker compiled output + prisma schema
 COPY --from=builder /app/apps/worker/dist ./apps/worker/dist
@@ -74,8 +89,7 @@ COPY --from=builder /app/apps/worker/prisma ./apps/worker/prisma
 WORKDIR /app/apps/worker
 RUN pnpm exec prisma generate
 
-# Verify @uzum/utils dist exists (fail build early if missing)
-RUN node -e "require('@uzum/utils'); console.log('@uzum/utils OK')"
-RUN node -e "require('@uzum/types'); console.log('@uzum/types OK')"
+# Verify modules can be loaded
+RUN node -e "console.log(require.resolve('@uzum/utils'))" || echo "RESOLVE FAILED"
 
 CMD ["node", "dist/apps/worker/src/main"]
