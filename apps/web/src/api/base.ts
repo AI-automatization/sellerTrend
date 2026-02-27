@@ -113,7 +113,7 @@ api.interceptors.response.use(
 );
 
 // Helper: decode JWT payload without verification
-export function getTokenPayload(): { role?: string; account_id?: string } | null {
+export function getTokenPayload(): { role?: string; account_id?: string; email?: string } | null {
   const token = localStorage.getItem('access_token');
   if (!token) return null;
   try {

@@ -236,8 +236,8 @@ export function FeedbackPage() {
                 <div>
                   <h3 className="font-semibold text-sm">{ticketDetail?.subject}</h3>
                   <div className="flex gap-2 mt-1">
-                    <span className={`badge badge-xs ${STATUS_MAP[ticketDetail?.status]?.color || ''}`}>
-                      {STATUS_MAP[ticketDetail?.status]?.label || ticketDetail?.status}
+                    <span className={`badge badge-xs ${STATUS_MAP[ticketDetail?.status as string]?.color || ''}`}>
+                      {STATUS_MAP[ticketDetail?.status as string]?.label || ticketDetail?.status}
                     </span>
                     <span className={`badge badge-xs ${PRIORITY_OPTIONS.find((o) => o.value === ticketDetail?.priority)?.color || ''}`}>
                       {PRIORITY_OPTIONS.find((o) => o.value === ticketDetail?.priority)?.label || ticketDetail?.priority}
