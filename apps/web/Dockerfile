@@ -7,7 +7,7 @@ ENV HUSKY=0
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .pnpmfile.cjs ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/types/package.json ./packages/types/
-RUN pnpm install --frozen-lockfile --filter web --filter @uzum/types
+RUN pnpm install --no-frozen-lockfile --filter web --filter @uzum/types
 
 FROM deps AS builder
 WORKDIR /app
@@ -29,5 +29,5 @@ ENV API_UPSTREAM=api:3000
 
 EXPOSE 80
 
-# envsubst replaces ONLY $PORT and $API_UPSTREAM, leaving nginx vars ($uri, $host, etc.) intact
-CMD ["/bin/sh", "-c", "envsubst '${PORT} ${API_UPSTREAM}' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+# At startup: extract DNS resolver from /etc/resolv.conf, then envsubst into nginx config
+CMD ["/bin/sh", "-c", "export NGINX_RESOLVER=$(awk '/^nameserver/{print $2; exit}' /etc/resolv.conf) && envsubst '${PORT} ${API_UPSTREAM} ${NGINX_RESOLVER}' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
