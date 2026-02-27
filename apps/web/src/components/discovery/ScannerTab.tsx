@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { discoveryApi, productsApi } from '../../api/client';
 import { getErrorMessage } from '../../utils/getErrorMessage';
+import { logError } from '../../utils/handleError';
 import { FireIcon, ArrowTrendingUpIcon } from '../icons';
 import { StatusBadge } from './StatusBadge';
 import { ScoreBadge } from './ScoreBadge';
@@ -20,7 +21,7 @@ export function ScannerTab() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   async function loadRuns() {
-    try { const res = await discoveryApi.listRuns(); setRuns(res.data); } catch {}
+    try { const res = await discoveryApi.listRuns(); setRuns(res.data); } catch (e) { logError(e); }
   }
 
   useEffect(() => {
@@ -48,7 +49,7 @@ export function ScannerTab() {
   }
 
   async function openRun(run: Run) {
-    try { const res = await discoveryApi.getRun(run.id); setSelectedRun(res.data); } catch {}
+    try { const res = await discoveryApi.getRun(run.id); setSelectedRun(res.data); } catch (e) { logError(e); }
   }
 
   const [trackedIds, setTrackedIds] = useState<Set<string>>(new Set());

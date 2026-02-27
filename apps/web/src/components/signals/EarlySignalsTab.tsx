@@ -5,9 +5,10 @@ import { SectionCard } from './SectionCard';
 import { SectionHeader } from './SectionHeader';
 import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
+import type { EarlySignalItem } from './types';
 
 export function EarlySignalsTab() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<EarlySignalItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,7 +41,7 @@ export function EarlySignalsTab() {
               </tr>
             </thead>
             <tbody>
-              {data.map((item: any) => (
+              {data.map((item) => (
                 <tr key={item.product_id} className="hover:bg-base-300/20 transition-colors">
                   <td className="max-w-[200px] truncate text-sm">{item.title}</td>
                   <td className="text-center">

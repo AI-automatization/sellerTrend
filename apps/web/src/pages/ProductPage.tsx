@@ -9,6 +9,7 @@ import {
   Area,
   BarChart,
   Bar,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -25,7 +26,7 @@ import {
   GlobalPriceComparison,
 } from '../components/product';
 import type { ExternalItem } from '../components/product';
-import type { AnalyzeResult, WeeklyTrend, Forecast, Snapshot } from '../api/types';
+import type { AnalyzeResult, WeeklyTrend, Forecast, Snapshot, MlForecast, TrendAnalysis } from '../api/types';
 import { glassTooltip } from '../utils/formatters';
 
 function extractSearchQuery(title: string): string {
@@ -56,11 +57,12 @@ export function ProductPage() {
   const [extLoading, setExtLoading] = useState(false);
   const [extSearched, setExtSearched] = useState(false);
   const [extNote, setExtNote] = useState('');
-  const [usdRate, setUsdRate] = useState(12900);
+  const DEFAULT_USD_RATE = 12_900;
+  const [usdRate, setUsdRate] = useState(DEFAULT_USD_RATE);
 
   // ML Forecast state
-  const [mlForecast, setMlForecast] = useState<any>(null);
-  const [trendAnalysis, setTrendAnalysis] = useState<any>(null);
+  const [mlForecast, setMlForecast] = useState<MlForecast | null>(null);
+  const [trendAnalysis, setTrendAnalysis] = useState<TrendAnalysis | null>(null);
   const [mlLoading, setMlLoading] = useState(false);
 
   // Weekly trend state
@@ -79,12 +81,22 @@ export function ProductPage() {
       ]);
       setResult(analyzeRes.data);
       const snaps: Snapshot[] = snapRes.data;
-      setSnapshots(
-        snaps.slice().reverse().map((s) => ({
-          date: new Date(s.snapshot_at).toLocaleDateString('uz-UZ', { month: 'short', day: 'numeric' }),
+      const MONTHS = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn', 'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'];
+      // Aggregate by day — keep latest snapshot per day to avoid zigzag (T-197)
+      const byDay = new Map<string, { score: number; orders: number }>();
+      for (const s of snaps.slice().reverse()) {
+        const d = new Date(s.snapshot_at);
+        const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        byDay.set(key, {
           score: Number(Number(s.score).toFixed(4)),
           orders: s.weekly_bought ?? 0,
-        })),
+        });
+      }
+      setSnapshots(
+        Array.from(byDay.entries()).map(([key, val]) => {
+          const [, m, day] = key.split('-').map(Number);
+          return { date: `${day} ${MONTHS[m]}`, score: val.score, orders: val.orders };
+        }),
       );
       if (forecastRes.data) setForecast(forecastRes.data);
     } catch (err: unknown) {
@@ -104,20 +116,22 @@ export function ProductPage() {
       .catch(logError);
   }, []);
 
-  // Load ML forecast + weekly trend when product is loaded
+  // Load ML forecast + weekly trend when product is loaded (fires once per product)
+  const loadedProductId = result?.product_id;
   useEffect(() => {
-    if (!id || !result) return;
+    if (!loadedProductId) return;
+    const pid = String(loadedProductId);
     setMlLoading(true);
     Promise.all([
-      productsApi.getMlForecast(id).catch(() => ({ data: null })),
-      productsApi.getTrendAnalysis(id).catch(() => ({ data: null })),
-      productsApi.getWeeklyTrend(id).catch(() => ({ data: null })),
+      productsApi.getMlForecast(pid).catch(() => ({ data: null })),
+      productsApi.getTrendAnalysis(pid).catch(() => ({ data: null })),
+      productsApi.getWeeklyTrend(pid).catch(() => ({ data: null })),
     ]).then(([mlRes, trendRes, weeklyRes]) => {
       if (mlRes.data) setMlForecast(mlRes.data);
       if (trendRes.data) setTrendAnalysis(trendRes.data);
       if (weeklyRes.data) setWeeklyTrend(weeklyRes.data);
     }).finally(() => setMlLoading(false));
-  }, [id, result?.product_id]);
+  }, [loadedProductId]);
 
   useEffect(() => {
     if (!result?.title || extSearched) return;
@@ -134,10 +148,22 @@ export function ProductPage() {
       .finally(() => setExtLoading(false));
   }, [result?.title]);
 
+  // Reset external search state when product changes (T-125)
+  useEffect(() => {
+    setExtSearched(false);
+    setExtItems([]);
+    setExtNote('');
+    setMlForecast(null);
+    setTrendAnalysis(null);
+    setWeeklyTrend(null);
+  }, [id]);
+
   async function handleTrack() {
     if (!id) return;
-    try { await productsApi.track(id); } catch { /* already tracked */ }
-    setTracked(true);
+    try {
+      await productsApi.track(id);
+      setTracked(true);
+    } catch (e) { logError(e); }
   }
 
   if (loading) {
@@ -296,23 +322,32 @@ export function ProductPage() {
             <ArrowTrendingUpIcon className="w-5 h-5 text-primary" />
             7 kunlik bashorat
           </h2>
-          <div className="flex items-center gap-4 lg:gap-6 flex-wrap">
-            <div className="text-center">
-              <p className="text-xs text-base-content/50 mb-1">Hozirgi score</p>
-              <p className="text-2xl font-bold tabular-nums">{result.score.toFixed(2)}</p>
-            </div>
-            <div className="text-2xl text-base-content/30">→</div>
-            <div className="text-center">
-              <p className="text-xs text-base-content/50 mb-1">7 kun keyin</p>
-              <p className={`text-2xl font-bold tabular-nums ${
-                forecast.trend === 'up' ? 'text-success' : forecast.trend === 'down' ? 'text-error' : 'text-base-content'
-              }`}>{forecast.forecast_7d.toFixed(2)}</p>
-            </div>
-            <TrendBadge trend={forecast.trend} />
-            <span className="text-xs text-base-content/30 ml-auto">
-              slope {forecast.slope > 0 ? '+' : ''}{forecast.slope.toFixed(4)}
-            </span>
-          </div>
+          {(() => {
+            // T-199: derive trend from actual values, not just slope
+            const changePct = result.score > 0 ? (forecast.forecast_7d - result.score) / result.score : 0;
+            const derivedTrend: 'up' | 'flat' | 'down' = changePct > 0.05 ? 'up' : changePct < -0.05 ? 'down' : 'flat';
+            return (
+              <div className="flex items-center gap-4 lg:gap-6 flex-wrap">
+                <div className="text-center">
+                  <p className="text-xs text-base-content/50 mb-1">Hozirgi score</p>
+                  <p className="text-2xl font-bold tabular-nums">{result.score.toFixed(2)}</p>
+                </div>
+                <div className="text-2xl text-base-content/30">→</div>
+                <div className="text-center">
+                  <p className="text-xs text-base-content/50 mb-1">7 kun keyin</p>
+                  <p className={`text-2xl font-bold tabular-nums ${
+                    derivedTrend === 'up' ? 'text-success' : derivedTrend === 'down' ? 'text-error' : 'text-base-content'
+                  }`}>{forecast.forecast_7d.toFixed(2)}</p>
+                </div>
+                <TrendBadge trend={derivedTrend} />
+                {changePct !== 0 && (
+                  <span className={`text-xs font-semibold ${changePct > 0 ? 'text-success' : 'text-error'}`}>
+                    {changePct > 0 ? '+' : ''}{(changePct * 100).toFixed(1)}%
+                  </span>
+                )}
+              </div>
+            );
+          })()}
 
           {snapshots.length > 1 && (
             <div className="mt-3">
@@ -320,7 +355,7 @@ export function ProductPage() {
                 <AreaChart
                   data={[
                     ...snapshots.slice(-10),
-                    { date: '7 kun', score: forecast.forecast_7d, orders: 0, forecast: true } as any,
+                    { date: '7 kun', score: forecast.forecast_7d, orders: 0 },
                   ]}
                   margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
                 >
@@ -421,7 +456,7 @@ export function ProductPage() {
                   />
                   <Bar dataKey="daily_sold" radius={[4, 4, 0, 0]} name="Kunlik sotuv">
                     {weeklyTrend.daily_breakdown.map((_entry, i) => (
-                      <rect key={i} fill={
+                      <Cell key={i} fill={
                         i === weeklyTrend.daily_breakdown.length - 1 ? '#a78bfa' : '#34d399'
                       } />
                     ))}
@@ -501,12 +536,12 @@ export function ProductPage() {
                   <p className="font-bold text-lg tabular-nums">
                     {(mlForecast.score_forecast.confidence * 100).toFixed(0)}%
                   </p>
-                  <p className="text-xs text-base-content/40">confidence</p>
+                  <p className="text-xs text-base-content/40">aniqlik</p>
                 </div>
                 <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3">
-                  <p className="text-xs text-base-content/50">Ma'lumot</p>
+                  <p className="text-xs text-base-content/50">Tahlillar soni</p>
                   <p className="font-bold text-lg tabular-nums">{mlForecast.data_points}</p>
-                  <p className="text-xs text-base-content/40">snapshot</p>
+                  <p className="text-xs text-base-content/40">ta tahlil</p>
                 </div>
               </div>
 
@@ -517,16 +552,14 @@ export function ProductPage() {
                   <ResponsiveContainer width="100%" height={180}>
                     <AreaChart
                       data={[
-                        ...mlForecast.snapshots.slice(-10).map((s: any) => ({
-                          date: new Date(s.date).toLocaleDateString('uz-UZ', { month: 'short', day: 'numeric' }),
-                          score: s.score,
-                        })),
-                        ...mlForecast.score_forecast.predictions.map((p: any) => ({
-                          date: new Date(p.date).toLocaleDateString('uz-UZ', { month: 'short', day: 'numeric' }),
-                          predicted: p.value,
-                          lower: p.lower,
-                          upper: p.upper,
-                        })),
+                        ...mlForecast.snapshots.slice(-10).map((s) => {
+                          const d = new Date(s.date);
+                          return { date: `${d.getDate()}/${d.getMonth() + 1}`, score: s.score };
+                        }),
+                        ...mlForecast.score_forecast.predictions.map((p) => {
+                          const d = new Date(p.date);
+                          return { date: `${d.getDate()}/${d.getMonth() + 1}`, predicted: p.value, lower: p.lower, upper: p.upper };
+                        }),
                       ]}
                       margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
                     >
@@ -556,9 +589,9 @@ export function ProductPage() {
                     <span>🤖</span> AI Trend Tahlili
                   </h3>
                   <p className="text-sm text-base-content/80">{trendAnalysis.analysis}</p>
-                  {trendAnalysis.factors?.length > 0 && (
+                  {trendAnalysis.factors.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-1">
-                      {trendAnalysis.factors.map((f: string, i: number) => (
+                      {trendAnalysis.factors.map((f, i) => (
                         <span key={i} className="badge badge-outline badge-sm">{f}</span>
                       ))}
                     </div>
@@ -572,7 +605,7 @@ export function ProductPage() {
               )}
 
               <p className="text-xs text-base-content/30">
-                Ensemble: WMA + Holt's Exponential Smoothing + Linear Regression · MAE: {mlForecast.score_forecast.metrics?.mae ?? '—'} · RMSE: {mlForecast.score_forecast.metrics?.rmse ?? '—'}
+                AI prognoz · O'rtacha xatolik: {mlForecast.score_forecast.metrics?.mae?.toFixed(2) ?? '—'}
               </p>
             </>
           )}
@@ -589,12 +622,12 @@ export function ProductPage() {
           <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-5">
             <h2 className="font-bold text-sm text-base-content/70 mb-3">Haftalik sotuvlar tarixi</h2>
             <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={snapshots.slice(-15)} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+              <BarChart data={snapshots.filter((s) => s.orders > 0).slice(-15)} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                 <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
-                <Tooltip {...glassTooltip} />
-                <Bar dataKey="orders" fill="#34d399" radius={[4, 4, 0, 0]} name="Haftalik sotuvlar" />
+                <Tooltip {...glassTooltip} formatter={(value: number) => [`${value.toLocaleString()} dona/hafta`, 'Sotuv']} />
+                <Bar dataKey="orders" fill="#34d399" radius={[4, 4, 0, 0]} name="Haftalik sotuv" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -630,12 +663,12 @@ export function ProductPage() {
         usdRate={usdRate}
       />
 
-      {/* Score formula */}
+      {/* Score info */}
       <div className="alert alert-info alert-soft text-xs">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="h-4 w-4 shrink-0 stroke-current">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <span>Score = 0.55×ln(1+faollik) + 0.25×ln(1+jami) + 0.10×reyting + 0.10×ombor · Real vaqtda Uzumdan hisoblangan</span>
+        <span>Score haftalik faollik, jami buyurtmalar, reyting va ombor zaxirasiga asoslanib real vaqtda hisoblanadi</span>
       </div>
     </div>
   );

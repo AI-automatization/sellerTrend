@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { signalsApi } from '../../api/client';
+import { logError } from '../../utils/handleError';
 import { SectionCard } from './SectionCard';
 import { SectionHeader } from './SectionHeader';
 import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
+import type { RankingEntry } from './types';
 
 export function RankingTab() {
   const [productId, setProductId] = useState('');
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<RankingEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
@@ -17,7 +19,7 @@ export function RankingTab() {
     setSearched(true);
     signalsApi.getRanking(productId.trim())
       .then((r) => setData(r.data))
-      .catch(() => setData([]))
+      .catch((e) => { logError(e); setData([]); })
       .finally(() => setLoading(false));
   }
 
@@ -55,12 +57,12 @@ export function RankingTab() {
             </div>
             <div className="rounded-xl bg-base-300/40 border border-base-300/30 p-4">
               <p className="text-xs text-base-content/40">Eng yaxshi</p>
-              <p className="text-2xl font-bold mt-1 text-success">#{Math.min(...data.map((d: any) => d.rank))}</p>
+              <p className="text-2xl font-bold mt-1 text-success">#{Math.min(...data.map((d) => d.rank))}</p>
             </div>
             <div className="rounded-xl bg-base-300/40 border border-base-300/30 p-4">
               <p className="text-xs text-base-content/40">O'rt. Score</p>
               <p className="text-2xl font-bold mt-1">
-                {(data.reduce((s: number, d: any) => s + (d.score ?? 0), 0) / data.length).toFixed(2)}
+                {(data.reduce((s, d) => s + (d.score ?? 0), 0) / data.length).toFixed(2)}
               </p>
             </div>
             <div className="rounded-xl bg-base-300/40 border border-base-300/30 p-4">
@@ -82,7 +84,7 @@ export function RankingTab() {
                 </tr>
               </thead>
               <tbody>
-                {[...data].reverse().map((item: any, i: number) => {
+                {[...data].reverse().map((item, i) => {
                   const prevRank = i < data.length - 1 ? [...data].reverse()[i + 1]?.rank : null;
                   const rankChange = prevRank ? prevRank - item.rank : 0;
                   return (

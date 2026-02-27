@@ -3,9 +3,10 @@ import { signalsApi } from '../../api/client';
 import { logError, toastError } from '../../utils/handleError';
 import { SectionCard } from './SectionCard';
 import { LoadingSpinner } from './LoadingSpinner';
+import type { ChecklistData, ChecklistItem } from './types';
 
 export function ChecklistTab() {
-  const [checklist, setChecklist] = useState<any>(null);
+  const [checklist, setChecklist] = useState<ChecklistData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -20,7 +21,7 @@ export function ChecklistTab() {
     if (!checklist) return;
     const updated = {
       ...checklist,
-      items: checklist.items.map((item: any) =>
+      items: checklist.items.map((item) =>
         item.key === key ? { ...item, done: !item.done } : item,
       ),
     };
@@ -41,7 +42,7 @@ export function ChecklistTab() {
   if (loading) return <SectionCard><LoadingSpinner /></SectionCard>;
   if (!checklist) return null;
 
-  const done = checklist.items.filter((i: any) => i.done).length;
+  const done = checklist.items.filter((i) => i.done).length;
   const total = checklist.items.length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
@@ -58,7 +59,7 @@ export function ChecklistTab() {
       </div>
       <progress className="progress progress-primary w-full h-2 mb-5" value={pct} max="100" />
       <div className="space-y-2">
-        {checklist.items.map((item: any) => (
+        {checklist.items.map((item) => (
           <label key={item.key} className="flex items-center gap-3 p-3 rounded-xl bg-base-300/40 border border-base-300/30 cursor-pointer hover:bg-base-300/60 transition-colors">
             <input
               type="checkbox"

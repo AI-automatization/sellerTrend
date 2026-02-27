@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { authApi } from '../api/client';
+import { useAuthStore } from '../stores/authStore';
+import { queryClient } from '../stores/queryClient';
 import { getErrorMessage } from '../utils/getErrorMessage';
 import { useI18n } from '../i18n/I18nContext';
 
@@ -21,14 +23,16 @@ export function RegisterPage() {
     t('auth.regFeature5'),
   ];
 
+  const setTokens = useAuthStore((s) => s.setTokens);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
       const res = await authApi.register(form.email, form.password, form.company_name, form.referral_code || undefined);
-      localStorage.setItem('access_token', res.data.access_token);
-      if (res.data.refresh_token) localStorage.setItem('refresh_token', res.data.refresh_token);
+      queryClient.clear();
+      setTokens(res.data.access_token, res.data.refresh_token ?? '');
       navigate('/');
     } catch (err: unknown) {
       setError(getErrorMessage(err, t('auth.registerError')));

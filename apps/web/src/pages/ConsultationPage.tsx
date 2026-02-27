@@ -1,20 +1,7 @@
 import { useState, useEffect } from 'react';
 import { consultationApi } from '../api/client';
-
-interface ConsultationItem {
-  id: string;
-  title: string;
-  description?: string;
-  category: string;
-  price_uzs: string;
-  duration_min: number;
-  consultant_name?: string;
-  client_name?: string;
-  status?: string;
-  scheduled_at?: string;
-  rating?: number;
-  created_at: string;
-}
+import type { ConsultationItem } from '../api/types';
+import { logError, toastError } from '../utils/handleError';
 
 type Tab = 'marketplace' | 'my-listings' | 'my-bookings';
 
@@ -41,7 +28,7 @@ export function ConsultationPage() {
       else if (tab === 'my-listings') res = await consultationApi.getMyListings();
       else res = await consultationApi.getMyBookings();
       setItems(res.data);
-    } catch {}
+    } catch (e) { logError(e); }
     finally { setLoading(false); }
   }
 
@@ -59,7 +46,7 @@ export function ConsultationPage() {
       setShowCreate(false);
       setForm({ title: '', description: '', category: 'Uzum strategiya', price_uzs: '', duration_min: '60' });
       loadData();
-    } catch {}
+    } catch (e) { toastError(e); }
     finally { setCreating(false); }
   }
 
@@ -67,14 +54,20 @@ export function ConsultationPage() {
     if (!bookingId || !bookingDate) return;
     try {
       const dateTime = new Date(`${bookingDate}T${bookingTime}`);
-      if (isNaN(dateTime.getTime())) return;
+      if (isNaN(dateTime.getTime()) || dateTime.getTime() < Date.now()) return;
       await consultationApi.book(bookingId, dateTime.toISOString());
       setBookingId(null);
       setBookingDate('');
       setBookingTime('10:00');
       loadData();
-    } catch {}
+    } catch (e) { toastError(e); }
   }
+
+  /** Local date string in YYYY-MM-DD format (avoids UTC mismatch in toISOString) */
+  const todayLocal = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
 
   const categories = ['Uzum strategiya', 'Mahsulot tanlash', 'Reklama', 'Logistika', 'Narxlash', 'Boshqa'];
 
@@ -260,7 +253,7 @@ export function ConsultationPage() {
                 type="date"
                 className="input input-bordered w-full"
                 value={bookingDate}
-                min={new Date().toISOString().split('T')[0]}
+                min={todayLocal}
                 onChange={(e) => setBookingDate(e.target.value)}
               />
             </div>

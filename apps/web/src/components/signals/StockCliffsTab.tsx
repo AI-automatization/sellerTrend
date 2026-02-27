@@ -5,9 +5,10 @@ import { SectionCard } from './SectionCard';
 import { SectionHeader } from './SectionHeader';
 import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
+import type { StockCliffItem } from './types';
 
 export function StockCliffsTab() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<StockCliffItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,7 +32,7 @@ export function StockCliffsTab() {
         <EmptyState text="Stock cliff xavfi yo'q" />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {data.map((item: any) => (
+          {data.map((item) => (
             <div key={item.product_id} className="rounded-xl bg-base-300/40 border border-base-300/30 p-4 hover:bg-base-300/60 transition-colors">
               <div className="flex items-start justify-between mb-2">
                 <h3 className="font-semibold text-sm truncate max-w-[70%]">{item.title}</h3>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { referralApi } from '../api/client';
+import { logError, toastError } from '../utils/handleError';
 
 interface ReferralStats {
   my_code: string | null;
@@ -17,7 +18,7 @@ export function ReferralPage() {
   useEffect(() => {
     referralApi.getStats()
       .then((r) => setStats(r.data))
-      .catch(() => {})
+      .catch(logError)
       .finally(() => setLoading(false));
   }, []);
 
@@ -26,7 +27,7 @@ export function ReferralPage() {
     try {
       const res = await referralApi.generateCode();
       setStats((s) => s ? { ...s, my_code: res.data.code } : s);
-    } catch {}
+    } catch (e) { toastError(e); }
     finally { setGenerating(false); }
   }
 

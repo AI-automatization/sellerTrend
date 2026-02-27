@@ -20,5 +20,11 @@ export { ReplenishmentTab } from './ReplenishmentTab';
 export type { SectionCardProps } from './SectionCard';
 export type { SectionHeaderProps } from './SectionHeader';
 export type { EmptyStateProps } from './EmptyState';
-export type { Tab, TabConfig } from './types';
+export type {
+  Tab, TabConfig,
+  CannibalizationPair, DeadStockItem, SaturationData,
+  FlashSaleItem, EarlySignalItem, StockCliffItem,
+  RankingEntry, ChecklistItem, ChecklistData,
+  PriceTestItem, ReplenishmentItem,
+} from './types';
 export { TABS } from './types';

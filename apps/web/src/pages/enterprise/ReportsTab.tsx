@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { reportsApi } from '../../api/client';
 import { SectionCard, SectionHeader, Loading, EmptyState } from './shared';
+import { logError, toastError } from '../../utils/handleError';
 
 interface Report {
   id: string;
@@ -40,7 +41,7 @@ export function ReportsTab() {
   useEffect(() => {
     reportsApi.list()
       .then((r) => setReports(r.data))
-      .catch(() => {})
+      .catch(logError)
       .finally(() => setLoading(false));
   }, []);
 
@@ -49,17 +50,17 @@ export function ReportsTab() {
     setCreating(true);
     reportsApi.create({ title: form.title, report_type: form.report_type })
       .then((r) => { setReports([r.data, ...reports]); setForm({ title: '', report_type: 'product' }); })
-      .catch(() => {})
+      .catch((e) => toastError(e))
       .finally(() => setCreating(false));
   }
 
   function generateReport(id: string) {
-    reportsApi.generate(id).then((r) => setGenerated(r.data)).catch(() => {});
+    reportsApi.generate(id).then((r) => setGenerated(r.data)).catch((e) => toastError(e));
   }
 
   function loadMarketShare() {
     if (!marketCatId) return;
-    reportsApi.marketShare(Number(marketCatId)).then((r) => setMarketData(r.data)).catch(() => {});
+    reportsApi.marketShare(Number(marketCatId)).then((r) => setMarketData(r.data)).catch((e) => toastError(e));
   }
 
   function downloadMarketShareCSV(data: MarketShareData) {

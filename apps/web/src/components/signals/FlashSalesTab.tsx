@@ -5,9 +5,10 @@ import { SectionCard } from './SectionCard';
 import { SectionHeader } from './SectionHeader';
 import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
+import type { FlashSaleItem } from './types';
 
 export function FlashSalesTab() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<FlashSaleItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,7 +41,7 @@ export function FlashSalesTab() {
               </tr>
             </thead>
             <tbody>
-              {data.map((item: any, i: number) => (
+              {data.map((item, i) => (
                 <tr key={i} className="hover:bg-base-300/20 transition-colors">
                   <td className="max-w-[200px] truncate text-sm">{item.title}</td>
                   <td className="text-right tabular-nums text-sm line-through text-base-content/40">

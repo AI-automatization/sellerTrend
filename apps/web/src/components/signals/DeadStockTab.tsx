@@ -5,9 +5,10 @@ import { SectionCard } from './SectionCard';
 import { SectionHeader } from './SectionHeader';
 import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
+import type { DeadStockItem } from './types';
 
 export function DeadStockTab() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<DeadStockItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,7 +33,7 @@ export function DeadStockTab() {
         <EmptyState text="Dead stock xavfi yo'q — yaxshi!" />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {data.map((item: any) => (
+          {data.map((item) => (
             <div key={item.product_id} className="rounded-xl bg-base-300/40 border border-base-300/30 p-4 hover:bg-base-300/60 transition-colors">
               <div className="flex items-start justify-between mb-2">
                 <h3 className="font-semibold text-sm truncate max-w-[65%]">{item.title}</h3>
@@ -49,7 +50,7 @@ export function DeadStockTab() {
                 />
               </div>
               <div className="flex flex-wrap gap-1">
-                {item.factors.map((f: string, i: number) => (
+                {item.factors.map((f, i) => (
                   <span key={i} className="badge badge-xs badge-outline">{f}</span>
                 ))}
               </div>

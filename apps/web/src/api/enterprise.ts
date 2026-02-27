@@ -31,7 +31,7 @@ export const signalsApi = {
   getRanking: (productId: string) => api.get(`/signals/ranking/${productId}`),
   getChecklist: (productId?: string) =>
     api.get('/signals/checklist', { params: productId ? { product_id: productId } : {} }),
-  saveChecklist: (data: { product_id?: string; title: string; items: any[] }) =>
+  saveChecklist: (data: { product_id?: string; title: string; items: Array<{ text: string; checked: boolean }> }) =>
     api.post('/signals/checklist', data),
   createPriceTest: (data: { product_id: string; original_price: number; test_price: number }) =>
     api.post('/signals/price-tests', data),
@@ -47,7 +47,7 @@ export const adsApi = {
   createCampaign: (data: { name: string; product_id?: number; platform?: string; budget_uzs?: number }) =>
     api.post('/ads/campaigns', data),
   listCampaigns: () => api.get('/ads/campaigns'),
-  updateCampaign: (id: string, data: any) => api.patch(`/ads/campaigns/${id}`, data),
+  updateCampaign: (id: string, data: Record<string, unknown>) => api.patch(`/ads/campaigns/${id}`, data),
   getCampaignROI: (id: string) => api.get(`/ads/campaigns/${id}/roi`),
   deleteCampaign: (id: string) => api.delete(`/ads/campaigns/${id}`),
 };
@@ -60,7 +60,7 @@ export const teamApi = {
 };
 
 export const reportsApi = {
-  create: (data: { title: string; description?: string; report_type: string; filters?: any; columns?: any; schedule?: string }) =>
+  create: (data: { title: string; description?: string; report_type: string; filters?: Record<string, unknown>; columns?: string[]; schedule?: string }) =>
     api.post('/reports', data),
   list: () => api.get('/reports'),
   remove: (id: string) => api.delete(`/reports/${id}`),

@@ -5,9 +5,10 @@ import { SectionCard } from './SectionCard';
 import { SectionHeader } from './SectionHeader';
 import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
+import type { CannibalizationPair } from './types';
 
 export function CannibalizationTab() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<CannibalizationPair[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,12 +40,12 @@ export function CannibalizationTab() {
               </tr>
             </thead>
             <tbody>
-              {data.map((pair: any, i: number) => (
+              {data.map((pair, i) => (
                 <tr key={i} className="hover:bg-base-300/20 transition-colors">
                   <td className="max-w-[200px] truncate text-sm">{pair.product_a_title}</td>
                   <td className="max-w-[200px] truncate text-sm">{pair.product_b_title}</td>
                   <td className="text-center">
-                    <div className="radial-progress text-xs text-warning" style={{ '--value': pair.overlap_score * 100, '--size': '2.5rem' } as any}>
+                    <div className="radial-progress text-xs text-warning" style={{ '--value': pair.overlap_score * 100, '--size': '2.5rem' } as React.CSSProperties}>
                       {(pair.overlap_score * 100).toFixed(0)}%
                     </div>
                   </td>

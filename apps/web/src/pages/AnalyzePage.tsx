@@ -72,10 +72,10 @@ export function AnalyzePage() {
     if (!result) return;
     try {
       await productsApi.track(String(result.product_id));
+      setTracked(true);
     } catch {
       // already tracked — ignore
     }
-    setTracked(true);
   }
 
   return (

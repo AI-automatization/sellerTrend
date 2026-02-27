@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { getTokenPayload } from '../api/client';
 
@@ -70,11 +70,10 @@ export function useDiscoveryRefresh(onRefresh: (data: { run_id: string; status: 
 /** Listen for notification signals — call `onRefresh` to refetch notifications */
 export function useNotificationRefresh(onRefresh: () => void) {
   const { socket } = useSocket();
-  const stableCallback = useCallback(onRefresh, [onRefresh]);
 
   useEffect(() => {
     if (!socket) return;
-    socket.on('refresh:notification', stableCallback);
-    return () => { socket.off('refresh:notification', stableCallback); };
-  }, [socket, stableCallback]);
+    socket.on('refresh:notification', onRefresh);
+    return () => { socket.off('refresh:notification', onRefresh); };
+  }, [socket, onRefresh]);
 }

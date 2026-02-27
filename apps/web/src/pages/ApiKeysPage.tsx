@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { apiKeysApi } from '../api/client';
 import { useI18n } from '../i18n/I18nContext';
+import { logError, toastError } from '../utils/handleError';
 
 interface ApiKeyItem {
   id: string;
@@ -26,7 +27,7 @@ export function ApiKeysPage() {
 
   async function loadKeys() {
     try { const res = await apiKeysApi.list(); setKeys(res.data); }
-    catch {} finally { setLoading(false); }
+    catch (e) { logError(e); } finally { setLoading(false); }
   }
 
   useEffect(() => { loadKeys(); }, []);
@@ -41,14 +42,14 @@ export function ApiKeysPage() {
       setNewKeyName('');
       setShowCreate(false);
       await loadKeys();
-    } catch {}
+    } catch (e) { toastError(e); }
     finally { setCreating(false); }
   }
 
   async function handleDelete(id: string) {
     setDeletingId(id);
     try { await apiKeysApi.remove(id); await loadKeys(); }
-    catch {} finally { setDeletingId(null); }
+    catch (e) { toastError(e); } finally { setDeletingId(null); }
   }
 
   function copyKey() {

@@ -4,9 +4,10 @@ import { logError } from '../../utils/handleError';
 import { SectionCard } from './SectionCard';
 import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
+import type { ReplenishmentItem } from './types';
 
 export function ReplenishmentTab() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<ReplenishmentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [leadTime, setLeadTime] = useState(14);
 
@@ -57,7 +58,7 @@ export function ReplenishmentTab() {
               </tr>
             </thead>
             <tbody>
-              {data.map((item: any) => {
+              {data.map((item) => {
                 const isUrgent = new Date(item.next_order_date) <= new Date(Date.now() + 7 * 86400000);
                 return (
                   <tr key={item.product_id} className={`hover:bg-base-300/20 transition-colors ${isUrgent ? 'bg-error/5' : ''}`}>

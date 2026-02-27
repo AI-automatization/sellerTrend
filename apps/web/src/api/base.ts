@@ -101,10 +101,11 @@ api.interceptors.response.use(
     }
 
     if (err.response?.status === 402) {
+      const responseData = err.response?.data as Record<string, unknown> | undefined;
       window.dispatchEvent(new CustomEvent('payment-due', {
         detail: {
-          message: (err.response?.data as any)?.message ?? "To'lov muddati o'tgan",
-          balance: (err.response?.data as any)?.balance,
+          message: (responseData?.message as string) ?? "To'lov muddati o'tgan",
+          balance: responseData?.balance,
         },
       }));
     }
@@ -112,14 +113,39 @@ api.interceptors.response.use(
   },
 );
 
+// ── JWT payload interface ─────────────────────────────────
+export interface JwtTokenPayload {
+  sub: string;
+  email: string;
+  role: string;
+  account_id: string;
+  exp: number;
+  iat?: number;
+}
+
 // Helper: decode JWT payload without verification
-export function getTokenPayload(): { role?: string; account_id?: string; email?: string } | null {
+export function getTokenPayload(): JwtTokenPayload | null {
   const token = localStorage.getItem('access_token');
   if (!token) return null;
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const payload = JSON.parse(atob(token.split('.')[1])) as JwtTokenPayload;
     return payload;
   } catch {
     return null;
   }
+}
+
+// Helper: check if user is authenticated with a non-expired JWT
+export function isTokenValid(): boolean {
+  const payload = getTokenPayload();
+  if (!payload) return false;
+  // exp is in seconds, Date.now() in ms
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (payload.exp && payload.exp < nowSec) {
+    // Token expired — clear stored tokens
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    return false;
+  }
+  return true;
 }

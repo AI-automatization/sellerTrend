@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { nicheApi } from '../../api/client';
+import { logError } from '../../utils/handleError';
 import type { NicheItem, GapItem } from './types';
 import { POPULAR_CATEGORIES } from './types';
 
@@ -24,7 +25,7 @@ export function NicheFinderTab() {
       ]);
       setNiches(nichesRes.data?.niches ?? nichesRes.data ?? []);
       setGaps(gapsRes.data?.gaps ?? gapsRes.data ?? []);
-    } catch {}
+    } catch (e) { logError(e); }
     finally { setLoading(false); }
   }
 

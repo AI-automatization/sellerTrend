@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { adsApi } from '../../api/client';
 import { SectionCard, SectionHeader, Loading, EmptyState } from './shared';
+import { logError, toastError } from '../../utils/handleError';
 
 interface Campaign {
   id: string;
@@ -31,7 +32,7 @@ export function AdsTab() {
   useEffect(() => {
     adsApi.listCampaigns()
       .then((r) => setCampaigns(r.data))
-      .catch(() => {})
+      .catch(logError)
       .finally(() => setLoading(false));
   }, []);
 
@@ -43,12 +44,12 @@ export function AdsTab() {
         setCampaigns([r.data, ...campaigns]);
         setForm({ name: '', budget_uzs: '' });
       })
-      .catch(() => {})
+      .catch((e) => toastError(e))
       .finally(() => setCreating(false));
   }
 
   function showROI(id: string) {
-    adsApi.getCampaignROI(id).then((r) => setRoiData(r.data)).catch(() => {});
+    adsApi.getCampaignROI(id).then((r) => setRoiData(r.data)).catch((e) => toastError(e));
   }
 
   if (loading) return <SectionCard><Loading /></SectionCard>;

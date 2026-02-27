@@ -5,9 +5,10 @@ import { SectionCard } from './SectionCard';
 import { SectionHeader } from './SectionHeader';
 import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
+import type { PriceTestItem } from './types';
 
 export function PriceTestTab() {
-  const [tests, setTests] = useState<any[]>([]);
+  const [tests, setTests] = useState<PriceTestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ product_id: '', original_price: '', test_price: '' });
   const [creating, setCreating] = useState(false);
@@ -27,7 +28,7 @@ export function PriceTestTab() {
       original_price: Number(form.original_price),
       test_price: Number(form.test_price),
     })
-      .then((r) => {
+      .then((r: { data: PriceTestItem }) => {
         setTests([{ ...r.data, product_title: `Product #${form.product_id}` }, ...tests]);
         setForm({ product_id: '', original_price: '', test_price: '' });
       })
@@ -104,7 +105,7 @@ export function PriceTestTab() {
               </tr>
             </thead>
             <tbody>
-              {tests.map((t: any) => (
+              {tests.map((t) => (
                 <tr key={t.id} className="hover:bg-base-300/20 transition-colors">
                   <td className="max-w-[150px] truncate text-sm">{t.product_title || `#${t.product_id}`}</td>
                   <td className="text-right tabular-nums text-sm">{Number(t.original_price).toLocaleString()}</td>

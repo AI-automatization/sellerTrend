@@ -27,12 +27,6 @@ export function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTabState] = useState<Tab>(initialTab);
 
-  function setActiveTab(tab: Tab) {
-    setActiveTabState(tab);
-    setSearchParams(tab === 'dashboard' ? {} : { tab });
-  }
-  void setActiveTab;
-
   // Sync tab when URL changes
   useEffect(() => {
     const t = searchParams.get('tab') as Tab | null;
@@ -40,7 +34,7 @@ export function AdminPage() {
     if (t === 'popular' as unknown as Tab) { setSearchParams({ tab: 'analytics' }); return; }
     const resolved = t && VALID_TABS.includes(t) ? t : 'dashboard';
     if (resolved !== activeTab) setActiveTabState(resolved);
-  }, [searchParams]);
+  }, [searchParams, activeTab, setSearchParams]);
 
   // Stats
   const [overview, setOverview] = useState<Record<string, unknown> | null>(null);
@@ -143,7 +137,7 @@ export function AdminPage() {
         setDepositLogTotal(r.data?.total ?? 0);
       }).catch(logError);
     }
-  }, [activeTab]);
+  }, [activeTab, depositLogPage]);
 
   async function saveFee(accountId: string) {
     const val = feeInput.trim();

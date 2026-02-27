@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { sourcingApi } from '../../api/client';
+import { logError } from '../../utils/handleError';
 import { fmtUZS, marginColor } from './types';
 import type { HistoryItem } from './types';
 
@@ -8,7 +9,7 @@ export function CalculationHistory() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    sourcingApi.getHistory().then((r) => setHistory(r.data)).finally(() => setLoading(false));
+    sourcingApi.getHistory().then((r) => setHistory(r.data)).catch(logError).finally(() => setLoading(false));
   }, []);
 
   if (loading) return <div className="flex justify-center py-16"><span className="loading loading-spinner loading-lg" /></div>;

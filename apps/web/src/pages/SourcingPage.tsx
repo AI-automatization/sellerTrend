@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { sourcingApi } from '../api/client';
+import { logError } from '../utils/handleError';
 import {
   ImportAnalysis,
   JobsList,
@@ -31,7 +32,8 @@ export function SourcingPage() {
     ]).then(([r, p]) => {
       setRates(r.data);
       setProviders(p.data);
-    }).finally(() => setRatesLoading(false));
+    }).catch(logError)
+      .finally(() => setRatesLoading(false));
   }, []);
 
   async function refreshRates() {
@@ -39,6 +41,8 @@ export function SourcingPage() {
     try {
       const r = await sourcingApi.refreshRates();
       setRates(r.data);
+    } catch (err: unknown) {
+      logError(err);
     } finally {
       setRatesLoading(false);
     }

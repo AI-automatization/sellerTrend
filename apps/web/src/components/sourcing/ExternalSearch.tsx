@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { sourcingApi } from '../../api/client';
+import { logError } from '../../utils/handleError';
 import type { SearchItem } from './types';
 
 export interface ExternalSearchProps {
@@ -21,6 +22,8 @@ export function ExternalSearch({ initialQuery }: ExternalSearchProps) {
       const r = await sourcingApi.searchPrices(query, source);
       setResults(r.data.results ?? []);
       setNote(r.data.note ?? '');
+    } catch (err: unknown) {
+      logError(err);
     } finally {
       setLoading(false);
     }

@@ -1,24 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { leaderboardApi } from '../api/client';
+import { logError } from '../utils/handleError';
+import type { LeaderItem, CategoryLeader } from '../api/types';
 import { FireIcon, ArrowTrendingUpIcon } from '../components/icons';
 import { useI18n } from '../i18n/I18nContext';
-
-interface LeaderItem {
-  rank: number;
-  product_id: string;
-  title: string;
-  score: number | null;
-  weekly_bought: number | null;
-  orders_quantity: string | null;
-  sell_price: number | null;
-}
-
-interface CategoryLeader {
-  category_id: string;
-  category_name: string;
-  leaders: LeaderItem[];
-}
 
 function ScoreBadge({ score }: { score: number | null }) {
   if (score === null) return <span className="text-base-content/30">—</span>;
@@ -46,12 +32,12 @@ export function LeaderboardPage() {
     if (tab === 'global') {
       leaderboardApi.getPublic()
         .then((r) => setLeaders(r.data))
-        .catch(() => {})
+        .catch(logError)
         .finally(() => setLoading(false));
     } else {
       leaderboardApi.getByCategories()
         .then((r) => setCatLeaders(r.data))
-        .catch(() => {})
+        .catch(logError)
         .finally(() => setLoading(false));
     }
   }, [tab]);

@@ -7,6 +7,7 @@ import { RegisterPage } from './pages/RegisterPage';
 import { Layout } from './components/Layout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PageSkeleton } from './components/skeletons';
+import { isTokenValid } from './api/client';
 
 // Lazy-loaded pages (code splitting)
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
@@ -31,7 +32,7 @@ const SharedWatchlistPage = lazy(() => import('./pages/SharedWatchlistPage').the
 const TelegramMiniAppPage = lazy(() => import('./pages/TelegramMiniAppPage').then(m => ({ default: m.TelegramMiniAppPage })));
 
 function isAuthenticated() {
-  return !!localStorage.getItem('access_token');
+  return isTokenValid();
 }
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {

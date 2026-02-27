@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { sourcingApi } from '../../api/client';
+import { logError } from '../../utils/handleError';
 import type { SourcingJob, SourcingJobDetail } from './types';
 import { StatusBadge } from './StatusBadge';
 import { SourcingResultCard } from './SourcingResultCard';
@@ -10,12 +11,16 @@ export function JobsList() {
   const [selectedJob, setSelectedJob] = useState<SourcingJobDetail | null>(null);
 
   useEffect(() => {
-    sourcingApi.listJobs().then((r) => setJobs(r.data)).finally(() => setLoading(false));
+    sourcingApi.listJobs().then((r) => setJobs(r.data)).catch(logError).finally(() => setLoading(false));
   }, []);
 
   async function viewJob(id: string) {
-    const res = await sourcingApi.getJob(id);
-    setSelectedJob(res.data);
+    try {
+      const res = await sourcingApi.getJob(id);
+      setSelectedJob(res.data);
+    } catch (err: unknown) {
+      logError(err);
+    }
   }
 
   if (loading) return <div className="flex justify-center py-16"><span className="loading loading-spinner loading-lg" /></div>;

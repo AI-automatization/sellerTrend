@@ -4,3 +4,8 @@ export { ScorePill } from './ScorePill';
 export { TrendChip } from './TrendChip';
 export { GlassTooltip } from './GlassTooltip';
 export { FadeIn } from './FadeIn';
+export { KPICards } from './KPICards';
+export { HeroCards } from './HeroCards';
+export { ChartsSection } from './ChartsSection';
+export { ActivityChart } from './ActivityChart';
+export { ProductsTable } from './ProductsTable';

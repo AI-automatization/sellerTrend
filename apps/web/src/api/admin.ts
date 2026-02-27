@@ -45,10 +45,8 @@ export const adminApi = {
   getAccountTransactions: (accountId: string, page = 1, limit = 50) =>
     api.get(`/admin/accounts/${accountId}/transactions`, { params: { page, limit } }),
   impersonateUser: (userId: string) => api.post(`/admin/users/${userId}/impersonate`),
-  bulkAction: (data: { account_ids: string[]; action: string; params?: any }) =>
+  bulkAction: (data: { account_ids: string[]; action: string; params?: Record<string, unknown> }) =>
     api.post('/admin/accounts/bulk', data),
-  sendNotification: (data: { message: string; type: string; target: string | string[] }) =>
-    api.post('/notifications/send', data),
   updateAccountStatus: (accountId: string, status: string) =>
     api.patch(`/admin/accounts/${accountId}/status`, { status }),
   getDepositLog: (page = 1, limit = 20) => api.get(`/admin/deposit-log?page=${page}&limit=${limit}`),

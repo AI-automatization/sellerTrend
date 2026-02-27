@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { signalsApi } from '../../api/client';
+import { logError } from '../../utils/handleError';
 import { SectionCard } from './SectionCard';
 import { SectionHeader } from './SectionHeader';
 import { EmptyState } from './EmptyState';
+import type { SaturationData } from './types';
 
 export function SaturationTab() {
   const [categoryId, setCategoryId] = useState('');
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<SaturationData | null>(null);
   const [loading, setLoading] = useState(false);
 
   function handleSearch() {
@@ -14,7 +16,7 @@ export function SaturationTab() {
     setLoading(true);
     signalsApi.getSaturation(Number(categoryId))
       .then((r) => setData(r.data))
-      .catch(() => setData(null))
+      .catch((e) => { logError(e); setData(null); })
       .finally(() => setLoading(false));
   }
 
