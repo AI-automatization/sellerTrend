@@ -327,4 +327,31 @@
 
 ---
 
+## RAILWAY PRODUCTION DEPLOYMENT — BAJARILDI (2026-02-27)
+
+| # | Vazifa | Yechim |
+|---|--------|--------|
+| T-173 | Railway project yaratish + 6 service sozlash | `uzum-trend-finder` project: postgres, redis, api, worker, web, bot — barchasi SUCCESS |
+| T-174 | RAILWAY_TOKEN GitHub secret yaratish | Railway GraphQL API orqali project token yaratildi, GitHub Secrets ga qo'shildi |
+| T-175 | Environment variables — Railway dashboard | DATABASE_URL, REDIS_URL, JWT_SECRET (strong random), DIRECT_DATABASE_URL, WEB_URL, VITE_API_URL, API_UPSTREAM |
+| T-176 | Prisma schema — directUrl qo'shish | `apps/api/prisma/schema.prisma` → `directUrl = env("DIRECT_DATABASE_URL")` |
+
+### Qo'shimcha deploy fixlar:
+| Fix | Tafsilot |
+|-----|----------|
+| Worker Dockerfile | `packages/utils/tsconfig.json` paths→rootDir fix — dist/index.js to'g'ri chiqadi |
+| API entrypoint.sh | Docker heredoc CRLF muammosi — alohida fayl + `.gitattributes` LF enforcement |
+| API IPv6 | `app.listen(port, '::')` — Railway private networking uchun dual-stack |
+| Web VITE_API_URL | `https://api-production-8057.up.railway.app` — nginx proxy bypass, direct API calls |
+| nginx resolver | `127.0.0.11` Docker internal DNS — `.railway.internal` resolve qiladi |
+| ESLint config | React 19 strict rules (purity, refs, set-state-in-effect) warn ga o'tkazildi |
+| CI/CD | GitHub Actions: CI (lint+typecheck+test+build) → Deploy (4 service) → Health check — to'liq ishlaydi |
+
+### Production URL'lar:
+- Web: `https://web-production-2c10.up.railway.app`
+- API: `https://api-production-8057.up.railway.app`
+- Swagger: `https://api-production-8057.up.railway.app/api/docs`
+
+---
+
 *Done.md | VENTRA Analytics Platform | 2026-02-27*

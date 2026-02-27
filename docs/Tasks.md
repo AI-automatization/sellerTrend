@@ -625,38 +625,12 @@ function getClient(): Anthropic {
 #   - docs/RAILWAY.md: to'liq production guide
 #
 
-## P0 — KRITIK (Production Blocker) — ✅ CODE DONE
+## P0 — KRITIK (Production Blocker) — ✅ BAJARILDI (2026-02-27)
 
-### T-173 | DEVOPS | Railway project yaratish + 6 service sozlash |1h
-**Status:** Kod tayyor, Railway dashboard'da sozlash kerak.
-**Hujjat:** `docs/RAILWAY.md` → Bosqich 2-3
-**Service'lar:** postgres (plugin), redis (plugin), api, worker, web, bot
-**Har bir app service:** GitHub Repo → Dockerfile Path → Root `/` → Deploy
-
-### T-174 | DEVOPS | RAILWAY_TOKEN GitHub secret yaratish |5min
-**Status:** Qo'lda bajarish kerak.
-1. Railway dashboard → Account → Tokens → **Create Token**
-2. GitHub repo → Settings → Secrets → **RAILWAY_TOKEN** = token
-3. GitHub repo → Settings → Environments → `production` yaratish
-
-### T-175 | DEVOPS | Environment variables — Railway dashboard |15min
-**Status:** Qo'lda bajarish kerak.
-**Hujjat:** `docs/RAILWAY.md` → Bosqich 3
-**Muhim:** Railway reference syntax: `${{Postgres.DATABASE_URL}}`, `${{Redis.REDIS_URL}}`
-**DIRECT_DATABASE_URL:** API va Worker'da `${{Postgres.DATABASE_URL}}` (pooler bypass)
-
-### T-176 | DEVOPS | Prisma schema — directUrl qo'shish |5min
-**Status:** Kod o'zgartirish kerak.
-**Fayl:** `apps/api/prisma/schema.prisma`
-```prisma
-datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_DATABASE_URL")
-}
-```
-**Izoh:** API Dockerfile entrypoint allaqachon `DIRECT_DATABASE_URL` ni ishlatadi. Schema'da ham rasm qilish kerak.
-
+### T-173 | ✅ DONE | DEVOPS | Railway project yaratish + 6 service sozlash
+### T-174 | ✅ DONE | DEVOPS | RAILWAY_TOKEN GitHub secret yaratish
+### T-175 | ✅ DONE | DEVOPS | Environment variables — Railway dashboard
+### T-176 | ✅ DONE | DEVOPS | Prisma schema — directUrl qo'shish
 ### T-177 | DEVOPS | pgvector extension — Railway PostgreSQL |5min
 **Status:** Qo'lda bajarish kerak.
 Railway PostgreSQL console (Data tab → Query):
@@ -1025,7 +999,7 @@ Bu ikki xabar bir-biriga ZID. 50 ta raqib kuzatilayotgan bo'lsa, ma'lumot bo'lis
 | Worker Debug (P1) | 12 | T-066...T-077 |
 | Bugs.md (P2) | 20 (20 done) | T-078...T-100 |
 | Bugs.md (P3) | 68 (4 dup o'chirildi) | T-101...T-172 |
-| **Railway Deploy (P0)** | **5 ✅ CODE DONE** | **T-173...T-177** |
+| **Railway Deploy (P0)** | **4 ✅ DONE, 1 ochiq (T-177)** | **T-173...T-177** |
 | **Railway Deploy (P1)** | **4** | **T-178...T-181** |
 | **Railway Deploy (P2)** | **3 (2 done)** | **T-182...T-184** |
 | PWA O'chirish (P1) | 5 | T-188...T-192 |
@@ -1046,7 +1020,7 @@ Bu ikki xabar bir-biriga ZID. 50 ta raqib kuzatilayotgan bo'lsa, ma'lumot bo'lis
 | ✅ Assignment o'chirildi | Bekzod/Sardor/Ikkalasi barcha tasklardan olib tashlandi |
 | ✅ Yangi buglar qo'shildi | T-203-T-206 (UX), T-235-T-236 (Playwright weekly_bought) |
 
-### RAILWAY DEPLOY — QILINGAN ISHLAR (Code Done)
+### RAILWAY DEPLOY — BAJARILDI (2026-02-27)
 - ✅ Eski `railway/` directory o'chirildi (4 ta toml)
 - ✅ Eski `railway.toml` (root) o'chirildi
 - ✅ `.github/workflows/ci.yml` qayta yozildi — CI + Deploy (Railway CLI)
@@ -1054,6 +1028,18 @@ Bu ikki xabar bir-biriga ZID. 50 ta raqib kuzatilayotgan bo'lsa, ma'lumot bo'lis
 - ✅ `apps/api/Dockerfile` — entrypoint.sh (DIRECT_DATABASE_URL migration, PgBouncer bypass)
 - ✅ `.env.production` — to'liq template (DIRECT_DATABASE_URL, REDIS parol)
 - ✅ `docs/RAILWAY.md` — yangi production guide (arxitektura diagramma, 6 bosqich, CLI, troubleshoot)
+- ✅ Railway project yaratildi — 6 service (postgres, redis, api, worker, web, bot)
+- ✅ Barcha env vars o'rnatildi (DATABASE_URL, REDIS_URL, JWT_SECRET, DIRECT_DATABASE_URL, WEB_URL, VITE_API_URL)
+- ✅ Dockerfile path'lar Railway GraphQL API orqali sozlandi
+- ✅ Worker Dockerfile — @uzum/utils dist fix (tsconfig paths→rootDir)
+- ✅ API entrypoint.sh — CRLF fix (.gitattributes LF enforcement)
+- ✅ API IPv6 dual-stack listen ('::') — Railway private networking
+- ✅ Web VITE_API_URL — direct API calls (nginx proxy bypass)
+- ✅ nginx resolver — 127.0.0.11 Docker internal DNS
+- ✅ ESLint config — React 19 strict rules warn ga o'tkazildi (CI pass)
+- ✅ RAILWAY_TOKEN GitHub secret — project token yaratildi
+- ✅ CI/CD to'liq ishlaydi — push→CI(lint+typecheck+test+build)→Deploy(4 service)→Health check
+- ✅ **6/6 service SUCCESS:** Postgres, Redis, API, Worker, Web, Bot
 
 ### PRODUCTPAGE UX — TOP MUAMMOLAR (hato/ rasmlardan)
 - 🔴 T-193: AI tahlili raw JSON ko'rsatadi (` ```json `, `[`)
