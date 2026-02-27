@@ -89,26 +89,28 @@
 
 ---
 
-# P2 — O'RTA
+# P2 — ✅ BAJARILDI (17/17) → docs/Done.md ga ko'chirildi
 
-### T-078 | bootstrapAdmin himoyalash | 30min — `apps/api/src/auth/auth.controller.ts`
-### T-079 | Team invite bcrypt hash | 20min — `apps/api/src/team/team.service.ts`
-### T-080 | NestJS v10/v11 versiya fix | 30min — `apps/api/package.json`
-### T-081 | Express v5→v4 tushirish | 20min — `apps/api/package.json`
-### T-087 | notification account_id | 15min — `notification.service.ts`
-### ~~T-088~~ | ✅ DONE → Done.md | shop.name→shop.title fix
-### T-089 | Product endpoint account_id | 30min — `products.controller.ts`
-### T-090 | Sourcing BillingGuard | 10min — `sourcing.controller.ts`
-### T-091 | auth DTO validatsiya | 15min — `auth.controller.ts`
-### T-092 | competitor getHistory fix | 15min — `competitor.controller.ts`
-### T-093 | AliExpress HMAC imzo | 45min — `aliexpress.client.ts`
-### T-094 | sourcing getJob account_id | 10min — `sourcing.controller.ts`
-### T-095 | Login rate limit Redis | 30min — `auth.service.ts`
-### T-096 | JWT email field qo'shish | 15min — backend JWT payload
-### T-098 | onDelete Cascade | 30min — `schema.prisma`
-### T-099 | account_id indekslari | 20min — `schema.prisma`
-### T-182 | Bot health endpoint | 15min — `apps/bot/src/main.ts`
-### T-183 | Worker PORT env fix | 5min — `apps/worker/src/main.ts`
+| Task | Fix |
+|------|-----|
+| T-078 | bootstrapAdmin — BOOTSTRAP_SECRET env var himoyasi |
+| T-079 | Team invite — bcrypt.hash(tempPassword, 12) |
+| T-080 | NestJS websockets v11→v10 alignment |
+| T-081 | Express v5→v4 downgrade |
+| T-087 | notification.markAsRead — account_id filter |
+| T-088 | shop.name → shop.title (oldindan done) |
+| T-089 | Product endpoint — account_id param |
+| T-090 | Sourcing controller — BillingGuard qo'shildi |
+| T-091 | auth refresh/logout — RefreshDto validatsiya |
+| T-092 | competitor getHistory — haqiqiy service call |
+| T-093 | AliExpress API — HMAC-SHA256 sign |
+| T-094 | sourcing getJob — account_id filter |
+| T-095 | Login rate limit — Redis INCR+TTL |
+| T-096 | JWT payload — email field qo'shildi |
+| T-098 | onDelete: Cascade — ~30 relation |
+| T-099 | @@index([account_id]) — 16 jadval |
+| T-182 | Bot health — HTTP /health endpoint |
+| T-183 | Worker PORT — process.env.PORT fallback |
 
 ---
 
@@ -160,9 +162,9 @@
 | Railway (manual) | 10 |
 | P0 KRITIK | ✅ 0 (HAMMASI BAJARILDI) |
 | P1 MUHIM | ✅ 0 (HAMMASI BAJARILDI) |
-| P2 O'RTA | 17 |
+| P2 O'RTA | ✅ 0 (HAMMASI BAJARILDI) |
 | P3 PAST | 30 |
-| **JAMI ochiq** | **73** |
+| **JAMI ochiq** | **56** |
 
 ---
 *Tasks-Bekzod.md | VENTRA | 2026-02-27*

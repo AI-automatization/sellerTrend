@@ -8,6 +8,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
+import Redis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReferralService } from '../referral/referral.service';
 import { RegisterDto } from './dto/register.dto';
@@ -16,28 +17,28 @@ import { LoginDto } from './dto/login.dto';
 const ACCESS_TOKEN_TTL = '15m';
 const REFRESH_TOKEN_DAYS = 30;
 
-interface LoginAttempt {
-  count: number;
-  lockedUntil: number | null;
-  lastAttempt: number;
-}
-
 const MAX_ATTEMPTS = 5;
-const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
-const WINDOW_MS = 15 * 60 * 1000;  // 15 minute window
+const LOCKOUT_SECONDS = 15 * 60; // 15 minutes
+const WINDOW_SECONDS = 15 * 60;  // 15 minute window
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  private readonly loginAttempts = new Map<string, LoginAttempt>();
+  private readonly redis: Redis;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly referralService: ReferralService,
   ) {
-    // Clean up old entries every 30 minutes
-    setInterval(() => this.cleanupAttempts(), 30 * 60 * 1000);
+    this.redis = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
+      maxRetriesPerRequest: 1,
+      connectTimeout: 3000,
+      lazyConnect: true,
+    });
+    this.redis.connect().catch(() => {
+      this.logger.warn('Redis not available for rate limiting — falling back to no rate limit');
+    });
   }
 
   async register(dto: RegisterDto) {
@@ -79,7 +80,7 @@ export class AuthService {
       }
     }
 
-    const access_token = this.signAccessToken(user.id, account.id, user.role);
+    const access_token = this.signAccessToken(user.id, account.id, user.role, dto.email);
     const refresh_token = await this.createRefreshToken(user.id);
     return { access_token, refresh_token, account_id: account.id };
   }
@@ -88,7 +89,7 @@ export class AuthService {
     const key = dto.email.toLowerCase();
 
     // Check if locked out
-    this.checkLockout(key);
+    await this.checkLockout(key);
 
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
@@ -96,14 +97,14 @@ export class AuthService {
     });
 
     if (!user || !(await bcrypt.compare(dto.password, user.password_hash))) {
-      this.recordFailedAttempt(key);
+      await this.recordFailedAttempt(key);
       throw new UnauthorizedException('Invalid credentials');
     }
 
     // Successful login — reset attempts
-    this.loginAttempts.delete(key);
+    await this.resetAttempts(key);
 
-    const access_token = this.signAccessToken(user.id, user.account_id, user.role);
+    const access_token = this.signAccessToken(user.id, user.account_id, user.role, user.email);
     const refresh_token = await this.createRefreshToken(user.id);
     return {
       access_token,
@@ -138,6 +139,7 @@ export class AuthService {
       session.user.id,
       session.user.account_id,
       session.user.role,
+      session.user.email,
     );
     const refresh_token = await this.createRefreshToken(session.user.id);
     return { access_token, refresh_token };
@@ -152,7 +154,12 @@ export class AuthService {
     return { ok: true };
   }
 
-  async bootstrapAdmin(email: string): Promise<{ ok: boolean; message: string }> {
+  async bootstrapAdmin(email: string, secret: string): Promise<{ ok: boolean; message: string }> {
+    const expectedSecret = process.env.BOOTSTRAP_SECRET;
+    if (!expectedSecret || secret !== expectedSecret) {
+      throw new ForbiddenException('Invalid bootstrap secret');
+    }
+
     const existing = await this.prisma.user.findFirst({
       where: { role: 'SUPER_ADMIN' },
     });
@@ -170,9 +177,9 @@ export class AuthService {
     return { ok: true, message: `${email} promoted to SUPER_ADMIN` };
   }
 
-  private signAccessToken(userId: string, accountId: string, role: string): string {
+  private signAccessToken(userId: string, accountId: string, role: string, email?: string): string {
     return this.jwt.sign(
-      { sub: userId, account_id: accountId, role },
+      { sub: userId, account_id: accountId, role, email },
       { expiresIn: ACCESS_TOKEN_TTL },
     );
   }
@@ -198,48 +205,46 @@ export class AuthService {
     return crypto.createHash('sha256').update(token).digest('hex');
   }
 
-  private checkLockout(key: string): void {
-    const attempt = this.loginAttempts.get(key);
-    if (!attempt) return;
-
-    if (attempt.lockedUntil && Date.now() < attempt.lockedUntil) {
-      const remainSec = Math.ceil((attempt.lockedUntil - Date.now()) / 1000);
-      this.logger.warn(`Login locked for ${key}, ${remainSec}s remaining`);
-      throw new ForbiddenException(
-        `Juda ko'p urinish. ${Math.ceil(remainSec / 60)} daqiqadan keyin qayta urinib ko'ring.`,
-      );
-    }
-
-    // Reset if lockout expired
-    if (attempt.lockedUntil && Date.now() >= attempt.lockedUntil) {
-      this.loginAttempts.delete(key);
-    }
-  }
-
-  private recordFailedAttempt(key: string): void {
-    const now = Date.now();
-    const attempt = this.loginAttempts.get(key);
-
-    if (!attempt || (now - attempt.lastAttempt) > WINDOW_MS) {
-      this.loginAttempts.set(key, { count: 1, lockedUntil: null, lastAttempt: now });
-      return;
-    }
-
-    attempt.count++;
-    attempt.lastAttempt = now;
-
-    if (attempt.count >= MAX_ATTEMPTS) {
-      attempt.lockedUntil = now + LOCKOUT_MS;
-      this.logger.warn(`Account locked: ${key} after ${attempt.count} failed attempts`);
-    }
-  }
-
-  private cleanupAttempts(): void {
-    const now = Date.now();
-    for (const [key, attempt] of this.loginAttempts) {
-      if ((now - attempt.lastAttempt) > WINDOW_MS && (!attempt.lockedUntil || now > attempt.lockedUntil)) {
-        this.loginAttempts.delete(key);
+  private async checkLockout(key: string): Promise<void> {
+    try {
+      const lockKey = `auth:lock:${key}`;
+      const ttl = await this.redis.ttl(lockKey);
+      if (ttl > 0) {
+        this.logger.warn(`Login locked for ${key}, ${ttl}s remaining`);
+        throw new ForbiddenException(
+          `Juda ko'p urinish. ${Math.ceil(ttl / 60)} daqiqadan keyin qayta urinib ko'ring.`,
+        );
       }
+    } catch (err) {
+      if (err instanceof ForbiddenException) throw err;
+      // Redis unavailable — skip lockout check
+    }
+  }
+
+  private async recordFailedAttempt(key: string): Promise<void> {
+    try {
+      const attemptsKey = `auth:attempts:${key}`;
+      const count = await this.redis.incr(attemptsKey);
+      if (count === 1) {
+        await this.redis.expire(attemptsKey, WINDOW_SECONDS);
+      }
+
+      if (count >= MAX_ATTEMPTS) {
+        const lockKey = `auth:lock:${key}`;
+        await this.redis.set(lockKey, '1', 'EX', LOCKOUT_SECONDS);
+        await this.redis.del(attemptsKey);
+        this.logger.warn(`Account locked: ${key} after ${count} failed attempts`);
+      }
+    } catch {
+      // Redis unavailable — skip rate limiting
+    }
+  }
+
+  private async resetAttempts(key: string): Promise<void> {
+    try {
+      await this.redis.del(`auth:attempts:${key}`, `auth:lock:${key}`);
+    } catch {
+      // Redis unavailable — skip
     }
   }
 }

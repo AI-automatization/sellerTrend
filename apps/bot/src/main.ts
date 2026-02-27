@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import http from 'http';
 import { Bot, GrammyError, HttpError } from 'grammy';
 import { prisma } from './prisma';
 import { sendDiscoveryAlert } from './alerts';
@@ -191,6 +192,22 @@ bot.catch((err) => {
 
 async function bootstrap() {
   console.log('Telegram bot starting...');
+
+  // Health check HTTP server (Railway requires an HTTP endpoint)
+  const healthPort = parseInt(process.env.PORT || '3002', 10);
+  const healthServer = http.createServer((req, res) => {
+    if (req.url === '/health' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok', bot: 'running', timestamp: new Date().toISOString() }));
+    } else {
+      res.writeHead(404);
+      res.end();
+    }
+  });
+  healthServer.listen(healthPort, () => {
+    console.log(`Bot health check: http://localhost:${healthPort}/health`);
+  });
+
   await bot.start({
     onStart: (info) => {
       console.log(`Bot started: @${info.username}`);

@@ -64,11 +64,18 @@ export class CompetitorController {
   getHistory(
     @Param('productId') productId: string,
     @Query('competitor_id') competitorId: string,
+    @CurrentUser('account_id') accountId: string,
     @Query('limit') limit?: string,
   ) {
-    // Note: accountId not checked in history since it's read-only of own trackings
-    // but we still need it for the tracking lookup
-    return 'Use GET /products/:productId/competitors/:competitorId/history';
+    if (!competitorId) {
+      return { error: 'competitor_id query param is required' };
+    }
+    return this.competitorService.getCompetitorPriceHistory(
+      BigInt(productId),
+      BigInt(competitorId),
+      accountId,
+      limit ? parseInt(limit, 10) : 50,
+    );
   }
 
   /** Get price history for a specific competitor */

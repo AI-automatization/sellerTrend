@@ -23,8 +23,11 @@ export class ProductsController {
   }
 
   @Get(':id')
-  async getProduct(@Param('id') productId: string) {
-    const product = await this.productsService.getProductById(BigInt(productId));
+  async getProduct(
+    @Param('id') productId: string,
+    @CurrentUser('account_id') accountId: string,
+  ) {
+    const product = await this.productsService.getProductById(BigInt(productId), accountId);
     if (!product) throw new NotFoundException('Product not found');
     return product;
   }

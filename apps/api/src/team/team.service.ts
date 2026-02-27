@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as crypto from 'crypto';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class TeamService {
@@ -124,8 +125,9 @@ export class TeamService {
         },
       });
     } else {
-      // Create a new user with a temporary password hash (user must reset)
-      const tempHash = crypto.randomBytes(32).toString('hex');
+      // Create a new user with a random temporary password (bcrypt-hashed)
+      const tempPassword = crypto.randomBytes(16).toString('hex');
+      const tempHash = await bcrypt.hash(tempPassword, 12);
       await this.prisma.user.create({
         data: {
           account_id: invite.account_id,
@@ -134,6 +136,7 @@ export class TeamService {
           role: invite.role,
         },
       });
+      this.logger.log(`Invite accepted: ${invite.email} — temp password generated (user should reset via admin)`);
     }
 
     // Mark invite as accepted

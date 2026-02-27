@@ -218,6 +218,30 @@
 
 ---
 
+## P2 FIX — 2026-02-27
+
+| # | Task | Fix |
+|---|------|-----|
+| T-078 | bootstrapAdmin himoyalash | `BOOTSTRAP_SECRET` env var + ForbiddenException |
+| T-079 | Team invite bcrypt hash | `crypto.randomBytes` → `bcrypt.hash(tempPassword, 12)` |
+| T-080 | NestJS version alignment | `@nestjs/websockets` + `platform-socket.io` v11 → v10 |
+| T-081 | Express v5→v4 | `express: ^5.2.1` → `^4.21.0` (NestJS v10 mos) |
+| T-087 | notification account_id | `markAsRead(id, accountId)` — cross-account himoyalandi |
+| T-089 | Product endpoint account_id | `getProduct` ga accountId qo'shildi + BillingGuard mavjud |
+| T-090 | Sourcing BillingGuard | `@UseGuards(JwtAuthGuard, BillingGuard)` qo'shildi |
+| T-091 | auth DTO validatsiya | `RefreshDto` (class-validator) — refresh/logout ga |
+| T-092 | competitor getHistory fix | Hardcoded string → haqiqiy `getCompetitorPriceHistory()` |
+| T-093 | AliExpress HMAC imzo | `crypto.createHmac('sha256')` TOP API signing qo'shildi |
+| T-094 | sourcing getJob account_id | `findFirst({id, account_id})` — cross-account himoyalandi |
+| T-095 | Login rate limit Redis | In-memory Map → Redis INCR + TTL (multi-instance safe) |
+| T-096 | JWT email field | `signAccessToken` ga `email` qo'shildi (register, login, refresh) |
+| T-098 | onDelete Cascade | 30+ relation ga `onDelete: Cascade/SetNull` qo'shildi |
+| T-099 | account_id indexes | 16 ta jadvalga `@@index([account_id])` qo'shildi |
+| T-182 | Bot health endpoint | HTTP server + `/health` endpoint (Railway healthcheck) |
+| T-183 | Worker PORT env fix | `process.env.PORT \|\| WORKER_HEALTH_PORT \|\| 3001` |
+
+---
+
 ## P1 FIX — 2026-02-27
 
 | # | Task | Fix |

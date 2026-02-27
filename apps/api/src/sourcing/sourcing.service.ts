@@ -266,9 +266,9 @@ export class SourcingService {
     };
   }
 
-  async getSearchJob(jobId: string) {
-    const job = await this.prisma.externalSearchJob.findUnique({
-      where: { id: jobId },
+  async getSearchJob(jobId: string, accountId?: string) {
+    const job = await this.prisma.externalSearchJob.findFirst({
+      where: { id: jobId, ...(accountId ? { account_id: accountId } : {}) },
       include: {
         results: {
           orderBy: { rank: 'asc' },

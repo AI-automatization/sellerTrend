@@ -68,13 +68,14 @@ model User {
   is_active     Boolean  @default(true)
   created_at    DateTime @default(now()) @db.Timestamptz
 
-  account      Account         @relation(fields: [account_id], references: [id])
+  account      Account         @relation(fields: [account_id], references: [id], onDelete: Cascade)
   audit_events AuditEvent[]
   activities   UserActivity[]
   sessions     UserSession[]
   feedback_tickets  FeedbackTicket[]
   feedback_messages FeedbackMessage[]
 
+  @@index([account_id])
   @@map("users")
 }
 
@@ -95,8 +96,9 @@ model Transaction {
   description    String?         @db.Text
   created_at     DateTime        @default(now()) @db.Timestamptz
 
-  account Account @relation(fields: [account_id], references: [id])
+  account Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
 
+  @@index([account_id])
   @@map("transactions")
 }
 
@@ -115,9 +117,10 @@ model AuditEvent {
   new_value  Json?
   created_at DateTime @default(now()) @db.Timestamptz
 
-  account Account? @relation(fields: [account_id], references: [id])
-  user    User?    @relation(fields: [user_id], references: [id])
+  account Account? @relation(fields: [account_id], references: [id], onDelete: SetNull)
+  user    User?    @relation(fields: [user_id], references: [id], onDelete: SetNull)
 
+  @@index([account_id])
   @@map("audit_events")
 }
 
@@ -192,7 +195,7 @@ model Sku {
   is_available Boolean  @default(true)
   created_at   DateTime @default(now()) @db.Timestamptz
 
-  product      Product       @relation(fields: [product_id], references: [id])
+  product      Product       @relation(fields: [product_id], references: [id], onDelete: Cascade)
   sku_snapshots SkuSnapshot[]
 
   @@map("skus")
@@ -208,7 +211,7 @@ model ProductSnapshot {
   score             Decimal? @db.Decimal(8, 4)
   snapshot_at       DateTime @default(now()) @db.Timestamptz
 
-  product         Product                @relation(fields: [product_id], references: [id])
+  product         Product                @relation(fields: [product_id], references: [id], onDelete: Cascade)
   ai_explanations ProductAiExplanation[]
 
   @@index([product_id, snapshot_at])
@@ -224,7 +227,7 @@ model SkuSnapshot {
   stock_type       String?  @db.VarChar(10)
   snapshot_at      DateTime @default(now()) @db.Timestamptz
 
-  sku Sku @relation(fields: [sku_id], references: [id])
+  sku Sku @relation(fields: [sku_id], references: [id], onDelete: Cascade)
 
   @@map("sku_snapshots")
 }
@@ -244,9 +247,10 @@ model CategoryRun {
   finished_at    DateTime?       @db.Timestamptz
   created_at     DateTime        @default(now()) @db.Timestamptz
 
-  account  Account          @relation(fields: [account_id], references: [id])
+  account  Account          @relation(fields: [account_id], references: [id], onDelete: Cascade)
   winners  CategoryWinner[]
 
+  @@index([account_id])
   @@map("category_runs")
 }
 
@@ -268,8 +272,8 @@ model CategoryWinner {
   sell_price      BigInt?
   created_at      DateTime @default(now()) @db.Timestamptz
 
-  run     CategoryRun @relation(fields: [run_id], references: [id])
-  product Product     @relation(fields: [product_id], references: [id])
+  run     CategoryRun @relation(fields: [run_id], references: [id], onDelete: Cascade)
+  product Product     @relation(fields: [product_id], references: [id], onDelete: Cascade)
 
   @@map("category_winners")
 }
@@ -281,8 +285,8 @@ model TrackedProduct {
   is_active  Boolean  @default(true)
   created_at DateTime @default(now()) @db.Timestamptz
 
-  account Account @relation(fields: [account_id], references: [id])
-  product Product @relation(fields: [product_id], references: [id])
+  account Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
 
   @@unique([account_id, product_id])
   @@map("tracked_products")
@@ -301,10 +305,11 @@ model AlertRule {
   is_active  Boolean   @default(true)
   created_at DateTime  @default(now()) @db.Timestamptz
 
-  account Account      @relation(fields: [account_id], references: [id])
-  product Product      @relation(fields: [product_id], references: [id])
+  account Account      @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  product Product      @relation(fields: [product_id], references: [id], onDelete: Cascade)
   events  AlertEvent[]
 
+  @@index([account_id])
   @@map("alert_rules")
 }
 
@@ -321,8 +326,8 @@ model AlertEvent {
   message      String?  @db.Text
   triggered_at DateTime @default(now()) @db.Timestamptz
 
-  rule    AlertRule @relation(fields: [rule_id], references: [id])
-  product Product   @relation(fields: [product_id], references: [id])
+  rule    AlertRule @relation(fields: [rule_id], references: [id], onDelete: Cascade)
+  product Product   @relation(fields: [product_id], references: [id], onDelete: Cascade)
 
   @@map("alert_events")
 }
@@ -341,7 +346,7 @@ model ProductAiAttribute {
   raw_json   Json?
   created_at DateTime @default(now()) @db.Timestamptz
 
-  product Product @relation(fields: [product_id], references: [id])
+  product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
 
   @@map("product_ai_attributes")
 }
@@ -386,8 +391,9 @@ model ExternalPriceSearch {
   results    Json?
   created_at DateTime @default(now()) @db.Timestamptz
 
-  account Account @relation(fields: [account_id], references: [id])
+  account Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
 
+  @@index([account_id])
   @@map("external_price_searches")
 }
 
@@ -414,11 +420,12 @@ model CargoCalculation {
   usd_rate        Decimal  @db.Decimal(20, 4)
   created_at      DateTime @default(now()) @db.Timestamptz
 
-  account  Account                @relation(fields: [account_id], references: [id])
+  account  Account                @relation(fields: [account_id], references: [id], onDelete: Cascade)
   provider CargoProvider?         @relation(fields: [provider_id], references: [id])
-  job      ExternalSearchJob?     @relation(fields: [job_id], references: [id])
-  result   ExternalSearchResult?  @relation(fields: [result_id], references: [id])
+  job      ExternalSearchJob?     @relation(fields: [job_id], references: [id], onDelete: Cascade)
+  result   ExternalSearchResult?  @relation(fields: [result_id], references: [id], onDelete: Cascade)
 
+  @@index([account_id])
   @@map("cargo_calculations")
 }
 
@@ -451,11 +458,12 @@ model ExternalSearchJob {
   created_at  DateTime             @default(now()) @db.Timestamptz
   finished_at DateTime?            @db.Timestamptz
 
-  account            Account                @relation(fields: [account_id], references: [id])
-  product            Product                @relation(fields: [product_id], references: [id])
+  account            Account                @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  product            Product                @relation(fields: [product_id], references: [id], onDelete: Cascade)
   results            ExternalSearchResult[]
   cargo_calculations CargoCalculation[]
 
+  @@index([account_id])
   @@map("external_search_jobs")
 }
 
@@ -486,7 +494,7 @@ model ExternalSearchResult {
   rank           Int?
   created_at     DateTime @default(now()) @db.Timestamptz
 
-  job                ExternalSearchJob  @relation(fields: [job_id], references: [id])
+  job                ExternalSearchJob  @relation(fields: [job_id], references: [id], onDelete: Cascade)
   platform           ExternalPlatform   @relation(fields: [platform_id], references: [id])
   cargo_calculations CargoCalculation[]
 
@@ -500,8 +508,8 @@ model ProductAiExplanation {
   explanation String?  @db.Text
   created_at  DateTime @default(now()) @db.Timestamptz
 
-  product  Product          @relation(fields: [product_id], references: [id])
-  snapshot ProductSnapshot? @relation(fields: [snapshot_id], references: [id])
+  product  Product          @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  snapshot ProductSnapshot? @relation(fields: [snapshot_id], references: [id], onDelete: Cascade)
 
   @@map("product_ai_explanations")
 }
@@ -518,9 +526,9 @@ model CompetitorTracking {
   is_active             Boolean  @default(true)
   created_at            DateTime @default(now()) @db.Timestamptz
 
-  account    Account @relation(fields: [account_id], references: [id])
-  product    Product @relation("product_competitors", fields: [product_id], references: [id])
-  competitor Product @relation("competitor_of", fields: [competitor_product_id], references: [id])
+  account    Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  product    Product @relation("product_competitors", fields: [product_id], references: [id], onDelete: Cascade)
+  competitor Product @relation("competitor_of", fields: [competitor_product_id], references: [id], onDelete: Cascade)
   snapshots  CompetitorPriceSnapshot[]
 
   @@unique([account_id, product_id, competitor_product_id])
@@ -572,9 +580,10 @@ model Referral {
   credited_at         DateTime?      @db.Timestamptz
   created_at          DateTime       @default(now()) @db.Timestamptz
 
-  referrer Account  @relation("referrer", fields: [referrer_account_id], references: [id])
-  referred Account? @relation("referred", fields: [referred_account_id], references: [id])
+  referrer Account  @relation("referrer", fields: [referrer_account_id], references: [id], onDelete: Cascade)
+  referred Account? @relation("referred", fields: [referred_account_id], references: [id], onDelete: SetNull)
 
+  @@index([referrer_account_id])
   @@map("referrals")
 }
 
@@ -601,8 +610,9 @@ model ApiKey {
   is_active      Boolean   @default(true)
   created_at     DateTime  @default(now()) @db.Timestamptz
 
-  account Account @relation(fields: [account_id], references: [id])
+  account Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
 
+  @@index([account_id])
   @@map("api_keys")
 }
 
@@ -660,9 +670,10 @@ model PriceTest {
   conclusion     String?         @db.Text
   created_at     DateTime        @default(now()) @db.Timestamptz
 
-  account Account @relation(fields: [account_id], references: [id])
-  product Product @relation(fields: [product_id], references: [id])
+  account Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
 
+  @@index([account_id])
   @@map("price_tests")
 }
 
@@ -686,8 +697,9 @@ model ProductChecklist {
   created_at DateTime @default(now()) @db.Timestamptz
   updated_at DateTime @updatedAt @db.Timestamptz
 
-  account Account @relation(fields: [account_id], references: [id])
+  account Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
 
+  @@index([account_id])
   @@map("product_checklists")
 }
 
@@ -713,8 +725,9 @@ model AdCampaign {
   created_at      DateTime         @default(now()) @db.Timestamptz
   updated_at      DateTime         @updatedAt @db.Timestamptz
 
-  account Account @relation(fields: [account_id], references: [id])
+  account Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
 
+  @@index([account_id])
   @@map("ad_campaigns")
 }
 
@@ -740,8 +753,9 @@ model TeamInvite {
   expires_at     DateTime         @db.Timestamptz
   created_at     DateTime         @default(now()) @db.Timestamptz
 
-  account Account @relation(fields: [account_id], references: [id])
+  account Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
 
+  @@index([account_id])
   @@map("team_invites")
 }
 
@@ -768,8 +782,9 @@ model CustomReport {
   created_at     DateTime @default(now()) @db.Timestamptz
   updated_at     DateTime @updatedAt @db.Timestamptz
 
-  account Account @relation(fields: [account_id], references: [id])
+  account Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
 
+  @@index([account_id])
   @@map("custom_reports")
 }
 
@@ -789,8 +804,9 @@ model SharedWatchlist {
   created_at  DateTime @default(now()) @db.Timestamptz
   updated_at  DateTime @updatedAt @db.Timestamptz
 
-  account Account @relation(fields: [account_id], references: [id])
+  account Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
 
+  @@index([account_id])
   @@map("shared_watchlists")
 }
 
@@ -808,9 +824,10 @@ model CommunityInsight {
   downvotes   Int      @default(0)
   created_at  DateTime @default(now()) @db.Timestamptz
 
-  account Account         @relation(fields: [account_id], references: [id])
+  account Account         @relation(fields: [account_id], references: [id], onDelete: Cascade)
   votes   InsightVote[]
 
+  @@index([account_id])
   @@map("community_insights")
 }
 
@@ -821,7 +838,7 @@ model InsightVote {
   vote       Int      // +1 or -1
   created_at DateTime @default(now()) @db.Timestamptz
 
-  insight CommunityInsight @relation(fields: [insight_id], references: [id])
+  insight CommunityInsight @relation(fields: [insight_id], references: [id], onDelete: Cascade)
 
   @@unique([insight_id, account_id])
   @@map("insight_votes")
@@ -841,8 +858,8 @@ model UserActivity {
   user_agent String?  @db.VarChar(500)
   created_at DateTime @default(now()) @db.Timestamptz
 
-  user    User    @relation(fields: [user_id], references: [id])
-  account Account @relation(fields: [account_id], references: [id])
+  user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  account Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
 
   @@index([user_id, created_at])
   @@index([account_id, created_at])
@@ -860,7 +877,7 @@ model UserSession {
   device_type        String?   @db.VarChar(50)
   logged_in_at       DateTime  @default(now()) @db.Timestamptz
 
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id, logged_in_at])
   @@index([refresh_token_hash])
@@ -901,8 +918,8 @@ model FeedbackTicket {
   created_at DateTime         @default(now()) @db.Timestamptz
   updated_at DateTime         @updatedAt @db.Timestamptz
 
-  account  Account           @relation(fields: [account_id], references: [id])
-  user     User              @relation(fields: [user_id], references: [id])
+  account  Account           @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  user     User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
   messages FeedbackMessage[]
 
   @@index([account_id, status])

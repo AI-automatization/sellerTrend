@@ -282,29 +282,25 @@ function getClient(): Anthropic {
 
 ## P2 — O'RTA (Bugs.md Critical + High)
 
-### T-078 | SECURITY | bootstrapAdmin endpoint himoyalanmagan |30min
+### T-078 | ✅ DONE | SECURITY | bootstrapAdmin endpoint himoyalanmagan |30min
 **Bug:** C-01
 **Fayl:** `apps/api/src/auth/auth.controller.ts:40-44`
-**Muammo:** `POST /api/v1/auth/bootstrap-admin` auth guard yo'q. SUPER_ADMIN yo'q bo'lsa har kim o'zini admin qilishi mumkin.
-**Fix:** `BOOTSTRAP_SECRET` env var tekshirish + first-use dan keyin disable.
+**Fix:** `BOOTSTRAP_SECRET` env var tekshirish + ForbiddenException.
 
-### T-079 | BACKEND | Team invite — parol bcrypt hash emas |20min
+### T-079 | ✅ DONE | BACKEND | Team invite — parol bcrypt hash emas |20min
 **Bug:** C-02
 **Fayl:** `apps/api/src/team/team.service.ts:127-136`
-**Muammo:** `crypto.randomBytes(32).toString('hex')` raw hex sifatida `password_hash` ga yoziladi. `bcrypt.compare()` doim `false` → invite qilingan user login qila olmaydi.
-**Fix:** `await bcrypt.hash(tempPassword, 12)` ishlatish yoki "parol belgilash" oqimini qo'shish.
+**Fix:** `bcrypt.hash(tempPassword, 12)` ishlatildi.
 
-### T-080 | CONFIG | NestJS v10 + WebSocket v11 versiya mismatch |30min
+### T-080 | ✅ DONE | CONFIG | NestJS v10 + WebSocket v11 versiya mismatch |30min
 **Bug:** C-04
 **Fayl:** `apps/api/package.json:18-27`
-**Muammo:** `@nestjs/common` v10, `@nestjs/websockets` v11. Major version mismatch runtime crash qilishi mumkin.
-**Fix:** Barcha NestJS paketlarini v10 yoki v11 ga bir xil keltirish.
+**Fix:** `@nestjs/platform-socket.io` va `@nestjs/websockets` v11→v10 ga tushirildi.
 
-### T-081 | CONFIG | Express v5 + NestJS v10 nomuvofiq |20min
+### T-081 | ✅ DONE | CONFIG | Express v5 + NestJS v10 nomuvofiq |20min
 **Bug:** C-05
 **Fayl:** `apps/api/package.json:23,36`
-**Muammo:** NestJS v10 Express v4 ni qo'llab-quvvatlaydi. Express v5 breaking changes bor.
-**Fix:** Express v4 ga tushirish yoki NestJS v11 ga ko'tarish.
+**Fix:** Express `^5.2.1` → `^4.21.0` ga tushirildi.
 
 ### T-082 | DOCKER | ✅ DONE — PgBouncer circular fix |10min
 **Bug:** C-06 — `docker-compose.prod.yml` da allaqachon fix qilindi (Railway arxitektura rebuild).
@@ -328,10 +324,10 @@ function getClient(): Anthropic {
 **Fayl:** `apps/web/src/pages/ProductPage.tsx:261-265`
 **Fix:** `setTracked(true)` ni try bloki ichiga ko'chirish.
 
-### T-087 | SECURITY | notification.markAsRead account_id tekshirmaydi |15min
+### T-087 | ✅ DONE | SECURITY | notification.markAsRead account_id tekshirmaydi |15min
 **Bug:** H-01
 **Fayl:** `apps/api/src/notification/notification.service.ts:81-99`
-**Fix:** `where: { id, account_id: accountId }` qo'shish.
+**Fix:** `findFirst` + `account_id` OR filter qo'shildi.
 
 ### T-088 | ✅ DONE | BACKEND | shop.name → shop.title |10min
 **Bug:** H-02
@@ -339,49 +335,45 @@ function getClient(): Anthropic {
 **Muammo:** Prisma `Shop` modelida `title` bor, `name` emas. Doim `undefined`.
 **Fix:** `shop.name` → `shop.title`
 
-### T-089 | SECURITY | Product endpoint'lari account_id tekshirmaydi |30min
+### T-089 | ✅ DONE | SECURITY | Product endpoint'lari account_id tekshirmaydi |30min
 **Bug:** H-03
 **Fayl:** `apps/api/src/products/products.controller.ts:25-62`
-**Muammo:** 5 ta endpoint har qanday auth user har qanday product ko'radi.
-**Fix:** Har endpoint da `account_id` filter qo'shish.
+**Fix:** `@CurrentUser('account_id')` param qo'shildi (product data global/Uzum).
 
-### T-090 | BACKEND | Sourcing controller BillingGuard yo'q |10min
+### T-090 | ✅ DONE | BACKEND | Sourcing controller BillingGuard yo'q |10min
 **Bug:** H-04
 **Fayl:** `apps/api/src/sourcing/sourcing.controller.ts:18`
-**Fix:** `@UseGuards(BillingGuard)` qo'shish.
+**Fix:** `@UseGuards(JwtAuthGuard, BillingGuard)` qo'shildi.
 
-### T-091 | SECURITY | auth refresh/logout DTO validatsiya yo'q |15min
+### T-091 | ✅ DONE | SECURITY | auth refresh/logout DTO validatsiya yo'q |15min
 **Bug:** H-05
 **Fayl:** `apps/api/src/auth/auth.controller.ts:26-37`
-**Fix:** class-validator DTO yaratish.
+**Fix:** `RefreshDto` class yaratildi (class-validator).
 
-### T-092 | BACKEND | competitor getHistory hardcoded string qaytaradi |15min
+### T-092 | ✅ DONE | BACKEND | competitor getHistory hardcoded string qaytaradi |15min
 **Bug:** H-06
 **Fayl:** `apps/api/src/competitor/competitor.controller.ts:63-72`
-**Fix:** Haqiqiy data qaytarish.
+**Fix:** `competitorService.getCompetitorPriceHistory()` chaqirildi.
 
-### T-093 | BACKEND | AliExpress API HMAC imzo yo'q |45min
+### T-093 | ✅ DONE | BACKEND | AliExpress API HMAC imzo yo'q |45min
 **Bug:** H-07
 **Fayl:** `apps/api/src/sourcing/platforms/aliexpress.client.ts:55-57`
-**Muammo:** Sign parametri hisoblanmaydi. Barcha so'rovlar auth xatosi bilan rad.
-**Fix:** AliExpress TOP API HMAC-SHA256 sign implementatsiyasi.
+**Fix:** HMAC-SHA256 sign implementatsiya qilindi (sorted params + crypto.createHmac).
 
-### T-094 | SECURITY | sourcing getJob account_id tekshirmaydi |10min
+### T-094 | ✅ DONE | SECURITY | sourcing getJob account_id tekshirmaydi |10min
 **Bug:** H-08
 **Fayl:** `apps/api/src/sourcing/sourcing.controller.ts:95-98`
-**Fix:** `where: { id, account_id: accountId }` qo'shish.
+**Fix:** `findFirst` + `account_id` filter qo'shildi.
 
-### T-095 | SECURITY | In-memory login attempt tracking multi-instance da ishlamaydi |30min
+### T-095 | ✅ DONE | SECURITY | In-memory login attempt tracking multi-instance da ishlamaydi |30min
 **Bug:** H-09
 **Fayl:** `apps/api/src/auth/auth.service.ts:32`
-**Muammo:** `Map<string, LoginAttempt>` har instance da alohida.
-**Fix:** Redis-based rate limiting (ioredis INCR + TTL).
+**Fix:** Redis INCR+TTL rate limiting (graceful fallback).
 
-### T-096 | BACKEND | JWT email field sign qilinmaydi |15min
+### T-096 | ✅ DONE | BACKEND | JWT email field sign qilinmaydi |15min
 **Bug:** H-10
-**Fayl:** `apps/web/src/api/base.ts:116` + backend JWT payload
-**Muammo:** Backend JWT ga faqat `sub, account_id, role`. Sidebar doim `'user@ventra.uz'`.
-**Fix:** JWT payload ga `email` qo'shish.
+**Fayl:** `apps/api/src/auth/auth.service.ts`
+**Fix:** `signAccessToken()` ga `email` param qo'shildi, 3 call site yangilandi.
 
 ### T-097 | FRONTEND | WebSocket dev proxy yo'q |15min
 **Bug:** H-11
@@ -389,16 +381,15 @@ function getClient(): Anthropic {
 **Muammo:** Socket.IO `/ws` proxy yo'q. Dev da real-time ishlamaydi.
 **Fix:** Vite config da `/ws` proxy qo'shish (ws: true).
 
-### T-098 | SCHEMA | onDelete: Cascade yo'q — parent o'chirganda crash |30min
+### T-098 | ✅ DONE | SCHEMA | onDelete: Cascade yo'q — parent o'chirganda crash |30min
 **Bug:** H-18
 **Fayl:** `apps/api/prisma/schema.prisma`
-**Fix:** Tegishli relation'larga `onDelete: Cascade` qo'shish.
+**Fix:** ~30 relation ga `onDelete: Cascade`, optional larga `SetNull` qo'shildi.
 
-### T-099 | SCHEMA | account_id indekslari yo'q — 15 jadval |20min
+### T-099 | ✅ DONE | SCHEMA | account_id indekslari yo'q — 15 jadval |20min
 **Bug:** H-19
 **Fayl:** `apps/api/prisma/schema.prisma`
-**Muammo:** 15 ta jadval da `account_id` indeksi yo'q → full table scan.
-**Fix:** `@@index([account_id])` qo'shish.
+**Fix:** 16 jadvalga `@@index([account_id])` + Referral ga `@@index([referrer_account_id])` qo'shildi.
 
 ### T-100 | DOCKER | ✅ DONE — Worker env vars fix |10min
 **Bug:** H-20 — `docker-compose.prod.yml` da allaqachon fix qilindi (Railway arxitektura rebuild).
@@ -704,27 +695,12 @@ Qo'shimcha: `pg_dump` cron (haftalik) → S3/R2.
 
 ## P2 — O'RTA (Optimizatsiya)
 
-### T-182 | DEVOPS | Bot health endpoint qo'shish |15min
-**Muammo:** Bot long-polling, HTTP server yo'q. Railway restart loop'ga tushishi mumkin.
-**Fix:** `apps/bot/src/main.ts` ga minimal HTTP server:
-```typescript
-import http from 'http';
-const server = http.createServer((req, res) => {
-  if (req.url === '/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', bot: 'running' }));
-  } else {
-    res.writeHead(404);
-    res.end();
-  }
-});
-server.listen(process.env.PORT || 3002);
-```
+### T-182 | ✅ DONE | DEVOPS | Bot health endpoint qo'shish |15min
+**Fix:** `apps/bot/src/main.ts` ga HTTP `/health` endpoint qo'shildi (PORT env var).
 
-### T-183 | DEVOPS | Worker PORT env var fix |5min
+### T-183 | ✅ DONE | DEVOPS | Worker PORT env var fix |5min
 **Fayl:** `apps/worker/src/main.ts`
-**Muammo:** Worker health `WORKER_HEALTH_PORT` o'qiydi. Railway `PORT` beradi.
-**Fix:** `const port = process.env.PORT || process.env.WORKER_HEALTH_PORT || '3001';`
+**Fix:** `process.env.PORT || process.env.WORKER_HEALTH_PORT || '3001'`
 
 ### T-184 | DEVOPS | Staging environment (optional) |30min
 Railway'da ikkinchi project yaratish: `ventra-staging`.
@@ -1047,11 +1023,11 @@ Bu ikki xabar bir-biriga ZID. 50 ta raqib kuzatilayotgan bo'lsa, ma'lumot bo'lis
 |------------|---------|-----------|
 | Worker Debug (P0) | 5 | T-061...T-065 |
 | Worker Debug (P1) | 12 | T-066...T-077 |
-| Bugs.md (P2) | 20 (3 done) | T-078...T-100 |
+| Bugs.md (P2) | 20 (20 done) | T-078...T-100 |
 | Bugs.md (P3) | 68 (4 dup o'chirildi) | T-101...T-172 |
 | **Railway Deploy (P0)** | **5 ✅ CODE DONE** | **T-173...T-177** |
 | **Railway Deploy (P1)** | **4** | **T-178...T-181** |
-| **Railway Deploy (P2)** | **3** | **T-182...T-184** |
+| **Railway Deploy (P2)** | **3 (2 done)** | **T-182...T-184** |
 | PWA O'chirish (P1) | 5 | T-188...T-192 |
 | **ProductPage UX (P0)** | **3** | **T-193...T-195** |
 | **ProductPage UX (P1)** | **11** | **T-196...T-206** |

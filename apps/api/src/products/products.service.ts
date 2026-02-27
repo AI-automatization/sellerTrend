@@ -65,7 +65,7 @@ export class ProductsService {
     });
   }
 
-  async getProductById(productId: bigint) {
+  async getProductById(productId: bigint, _accountId?: string) {
     // Separate queries to avoid N+1 on ai_explanations (was: 20 nested includes → 20 queries)
     const [product, latestAi] = await Promise.all([
       this.prisma.product.findUnique({

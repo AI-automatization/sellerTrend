@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import * as crypto from 'crypto';
 
 export interface AliExpressProduct {
   title: string;
@@ -52,7 +53,19 @@ export class AliExpressClient {
         sort: 'SALE_PRICE_ASC',
       });
 
-      // Generate sign (simplified HMAC-based; full implementation requires crypto)
+      // AliExpress TOP API HMAC-SHA256 signature
+      params.set('timestamp', new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14));
+      params.set('sign_method', 'sha256');
+
+      const sortedKeys = [...params.keys()].sort();
+      const signStr = sortedKeys.map((k) => `${k}${params.get(k)}`).join('');
+      const sign = crypto
+        .createHmac('sha256', this.appSecret!)
+        .update(signStr)
+        .digest('hex')
+        .toUpperCase();
+      params.set('sign', sign);
+
       const url = `https://api-sg.aliexpress.com/sync?${params}`;
       const res = await fetch(url);
       if (!res.ok) {
