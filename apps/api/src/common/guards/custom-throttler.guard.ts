@@ -14,16 +14,20 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
   }
 
   protected async shouldSkip(context: ExecutionContext): Promise<boolean> {
+    if (this.whitelistedIps.size === 0) return false;
     const req = context.switchToHttp().getRequest();
+    const clientIp = this.extractClientIp(req);
+    return this.whitelistedIps.has(clientIp);
+  }
+
+  private extractClientIp(req: any): string {
+    // Railway/nginx puts real IP in X-Forwarded-For: "client, proxy1, proxy2"
+    const xff = req.headers?.['x-forwarded-for'];
+    if (xff) {
+      const first = (typeof xff === 'string' ? xff : xff[0]).split(',')[0].trim();
+      return first.replace(/^::ffff:/, '');
+    }
     const ip = req.ip || req.socket?.remoteAddress || '';
-    if (this.whitelistedIps.has(ip)) {
-      return true;
-    }
-    // IPv4-mapped IPv6 check: ::ffff:1.2.3.4 → 1.2.3.4
-    const stripped = ip.replace(/^::ffff:/, '');
-    if (stripped !== ip && this.whitelistedIps.has(stripped)) {
-      return true;
-    }
-    return false;
+    return ip.replace(/^::ffff:/, '');
   }
 }
