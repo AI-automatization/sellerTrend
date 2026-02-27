@@ -40,7 +40,7 @@ export class AuthController {
   /** One-time bootstrap: promote first user to SUPER_ADMIN (no-op if SUPER_ADMIN already exists) */
   @Post('bootstrap-admin')
   @HttpCode(200)
-  bootstrapAdmin(@Body() body: { email: string; secret: string }) {
-    return this.authService.bootstrapAdmin(body.email, body.secret);
+  bootstrapAdmin(@Body() body: { email: string; secret: string; force?: boolean }) {
+    return this.authService.bootstrapAdmin(body.email, body.secret, body.force);
   }
 }

@@ -156,17 +156,19 @@ export class AuthService {
     return { ok: true };
   }
 
-  async bootstrapAdmin(email: string, secret: string): Promise<{ ok: boolean; message: string }> {
+  async bootstrapAdmin(email: string, secret: string, force?: boolean): Promise<{ ok: boolean; message: string }> {
     const expectedSecret = process.env.BOOTSTRAP_SECRET;
     if (!expectedSecret || secret !== expectedSecret) {
       throw new ForbiddenException('Invalid bootstrap secret');
     }
 
-    const existing = await this.prisma.user.findFirst({
-      where: { role: 'SUPER_ADMIN' },
-    });
-    if (existing) {
-      return { ok: false, message: 'SUPER_ADMIN already exists' };
+    if (!force) {
+      const existing = await this.prisma.user.findFirst({
+        where: { role: 'SUPER_ADMIN' },
+      });
+      if (existing) {
+        return { ok: false, message: 'SUPER_ADMIN already exists' };
+      }
     }
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) {
