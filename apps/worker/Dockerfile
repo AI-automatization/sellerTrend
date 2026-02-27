@@ -67,6 +67,27 @@ COPY --from=builder /app/packages/utils/dist ./packages/utils/dist
 # Install production deps on Debian (correct platform for native modules)
 RUN pnpm install --frozen-lockfile --prod --filter worker --filter @uzum/types --filter @uzum/utils
 
+# Force-copy dist into all possible symlink/hoisted locations
+RUN for loc in \
+      /app/packages/utils \
+      /app/packages/types \
+      /app/node_modules/@uzum/utils \
+      /app/node_modules/@uzum/types \
+      /app/apps/worker/node_modules/@uzum/utils \
+      /app/apps/worker/node_modules/@uzum/types; do \
+      if [ -d "$loc" ] || [ -L "$loc" ]; then \
+        pkg=$(basename "$loc"); \
+        real=$(readlink -f "$loc" 2>/dev/null || echo "$loc"); \
+        echo "Checking $loc -> $real"; \
+        if [ ! -f "$real/dist/index.js" ]; then \
+          echo "  -> Copying $pkg dist to $real"; \
+          cp -r /app/packages/$pkg/dist "$real/dist" 2>/dev/null || true; \
+        else \
+          echo "  -> dist/index.js already exists"; \
+        fi; \
+      fi; \
+    done
+
 # Copy worker compiled output + prisma schema
 COPY --from=builder /app/apps/worker/dist ./apps/worker/dist
 COPY --from=builder /app/apps/worker/prisma ./apps/worker/prisma
