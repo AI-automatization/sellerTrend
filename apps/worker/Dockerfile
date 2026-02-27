@@ -54,7 +54,6 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV HUSKY=0
 
-# Copy workspace root files for pnpm install
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .pnpmfile.cjs ./
 COPY apps/worker/package.json ./apps/worker/
 COPY packages/types/package.json ./packages/types/
@@ -63,36 +62,9 @@ COPY packages/utils/package.json ./packages/utils/
 # Install production deps
 RUN pnpm install --frozen-lockfile --prod --filter worker --filter @uzum/types --filter @uzum/utils
 
-# Copy built @uzum packages — replace pnpm symlinks with real directories
-# pnpm workspace creates multi-level symlinks that break when dist/ is added late
-COPY --from=builder /app/packages/types/package.json /tmp/uzum-types/package.json
-COPY --from=builder /app/packages/types/dist /tmp/uzum-types/dist
-COPY --from=builder /app/packages/utils/package.json /tmp/uzum-utils/package.json
-COPY --from=builder /app/packages/utils/dist /tmp/uzum-utils/dist
-
-# Replace symlinks with real directories at ALL possible resolution paths
-RUN set -e; \
-    for loc in \
-      /app/packages/utils \
-      /app/node_modules/@uzum/utils \
-      /app/apps/worker/node_modules/@uzum/utils; do \
-      if [ -e "$loc" ] || [ -L "$loc" ]; then \
-        rm -rf "$loc"; \
-        cp -r /tmp/uzum-utils "$loc"; \
-        echo "Replaced $loc with real dir"; \
-      fi; \
-    done; \
-    for loc in \
-      /app/packages/types \
-      /app/node_modules/@uzum/types \
-      /app/apps/worker/node_modules/@uzum/types; do \
-      if [ -e "$loc" ] || [ -L "$loc" ]; then \
-        rm -rf "$loc"; \
-        cp -r /tmp/uzum-types "$loc"; \
-        echo "Replaced $loc with real dir"; \
-      fi; \
-    done; \
-    rm -rf /tmp/uzum-types /tmp/uzum-utils
+# Copy built @uzum package dist (after pnpm install to prevent overwrite)
+COPY --from=builder /app/packages/types/dist ./packages/types/dist
+COPY --from=builder /app/packages/utils/dist ./packages/utils/dist
 
 # Copy worker compiled output + prisma schema
 COPY --from=builder /app/apps/worker/dist ./apps/worker/dist
@@ -101,7 +73,7 @@ COPY --from=builder /app/apps/worker/prisma ./apps/worker/prisma
 WORKDIR /app/apps/worker
 RUN pnpm exec prisma generate
 
-# Verify modules can be loaded
+# Verify @uzum packages resolve correctly
 RUN node -e "require('@uzum/utils'); console.log('OK: @uzum/utils')"
 RUN node -e "require('@uzum/types'); console.log('OK: @uzum/types')"
 
