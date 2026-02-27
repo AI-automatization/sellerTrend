@@ -225,14 +225,18 @@ export class AiService {
           {
             role: 'user',
             content:
+              `Sen Uzum marketplace sotuvchilariga maslahat beradigan mutaxassissan.\n\n` +
               `Mahsulot: ${opts.title}\n` +
               `Score: ${opts.score.toFixed(2)}\n` +
-              `So'nggi faollik (weekly_bought): ${opts.weeklyBought ?? 'N/A'}\n` +
+              `Haftalik sotuv: ${opts.weeklyBought ?? 'noma\'lum'}\n` +
               `Jami buyurtmalar: ${opts.ordersQuantity.toLocaleString()}\n` +
               `Chegirma: ${opts.discountPercent ?? 0}%\n` +
               `Reyting: ${opts.rating}\n\n` +
-              `Nima uchun bu mahsulot "hot" ekanligini 2-4 ta qisqa bulletda tushuntir.\n` +
-              `Faqat JSON massiv qaytir: ["...", "...", "..."]`,
+              `Sotuvchi uchun 3 ta AMALIY maslahat ber:\n` +
+              `1. Bu mahsulot nima uchun yaxshi sotilmoqda (sabab)\n` +
+              `2. Raqobatchi bo'lsa nima qilish kerak (strategiya)\n` +
+              `3. Xavf yoki e'tibor berish kerak bo'lgan narsa\n\n` +
+              `Har bir maslahat 1 jumla. O'zbek tilida. Faqat JSON massiv qaytir: ["...", "...", "..."]`,
           },
         ],
       });

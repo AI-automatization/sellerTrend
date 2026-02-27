@@ -43,8 +43,8 @@
 - Weekly Trend (7-day delta, daily breakdown, advice)
 
 ### QISMAN ISHLAYDI:
-- Signals — cannibalization, saturation (take:2, degraded accuracy)
-- Signals — replenishment planner (take:2, noto'g'ri buyurtma miqdori)
+- ~~Signals — cannibalization, saturation (take:2)~~ ✅ TUZATILDI (take:30)
+- ~~Signals — replenishment planner (take:2)~~ ✅ TUZATILDI (take:30)
 - Profit Calculator (customs/QQS yo'q — import mahsulotlar uchun noaniq)
 - Input validation (Global pipe bor, lekin ba'zi endpoint DTO'siz)
 - BigInt serialization (asosiy path'lar to'g'ri, edge case'lar bor)
@@ -57,7 +57,7 @@
 
 ### DEAD CODE:
 - parseWeeklyBought() — Uzum API dan actions.text olib tashlangan
-- 3x fetchProductDetail duplicate — DRY buzilgan
+- ~~3x fetchProductDetail duplicate~~ ✅ TUZATILDI (fetchUzumProductRaw shared)
 
 ---
 

@@ -26,21 +26,21 @@
 
 ### E-003 | `WEB_URL` qo'shish — CORS xatosi | 5min
 - `apps/api/.env` → `WEB_URL=http://localhost:5173`
-- `.env` (root) → `WEB_URL=http://localhost:5173`
+- `.env` (root) → `WEB_URL=http://localhost:5173` ✅ DONE
 
 ### E-004 | `JWT_SECRET` root va api da BIR XIL qilish | 5min
-- Root `/.env` dagi `JWT_SECRET` ni `apps/api/.env` dagi bilan tenglashtirish
+- Root `/.env` dagi `JWT_SECRET` ni `apps/api/.env` dagi bilan tenglashtirish ✅ DONE
 
-### E-005 | `SERPAPI_API_KEY` olish va yozish | 5min
+### E-005 | `SERPAPI_API_KEY` olish va yozish | 5min 
 - https://serpapi.com → key olish
-- `apps/api/.env`, `apps/worker/.env`, `.env` → `SERPAPI_API_KEY=xxx`
+- `apps/api/.env`, `apps/worker/.env`, `.env` → `SERPAPI_API_KEY=xxx` ✅ DONE
 
 ### E-006 | `ALIEXPRESS_APP_KEY` + `SECRET` olish | 5min
 - AliExpress Developer Portal → key olish
-- `apps/api/.env`, `apps/worker/.env`, `.env` → yozish
+- `apps/api/.env`, `apps/worker/.env`, `.env` → yozish ❌ Regionni deb ro'yxatdan o'tib bo'lmadi
 
 ### E-007 | `NODE_ENV=development` qo'shish | 2min
-- `apps/api/.env`, `apps/worker/.env`
+- `apps/api/.env`, `apps/worker/.env` ✅ DONE
 
 ### E-008 | `REDIS_URL` parol bilan | 2min
 ### E-009 | `SENTRY_DSN` olish (optional) | 2min
@@ -74,35 +74,18 @@
 
 ---
 
-# P1 — MUHIM
+# P1 — ✅ BAJARILDI (8/8) → docs/Done.md ga ko'chirildi
 
-### T-066 | 3x fetchProductDetail → 1 ta DRY | 45min
-`uzum-scraper.ts` dan bitta canonical funksiya export qilish.
-`import.processor.ts:18-25`, `reanalysis.processor.ts:32-43` import qiladi.
-**Bu task T-064 ni ham hal qiladi (title fallback).**
-
-### T-069 | sourcing AI ga platform UUID emas, nomi | 20min
-`apps/worker/src/processors/sourcing.processor.ts:446`
-
-### T-071 | Shopee valyuta xatosi | 20min
-`apps/worker/src/processors/sourcing.processor.ts:263,427`
-
-### T-072 | discovery product upsert try/catch | 20min
-`apps/worker/src/processors/discovery.processor.ts:120-149`
-
-### T-074 | console.log → logger (40+ joy) | 45min
-`apps/worker/` barcha fayllar
-
-### T-075 | reanalysis tranzaksiyasiz | 20min
-`apps/worker/src/processors/reanalysis.processor.ts:77-132` → `$transaction()`
-
-### T-196 | AI prompt yaxshilash — amaliy maslahat | 45min
-`apps/api/src/ai/ai.service.ts:225-248` — yangi prompt yozish
-Sardor frontend da toggle qo'shadi (T-196b). Bu AVVAL bajarilsin.
-
-### T-199a | forecastEnsemble trend formula fix (BACKEND) | 10min
-`packages/utils/src/index.ts:342` — prediction-based changePct ishlatish
-Sardor frontend textni yangilaydi (T-199b).
+| Task | Fix |
+|------|-----|
+| T-066 | `fetchUzumProductRaw()` DRY — 3 nusxa → 1 shared funksiya |
+| T-069 | platformIdToCode Map — UUID → human-readable code |
+| T-071 | Shopee: USD→SGD, smart price divisor |
+| T-072 | discovery upsert try/catch — fail-safe loop |
+| T-074 | 21 joyda console.log → logJobInfo |
+| T-075 | reanalysis $transaction() atomic |
+| T-196 | AI prompt: 3 amaliy maslahat, o'zbek tili |
+| T-199a | forecastEnsemble: slope → changePct (5%) |
 
 ---
 
@@ -176,7 +159,7 @@ Sardor frontend textni yangilaydi (T-199b).
 | .env (manual) | 8 |
 | Railway (manual) | 10 |
 | P0 KRITIK | ✅ 0 (HAMMASI BAJARILDI) |
-| P1 MUHIM | 8 |
+| P1 MUHIM | ✅ 0 (HAMMASI BAJARILDI) |
 | P2 O'RTA | 17 |
 | P3 PAST | 30 |
 | **JAMI ochiq** | **73** |

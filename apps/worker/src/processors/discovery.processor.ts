@@ -121,32 +121,37 @@ async function processDiscovery(data: CategoryDiscoveryJobData, jobId: string, j
     const { product, score } = top20[i];
     const productId = BigInt(product.id);
 
-    await prisma.product.upsert({
-      where: { id: productId },
-      update: {
-        title: product.title,
-        rating: product.rating,
-        orders_quantity: BigInt(product.ordersAmount),
-      },
-      create: {
-        id: productId,
-        title: product.title,
-        rating: product.rating,
-        orders_quantity: BigInt(product.ordersAmount),
-      },
-    });
+    try {
+      await prisma.product.upsert({
+        where: { id: productId },
+        update: {
+          title: product.title,
+          rating: product.rating,
+          orders_quantity: BigInt(product.ordersAmount),
+        },
+        create: {
+          id: productId,
+          title: product.title,
+          rating: product.rating,
+          orders_quantity: BigInt(product.ordersAmount),
+        },
+      });
 
-    await prisma.categoryWinner.create({
-      data: {
-        run_id: runId,
-        product_id: productId,
-        score,
-        rank: i + 1,
-        weekly_bought: null, // Delta hisob faqat snapshot tarix bilan mumkin
-        orders_quantity: BigInt(product.ordersAmount),
-        sell_price: product.sellPrice,
-      },
-    });
+      await prisma.categoryWinner.create({
+        data: {
+          run_id: runId,
+          product_id: productId,
+          score,
+          rank: i + 1,
+          weekly_bought: null, // Delta hisob faqat snapshot tarix bilan mumkin
+          orders_quantity: BigInt(product.ordersAmount),
+          sell_price: product.sellPrice,
+        },
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logJobInfo('discovery-queue', runId, 'processDiscovery', `Skip product ${product.id}: ${msg}`);
+    }
   }
 
   await prisma.categoryRun.update({

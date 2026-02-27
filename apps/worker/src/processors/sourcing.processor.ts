@@ -105,7 +105,7 @@ async function aiScoreResults(
       }
     }
   } catch (err) {
-    console.error('[Sourcing] AI scoring failed:', err);
+    logJobInfo('sourcing-search', '-', 'aiScoreResults', `AI scoring failed: ${err}`);
   }
   return map;
 }
@@ -140,7 +140,7 @@ async function serpApiSearch(
       };
     }).filter((p: any) => p.title && p.price_usd > 0);
   } catch (err) {
-    console.error(`[SerpAPI:${engine}]`, err);
+    logJobInfo('sourcing-search', '-', 'searchSerpApi', `SerpAPI:${engine} failed: ${err}`);
     return [];
   }
 }
@@ -259,8 +259,9 @@ async function scrapeShopee(
         const itemid = item.itemid ?? basic.itemid ?? 0;
         const name = basic.name ?? basic.title ?? '';
         const rawPrice = basic.price ?? basic.price_min ?? 0;
-        const currency = basic.currency ?? 'USD';
-        const priceNum = rawPrice / 100000;
+        const currency = basic.currency ?? 'SGD';
+        // Shopee API returns prices in micro-units (price / 100000)
+        const priceNum = rawPrice > 1000 ? rawPrice / 100000 : rawPrice;
         const priceStr = priceNum > 0 ? `${currency} ${priceNum.toFixed(2)}` : '';
         const imageHash = basic.image ?? '';
         const imageUrl = imageHash ? `https://cf.shopee.com/file/${imageHash}_tn` : '';
@@ -326,7 +327,7 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
     const queries = await aiGenerateQuery(ai, productTitle);
     cnQuery = queries.cn_query;
     enQuery = queries.en_query;
-    console.log(`[Sourcing] AI queries: cn="${cnQuery}" en="${enQuery}"`);
+    logJobInfo('sourcing-search', jobId ?? '-', 'processSearch', `AI queries: cn="${cnQuery}" en="${enQuery}"`);
   }
 
   // Step 2: Load platform IDs
@@ -378,7 +379,7 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
     for (let i = 0; i < allResults.length; i++) {
       const result = allResults[i];
       if (result.status === 'rejected') {
-        console.error(`[Sourcing] Search ${i} failed:`, String(result.reason));
+        logJobInfo('sourcing-search', jobId ?? '-', 'processSearch', `Search ${i} failed: ${String(result.reason)}`);
         continue;
       }
       if (i < apiSearches.length) {
@@ -388,7 +389,7 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
       }
     }
 
-    console.log(`[Sourcing] SerpAPI: ${serpResults.length}, Playwright: ${playwrightProducts.length}`);
+    logJobInfo('sourcing-search', jobId ?? '-', 'processSearch', `SerpAPI: ${serpResults.length}, Playwright: ${playwrightProducts.length}`);
 
     // Step 4: Save results to DB (if full mode)
     if (jobId) {
@@ -439,11 +440,13 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
           orderBy: { created_at: 'asc' },
         });
 
+        // Reverse map: platform_id → code (human-readable for AI)
+        const platformIdToCode = new Map(platforms.map((p) => [p.id, p.code]));
         const forScoring = allDbResults.map((r, i) => ({
           idx: i,
           title: r.title,
           price: `$${Number(r.price_usd).toFixed(2)}`,
-          platform: r.platform_id,
+          platform: platformIdToCode.get(r.platform_id) ?? 'unknown',
         }));
 
         const scores = await aiScoreResults(ai, productTitle, forScoring);
@@ -463,7 +466,7 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
           }
         }
 
-        console.log(`[Sourcing] AI scored ${scores.size}/${allDbResults.length} results`);
+        logJobInfo('sourcing-search', jobId ?? '-', 'processSearch', `AI scored ${scores.size}/${allDbResults.length} results`);
       }
 
       // Step 6: Calculate cargo for top results (match_score >= 0.5)
@@ -543,7 +546,7 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
               },
             });
           }
-          console.log(`[Sourcing] Cargo calculated for ${topResults.length} results`);
+          logJobInfo('sourcing-search', jobId ?? '-', 'processSearch', `Cargo calculated for ${topResults.length} results`);
         }
       }
 

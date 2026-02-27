@@ -206,7 +206,7 @@ function getClient(): Anthropic {
 
 ## P1 — MUHIM (Worker + Bugs.md)
 
-### T-066 | BACKEND | 3 ta fetchProductDetail nusxasi — DRY buzilgan |45min
+### T-066 | ✅ DONE | BACKEND | 3 ta fetchProductDetail nusxasi — DRY buzilgan |45min
 **Bug:** L-25
 **Fayllar:** `uzum-scraper.ts:163-201` (canonical), `import.processor.ts:18-25` (raw), `reanalysis.processor.ts:32-43` (raw)
 **Muammo:** `import.processor.ts` va `reanalysis.processor.ts` raw API data qaytaradi → H-12, H-13, H-14, H-15 buglar shu sababdan kelib chiqadi. Canonical version `uzum-scraper.ts` da to'g'ri type mapping bor.
@@ -224,7 +224,7 @@ function getClient(): Anthropic {
 **Muammo:** `detail.seller || detail.shop` — Uzum API `shop` qaytaradi, `seller` undefined. Hozir fallback orqali ishlaydi, lekin semantik noto'g'ri.
 **Fix:** `detail.shop || detail.seller`
 
-### T-069 | BACKEND | sourcing.processor AI ga platform UUID yuboradi |20min
+### T-069 | ✅ DONE | BACKEND | sourcing.processor AI ga platform UUID yuboradi |20min
 **Bug:** M-32
 **Fayl:** `apps/worker/src/processors/sourcing.processor.ts:446`
 **Muammo:** `r.platform_id` UUID → AI `[a1b2c3d4-...]` ko'radi, `[AliExpress]` o'rniga. AI scoring sifati pasayadi.
@@ -236,13 +236,13 @@ function getClient(): Anthropic {
 **Muammo:** `'1688'`, `'taobao'`, `'alibaba'` — SerpAPI da bunday engine yo'q. Valid engine: `google`, `google_shopping`, `bing`, `baidu`. Barcha 3 qidiruv doim fail bo'ladi.
 **Fix:** Valid SerpAPI engine ishlatish yoki Playwright scraper ga o'tish.
 
-### T-071 | BACKEND | sourcing.processor Shopee valyuta + narx xatosi |20min
+### T-071 | ✅ DONE | BACKEND | sourcing.processor Shopee valyuta + narx xatosi |20min
 **Bug:** M-34 + NEW-05
 **Fayl:** `apps/worker/src/processors/sourcing.processor.ts:263,427`
 **Muammo:** 1) Shopee narxi `/100000` — faqat Indoneziya uchun to'g'ri, boshqa regionlar `/100`. 2) DB ga yozganda valyuta doim `'USD'` hardcode. Cargo hisoblash noto'g'ri.
 **Fix:** Shopee API dan `currency` va region-specific divisor olish.
 
-### T-072 | BACKEND | discovery.processor individual product upsert xatosini tutmaydi |20min
+### T-072 | ✅ DONE | BACKEND | discovery.processor individual product upsert xatosini tutmaydi |20min
 **Bug:** M-35
 **Fayl:** `apps/worker/src/processors/discovery.processor.ts:120-149`
 **Muammo:** for loop ichida try/catch yo'q. Bitta product fail → butun job FAILED. Qolgan productlar process bo'lmaydi.
@@ -254,13 +254,13 @@ function getClient(): Anthropic {
 **Muammo:** Balance tranzaksiyadan TASHQARIDA o'qiladi. Parallel chaqiruvlarda `balance_before/balance_after` noto'g'ri. API server ham bir vaqtda balance o'zgartirishi mumkin.
 **Fix:** Tranzaksiya ichida balansni o'qish: `SELECT ... FOR UPDATE` yoki raw SQL `RETURNING`.
 
-### T-074 | BACKEND | Worker 40+ joyda console.log ishlatadi |45min
+### T-074 | ✅ DONE | BACKEND | Worker 40+ joyda console.log ishlatadi |45min
 **Bug:** L-26 + NEW-12
 **Fayllar:** `main.ts` (16), `uzum-scraper.ts` (5), `uzum-ai-scraper.ts` (9), `sourcing.processor.ts` (7), `billing.job.ts` (1), `competitor-snapshot.job.ts` (1), `reanalysis.job.ts` (1)
 **Muammo:** Worker da structured logger (`logger.ts`) bor, lekin ko'p modul raw `console.log` ishlatadi. Log aggregation toollar uchun yaroqsiz.
 **Fix:** Barcha `console.log/error/warn` ni `logger.info/error/warn` ga almashtirish.
 
-### T-075 | BACKEND | reanalysis.processor multi-step update tranzaksiyasiz |20min
+### T-075 | ✅ DONE | BACKEND | reanalysis.processor multi-step update tranzaksiyasiz |20min
 **Bug:** NEW-03
 **Fayl:** `apps/worker/src/processors/reanalysis.processor.ts:77-132`
 **Muammo:** Product update + snapshot create bir tranzaksiyada emas. Orasida xato bo'lsa product yangilangan lekin snapshot yo'q — inconsistent state.
@@ -863,7 +863,7 @@ function formatChartDate(isoDate: string): string {
 
 ## P1 — MUHIM (UX yaxshilash)
 
-### T-196 | BACKEND | AI tahlili generic — raqib/o'z tovar farqi yo'q, amaliy maslahat yo'q |45min
+### T-196 | ✅ DONE | BACKEND | AI tahlili generic — raqib/o'z tovar farqi yo'q, amaliy maslahat yo'q |45min
 **Screenshot:** hato/100251.png
 **Muammo:** AI faqat "bu mahsulot hot" deydi:
 - "Yuqori sotuvlar hajmi (45,029 buyurtma) bozorda katta talab mavjudligini ko'rsatadi" — bu tahlil emas, faktni takrorlash

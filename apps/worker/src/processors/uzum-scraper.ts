@@ -17,6 +17,7 @@
 
 import { chromium } from 'playwright';
 import { ProxyAgent } from 'undici';
+import { logJobInfo } from '../logger';
 
 const REST_BASE = 'https://api.uzum.uz/api/v2';
 
@@ -55,7 +56,7 @@ export async function scrapeCategoryProductIds(
   categoryUrl: string,
   scrollCount = 15,
 ): Promise<{ ids: number[]; screenshotBase64?: string }> {
-  console.log(`[scraper] Opening ${categoryUrl}`);
+  logJobInfo('discovery-queue', '-', 'scraper', `Opening ${categoryUrl}`);
 
   const browser = await chromium.launch({
     headless: true,
@@ -111,9 +112,7 @@ export async function scrapeCategoryProductIds(
         if (id) ids.add(id);
       }
 
-      console.log(
-        `[scraper] Scroll ${i + 1}/${scrollCount}: ${ids.size} unique IDs so far`,
-      );
+      logJobInfo('discovery-queue', '-', 'scraper', `Scroll ${i + 1}/${scrollCount}: ${ids.size} unique IDs`);
 
       if (i < scrollCount - 1) {
         // Scroll to bottom to trigger lazy loading of next batch
@@ -123,7 +122,7 @@ export async function scrapeCategoryProductIds(
       }
     }
 
-    console.log(`[scraper] Total product IDs collected: ${ids.size}`);
+    logJobInfo('discovery-queue', '-', 'scraper', `Total product IDs collected: ${ids.size}`);
 
     // If 0 products found, capture a screenshot for vision fallback
     let screenshotBase64: string | undefined;
@@ -131,15 +130,60 @@ export async function scrapeCategoryProductIds(
       try {
         const buffer = await page.screenshot({ fullPage: false });
         screenshotBase64 = buffer.toString('base64');
-        console.log('[scraper] Captured screenshot for vision fallback');
+        logJobInfo('discovery-queue', '-', 'scraper', 'Captured screenshot for vision fallback');
       } catch {
-        console.warn('[scraper] Failed to capture screenshot');
+        logJobInfo('discovery-queue', '-', 'scraper', 'Failed to capture screenshot');
       }
     }
 
     return { ids: [...ids], screenshotBase64 };
   } finally {
     await browser.close();
+  }
+}
+
+/** Raw Uzum product data — superset of fields needed by all processors. */
+export interface UzumRawProduct {
+  id: number;
+  title: string;
+  localizableTitle?: { ru?: string; uz?: string };
+  rating: number;
+  ordersAmount: number;
+  rOrdersAmount?: number;
+  totalAvailableAmount: number;
+  reviewsAmount: number;
+  category?: { id: number; title?: string };
+  seller?: { id: number; title?: string; name?: string; rating?: number; orders?: number; ordersCount?: number };
+  shop?: { id: number; title?: string; name?: string; rating?: number; orders?: number; ordersCount?: number };
+  skuList: Array<{
+    id: number;
+    purchasePrice: number;
+    fullPrice: number;
+    availableAmount: number;
+    stock: { type: string };
+  }>;
+}
+
+/**
+ * Fetch raw product data from the Uzum REST API.
+ * Returns the unprocessed payload.data object — use this in all processors
+ * to avoid code duplication (T-066).
+ */
+export async function fetchUzumProductRaw(
+  productId: number,
+): Promise<UzumRawProduct | null> {
+  try {
+    const res = await fetch(`${REST_BASE}/product/${productId}`, {
+      headers: HEADERS,
+      dispatcher: proxyDispatcher,
+    } as any);
+    if (!res.ok) return null;
+
+    const data = (await res.json()) as any;
+    const p = data?.payload?.data ?? data?.payload;
+    return p ?? null;
+  } catch {
+    return null;
   }
 }
 
@@ -157,45 +201,33 @@ export interface ProductDetail {
 }
 
 /**
- * Fetch full product details from the working REST endpoint.
- * Returns null if the product is unavailable.
+ * Fetch structured product details (used by discovery processor).
+ * Internally uses fetchUzumProductRaw().
  */
 export async function fetchProductDetail(
   productId: number,
 ): Promise<ProductDetail | null> {
-  try {
-    const res = await fetch(`${REST_BASE}/product/${productId}`, {
-      headers: HEADERS,
-      dispatcher: proxyDispatcher,
-    } as any);
-    if (!res.ok) return null;
+  const p = await fetchUzumProductRaw(productId);
+  if (!p) return null;
 
-    const data = (await res.json()) as any;
-    // API wraps response in payload.data (newer format) or payload (older)
-    const p = data?.payload?.data ?? data?.payload;
-    if (!p) return null;
+  const skuList = p.skuList ?? [];
+  const firstSku = skuList[0];
 
-    const skuList: any[] = p.skuList ?? [];
-    const firstSku = skuList[0];
+  const stockType: 'FBO' | 'FBS' =
+    firstSku?.stock?.type === 'FBO' ? 'FBO' : 'FBS';
+  const sellPrice = firstSku?.purchasePrice
+    ? BigInt(firstSku.purchasePrice)
+    : null;
 
-    const stockType: 'FBO' | 'FBS' =
-      firstSku?.stock?.type === 'FBO' ? 'FBO' : 'FBS';
-    const sellPrice = firstSku?.purchasePrice
-      ? BigInt(firstSku.purchasePrice)
-      : null;
-
-    return {
-      id: productId,
-      title: p.localizableTitle?.ru ?? p.title ?? '',
-      rating: p.rating ?? 0,
-      ordersAmount: p.ordersAmount ?? 0,
-      rOrdersAmount: p.rOrdersAmount ?? null,
-      totalAvailableAmount: p.totalAvailableAmount ?? 0,
-      feedbackQuantity: p.reviewsAmount ?? p.feedbackQuantity ?? 0,
-      sellPrice,
-      stockType,
-    };
-  } catch {
-    return null;
-  }
+  return {
+    id: productId,
+    title: p.localizableTitle?.ru ?? p.title ?? '',
+    rating: p.rating ?? 0,
+    ordersAmount: p.ordersAmount ?? 0,
+    rOrdersAmount: p.rOrdersAmount ?? null,
+    totalAvailableAmount: p.totalAvailableAmount ?? 0,
+    feedbackQuantity: p.reviewsAmount ?? 0,
+    sellPrice,
+    stockType,
+  };
 }

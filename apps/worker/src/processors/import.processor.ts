@@ -3,25 +3,11 @@ import { redisConnection } from '../redis';
 import { prisma } from '../prisma';
 import { parseUzumProductId, calculateScore, getSupplyPressure, calcWeeklyBought, sleep } from '@uzum/utils';
 import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
+import { fetchUzumProductRaw } from './uzum-scraper';
 
 interface ImportBatchJobData {
   accountId: string;
   urls: string[];
-}
-
-const UZUM_API = 'https://api.uzum.uz/api/v2';
-const HEADERS = {
-  'Accept-Language': 'ru-RU',
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-};
-
-async function fetchProductDetail(productId: number) {
-  const resp = await fetch(`${UZUM_API}/product/${productId}`, {
-    headers: HEADERS,
-  });
-  if (!resp.ok) return null;
-  const json = (await resp.json()) as any;
-  return json?.payload?.data ?? null;
 }
 
 async function processUrl(url: string, accountId: string, jobId: string, jobName: string) {
@@ -32,7 +18,7 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
   }
 
   try {
-    const detail = await fetchProductDetail(productId);
+    const detail = await fetchUzumProductRaw(productId);
     if (!detail) {
       logJobInfo('import-batch', jobId, jobName, `API failed for product ${productId}`);
       return null;

@@ -456,7 +456,11 @@ export function forecastEnsemble(
   const denom = n * sumX2 - sumX * sumX;
   const slope = denom !== 0 ? (n * sumXY - sumX * sumY) / denom : 0;
 
-  const trend: 'up' | 'flat' | 'down' = slope > 0.01 ? 'up' : slope < -0.01 ? 'down' : 'flat';
+  // Prediction-based trend: compare first vs last predicted value
+  const firstPred = ensemble[0] ?? 0;
+  const lastPred = ensemble[ensemble.length - 1] ?? 0;
+  const changePct = firstPred !== 0 ? (lastPred - firstPred) / Math.abs(firstPred) : 0;
+  const trend: 'up' | 'flat' | 'down' = changePct > 0.05 ? 'up' : changePct < -0.05 ? 'down' : 'flat';
 
   // Cross-validation MAE (last 3 points)
   const cvLen = Math.min(3, values.length - 2);
