@@ -135,7 +135,7 @@ export function ScannerTab() {
                         </td>
                         <td className="tabular-nums text-sm">{run.total_products?.toLocaleString() ?? '—'}</td>
                         <td>{run.winner_count > 0 ? <span className="badge badge-success badge-sm">Top {run.winner_count}</span> : <span className="text-base-content/30">—</span>}</td>
-                        <td className="text-xs text-base-content/50 whitespace-nowrap">{new Date(run.created_at).toLocaleString('uz-UZ')}</td>
+                        <td className="text-xs text-base-content/50 whitespace-nowrap">{new Date(run.created_at).toLocaleString('ru-RU')}</td>
                         <td>{run.status === 'DONE' && <button onClick={() => openRun(run)} className="btn btn-xs btn-primary">Ko'rish</button>}</td>
                       </tr>
                     ))}
@@ -156,7 +156,7 @@ export function ScannerTab() {
               <div>
                 <p className="text-xs text-base-content/40">Kategoriya #{selectedRun.category_id}</p>
                 <h2 className="font-bold">Top {selectedRun.winners.length} mahsulot</h2>
-                {selectedRun.finished_at && <p className="text-xs text-base-content/40 mt-0.5">{new Date(selectedRun.finished_at).toLocaleString('uz-UZ')}</p>}
+                {selectedRun.finished_at && <p className="text-xs text-base-content/40 mt-0.5">{new Date(selectedRun.finished_at).toLocaleString('ru-RU')}</p>}
               </div>
               <button onClick={() => setSelectedRun(null)} className="btn btn-ghost btn-sm btn-square">✕</button>
             </div>

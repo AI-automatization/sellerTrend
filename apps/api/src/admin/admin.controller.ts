@@ -17,7 +17,11 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { AdminService } from './admin.service';
+import { AdminAccountService } from './admin-account.service';
+import { AdminUserService } from './admin-user.service';
+import { AdminStatsService } from './admin-stats.service';
+import { AdminFeedbackService } from './admin-feedback.service';
+import { AdminLogService } from './admin-log.service';
 
 @ApiTags('admin')
 @ApiBearerAuth()
@@ -25,22 +29,28 @@ import { AdminService } from './admin.service';
 @Roles('SUPER_ADMIN')
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly accountService: AdminAccountService,
+    private readonly userService: AdminUserService,
+    private readonly statsService: AdminStatsService,
+    private readonly feedbackService: AdminFeedbackService,
+    private readonly logService: AdminLogService,
+  ) {}
 
   // ============================================================
-  // EXISTING ENDPOINTS (unchanged)
+  // ACCOUNT ENDPOINTS
   // ============================================================
 
   /** List all accounts */
   @Get('accounts')
   listAccounts() {
-    return this.adminService.listAccounts();
+    return this.accountService.listAccounts();
   }
 
   /** Single account with transaction history */
   @Get('accounts/:id')
   getAccount(@Param('id') id: string) {
-    return this.adminService.getAccount(id);
+    return this.accountService.getAccount(id);
   }
 
   /** Update per-account daily_fee (null = use global default) */
@@ -50,7 +60,7 @@ export class AdminController {
     @Body() body: { fee: number | null },
     @CurrentUser('id') adminUserId: string,
   ) {
-    return this.adminService.setAccountDailyFee(id, body.fee, adminUserId);
+    return this.accountService.setAccountDailyFee(id, body.fee, adminUserId);
   }
 
   /** Deposit balance to an account */
@@ -60,7 +70,7 @@ export class AdminController {
     @Body() body: { amount: number; description?: string },
     @CurrentUser('id') adminUserId: string,
   ) {
-    return this.adminService.depositToAccount(
+    return this.accountService.depositToAccount(
       id,
       body.amount,
       adminUserId,
@@ -71,7 +81,7 @@ export class AdminController {
   /** Get global daily fee */
   @Get('global-fee')
   getGlobalFee() {
-    return this.adminService.getGlobalFee();
+    return this.accountService.getGlobalFee();
   }
 
   /** Update global daily fee */
@@ -80,19 +90,7 @@ export class AdminController {
     @Body() body: { fee: number },
     @CurrentUser('id') adminUserId: string,
   ) {
-    return this.adminService.setGlobalFee(body.fee, adminUserId);
-  }
-
-  /** Audit log */
-  @Get('audit-log')
-  auditLog(@Query('limit') limit?: string) {
-    return this.adminService.getAuditLog(limit ? parseInt(limit) : 50);
-  }
-
-  /** List all users across all accounts */
-  @Get('users')
-  listUsers() {
-    return this.adminService.listUsers();
+    return this.accountService.setGlobalFee(body.fee, adminUserId);
   }
 
   /** Create new account + first user */
@@ -101,12 +99,64 @@ export class AdminController {
     @Body() body: { company_name: string; email: string; password: string; role: string },
     @CurrentUser('id') adminUserId: string,
   ) {
-    return this.adminService.createAccount(
+    return this.accountService.createAccount(
       body.company_name,
       body.email,
       body.password,
       body.role,
       adminUserId,
+    );
+  }
+
+  /** E4 — Update Account Status */
+  @Patch('accounts/:id/status')
+  updateAccountStatus(
+    @Param('id') accountId: string,
+    @Body() body: { status: string },
+    @CurrentUser('id') adminUserId: string,
+  ) {
+    return this.accountService.updateAccountStatus(accountId, body.status, adminUserId);
+  }
+
+  /** Update account phone number */
+  @Patch('accounts/:id/phone')
+  updateAccountPhone(
+    @Param('id') accountId: string,
+    @Body() body: { phone: string | null },
+    @CurrentUser('id') adminUserId: string,
+  ) {
+    return this.accountService.updateAccountPhone(accountId, body.phone, adminUserId);
+  }
+
+  /** E2 — Bulk Account Action */
+  @Post('accounts/bulk')
+  bulkAction(
+    @Body() body: {
+      account_ids: string[];
+      action: 'DEPOSIT' | 'SUSPEND' | 'ACTIVATE' | 'SET_FEE';
+      amount?: number;
+      fee?: number;
+    },
+    @CurrentUser('id') adminUserId: string,
+  ) {
+    return this.accountService.bulkAccountAction(
+      body.account_ids,
+      body.action,
+      { amount: body.amount, fee: body.fee, adminUserId },
+    );
+  }
+
+  /** B4 — Account Transactions (paginated) */
+  @Get('accounts/:id/transactions')
+  getAccountTransactions(
+    @Param('id') accountId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.userService.getAccountTransactions(
+      accountId,
+      page ? parseInt(page) : 1,
+      limit ? parseInt(limit) : 20,
     );
   }
 
@@ -117,13 +167,45 @@ export class AdminController {
     @Body() body: { email: string; password: string; role: string },
     @CurrentUser('id') adminUserId: string,
   ) {
-    return this.adminService.createUser(
+    return this.userService.createUser(
       accountId,
       body.email,
       body.password,
       body.role,
       adminUserId,
     );
+  }
+
+  // ============================================================
+  // DEPOSIT LOG ENDPOINTS
+  // ============================================================
+
+  /** Deposit Log — paginated list */
+  @Get('deposit-log')
+  getDepositLog(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.accountService.getDepositLog(
+      page ? parseInt(page) : 1,
+      limit ? parseInt(limit) : 20,
+    );
+  }
+
+  /** Delete deposit log entry */
+  @Delete('deposit-log/:id')
+  deleteDepositLog(@Param('id') id: string) {
+    return this.accountService.deleteDepositLog(id);
+  }
+
+  // ============================================================
+  // USER ENDPOINTS
+  // ============================================================
+
+  /** List all users across all accounts */
+  @Get('users')
+  listUsers() {
+    return this.userService.listUsers();
   }
 
   /** Change user password (admin action) */
@@ -133,7 +215,7 @@ export class AdminController {
     @Body() body: { password: string },
     @CurrentUser('id') adminUserId: string,
   ) {
-    return this.adminService.changeUserPassword(userId, body.password, adminUserId);
+    return this.userService.changeUserPassword(userId, body.password, adminUserId);
   }
 
   /** Change user role */
@@ -143,7 +225,7 @@ export class AdminController {
     @Body() body: { role: string },
     @CurrentUser('id') adminUserId: string,
   ) {
-    return this.adminService.updateUserRole(userId, body.role, adminUserId);
+    return this.userService.updateUserRole(userId, body.role, adminUserId);
   }
 
   /** Toggle user active/inactive */
@@ -152,74 +234,13 @@ export class AdminController {
     @Param('id') userId: string,
     @CurrentUser('id') adminUserId: string,
   ) {
-    return this.adminService.toggleUserActive(userId, adminUserId);
+    return this.userService.toggleUserActive(userId, adminUserId);
   }
 
-  // ============================================================
-  // STATS ENDPOINTS
-  // ============================================================
-
-  /** A1 — Stats Overview */
-  @Get('stats/overview')
-  getStatsOverview() {
-    return this.adminService.getStatsOverview();
-  }
-
-  /** A2 — Revenue Stats */
-  @Get('stats/revenue')
-  getStatsRevenue(@Query('period') period?: string) {
-    return this.adminService.getStatsRevenue(period ? parseInt(period) : 30);
-  }
-
-  /** A3 — Growth Stats */
-  @Get('stats/growth')
-  getStatsGrowth(@Query('period') period?: string) {
-    return this.adminService.getStatsGrowth(period ? parseInt(period) : 30);
-  }
-
-  /** A4 — Popular Products */
-  @Get('stats/popular-products')
-  getPopularProducts(@Query('limit') limit?: string) {
-    return this.adminService.getPopularProducts(limit ? parseInt(limit) : 10);
-  }
-
-  /** A5 — Popular Categories */
-  @Get('stats/popular-categories')
-  getPopularCategories(@Query('limit') limit?: string) {
-    return this.adminService.getPopularCategories(limit ? parseInt(limit) : 10);
-  }
-
-  /** C1 — Realtime Stats */
-  @Get('stats/realtime')
-  getRealtimeStats() {
-    return this.adminService.getRealtimeStats();
-  }
-
-  /** C2 — Product Heatmap */
-  @Get('stats/product-heatmap')
-  getProductHeatmap(@Query('period') period?: string) {
-    return this.adminService.getProductHeatmap(period ?? 'month');
-  }
-
-  /** C3 — Category Trends */
-  @Get('stats/category-trends')
-  getCategoryTrends(@Query('weeks') weeks?: string) {
-    return this.adminService.getCategoryTrends(weeks ? parseInt(weeks) : 4);
-  }
-
-  /** D5 — Top Users */
-  @Get('stats/top-users')
-  getTopUsers(
-    @Query('period') period?: string,
-    @Query('limit') limit?: string,
-  ) {
-    return this.adminService.getTopUsers(period ?? 'month', limit ? parseInt(limit) : 10);
-  }
-
-  /** C4 — System Health */
-  @Get('stats/health')
-  getSystemHealth() {
-    return this.adminService.getSystemHealth();
+  /** E1 — Impersonate User */
+  @Post('users/:id/impersonate')
+  impersonateUser(@Param('id') userId: string) {
+    return this.userService.impersonateUser(userId);
   }
 
   // ============================================================
@@ -236,7 +257,7 @@ export class AdminController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.adminService.getUserActivity(
+    return this.userService.getUserActivity(
       userId,
       action,
       from ? new Date(from) : undefined,
@@ -249,7 +270,7 @@ export class AdminController {
   /** B2 — User Tracked Products */
   @Get('users/:id/tracked-products')
   getUserTrackedProducts(@Param('id') userId: string) {
-    return this.adminService.getUserTrackedProducts(userId);
+    return this.userService.getUserTrackedProducts(userId);
   }
 
   /** B3 — User Sessions */
@@ -258,118 +279,120 @@ export class AdminController {
     @Param('id') userId: string,
     @Query('limit') limit?: string,
   ) {
-    return this.adminService.getUserSessions(userId, limit ? parseInt(limit) : 20);
+    return this.userService.getUserSessions(userId, limit ? parseInt(limit) : 20);
   }
 
   /** B5 — User Usage */
   @Get('users/:id/usage')
   getUserUsage(@Param('id') userId: string) {
-    return this.adminService.getUserUsage(userId);
+    return this.userService.getUserUsage(userId);
   }
 
   /** D1 — User Portfolio Summary */
   @Get('users/:id/portfolio-summary')
   getUserPortfolioSummary(@Param('id') userId: string) {
-    return this.adminService.getUserPortfolioSummary(userId);
+    return this.userService.getUserPortfolioSummary(userId);
   }
 
   /** D2 — User Discovery Results */
   @Get('users/:id/discovery-results')
   getUserDiscoveryResults(@Param('id') userId: string) {
-    return this.adminService.getUserDiscoveryResults(userId);
+    return this.userService.getUserDiscoveryResults(userId);
   }
 
   /** D3 — User Campaigns */
   @Get('users/:id/campaigns')
   getUserCampaigns(@Param('id') userId: string) {
-    return this.adminService.getUserCampaigns(userId);
+    return this.userService.getUserCampaigns(userId);
   }
 
   /** D4 — User Competitor Stats */
   @Get('users/:id/competitor-stats')
   getUserCompetitorStats(@Param('id') userId: string) {
-    return this.adminService.getUserCompetitorStats(userId);
+    return this.userService.getUserCompetitorStats(userId);
   }
 
   // ============================================================
-  // ACCOUNT DETAIL ENDPOINTS
+  // STATS ENDPOINTS
   // ============================================================
 
-  /** B4 — Account Transactions (paginated) */
-  @Get('accounts/:id/transactions')
-  getAccountTransactions(
-    @Param('id') accountId: string,
-    @Query('page') page?: string,
+  /** A1 — Stats Overview */
+  @Get('stats/overview')
+  getStatsOverview() {
+    return this.statsService.getStatsOverview();
+  }
+
+  /** A2 — Revenue Stats */
+  @Get('stats/revenue')
+  getStatsRevenue(@Query('period') period?: string) {
+    return this.statsService.getStatsRevenue(period ? parseInt(period) : 30);
+  }
+
+  /** A3 — Growth Stats */
+  @Get('stats/growth')
+  getStatsGrowth(@Query('period') period?: string) {
+    return this.statsService.getStatsGrowth(period ? parseInt(period) : 30);
+  }
+
+  /** A4 — Popular Products */
+  @Get('stats/popular-products')
+  getPopularProducts(@Query('limit') limit?: string) {
+    return this.statsService.getPopularProducts(limit ? parseInt(limit) : 10);
+  }
+
+  /** A5 — Popular Categories */
+  @Get('stats/popular-categories')
+  getPopularCategories(@Query('limit') limit?: string) {
+    return this.statsService.getPopularCategories(limit ? parseInt(limit) : 10);
+  }
+
+  /** C1 — Realtime Stats */
+  @Get('stats/realtime')
+  getRealtimeStats() {
+    return this.statsService.getRealtimeStats();
+  }
+
+  /** C2 — Product Heatmap */
+  @Get('stats/product-heatmap')
+  getProductHeatmap(@Query('period') period?: string) {
+    return this.statsService.getProductHeatmap(period ?? 'month');
+  }
+
+  /** C3 — Category Trends */
+  @Get('stats/category-trends')
+  getCategoryTrends(@Query('weeks') weeks?: string) {
+    return this.statsService.getCategoryTrends(weeks ? parseInt(weeks) : 4);
+  }
+
+  /** D5 — Top Users */
+  @Get('stats/top-users')
+  getTopUsers(
+    @Query('period') period?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.adminService.getAccountTransactions(
-      accountId,
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
-    );
+    return this.statsService.getTopUsers(period ?? 'month', limit ? parseInt(limit) : 10);
+  }
+
+  /** C4 — System Health */
+  @Get('stats/health')
+  getSystemHealth() {
+    return this.statsService.getSystemHealth();
+  }
+
+  /** AI usage statistics (tokens, costs) */
+  @Get('stats/ai-usage')
+  getAiUsageStats(@Query('period') period?: string) {
+    return this.statsService.getAiUsageStats(period ? parseInt(period) : 30);
   }
 
   // ============================================================
-  // ADMIN ACTIONS
-  // ============================================================
-
-  /** E1 — Impersonate User */
-  @Post('users/:id/impersonate')
-  impersonateUser(@Param('id') userId: string) {
-    return this.adminService.impersonateUser(userId);
-  }
-
-  /** E2 — Bulk Account Action */
-  @Post('accounts/bulk')
-  bulkAction(
-    @Body() body: {
-      account_ids: string[];
-      action: 'DEPOSIT' | 'SUSPEND' | 'ACTIVATE' | 'SET_FEE';
-      amount?: number;
-      fee?: number;
-    },
-    @CurrentUser('id') adminUserId: string,
-  ) {
-    return this.adminService.bulkAccountAction(
-      body.account_ids,
-      body.action,
-      { amount: body.amount, fee: body.fee, adminUserId },
-    );
-  }
-
-  /** E3 — Send Notification */
-  @Post('notifications')
-  sendNotification(
-    @Body() body: { message: string; type: string; target: 'all' | string[] },
-    @CurrentUser('id') adminUserId: string,
-  ) {
-    return this.adminService.sendNotification(body.message, body.type, body.target, adminUserId);
-  }
-
-  /** E4 — Update Account Status */
-  @Patch('accounts/:id/status')
-  updateAccountStatus(
-    @Param('id') accountId: string,
-    @Body() body: { status: string },
-    @CurrentUser('id') adminUserId: string,
-  ) {
-    return this.adminService.updateAccountStatus(accountId, body.status, adminUserId);
-  }
-
-  /** E5 — Global Search */
-  @Get('search')
-  globalSearch(@Query('q') query: string) {
-    return this.adminService.globalSearch(query ?? '');
-  }
-
-  // ============================================================
-  // FEEDBACK ADMIN ENDPOINTS
+  // FEEDBACK ENDPOINTS
   // ============================================================
 
   /** F1 — Feedback Stats (must be before :id route) */
   @Get('feedback/stats')
   getFeedbackStats() {
-    return this.adminService.getFeedbackStats();
+    return this.feedbackService.getFeedbackStats();
   }
 
   /** F1 — List Feedback Tickets */
@@ -380,7 +403,7 @@ export class AdminController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.adminService.getAdminFeedback(
+    return this.feedbackService.getAdminFeedback(
       status,
       type,
       page ? parseInt(page) : 1,
@@ -391,7 +414,7 @@ export class AdminController {
   /** F1 — Feedback Detail */
   @Get('feedback/:id')
   getFeedbackDetail(@Param('id') ticketId: string) {
-    return this.adminService.getFeedbackDetail(ticketId);
+    return this.feedbackService.getFeedbackDetail(ticketId);
   }
 
   /** F1 — Update Feedback Status */
@@ -401,7 +424,7 @@ export class AdminController {
     @Body() body: { status: string },
     @CurrentUser('id') adminUserId: string,
   ) {
-    return this.adminService.updateFeedbackStatus(ticketId, body.status, adminUserId);
+    return this.feedbackService.updateFeedbackStatus(ticketId, body.status, adminUserId);
   }
 
   /** F1 — Send Feedback Message */
@@ -411,67 +434,20 @@ export class AdminController {
     @Body() body: { content: string },
     @CurrentUser('id') adminUserId: string,
   ) {
-    return this.adminService.sendFeedbackMessage(ticketId, adminUserId, body.content, true);
+    return this.feedbackService.sendFeedbackMessage(ticketId, adminUserId, body.content, true);
   }
 
   // ============================================================
-  // DEPOSIT LOG ENDPOINTS
+  // NOTIFICATION ENDPOINTS
   // ============================================================
 
-  /** Deposit Log — paginated list */
-  @Get('deposit-log')
-  getDepositLog(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
-    return this.adminService.getDepositLog(
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
-    );
-  }
-
-  /** Delete deposit log entry */
-  @Delete('deposit-log/:id')
-  deleteDepositLog(@Param('id') id: string) {
-    return this.adminService.deleteDepositLog(id);
-  }
-  // ============================================================
-  // ACCOUNT PHONE
-  // ============================================================
-
-  /** Update account phone number */
-  @Patch('accounts/:id/phone')
-  updateAccountPhone(
-    @Param('id') accountId: string,
-    @Body() body: { phone: string | null },
+  /** E3 — Send Notification */
+  @Post('notifications')
+  sendNotification(
+    @Body() body: { message: string; type: string; target: 'all' | string[] },
     @CurrentUser('id') adminUserId: string,
   ) {
-    return this.adminService.updateAccountPhone(accountId, body.phone, adminUserId);
-  }
-
-  // ============================================================
-  // NOTIFICATION TEMPLATES
-  // ============================================================
-
-  /** List all notification templates */
-  @Get('notification-templates')
-  listNotificationTemplates() {
-    return this.adminService.listNotificationTemplates();
-  }
-
-  /** Create notification template */
-  @Post('notification-templates')
-  createNotificationTemplate(
-    @Body() body: { name: string; message: string; type: string },
-    @CurrentUser('id') adminUserId: string,
-  ) {
-    return this.adminService.createNotificationTemplate(body.name, body.message, body.type, adminUserId);
-  }
-
-  /** Delete notification template */
-  @Delete('notification-templates/:id')
-  deleteNotificationTemplate(@Param('id') id: string) {
-    return this.adminService.deleteNotificationTemplate(id);
+    return this.feedbackService.sendNotification(body.message, body.type, body.target, adminUserId);
   }
 
   /** Send notification (advanced — template or custom, targeted or broadcast) */
@@ -480,7 +456,7 @@ export class AdminController {
     @Body() body: { message: string; type: string; target: 'all' | string[] },
     @CurrentUser('id') adminUserId: string,
   ) {
-    return this.adminService.sendNotificationAdvanced({
+    return this.feedbackService.sendNotificationAdvanced({
       message: body.message,
       type: body.type,
       target: body.target,
@@ -488,19 +464,42 @@ export class AdminController {
     });
   }
 
-  // ============================================================
-  // AI USAGE STATS
-  // ============================================================
+  /** List all notification templates */
+  @Get('notification-templates')
+  listNotificationTemplates() {
+    return this.feedbackService.listNotificationTemplates();
+  }
 
-  /** AI usage statistics (tokens, costs) */
-  @Get('stats/ai-usage')
-  getAiUsageStats(@Query('period') period?: string) {
-    return this.adminService.getAiUsageStats(period ? parseInt(period) : 30);
+  /** Create notification template */
+  @Post('notification-templates')
+  createNotificationTemplate(
+    @Body() body: { name: string; message: string; type: string },
+    @CurrentUser('id') adminUserId: string,
+  ) {
+    return this.feedbackService.createNotificationTemplate(body.name, body.message, body.type, adminUserId);
+  }
+
+  /** Delete notification template */
+  @Delete('notification-templates/:id')
+  deleteNotificationTemplate(@Param('id') id: string) {
+    return this.feedbackService.deleteNotificationTemplate(id);
   }
 
   // ============================================================
-  // SYSTEM ERRORS
+  // AUDIT & LOG ENDPOINTS
   // ============================================================
+
+  /** Audit log */
+  @Get('audit-log')
+  auditLog(@Query('limit') limit?: string) {
+    return this.logService.getAuditLog(limit ? parseInt(limit) : 50);
+  }
+
+  /** E5 — Global Search */
+  @Get('search')
+  globalSearch(@Query('q') query: string) {
+    return this.logService.globalSearch(query ?? '');
+  }
 
   /** System errors list with filters */
   @Get('system-errors')
@@ -512,7 +511,7 @@ export class AdminController {
     @Query('account_id') accountId?: string,
     @Query('period') period?: string,
   ) {
-    return this.adminService.getSystemErrors({
+    return this.statsService.getSystemErrors({
       page: page ? parseInt(page) : 1,
       limit: limit ? parseInt(limit) : 50,
       endpoint,
@@ -539,7 +538,7 @@ export class AdminController {
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
   ) {
-    return this.adminService.getLogs({
+    return this.logService.getLogs({
       date,
       status: status ? parseInt(status) : undefined,
       status_gte: statusGte ? parseInt(statusGte) : undefined,
@@ -558,7 +557,7 @@ export class AdminController {
     @Query('date') date?: string,
     @Query('top') top?: string,
   ) {
-    return this.adminService.getLogsPerformance(
+    return this.logService.getLogsPerformance(
       date,
       top ? parseInt(top) : 20,
     );
@@ -571,7 +570,7 @@ export class AdminController {
   /** Export — Users CSV */
   @Get('export/users')
   async exportUsers(@Res() res: Response) {
-    const data = await this.adminService.getExportUsersData();
+    const data = await this.logService.getExportUsersData();
 
     const headers = ['id', 'email', 'role', 'is_active', 'account_id', 'account_name', 'account_status', 'account_balance', 'created_at'];
     const csvRows = [headers.join(',')];
@@ -601,7 +600,7 @@ export class AdminController {
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    const data = await this.adminService.getExportRevenueData(
+    const data = await this.logService.getExportRevenueData(
       from ? new Date(from) : undefined,
       to ? new Date(to) : undefined,
     );
@@ -633,7 +632,7 @@ export class AdminController {
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    const data = await this.adminService.getExportActivityData(
+    const data = await this.logService.getExportActivityData(
       from ? new Date(from) : undefined,
       to ? new Date(to) : undefined,
     );

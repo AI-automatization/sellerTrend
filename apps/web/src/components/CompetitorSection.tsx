@@ -23,11 +23,13 @@ export function CompetitorSection({ productId, productPrice }: Props) {
   const [history, setHistory] = useState<CompetitorPricePoint[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
+    setLoadError(false);
     competitorApi.getTracked(productId)
       .then((r) => setTracked(Array.isArray(r.data) ? r.data : []))
-      .catch(logError)
+      .catch((e) => { logError(e); setLoadError(true); })
       .finally(() => setLoading(false));
   }, [productId]);
 
@@ -177,7 +179,7 @@ export function CompetitorSection({ productId, productPrice }: Props) {
                 <ResponsiveContainer width="100%" height={180}>
                   <LineChart
                     data={history.map((h) => ({
-                      date: new Date(h.snapshot_at).toLocaleDateString('uz-UZ', { month: 'short', day: 'numeric' }),
+                      date: new Date(h.snapshot_at).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
                       price: h.sell_price,
                     }))}
                     margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
@@ -197,9 +199,11 @@ export function CompetitorSection({ productId, productPrice }: Props) {
         </div>
       ) : (
         <div className="text-center py-6 text-base-content/30">
-          <p className="text-3xl mb-2">⚖️</p>
-          <p className="text-sm">Raqiblar hali kuzatilmayapti</p>
-          <p className="text-xs mt-1">"Raqiblarni topish" tugmasini bosing</p>
+          <p className="text-3xl mb-2">{loadError ? '⚠️' : '⚖️'}</p>
+          <p className="text-sm">{loadError ? 'Raqiblar yuklanmadi' : 'Raqiblar hali kuzatilmayapti'}</p>
+          <p className="text-xs mt-1">
+            {loadError ? 'Qayta urinib ko\'ring yoki keyinroq tekshiring' : '"Raqiblarni topish" tugmasini bosing'}
+          </p>
         </div>
       )}
 

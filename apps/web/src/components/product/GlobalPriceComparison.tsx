@@ -55,14 +55,20 @@ export function GlobalPriceComparison({
       </div>
 
       {loading && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-base-300/60 rounded-xl p-4 space-y-2 animate-pulse">
-              <div className="h-20 bg-base-content/5 rounded-lg" />
-              <div className="h-3 bg-base-content/10 rounded w-3/4" />
-              <div className="h-4 bg-base-content/10 rounded w-1/2" />
-            </div>
-          ))}
+        <div className="space-y-3">
+          <p className="text-xs text-base-content/50 flex items-center gap-2">
+            <span className="loading loading-spinner loading-xs" />
+            Banggood va Shopee dan narxlar qidirilmoqda...
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-base-300/60 rounded-xl p-4 space-y-2 animate-pulse">
+                <div className="h-20 bg-base-content/5 rounded-lg" />
+                <div className="h-3 bg-base-content/10 rounded w-3/4" />
+                <div className="h-4 bg-base-content/10 rounded w-1/2" />
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

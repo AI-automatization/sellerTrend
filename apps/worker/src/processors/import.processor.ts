@@ -1,7 +1,7 @@
 import { Worker, Job } from 'bullmq';
 import { redisConnection } from '../redis';
 import { prisma } from '../prisma';
-import { parseUzumProductId, calculateScore, getSupplyPressure, calcWeeklyBought, sleep } from '@uzum/utils';
+import { parseUzumProductId, calculateScore, getSupplyPressure, calcWeeklyBought, sleep, SNAPSHOT_MIN_GAP_MS } from '@uzum/utils';
 import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
 import { fetchUzumProductRaw } from './uzum-scraper';
 
@@ -92,28 +92,34 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
       select: { orders_quantity: true, snapshot_at: true },
     });
 
-    const weeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
+    // Dedup guard (T-267): skip snapshot if last one is < 5 min old
+    const lastSnap = recentSnapshots[0];
+    if (lastSnap && Date.now() - lastSnap.snapshot_at.getTime() < SNAPSHOT_MIN_GAP_MS) {
+      logJobInfo('import-batch', jobId, jobName, `Snapshot dedup: product ${productId}, skip — last snap ${Math.round((Date.now() - lastSnap.snapshot_at.getTime()) / 1000)}s ago`);
+    } else {
+      const weeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
 
-    const stockType = detail.skuList?.[0]?.stock?.type;
-    const supplyPressure = getSupplyPressure(
-      stockType === 'FBO' ? 'FBO' : 'FBS',
-    );
-    const score = calculateScore({
-      weekly_bought: weeklyBought,
-      orders_quantity: currentOrders,
-      rating: detail.rating ?? 0,
-      supply_pressure: supplyPressure,
-    });
-
-    await prisma.productSnapshot.create({
-      data: {
-        product_id: pid,
-        orders_quantity: currentOrders ? BigInt(currentOrders) : null,
+      const stockType = detail.skuList?.[0]?.stock?.type;
+      const supplyPressure = getSupplyPressure(
+        stockType === 'FBO' ? 'FBO' : 'FBS',
+      );
+      const score = calculateScore({
         weekly_bought: weeklyBought,
-        rating: detail.rating ?? null,
-        score,
-      },
-    });
+        orders_quantity: currentOrders,
+        rating: detail.rating ?? 0,
+        supply_pressure: supplyPressure,
+      });
+
+      await prisma.productSnapshot.create({
+        data: {
+          product_id: pid,
+          orders_quantity: currentOrders ? BigInt(currentOrders) : null,
+          weekly_bought: weeklyBought,
+          rating: detail.rating ?? null,
+          score,
+        },
+      });
+    }
 
     // Track product
     await prisma.trackedProduct.upsert({

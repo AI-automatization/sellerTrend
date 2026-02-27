@@ -20,7 +20,8 @@ export function scoreColor(score: number | null | undefined) {
   if (score == null) return '#4b5563';
   if (score >= 6) return '#22c55e';
   if (score >= 4) return '#f59e0b';
-  return '#6b7280';
+  if (score >= 2) return '#6b7280';
+  return '#ef4444';
 }
 
 /** Recharts glass-morphism tooltip config */

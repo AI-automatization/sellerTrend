@@ -61,7 +61,76 @@
 | T-126 | ConsultationPage timezone — `todayLocal` local date, past booking validation |
 | T-162 | 10 signal component da `any[]` → typed interfaces (types.ts: 10 interface) |
 
+### Qo'shimcha (agentlar tomonidan aniqlangan)
+- `api/types.ts` 201 qator yangi shared types (ConsultationItem, etc.)
+- `i18n/translations.ts` 2900 qator → `uz.ts`, `ru.ts`, `en.ts` ga split (T-255)
+- `isTokenValid()` — JWT exp tekshiradi, expired bo'lsa localStorage tozalaydi (T-155)
+- `useNativeNotification.ts` o'chirildi — dead code (T-191)
+- `ErrorBoundary` — `import.meta.env.DEV` check qo'shildi (T-153)
+- Signal types: CannibalizationPair, DeadStockItem, SaturationData, FlashSaleItem, EarlySignalItem, StockCliffItem, RankingEntry, ChecklistData, PriceTestItem, ReplenishmentItem
+
 **Tekshiruv:** `tsc --noEmit` 0 error, `pnpm build` muvaffaqiyatli
+
+---
+
+## FRONTEND BATCH 3 — PWA Cleanup + Misc Fixes (2026-02-27)
+
+| Task | Fix |
+|------|-----|
+| T-084 | RegisterPage auth store bypass — `setTokens`/`queryClient.clear()` qo'shildi |
+| T-085 | AnalyzePage `setTracked(true)` try ichiga ko'chirildi |
+| T-097 | WebSocket dev proxy — `/ws` proxy vite.config.ts ga qo'shildi |
+| T-117 | `scoreColor(0)` gray → red (`#ef4444`) for scores < 2 |
+| T-164 (qismi) | `uz-UZ` locale → `ru-RU` barcha 7 faylda (AnalyzePage, ProductPage, ScannerTab, ApiKeysPage, CompetitorSection, RankingTab) |
+| T-188 | SW o'chirildi + unregister script qo'shildi (index.html) |
+| T-189 | manifest.json + PWA meta taglar o'chirildi |
+| T-190 | icon-512.svg, icon-maskable.svg o'chirildi |
+| T-191 | useNativeNotification.ts o'chirildi (dead code) |
+| T-192 | `dist/` build artifact tozalandi |
+| T-201 | CompetitorSection `loadError` state + GlobalPriceComparison loading matn qo'shildi |
+| — | ChecklistTab.tsx unused `ChecklistItem` import olib tashlandi |
+
+**Tekshiruv:** tsc --noEmit 0 error, eslint --quiet 0 error
+
+---
+
+## FRONTEND BATCH 2 — Empty Catches + Auth Fixes (2026-02-27)
+
+| Task | Fayl | Fix |
+|------|------|-----|
+| T-127 | ConsultationPage.tsx | 3 ta empty catch → logError/toastError |
+| T-128 | ScannerTab, NicheFinderTab | 3 ta empty catch → logError |
+| T-129 | ReferralPage.tsx | 1 ta empty catch → toastError |
+| T-130 | ApiKeysPage.tsx | 3 ta empty catch → logError/toastError |
+| T-131 | FeedbackPage.tsx | 4 ta empty catch → logError/toastError |
+| T-198 | ProductPage.tsx | Haftalik sotuvlar chart — zero-order filter + tooltip |
+
+---
+
+## P2 FRONTEND — Auth / Store / Utils Group Fix (2026-02-27)
+
+### T-115 | FRONTEND | authStore email field JWT da yo'q | Sardor | 10min
+**Status:** Allaqachon tuzatilgan. `authStore.ts` va `base.ts:getTokenPayload()` JWT dan email o'qiydi. `Layout.tsx` da `payload?.email` ishlatiladi.
+
+### T-151 | FRONTEND | useCallback(fn, [fn]) foydasiz | Sardor | 5min
+**Fix:** `useSocket.ts:useNotificationRefresh()` dagi `useCallback(onRefresh, [onRefresh])` olib tashlandi — bevosita `onRefresh` ishlatiladi.
+
+### T-152 | FRONTEND | any type api fayllarida 6 ta | Sardor | 10min
+**Fix:** 6 ta `any` o'rniga proper typlar qo'yildi:
+- `admin.ts`: `params?: any` → `Record<string, unknown>`
+- `enterprise.ts`: `items: any[]` → `Array<{ text: string; checked: boolean }>`
+- `enterprise.ts`: `data: any` → `Record<string, unknown>`
+- `enterprise.ts`: `filters?: any; columns?: any` → `Record<string, unknown>; string[]`
+- `base.ts`: `as any` (2x) → `as Record<string, unknown>`
+
+### T-153 | FRONTEND | ErrorBoundary console.error env check yo'q | Sardor | 5min
+**Fix:** `console.error` ni `if (import.meta.env.DEV)` ichiga o'raldi.
+
+### T-154 | FRONTEND | getTokenPayload return type tor | Sardor | 10min
+**Fix:** `JwtTokenPayload` interface yaratildi (`sub`, `email`, `role`, `account_id`, `exp`, `iat?`). `getTokenPayload()` return type yangilandi. Export qilindi.
+
+### T-155 | FRONTEND | isAuthenticated() token expiry tekshirmaydi | Sardor | 15min
+**Fix:** `isTokenValid()` helper yaratildi (`base.ts`) — JWT `exp` field tekshiradi, expired bo'lsa tokenlarni tozalaydi va `false` qaytaradi. `App.tsx:isAuthenticated()` endi `isTokenValid()` ishlatadi.
 
 ---
 

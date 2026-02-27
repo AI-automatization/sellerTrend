@@ -90,7 +90,7 @@ export function RankingTab() {
                   return (
                     <tr key={i} className="hover:bg-base-300/20 transition-colors">
                       <td className="text-sm text-base-content/70">
-                        {new Date(item.date).toLocaleDateString('uz-UZ', { month: 'short', day: 'numeric' })}
+                        {new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' })}
                       </td>
                       <td className="text-center">
                         <span className="font-bold text-sm">#{item.rank}</span>
