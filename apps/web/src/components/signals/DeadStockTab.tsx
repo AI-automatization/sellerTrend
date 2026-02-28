@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { signalsApi } from '../../api/client';
 import { logError } from '../../utils/handleError';
+import { useI18n } from '../../i18n/I18nContext';
 import { SectionCard } from './SectionCard';
 import { SectionHeader } from './SectionHeader';
 import { EmptyState } from './EmptyState';
@@ -8,6 +9,7 @@ import { LoadingSpinner } from './LoadingSpinner';
 import type { DeadStockItem } from './types';
 
 export function DeadStockTab() {
+  const { t } = useI18n();
   const [data, setData] = useState<DeadStockItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -26,11 +28,11 @@ export function DeadStockTab() {
   return (
     <SectionCard>
       <SectionHeader
-        title="Dead Stock Bashorati"
-        desc="Qaysi mahsulotlar tez orada sotilmaydigan holatga tushishi mumkin?"
+        title={t('signals.dead.title')}
+        desc={t('signals.dead.desc')}
       />
       {data.length === 0 ? (
-        <EmptyState text="Dead stock xavfi yo'q — yaxshi!" />
+        <EmptyState text={t('signals.dead.empty')} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {data.map((item) => (
@@ -41,7 +43,7 @@ export function DeadStockTab() {
               </div>
               <div className="flex gap-4 text-xs text-base-content/60 mb-3">
                 <span>Risk: <b>{(item.risk_score * 100).toFixed(0)}%</b></span>
-                <span>~<b>{item.days_to_dead}</b> kun qoldi</span>
+                <span>{t('signals.dead.daysLeft').replace('{n}', String(item.days_to_dead))}</span>
               </div>
               <div className="w-full bg-base-300 rounded-full h-1.5 mb-2">
                 <div

@@ -22,7 +22,7 @@ export function ActivityChart({ activityData, totalWeekly }: Props) {
             <h2 className="font-semibold text-sm font-heading">{t('dashboard.weeklySalesChart')}</h2>
             <p className="text-[10px] text-base-content/25 mt-0.5">Top {activityData.length} — {t('dashboard.last7days')}</p>
           </div>
-          <span className="text-xs font-mono text-success/80 font-semibold tabular-nums">{totalWeekly.toLocaleString()} ta</span>
+          <span className="text-xs font-mono text-success/80 font-semibold tabular-nums">{totalWeekly.toLocaleString()} {t('common.unit')}</span>
         </div>
         <div className="p-4 lg:p-5">
           <ResponsiveContainer width="100%" height={220}>

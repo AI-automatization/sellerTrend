@@ -199,7 +199,7 @@ export function ApiKeysPage() {
             <p className="mt-1">curl -H "X-API-Key: utf_..." https://api.example.com/api/v1/...</p>
           </div>
           <p className="text-xs text-base-content/40 mt-2">
-            Kunlik limit: {keys[0]?.daily_limit ?? 1000} request. Limit har kuni 00:00 da yangilanadi.
+            {t('apikeys.dailyLimit').replace('{limit}', String(keys[0]?.daily_limit ?? 1000))}
           </p>
         </div>
       </div>

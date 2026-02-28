@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { adsApi } from '../../api/client';
 import { SectionCard, SectionHeader, Loading, EmptyState } from './shared';
 import { logError, toastError } from '../../utils/handleError';
+import { useI18n } from '../../i18n/I18nContext';
 
 interface Campaign {
   id: string;
@@ -23,6 +24,7 @@ interface RoiMetrics {
 }
 
 export function AdsTab() {
+  const { t } = useI18n();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ name: '', budget_uzs: '' });
@@ -57,20 +59,20 @@ export function AdsTab() {
   return (
     <SectionCard>
       <SectionHeader
-        title="Uzum Ads ROI Tracker"
-        desc="Reklama kampaniyalarini kuzatib, ROI hisoblang"
+        title={t('ads.title')}
+        desc={t('ads.desc')}
       />
 
       {/* Create form */}
       <div className="rounded-xl bg-base-300/40 border border-base-300/30 p-4 mb-6">
-        <p className="text-xs text-base-content/50 mb-3">Yangi kampaniya</p>
+        <p className="text-xs text-base-content/50 mb-3">{t('ads.newCampaignBtn')}</p>
         <div className="flex flex-wrap gap-2">
-          <input className="input input-bordered input-sm flex-1 min-w-40" placeholder="Kampaniya nomi" value={form.name}
+          <input className="input input-bordered input-sm flex-1 min-w-40" placeholder={t('ads.form.name')} value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <input className="input input-bordered input-sm w-36" placeholder="Byudjet (so'm)" type="number" value={form.budget_uzs}
+          <input className="input input-bordered input-sm w-36" placeholder={t('ads.form.budget')} type="number" value={form.budget_uzs}
             onChange={(e) => setForm({ ...form, budget_uzs: e.target.value })} />
           <button className="btn btn-primary btn-sm" onClick={createCampaign} disabled={creating}>
-            {creating ? <span className="loading loading-spinner loading-xs" /> : 'Yaratish'}
+            {creating ? <span className="loading loading-spinner loading-xs" /> : t('ads.form.createBtn')}
           </button>
         </div>
       </div>
@@ -80,10 +82,10 @@ export function AdsTab() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
           {[
             { label: 'CTR', value: `${roiData.ctr}%`, color: '' },
-            { label: 'CPC', value: `${Number(roiData.cpc).toLocaleString()} so'm`, color: '' },
+            { label: 'CPC', value: `${Number(roiData.cpc).toLocaleString()} ${t('common.som')}`, color: '' },
             { label: 'ROAS', value: `${roiData.roas}x`, color: roiData.roas >= 2 ? 'text-success' : 'text-warning' },
             { label: 'ROI', value: `${roiData.roi}%`, color: roiData.roi > 0 ? 'text-success' : 'text-error' },
-            { label: 'CPA', value: `${Number(roiData.cpa).toLocaleString()} so'm`, color: '' },
+            { label: 'CPA', value: `${Number(roiData.cpa).toLocaleString()} ${t('common.som')}`, color: '' },
           ].map((s) => (
             <div key={s.label} className="rounded-xl bg-base-300/40 border border-base-300/30 p-3">
               <p className="text-xs text-base-content/40">{s.label}</p>
@@ -94,19 +96,19 @@ export function AdsTab() {
       )}
 
       {campaigns.length === 0 ? (
-        <EmptyState text="Hali kampaniya yo'q" icon="📢" />
+        <EmptyState text={t('ads.empty')} icon="📢" />
       ) : (
         <div className="overflow-x-auto">
           <table className="table table-sm">
             <thead>
               <tr className="text-xs text-base-content/40 uppercase">
-                <th>Nomi</th>
-                <th className="text-right">Byudjet</th>
-                <th className="text-right">Sarflandi</th>
-                <th className="text-right">Klik</th>
-                <th className="text-right">Konversiya</th>
-                <th className="text-right">Daromad</th>
-                <th className="text-center">Status</th>
+                <th>{t('ads.col.name')}</th>
+                <th className="text-right">{t('ads.col.budget')}</th>
+                <th className="text-right">{t('ads.col.spent')}</th>
+                <th className="text-right">{t('ads.col.clicks')}</th>
+                <th className="text-right">{t('ads.col.conversions')}</th>
+                <th className="text-right">{t('ads.col.revenue')}</th>
+                <th className="text-center">{t('ads.col.status')}</th>
                 <th />
               </tr>
             </thead>

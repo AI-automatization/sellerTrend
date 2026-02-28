@@ -26,7 +26,7 @@ export function ProductsTable({ products, sortedProducts, sortKey, setSortKey }:
             </div>
             <div>
               <h2 className="font-semibold text-sm font-heading">{t('dashboard.trackedProducts')}</h2>
-              <p className="text-[10px] text-base-content/25">{products.length} ta {t('dashboard.products')}</p>
+              <p className="text-[10px] text-base-content/25">{products.length} {t('common.unit')} {t('dashboard.products')}</p>
             </div>
           </div>
           {products.length > 0 && (

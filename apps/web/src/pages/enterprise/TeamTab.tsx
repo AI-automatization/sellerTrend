@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { teamApi } from '../../api/client';
 import { SectionCard, SectionHeader, Loading } from './shared';
 import { logError, toastError } from '../../utils/handleError';
+import { useI18n } from '../../i18n/I18nContext';
 
 interface Member {
   id: string;
@@ -17,6 +18,7 @@ interface Invite {
 }
 
 export function TeamTab() {
+  const { t } = useI18n();
   const [members, setMembers] = useState<Member[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,12 +49,12 @@ export function TeamTab() {
   return (
     <SectionCard>
       <SectionHeader
-        title="Jamoa Boshqaruvi"
-        desc="Jamoangizga a'zolar taklif qiling"
+        title={t('team.title')}
+        desc={t('team.desc')}
       />
 
       <div className="rounded-xl bg-base-300/40 border border-base-300/30 p-4 mb-6">
-        <p className="text-xs text-base-content/50 mb-3">A'zo taklif qilish</p>
+        <p className="text-xs text-base-content/50 mb-3">{t('team.inviteTitle')}</p>
         <div className="flex flex-wrap gap-2">
           <input className="input input-bordered input-sm flex-1 min-w-48" placeholder="Email" type="email" value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })} />
@@ -63,7 +65,7 @@ export function TeamTab() {
             <option value="ADMIN">Admin</option>
           </select>
           <button className="btn btn-primary btn-sm" onClick={invite} disabled={inviting}>
-            {inviting ? <span className="loading loading-spinner loading-xs" /> : 'Taklif'}
+            {inviting ? <span className="loading loading-spinner loading-xs" /> : t('team.inviteBtn')}
           </button>
         </div>
       </div>
@@ -72,11 +74,11 @@ export function TeamTab() {
         {/* Members */}
         <div>
           <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-            A'zolar
+            {t('team.membersTitle')}
             <span className="badge badge-sm badge-outline">{members.length}</span>
           </h3>
           {members.length === 0 ? (
-            <p className="text-sm text-base-content/30 py-4 text-center">A'zolar yo'q</p>
+            <p className="text-sm text-base-content/30 py-4 text-center">{t('team.membersEmpty')}</p>
           ) : (
             <div className="space-y-2">
               {members.map((m) => (
@@ -101,11 +103,11 @@ export function TeamTab() {
         {/* Invites */}
         <div>
           <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-            Takliflar
+            {t('team.invitesTitle')}
             <span className="badge badge-sm badge-outline">{invites.length}</span>
           </h3>
           {invites.length === 0 ? (
-            <p className="text-sm text-base-content/30 py-4 text-center">Takliflar yo'q</p>
+            <p className="text-sm text-base-content/30 py-4 text-center">{t('team.invitesEmpty')}</p>
           ) : (
             <div className="space-y-2">
               {invites.map((inv) => (
@@ -118,7 +120,7 @@ export function TeamTab() {
                   </div>
                   {inv.status === 'PENDING' && (
                     <button className="btn btn-xs btn-ghost text-error" onClick={() => teamApi.cancelInvite(inv.id).then(() => setInvites(invites.filter((i) => i.id !== inv.id)))}>
-                      Bekor
+                      {t('team.cancelInviteBtn')}
                     </button>
                   )}
                 </div>

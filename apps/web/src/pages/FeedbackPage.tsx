@@ -233,7 +233,7 @@ export function FeedbackPage() {
                   </div>
                 </div>
                 <button className="btn btn-ghost btn-xs" onClick={() => { setSelectedTicket(null); setMessages([]); }}>
-                  X
+                  {t('common.close')}
                 </button>
               </div>
 

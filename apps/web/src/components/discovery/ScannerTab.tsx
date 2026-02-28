@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { discoveryApi, productsApi } from '../../api/client';
 import { getErrorMessage } from '../../utils/getErrorMessage';
 import { logError } from '../../utils/handleError';
+import { useI18n } from '../../i18n/I18nContext';
 import { FireIcon, ArrowTrendingUpIcon } from '../icons';
 import { StatusBadge } from './StatusBadge';
 import { ScoreBadge } from './ScoreBadge';
@@ -11,6 +12,7 @@ import type { Run, RunDetail } from './types';
 import { POPULAR_CATEGORIES } from './types';
 
 export function ScannerTab() {
+  const { t } = useI18n();
   const [categoryInput, setCategoryInput] = useState('');
   const [runs, setRuns] = useState<Run[]>([]);
   const [selectedRun, setSelectedRun] = useState<RunDetail | null>(null);
@@ -41,7 +43,7 @@ export function ScannerTab() {
   async function handleStart(e: React.FormEvent) {
     e.preventDefault();
     const input = categoryInput.trim();
-    if (!input) { setError('URL yoki kategoriya ID kiriting'); return; }
+    if (!input) { setError(t('discovery.categoryIdPlaceholder')); return; }
     setError(''); setStarting(true);
     try { await discoveryApi.startRun(input); setCategoryInput(''); await loadRuns(); }
     catch (err: unknown) { setError(getErrorMessage(err)); }
@@ -55,13 +57,11 @@ export function ScannerTab() {
   const [trackedIds, setTrackedIds] = useState<Set<string>>(new Set());
 
   async function handleTrack(productId: string) {
-    // Optimistic UI — mark as tracked immediately
     setTrackedIds((prev) => new Set(prev).add(productId));
     setTrackingId(productId);
     try {
       await productsApi.track(productId);
     } catch {
-      // Rollback on failure
       setTrackedIds((prev) => { const s = new Set(prev); s.delete(productId); return s; });
     } finally {
       setTrackingId(null);
@@ -74,7 +74,7 @@ export function ScannerTab() {
         {/* Start run form */}
         <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
           <div className="card-body">
-            <h2 className="card-title text-base">Yangi skanerlash</h2>
+            <h2 className="card-title text-base">{t('discovery.newScan')}</h2>
             <div className="flex flex-wrap gap-2 mb-3">
               {POPULAR_CATEGORIES.map((cat) => (
                 <button key={cat.id} onClick={() => setCategoryInput(String(cat.id))}
@@ -85,15 +85,15 @@ export function ScannerTab() {
             </div>
             <form onSubmit={handleStart} className="flex gap-3">
               <input type="text" value={categoryInput} onChange={(e) => setCategoryInput(e.target.value)}
-                placeholder="https://uzum.uz/ru/category/smartfony yoki 10012" className="input input-bordered flex-1" />
+                placeholder={t('discovery.categoryIdPlaceholder')} className="input input-bordered flex-1" />
               <button type="submit" disabled={starting} className="btn btn-primary gap-2">
                 {starting ? <span className="loading loading-spinner loading-sm" /> : <ArrowTrendingUpIcon className="w-4 h-4" />}
-                {starting ? 'Boshlanmoqda...' : 'Boshlash'}
+                {starting ? t('discovery.startingBtn') : t('discovery.startBtn')}
               </button>
             </form>
             {error && <p className="text-error text-sm mt-1">{error}</p>}
             <p className="text-xs text-base-content/40">
-              Uzum saytida kategoriyani oching, URL ni ko'chiring va shu yerga yapishtirilg. ID avtomatik aniqlanadi.
+              {t('discovery.scanner.hint')}
             </p>
           </div>
         </div>
@@ -103,7 +103,7 @@ export function ScannerTab() {
           <div className="card-body p-0">
             <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-base-300">
               <h2 className="card-title text-base gap-2">
-                <FireIcon className="w-5 h-5 text-orange-400" /> Skanerlashlar
+                <FireIcon className="w-5 h-5 text-orange-400" /> {t('discovery.scansHeader')}
               </h2>
               <span className="badge badge-neutral">{runs.length}</span>
             </div>
@@ -112,21 +112,25 @@ export function ScannerTab() {
             ) : runs.length === 0 ? (
               <div className="flex flex-col items-center py-12 gap-2 text-base-content/40">
                 <ArrowTrendingUpIcon className="w-10 h-10" />
-                <p>Hali skanerlash yo'q. Yuqorida kategoriya kiriting.</p>
+                <p>{t('discovery.empty')}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="table table-sm table-zebra">
                   <thead>
                     <tr>
-                      <th>Kategoriya ID</th><th>Holat</th><th>Mahsulotlar</th>
-                      <th>G'oliblar</th><th>Sana</th><th></th>
+                      <th>{t('discovery.col.categoryId')}</th>
+                      <th>{t('discovery.col.status')}</th>
+                      <th>{t('discovery.col.products')}</th>
+                      <th>{t('discovery.col.winners')}</th>
+                      <th>{t('discovery.col.date')}</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
                     {runs.map((run) => (
                       <tr key={run.id} className="hover">
-                        <td className="font-mono font-medium">#{run.category_id}</td>
+                        <td className="font-mono font-medium">{t('discovery.scanner.catPrefix')}{run.category_id}</td>
                         <td>
                           <div className="flex flex-col gap-1">
                             <StatusBadge status={run.status} />
@@ -136,7 +140,7 @@ export function ScannerTab() {
                         <td className="tabular-nums text-sm">{run.total_products?.toLocaleString() ?? '—'}</td>
                         <td>{run.winner_count > 0 ? <span className="badge badge-success badge-sm">Top {run.winner_count}</span> : <span className="text-base-content/30">—</span>}</td>
                         <td className="text-xs text-base-content/50 whitespace-nowrap">{new Date(run.created_at).toLocaleString('ru-RU')}</td>
-                        <td>{run.status === 'DONE' && <button onClick={() => openRun(run)} className="btn btn-xs btn-primary">Ko'rish</button>}</td>
+                        <td>{run.status === 'DONE' && <button onClick={() => openRun(run)} className="btn btn-xs btn-primary">{t('discovery.viewBtn')}</button>}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -154,19 +158,26 @@ export function ScannerTab() {
           <div className="w-full max-w-2xl bg-base-200 h-full overflow-y-auto flex flex-col shadow-2xl">
             <div className="flex items-center justify-between p-4 border-b border-base-300">
               <div>
-                <p className="text-xs text-base-content/40">Kategoriya #{selectedRun.category_id}</p>
-                <h2 className="font-bold">Top {selectedRun.winners.length} mahsulot</h2>
+                <p className="text-xs text-base-content/40">{t('discovery.scanner.catPrefix')}{selectedRun.category_id}</p>
+                <h2 className="font-bold">Top {selectedRun.winners.length} {t('discovery.scanner.topProducts')}</h2>
                 {selectedRun.finished_at && <p className="text-xs text-base-content/40 mt-0.5">{new Date(selectedRun.finished_at).toLocaleString('ru-RU')}</p>}
               </div>
               <button onClick={() => setSelectedRun(null)} className="btn btn-ghost btn-sm btn-square">✕</button>
             </div>
             <div className="overflow-y-auto flex-1">
               {selectedRun.winners.length === 0 ? (
-                <div className="flex justify-center py-12 text-base-content/40">G'oliblar topilmadi</div>
+                <div className="flex justify-center py-12 text-base-content/40">{t('discovery.winnersDrawer.empty')}</div>
               ) : (
                 <table className="table table-sm w-full">
                   <thead className="sticky top-0 bg-base-200 z-10">
-                    <tr><th className="w-8">#</th><th>Mahsulot</th><th className="text-right">Score</th><th className="text-right">Faollik</th><th className="text-right">Narx</th><th></th></tr>
+                    <tr>
+                      <th className="w-8">#</th>
+                      <th>{t('discovery.scanner.winners.col.product')}</th>
+                      <th className="text-right">{t('discovery.scanner.winners.col.score')}</th>
+                      <th className="text-right">{t('discovery.scanner.winners.col.activity')}</th>
+                      <th className="text-right">{t('discovery.scanner.winners.col.price')}</th>
+                      <th></th>
+                    </tr>
                   </thead>
                   <tbody>
                     {selectedRun.winners.map((w) => (
@@ -180,7 +191,7 @@ export function ScannerTab() {
                         </td>
                         <td className="text-right"><ScoreBadge score={w.score} /></td>
                         <td className="text-right tabular-nums text-sm">{w.weekly_bought != null ? <span className="text-success">{w.weekly_bought.toLocaleString()}</span> : <span className="text-base-content/30">—</span>}</td>
-                        <td className="text-right tabular-nums text-xs text-base-content/60">{w.sell_price ? `${Number(w.sell_price).toLocaleString()} so'm` : '—'}</td>
+                        <td className="text-right tabular-nums text-xs text-base-content/60">{w.sell_price ? `${Number(w.sell_price).toLocaleString()} ${t('common.som')}` : '—'}</td>
                         <td>
                           <button
                             onClick={() => handleTrack(w.product_id)}
@@ -189,7 +200,7 @@ export function ScannerTab() {
                           >
                             {trackingId === w.product_id
                               ? <span className="loading loading-spinner loading-xs" />
-                              : trackedIds.has(w.product_id) ? '\u2713 Tracked' : '+ Track'}
+                              : trackedIds.has(w.product_id) ? t('discovery.scanner.tracked') : t('discovery.scanner.trackBtn')}
                           </button>
                         </td>
                       </tr>

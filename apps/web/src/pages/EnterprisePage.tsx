@@ -4,19 +4,21 @@ import { TeamTab } from './enterprise/TeamTab';
 import { ReportsTab } from './enterprise/ReportsTab';
 import { WatchlistTab } from './enterprise/WatchlistTab';
 import { CommunityTab } from './enterprise/CommunityTab';
+import { useI18n } from '../i18n/I18nContext';
 
 type Tab = 'ads' | 'team' | 'reports' | 'watchlist' | 'community';
 
-const TABS: { key: Tab; label: string; emoji: string }[] = [
-  { key: 'ads', label: 'Ads ROI', emoji: '📢' },
-  { key: 'team', label: 'Jamoa', emoji: '👥' },
-  { key: 'reports', label: 'Hisobotlar', emoji: '📄' },
-  { key: 'watchlist', label: 'Watchlist', emoji: '👁' },
-  { key: 'community', label: 'Jamiyat', emoji: '💡' },
-];
-
 export function EnterprisePage() {
+  const { t } = useI18n();
   const [tab, setTab] = useState<Tab>('ads');
+
+  const TABS: { key: Tab; label: string; emoji: string }[] = [
+    { key: 'ads', label: t('enterprise.tab.ads'), emoji: '📢' },
+    { key: 'team', label: t('enterprise.tab.team'), emoji: '👥' },
+    { key: 'reports', label: t('enterprise.tab.reports'), emoji: '📄' },
+    { key: 'watchlist', label: t('enterprise.tab.watchlist'), emoji: '👁' },
+    { key: 'community', label: t('enterprise.tab.community'), emoji: '💡' },
+  ];
 
   return (
     <div className="w-full space-y-4 lg:space-y-6">
@@ -27,9 +29,9 @@ export function EnterprisePage() {
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 lg:w-7 lg:h-7 text-secondary">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
             </svg>
-            Enterprise
+            {t('enterprise.title')}
           </h1>
-          <p className="text-base-content/50 text-sm mt-1">v4.0 — Korporativ funksiyalar (Features 31-43)</p>
+          <p className="text-base-content/50 text-sm mt-1">{t('enterprise.subtitle')}</p>
         </div>
       </div>
 

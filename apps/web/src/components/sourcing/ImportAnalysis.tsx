@@ -5,6 +5,7 @@ import { COUNTRY_FLAGS } from './types';
 import type { SourcingJobDetail } from './types';
 import { StatusBadge } from './StatusBadge';
 import { SourcingResultCard } from './SourcingResultCard';
+import { useI18n } from '../../i18n/I18nContext';
 
 export interface ImportAnalysisProps {
   initialProductId?: number;
@@ -15,6 +16,7 @@ export function ImportAnalysis({
   initialProductId,
   initialTitle,
 }: ImportAnalysisProps) {
+  const { t } = useI18n();
   const [productId, setProductId] = useState(initialProductId ? String(initialProductId) : '');
   const [title, setTitle] = useState(initialTitle ?? '');
   const [loading, setLoading] = useState(false);
@@ -32,7 +34,7 @@ export function ImportAnalysis({
 
   async function handleStart() {
     if (!productId || !title) {
-      setError('Product ID va nomi kerak');
+      setError(t('sourcing.import.errorNeedProduct'));
       return;
     }
     setLoading(true);
@@ -83,9 +85,9 @@ export function ImportAnalysis({
       {/* Search form */}
       <div className="card bg-base-200/60 border border-base-300/50 rounded-2xl">
         <div className="card-body">
-          <h2 className="card-title text-lg">🌍 Import Tahlil — AI orqali global narx qidirish</h2>
+          <h2 className="card-title text-lg">🌍 {t('sourcing.import.title')}</h2>
           <p className="text-sm text-base-content/60">
-            Mahsulot nomini kiriting — AI qidiruv so'rovini optimallashtiradi, 1688, Taobao, Banggood, Shopee dan narxlarni topadi va eng yaxshi variantni tavsiya qiladi
+            {t('sourcing.import.placeholder')}
           </p>
           <div className="flex gap-2 mt-3 flex-wrap">
             <input
@@ -97,7 +99,7 @@ export function ImportAnalysis({
             />
             <input
               type="text"
-              placeholder="Mahsulot nomi (masalan: Samsung Galaxy Buds2)"
+              placeholder="Masalan: Samsung Galaxy Buds2"
               className="input input-bordered input-sm flex-1 min-w-48"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -107,7 +109,7 @@ export function ImportAnalysis({
               className="btn btn-primary btn-sm"
               disabled={loading || (!!jobId && job?.status !== 'DONE' && job?.status !== 'FAILED')}
             >
-              {loading ? <span className="loading loading-spinner loading-xs" /> : '🚀 Qidirish'}
+              {loading ? <span className="loading loading-spinner loading-xs" /> : `🚀 ${t('sourcing.import.searchBtn')}`}
             </button>
           </div>
           {error && <p className="text-error text-sm mt-2">{error}</p>}
@@ -120,9 +122,9 @@ export function ImportAnalysis({
           <div className="flex items-center gap-3 text-sm">
             <StatusBadge status={job.status} />
             <span className="text-base-content/50">
-              Topildi: {job.results.length} ta natija
+              {t('sourcing.import.resultsFound').replace('{n}', String(job.results.length))}
               {job.results.filter((r) => (r.ai_match_score ?? 0) >= 0.5).length > 0 &&
-                ` (${job.results.filter((r) => (r.ai_match_score ?? 0) >= 0.5).length} ta mos)`
+                ` ${t('sourcing.import.matched').replace('{n}', String(job.results.filter((r) => (r.ai_match_score ?? 0) >= 0.5).length))}`
               }
             </span>
             {job.status === 'RUNNING' && <span className="loading loading-spinner loading-xs" />}
@@ -135,7 +137,7 @@ export function ImportAnalysis({
                 onClick={() => setPlatformFilter('all')}
                 className={`btn btn-xs ${platformFilter === 'all' ? 'btn-primary' : 'btn-ghost'}`}
               >
-                Hammasi ({job.results.length})
+                {t('sourcing.import.filterAll').replace('{n}', String(job.results.length))}
               </button>
               {platforms.map((p) => {
                 const count = job.results.filter((r) => r.platform === p).length;
@@ -166,7 +168,7 @@ export function ImportAnalysis({
           {job.status === 'DONE' && filteredResults.length === 0 && (
             <div className="text-center py-12 text-base-content/40">
               <p className="text-4xl mb-2">🔍</p>
-              <p>Hech narsa topilmadi</p>
+              <p>{t('sourcing.import.noResults')}</p>
             </div>
           )}
         </>
@@ -175,8 +177,8 @@ export function ImportAnalysis({
       {!jobId && (
         <div className="text-center py-16 text-base-content/30">
           <p className="text-5xl mb-3">🌍</p>
-          <p>Mahsulot kiritib "Qidirish" tugmasini bosing</p>
-          <p className="text-xs mt-2">AI optimallashtirilgan qidiruv + narx taqqoslash + ROI hisoblash</p>
+          <p>{t('sourcing.import.emptyHint')}</p>
+          <p className="text-xs mt-2">{t('sourcing.import.aiHint')}</p>
         </div>
       )}
     </div>

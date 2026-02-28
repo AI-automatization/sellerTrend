@@ -35,7 +35,7 @@ export function HeroCards({ best, mostActive }: Props) {
                 <TrendChip trend={best.trend} />
                 {best.sell_price && (
                   <span className="text-xs text-base-content/30 ml-auto tabular-nums">
-                    {best.sell_price.toLocaleString()} so'm
+                    {best.sell_price.toLocaleString()} {t('common.som')}
                   </span>
                 )}
               </div>

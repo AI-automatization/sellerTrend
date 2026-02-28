@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { seasonalApi } from '../../api/client';
 import { logError } from '../../utils/handleError';
+import { useI18n } from '../../i18n/I18nContext';
 import type { SeasonalEvent } from './types';
 import { MONTH_NAMES } from './types';
 
 export function SeasonalCalendarTab() {
+  const { t } = useI18n();
   const [events, setEvents] = useState<SeasonalEvent[]>([]);
   const [upcoming, setUpcoming] = useState<SeasonalEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +38,7 @@ export function SeasonalCalendarTab() {
         <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
           <div className="card-body p-4">
             <h2 className="card-title text-base gap-2">
-              <span className="text-lg">{'\u{1F4C5}'}</span> Yaqin 30 kunda
+              <span className="text-lg">{'\u{1F4C5}'}</span> {t('discovery.seasonal.next30')}
             </h2>
             <div className="flex flex-wrap gap-3 mt-2">
               {upcoming.map((ev) => (
@@ -47,7 +49,7 @@ export function SeasonalCalendarTab() {
                   </p>
                   {ev.avg_score_boost && (
                     <p className="text-xs text-success mt-1">
-                      Score boost: +{Number(ev.avg_score_boost).toFixed(0)}%
+                      {t('discovery.seasonal.scoreBoost')} +{Number(ev.avg_score_boost).toFixed(0)}%
                     </p>
                   )}
                 </div>
@@ -60,25 +62,25 @@ export function SeasonalCalendarTab() {
       {/* Heatmap calendar */}
       <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
         <div className="card-body">
-          <h2 className="card-title text-base">Yillik mavsumiy kalendar</h2>
+          <h2 className="card-title text-base">{t('discovery.seasonal.yearlyCalendar')}</h2>
           <p className="text-xs text-base-content/40">
-            Qaysi oylarda qaysi trendlar kuchayishini ko'ring
+            {t('discovery.seasonal.desc')}
           </p>
 
           {events.length === 0 ? (
             <div className="flex flex-col items-center py-8 text-base-content/40">
-              <p>Mavsumiy ma'lumotlar hali kiritilmagan</p>
+              <p>{t('discovery.seasonal.empty')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto mt-4">
               <table className="table table-sm">
                 <thead>
                   <tr>
-                    <th className="min-w-40">Mavsum</th>
+                    <th className="min-w-40">{t('discovery.seasonal.col.season')}</th>
                     {MONTH_NAMES.map((m) => (
                       <th key={m} className="text-center text-xs px-1 w-10">{m}</th>
                     ))}
-                    <th className="text-right">Boost</th>
+                    <th className="text-right">{t('discovery.seasonal.col.boost')}</th>
                   </tr>
                 </thead>
                 <tbody>

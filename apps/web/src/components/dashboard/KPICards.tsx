@@ -46,7 +46,7 @@ export function KPICards({ stats, balance, isSuperAdmin, paymentDue, scoreSparkl
               {balance ? <AnimatedNumber value={Number(balance.balance)} /> : '—'}
             </p>
             <p className="text-[10px] text-base-content/25 mt-2 tabular-nums">
-              so'm · {balance ? Number(balance.daily_fee).toLocaleString() : '—'}/kun
+              {t('common.som')} · {balance ? Number(balance.daily_fee).toLocaleString() : '—'}{t('common.perDay')}
             </p>
           </div>
         </FadeIn>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { watchlistApi } from '../../api/client';
 import { SectionCard, SectionHeader, Loading, EmptyState } from './shared';
 import { logError, toastError } from '../../utils/handleError';
+import { useI18n } from '../../i18n/I18nContext';
 
 interface Watchlist {
   id: string;
@@ -12,6 +13,7 @@ interface Watchlist {
 }
 
 export function WatchlistTab() {
+  const { t } = useI18n();
   const [lists, setLists] = useState<Watchlist[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ name: '', product_ids: '' });
@@ -52,25 +54,25 @@ export function WatchlistTab() {
   return (
     <SectionCard>
       <SectionHeader
-        title="Watchlist Ulashish"
-        desc="Kuzatuv ro'yxatlarini boshqalar bilan ulashing"
+        title={t('watchlist.tab.title')}
+        desc={t('watchlist.tab.desc')}
       />
 
       <div className="rounded-xl bg-base-300/40 border border-base-300/30 p-4 mb-6">
-        <p className="text-xs text-base-content/50 mb-3">Yangi watchlist</p>
+        <p className="text-xs text-base-content/50 mb-3">{t('watchlist.tab.newBtn')}</p>
         <div className="flex flex-wrap gap-2">
-          <input className="input input-bordered input-sm w-48" placeholder="Ro'yxat nomi" value={form.name}
+          <input className="input input-bordered input-sm w-48" placeholder={t('watchlist.tab.namePlaceholder')} value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <input className="input input-bordered input-sm flex-1 min-w-48" placeholder="Product ID'lar (vergul bilan)" value={form.product_ids}
+          <input className="input input-bordered input-sm flex-1 min-w-48" placeholder={t('watchlist.tab.idsPlaceholder')} value={form.product_ids}
             onChange={(e) => setForm({ ...form, product_ids: e.target.value })} />
           <button className="btn btn-primary btn-sm" onClick={create} disabled={creating}>
-            {creating ? <span className="loading loading-spinner loading-xs" /> : 'Yaratish'}
+            {creating ? <span className="loading loading-spinner loading-xs" /> : t('common.create')}
           </button>
         </div>
       </div>
 
       {lists.length === 0 ? (
-        <EmptyState text="Hali watchlist yo'q" icon="👁" />
+        <EmptyState text={t('watchlist.tab.empty')} icon="👁" />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {lists.map((l) => (
@@ -80,16 +82,16 @@ export function WatchlistTab() {
                 <div className="flex gap-1">
                   {l.is_public ? (
                     <button className="btn btn-xs btn-success gap-1" onClick={() => copyLink(l.share_token!)}>
-                      {copiedId === l.share_token ? 'Nusxalandi!' : 'Link nusxalash'}
+                      {copiedId === l.share_token ? t('watchlist.tab.copied') : t('watchlist.tab.copyLink')}
                     </button>
                   ) : (
-                    <button className="btn btn-xs btn-ghost border border-info/20 text-info" onClick={() => share(l.id)}>Ulashish</button>
+                    <button className="btn btn-xs btn-ghost border border-info/20 text-info" onClick={() => share(l.id)}>{t('watchlist.tab.shareBtn')}</button>
                   )}
                 </div>
               </div>
               <div className="flex gap-3 text-xs text-base-content/50">
-                <span className={l.is_public ? 'text-success' : ''}>{l.is_public ? 'Ommaviy' : 'Shaxsiy'}</span>
-                <span>{l.views || 0} ko'rish</span>
+                <span className={l.is_public ? 'text-success' : ''}>{l.is_public ? t('watchlist.tab.public') : t('watchlist.tab.private')}</span>
+                <span>{t('watchlist.tab.viewCount').replace('{n}', String(l.views || 0))}</span>
               </div>
             </div>
           ))}

@@ -154,33 +154,33 @@ export function Layout() {
 
   if (isSuperAdmin) {
     sections.push({
-      label: 'Admin Panel',
+      label: t('nav.admin'),
       badge: 'ADMIN',
       items: [
-        { to: '/admin', icon: ShieldCheckIcon, label: 'Dashboard', end: true },
-        { to: '/admin?tab=accounts', icon: BuildingOffice2Icon, label: 'Akkauntlar' },
-        { to: '/admin?tab=analytics', icon: ChartBarIcon, label: 'Analitika' },
-        { to: '/admin?tab=system', icon: ServerStackIcon, label: 'Tizim' },
-        { to: '/admin?tab=feedback', icon: ChatBubbleBottomCenterTextIcon, label: 'Feedback' },
-        { to: '/admin?tab=notifications', icon: BellIcon, label: 'Xabarnomalar' },
-        { to: '/admin?tab=audit', icon: DocumentTextIcon, label: 'Audit Log' },
-        { to: '/admin?tab=deposits', icon: BanknotesIcon, label: 'Deposit Log' },
+        { to: '/admin', icon: ShieldCheckIcon, label: t('nav.dashboard'), end: true },
+        { to: '/admin?tab=accounts', icon: BuildingOffice2Icon, label: t('nav.admin.accounts') },
+        { to: '/admin?tab=analytics', icon: ChartBarIcon, label: t('nav.admin.analytics') },
+        { to: '/admin?tab=system', icon: ServerStackIcon, label: t('nav.admin.system') },
+        { to: '/admin?tab=feedback', icon: ChatBubbleBottomCenterTextIcon, label: t('nav.admin.feedback') },
+        { to: '/admin?tab=notifications', icon: BellIcon, label: t('nav.admin.notifications') },
+        { to: '/admin?tab=audit', icon: DocumentTextIcon, label: t('nav.admin.audit') },
+        { to: '/admin?tab=deposits', icon: BanknotesIcon, label: t('nav.admin.deposits') },
       ],
     });
   }
 
   sections.push(
     {
-      label: 'Asosiy',
+      label: t('nav.section.main'),
       items: [
-        { to: '/', icon: HomeIcon, label: isSuperAdmin ? 'Home' : t('nav.dashboard'), end: true },
+        { to: '/', icon: HomeIcon, label: t('nav.dashboard'), end: true },
         { to: '/analyze', icon: MagnifyingGlassIcon, label: t('nav.analyze') },
         { to: '/discovery', icon: ArrowTrendingUpIcon, label: t('nav.discovery') },
         { to: '/sourcing', icon: GlobeAltIcon, label: t('nav.sourcing') },
       ],
     },
     {
-      label: 'Mahsulot',
+      label: t('nav.section.product'),
       items: [
         { to: '/shops', icon: StorefrontIcon, label: t('nav.shops') },
         { to: '/signals', icon: SignalIcon, label: t('nav.signals') },
@@ -197,13 +197,13 @@ export function Layout() {
       ],
     },
     {
-      label: 'Biznes',
+      label: t('nav.section.business'),
       items: [
         { to: '/enterprise', icon: BuildingOfficeIcon, label: t('nav.enterprise') },
         { to: '/referral', icon: UserGroupIcon, label: t('nav.referral') },
         { to: '/api-keys', icon: KeyIcon, label: t('nav.apiKeys') },
-        { to: '/extension', icon: PuzzleIcon, label: 'Extension' },
-        { to: '/feedback', icon: ChatBubbleBottomCenterTextIcon, label: 'Feedback', badge: unreadCount },
+        { to: '/extension', icon: PuzzleIcon, label: t('nav.extension') },
+        { to: '/feedback', icon: ChatBubbleBottomCenterTextIcon, label: t('nav.feedback'), badge: unreadCount },
       ],
     },
   );
@@ -258,7 +258,7 @@ export function Layout() {
             <div className="flex items-center gap-2 text-error text-sm">
               <WalletIcon className="w-4 h-4 shrink-0" />
               <span>
-                <strong>{t('payment.due')}</strong> {t('payment.balance')}: {Number(balance).toLocaleString()} so'm.
+                <strong>{t('payment.due')}</strong> {t('payment.balance')}: {Number(balance).toLocaleString()} {t('common.som')}.
               </span>
             </div>
           </div>
@@ -271,13 +271,12 @@ export function Layout() {
               <div className="card bg-base-200 shadow-xl border border-error/30 max-w-md mx-4">
                 <div className="card-body items-center text-center gap-4">
                   <WalletIcon className="w-12 h-12 text-error" />
-                  <h3 className="text-lg font-bold">To'lov muddati o'tgan</h3>
-                  <p className="text-base-content/60 text-sm">
-                    Balansingiz: <strong>{Number(balance).toLocaleString()} so'm</strong>.
-                    Platformadan foydalanish uchun hisobingizni to'ldiring.
-                  </p>
+                  <h3 className="text-lg font-bold">{t('payment.overdue')}</h3>
+                  <p className="text-base-content/60 text-sm"
+                    dangerouslySetInnerHTML={{ __html: t('payment.overdueDesc').replace('{balance}', `<strong>${Number(balance).toLocaleString()} ${t('common.som')}</strong>`) }}
+                  />
                   <button className="btn btn-primary btn-sm" onClick={() => navigate('/')}>
-                    Bosh sahifaga qaytish
+                    {t('payment.goHome')}
                   </button>
                 </div>
               </div>
@@ -299,7 +298,7 @@ export function Layout() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-heading font-bold text-[15px] leading-none tracking-tight">VENTRA</p>
-                <p className="text-[11px] text-base-content/35 mt-0.5">Analytics Platform</p>
+                <p className="text-[11px] text-base-content/35 mt-0.5">{t('layout.tagline')}</p>
               </div>
             </div>
           </div>
@@ -384,7 +383,7 @@ export function Layout() {
               <button
                 onClick={toggle}
                 className="btn btn-ghost btn-xs btn-square rounded-lg tooltip tooltip-top"
-                data-tip={isDark ? 'Light mode' : 'Dark mode'}
+                data-tip={isDark ? t('layout.lightMode') : t('layout.darkMode')}
               >
                 {isDark ? <SunIcon className="w-3.5 h-3.5" /> : <MoonIcon className="w-3.5 h-3.5" />}
               </button>
@@ -410,7 +409,7 @@ export function Layout() {
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium truncate">{isSuperAdmin ? 'Super Admin' : userEmail.split('@')[0]}</p>
                 <p className="text-[10px] text-base-content/30 truncate">
-                  {isSuperAdmin ? 'admin@ventra' : 'Pro plan'}
+                  {isSuperAdmin ? 'admin@ventra' : t('layout.proPlan')}
                 </p>
               </div>
               <button

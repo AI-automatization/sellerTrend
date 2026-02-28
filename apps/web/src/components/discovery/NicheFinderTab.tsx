@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { nicheApi } from '../../api/client';
 import { logError } from '../../utils/handleError';
+import { useI18n } from '../../i18n/I18nContext';
 import type { NicheItem, GapItem } from './types';
 import { POPULAR_CATEGORIES } from './types';
 
 export function NicheFinderTab() {
+  const { t } = useI18n();
   const [niches, setNiches] = useState<NicheItem[]>([]);
   const [gaps, setGaps] = useState<GapItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -34,7 +36,7 @@ export function NicheFinderTab() {
       {/* Search */}
       <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
         <div className="card-body">
-          <h2 className="card-title text-base">Niche qidirish</h2>
+          <h2 className="card-title text-base">{t('discovery.niche.searchTitle')}</h2>
           <div className="flex flex-wrap gap-2 mb-3">
             {POPULAR_CATEGORIES.map((cat) => (
               <button key={cat.id} onClick={() => setCatId(String(cat.id))}
@@ -45,9 +47,9 @@ export function NicheFinderTab() {
           </div>
           <form onSubmit={handleSearch} className="flex gap-3">
             <input type="text" value={catId} onChange={(e) => setCatId(e.target.value)}
-              placeholder="Kategoriya ID (ixtiyoriy — hamma uchun)" className="input input-bordered flex-1" />
+              placeholder={t('discovery.niche.catPlaceholder')} className="input input-bordered flex-1" />
             <button type="submit" disabled={loading} className="btn btn-primary">
-              {loading ? <span className="loading loading-spinner loading-sm" /> : 'Topish'}
+              {loading ? <span className="loading loading-spinner loading-sm" /> : t('discovery.niche.findBtn')}
             </button>
           </form>
         </div>
@@ -59,11 +61,11 @@ export function NicheFinderTab() {
           <div role="tablist" className="tabs tabs-boxed bg-base-200 w-fit">
             <button role="tab" onClick={() => setSubTab('niches')}
               className={`tab ${subTab === 'niches' ? 'tab-active' : ''}`}>
-              Niche'lar ({niches.length})
+              {t('discovery.niche.niches')} ({niches.length})
             </button>
             <button role="tab" onClick={() => setSubTab('gaps')}
               className={`tab ${subTab === 'gaps' ? 'tab-active' : ''}`}>
-              Gap'lar ({gaps.length})
+              {t('discovery.niche.gaps')} ({gaps.length})
             </button>
           </div>
 
@@ -73,20 +75,23 @@ export function NicheFinderTab() {
             <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
               <div className="card-body p-0">
                 <div className="px-4 pt-4 pb-3 border-b border-base-300">
-                  <h3 className="font-bold text-sm">Niche imkoniyatlari</h3>
-                  <p className="text-xs text-base-content/40">Yuqori talab + past raqobat = yaxshi niche</p>
+                  <h3 className="font-bold text-sm">{t('discovery.niche.opportunitiesTitle')}</h3>
+                  <p className="text-xs text-base-content/40">{t('discovery.niche.hint')}</p>
                 </div>
                 {niches.length === 0 ? (
                   <div className="flex flex-col items-center py-12 text-base-content/40">
-                    <p>Niche topilmadi. Boshqa kategoriya sinab ko'ring.</p>
+                    <p>{t('discovery.niche.nicheEmpty')}</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="table table-sm">
                       <thead>
                         <tr>
-                          <th>#</th><th>Mahsulot</th><th className="text-right">Niche Score</th>
-                          <th className="text-right">Haftalik</th><th className="text-right">Narx</th>
+                          <th>{t('discovery.niche.col.num')}</th>
+                          <th>{t('discovery.niche.col.product')}</th>
+                          <th className="text-right">{t('discovery.niche.col.nicheScore')}</th>
+                          <th className="text-right">{t('discovery.niche.col.weekly')}</th>
+                          <th className="text-right">{t('discovery.niche.col.price')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -107,7 +112,7 @@ export function NicheFinderTab() {
                               {n.weekly_bought?.toLocaleString() ?? '—'}
                             </td>
                             <td className="text-right tabular-nums text-xs text-base-content/60">
-                              {n.sell_price ? `${n.sell_price.toLocaleString()} so'm` : '—'}
+                              {n.sell_price ? `${n.sell_price.toLocaleString()} ${t('common.som')}` : '—'}
                             </td>
                           </tr>
                         ))}
@@ -121,20 +126,23 @@ export function NicheFinderTab() {
             <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
               <div className="card-body p-0">
                 <div className="px-4 pt-4 pb-3 border-b border-base-300">
-                  <h3 className="font-bold text-sm">Demand-Supply Gap'lar</h3>
-                  <p className="text-xs text-base-content/40">Talab yuqori lekin sotuvchilar kam bo'lgan mahsulotlar</p>
+                  <h3 className="font-bold text-sm">{t('discovery.niche.gapTitle')}</h3>
+                  <p className="text-xs text-base-content/40">{t('discovery.niche.gapDesc')}</p>
                 </div>
                 {gaps.length === 0 ? (
                   <div className="flex flex-col items-center py-12 text-base-content/40">
-                    <p>Gap topilmadi.</p>
+                    <p>{t('discovery.niche.gapEmpty')}</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="table table-sm">
                       <thead>
                         <tr>
-                          <th>#</th><th>Mahsulot</th><th className="text-right">Haftalik talab</th>
-                          <th className="text-right">Sotuvchilar</th><th className="text-right">Gap nisbati</th>
+                          <th>{t('discovery.niche.col.num')}</th>
+                          <th>{t('discovery.niche.col.product')}</th>
+                          <th className="text-right">{t('discovery.niche.col.weeklyDemand')}</th>
+                          <th className="text-right">{t('discovery.niche.col.sellers')}</th>
+                          <th className="text-right">{t('discovery.niche.col.gapRatio')}</th>
                         </tr>
                       </thead>
                       <tbody>

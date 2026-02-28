@@ -1,11 +1,13 @@
 import { COUNTRY_FLAGS, fmtUSD, matchColor, marginColor } from './types';
 import type { SourcingResult } from './types';
+import { useI18n } from '../../i18n/I18nContext';
 
 export interface SourcingResultCardProps {
   result: SourcingResult;
 }
 
 export function SourcingResultCard({ result: r }: SourcingResultCardProps) {
+  const { t } = useI18n();
   const flag = COUNTRY_FLAGS[r.country] ?? '';
 
   return (
@@ -79,14 +81,14 @@ export function SourcingResultCard({ result: r }: SourcingResultCardProps) {
               {r.url && r.url !== '#' && (
                 <a href={r.url} target="_blank" rel="noopener noreferrer"
                   className="btn btn-outline btn-xs">
-                  Ko'rish ↗
+                  {t('sourcing.import.viewBtn')}
                 </a>
               )}
               {r.min_order_qty && r.min_order_qty > 1 && (
                 <span className="badge badge-sm badge-warning">MOQ: {r.min_order_qty}</span>
               )}
               {r.shipping_days && (
-                <span className="badge badge-sm badge-ghost">{r.shipping_days} kun</span>
+                <span className="badge badge-sm badge-ghost">{t('sourcing.import.shippingDays').replace('{n}', String(r.shipping_days))}</span>
               )}
             </div>
           </div>

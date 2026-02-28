@@ -3,8 +3,10 @@ import { sourcingApi } from '../../api/client';
 import { logError } from '../../utils/handleError';
 import { fmtUZS, marginColor } from './types';
 import type { HistoryItem } from './types';
+import { useI18n } from '../../i18n/I18nContext';
 
 export function CalculationHistory() {
+  const { t } = useI18n();
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -17,27 +19,27 @@ export function CalculationHistory() {
   if (history.length === 0) return (
     <div className="text-center py-20 text-base-content/40">
       <p className="text-5xl mb-4">📋</p>
-      <p>Hali hech qanday hisoblash yo'q</p>
-      <p className="text-sm mt-1">Kalkulyator tabida birinchi hisoblashni bajaring</p>
+      <p>{t('sourcing.history.empty')}</p>
+      <p className="text-sm mt-1">{t('sourcing.history.emptyHint')}</p>
     </div>
   );
 
   return (
     <div className="card bg-base-200/60 border border-base-300/50 rounded-2xl">
       <div className="card-body">
-        <h2 className="card-title text-lg">Oxirgi Hisoblashlar</h2>
+        <h2 className="card-title text-lg">{t('sourcing.history.title')}</h2>
         <div className="overflow-x-auto">
           <table className="table table-sm">
             <thead>
               <tr>
-                <th>Mahsulot</th>
-                <th>Narx × Dona</th>
-                <th>Og'irlik</th>
-                <th>Landed (so'm)</th>
-                <th>Margin</th>
-                <th>ROI</th>
-                <th>Yo'nalish</th>
-                <th>Sana</th>
+                <th>{t('sourcing.history.col.product')}</th>
+                <th>{t('sourcing.history.col.costQty')}</th>
+                <th>{t('sourcing.history.col.weight')}</th>
+                <th>{t('sourcing.history.col.landed')}</th>
+                <th>{t('sourcing.history.col.margin')}</th>
+                <th>{t('sourcing.history.col.roi')}</th>
+                <th>{t('sourcing.history.col.route')}</th>
+                <th>{t('sourcing.history.col.date')}</th>
               </tr>
             </thead>
             <tbody>

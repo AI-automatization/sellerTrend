@@ -75,10 +75,10 @@ export function SourcingPage() {
               <span className="text-base-content/30">|</span>
               <span className="font-medium">EUR</span>
               <span className="text-success font-bold">{fmt(rates.EUR)}</span>
-              <span className="text-xs text-base-content/40">so'm</span>
+              <span className="text-xs text-base-content/40">{t('common.som')}</span>
             </>
           ) : <span className="text-base-content/40 text-xs">{t('sourcing.ratesNotLoaded')}</span>}
-          <button onClick={refreshRates} className="btn btn-ghost btn-xs" title="CBU dan yangilash">↻</button>
+          <button onClick={refreshRates} className="btn btn-ghost btn-xs" title={t('sourcing.refreshRatesBtn')}>↻</button>
         </div>
       </div>
 

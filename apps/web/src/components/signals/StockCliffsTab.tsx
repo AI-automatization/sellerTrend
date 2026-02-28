@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { signalsApi } from '../../api/client';
 import { logError } from '../../utils/handleError';
+import { useI18n } from '../../i18n/I18nContext';
 import { SectionCard } from './SectionCard';
 import { SectionHeader } from './SectionHeader';
 import { EmptyState } from './EmptyState';
@@ -8,6 +9,7 @@ import { LoadingSpinner } from './LoadingSpinner';
 import type { StockCliffItem } from './types';
 
 export function StockCliffsTab() {
+  const { t } = useI18n();
   const [data, setData] = useState<StockCliffItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,11 +27,11 @@ export function StockCliffsTab() {
   return (
     <SectionCard>
       <SectionHeader
-        title="Stock Cliff Alert"
-        desc="Zaxira tugashiga yaqin mahsulotlar"
+        title={t('signals.stock.title')}
+        desc={t('signals.stock.desc')}
       />
       {data.length === 0 ? (
-        <EmptyState text="Stock cliff xavfi yo'q" />
+        <EmptyState text={t('signals.stock.empty')} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {data.map((item) => (
@@ -39,8 +41,8 @@ export function StockCliffsTab() {
                 <span className={`badge ${sevColor(item.severity)} badge-sm`}>{item.severity}</span>
               </div>
               <div className="flex gap-4 text-xs text-base-content/60">
-                <span>Tezlik: <b>{item.current_velocity}</b>/kun</span>
-                <span>~<b className={item.estimated_days_left <= 7 ? 'text-error' : ''}>{item.estimated_days_left}</b> kun qoldi</span>
+                <span>{t('signals.stock.velocity')} <b>{item.current_velocity}</b>/kun</span>
+                <span>{t('signals.stock.daysLeft').replace('{n}', String(item.estimated_days_left)).replace('~', '~')}</span>
               </div>
             </div>
           ))}

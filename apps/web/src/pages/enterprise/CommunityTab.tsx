@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { communityApi } from '../../api/client';
 import { SectionCard, SectionHeader, Loading, EmptyState } from './shared';
 import { logError, toastError } from '../../utils/handleError';
+import { useI18n } from '../../i18n/I18nContext';
 
 interface Insight {
   id: string;
@@ -14,6 +15,7 @@ interface Insight {
 }
 
 export function CommunityTab() {
+  const { t } = useI18n();
   const [insights, setInsights] = useState<Insight[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,29 +57,29 @@ export function CommunityTab() {
   return (
     <SectionCard>
       <SectionHeader
-        title="Jamiyat Intellekti"
-        desc="Bozor haqidagi bilimlar va tajribalarni ulashing"
+        title={t('community.title')}
+        desc={t('community.desc')}
       />
 
       {/* Create insight */}
       <div className="rounded-xl bg-base-300/40 border border-base-300/30 p-4 mb-6">
-        <p className="text-xs text-base-content/50 mb-3">Yangi fikr ulashish</p>
+        <p className="text-xs text-base-content/50 mb-3">{t('community.newPostBtn')}</p>
         <div className="flex flex-wrap gap-2 mb-2">
-          <input className="input input-bordered input-sm flex-1 min-w-40" placeholder="Sarlavha" value={form.title}
+          <input className="input input-bordered input-sm flex-1 min-w-40" placeholder={t('community.form.title')} value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          <input className="input input-bordered input-sm w-36" placeholder="Kategoriya" value={form.category}
+          <input className="input input-bordered input-sm w-36" placeholder={t('community.form.category')} value={form.category}
             onChange={(e) => setForm({ ...form, category: e.target.value })} />
           <button className="btn btn-primary btn-sm" onClick={create} disabled={creating}>
-            {creating ? <span className="loading loading-spinner loading-xs" /> : 'Yuborish'}
+            {creating ? <span className="loading loading-spinner loading-xs" /> : t('community.submitBtn')}
           </button>
         </div>
-        <textarea className="textarea textarea-bordered w-full textarea-sm" rows={2} placeholder="Fikringizni yozing..."
+        <textarea className="textarea textarea-bordered w-full textarea-sm" rows={2} placeholder={t('community.form.content')}
           value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} />
       </div>
 
       {/* Category filter */}
       <div className="flex gap-1 mb-4 flex-wrap">
-        <button className={`btn btn-xs ${!filter ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setFilter('')}>Hammasi</button>
+        <button className={`btn btn-xs ${!filter ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setFilter('')}>{t('community.filterAll')}</button>
         {categories.map((cat) => (
           <button key={cat} className={`btn btn-xs ${filter === cat ? 'btn-primary' : 'btn-ghost'}`}
             onClick={() => setFilter(cat)}>{cat}</button>
@@ -86,7 +88,7 @@ export function CommunityTab() {
 
       {/* Insights list */}
       {insights.length === 0 ? (
-        <EmptyState text="Hali fikrlar yo'q — birinchi bo'ling!" icon="💡" />
+        <EmptyState text={t('community.empty')} icon="💡" />
       ) : (
         <div className="space-y-3">
           {insights.map((ins) => (

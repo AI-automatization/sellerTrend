@@ -4,8 +4,10 @@ import { logError } from '../../utils/handleError';
 import type { SourcingJob, SourcingJobDetail } from './types';
 import { StatusBadge } from './StatusBadge';
 import { SourcingResultCard } from './SourcingResultCard';
+import { useI18n } from '../../i18n/I18nContext';
 
 export function JobsList() {
+  const { t } = useI18n();
   const [jobs, setJobs] = useState<SourcingJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedJob, setSelectedJob] = useState<SourcingJobDetail | null>(null);
@@ -28,7 +30,7 @@ export function JobsList() {
   if (selectedJob) {
     return (
       <div className="space-y-4">
-        <button onClick={() => setSelectedJob(null)} className="btn btn-ghost btn-sm">&larr; Orqaga</button>
+        <button onClick={() => setSelectedJob(null)} className="btn btn-ghost btn-sm">{t('sourcing.jobs.backBtn')}</button>
 
         <div className="card bg-base-200/60 border border-base-300/50 rounded-2xl">
           <div className="card-body">
@@ -36,7 +38,7 @@ export function JobsList() {
               <StatusBadge status={selectedJob.status} />
               <h2 className="card-title text-lg flex-1">{selectedJob.query}</h2>
               <span className="text-sm text-base-content/50">
-                {selectedJob.results.length} natija
+                {t('sourcing.jobs.resultsCount').replace('{n}', String(selectedJob.results.length))}
               </span>
             </div>
           </div>
@@ -52,24 +54,24 @@ export function JobsList() {
   if (jobs.length === 0) return (
     <div className="text-center py-20 text-base-content/40">
       <p className="text-5xl mb-4">📊</p>
-      <p>Hali qidiruvlar yo'q</p>
-      <p className="text-sm mt-1">"Import Tahlil" tabidan birinchi qidiruvni boshlang</p>
+      <p>{t('sourcing.jobs.empty')}</p>
+      <p className="text-sm mt-1">{t('sourcing.jobs.emptyHint')}</p>
     </div>
   );
 
   return (
     <div className="card bg-base-200/60 border border-base-300/50 rounded-2xl">
       <div className="card-body">
-        <h2 className="card-title text-lg">Qidiruvlar Tarixi</h2>
+        <h2 className="card-title text-lg">{t('sourcing.jobs.historyTitle')}</h2>
         <div className="overflow-x-auto">
           <table className="table table-sm">
             <thead>
               <tr>
-                <th>So'rov</th>
-                <th>Status</th>
-                <th>Natijalar</th>
-                <th>Platformalar</th>
-                <th>Sana</th>
+                <th>{t('sourcing.jobs.col.query')}</th>
+                <th>{t('sourcing.jobs.col.status')}</th>
+                <th>{t('sourcing.jobs.col.results')}</th>
+                <th>{t('sourcing.jobs.col.platforms')}</th>
+                <th>{t('sourcing.jobs.col.date')}</th>
                 <th></th>
               </tr>
             </thead>
@@ -85,7 +87,7 @@ export function JobsList() {
                   </td>
                   <td>
                     <button onClick={() => viewJob(j.id)} className="btn btn-ghost btn-xs">
-                      Ko'rish
+                      {t('sourcing.jobs.viewBtn')}
                     </button>
                   </td>
                 </tr>

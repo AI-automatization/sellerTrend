@@ -105,7 +105,7 @@ export function LeaderboardPage() {
                     <tr>
                       <th className="w-12">#</th>
                       <th>{t('leaderboard.product')}</th>
-                      <th className="text-right">Score</th>
+                      <th className="text-right">{t('leaderboard.score')}</th>
                       <th className="text-right">{t('leaderboard.weekly')}</th>
                       <th className="text-right">{t('leaderboard.price')}</th>
                     </tr>
@@ -133,7 +133,7 @@ export function LeaderboardPage() {
                           ) : '—'}
                         </td>
                         <td className="text-right tabular-nums text-xs text-base-content/60">
-                          {item.sell_price ? `${item.sell_price.toLocaleString()} so'm` : '—'}
+                          {item.sell_price ? `${item.sell_price.toLocaleString()} ${t('common.som')}` : '—'}
                         </td>
                       </tr>
                     ))}
@@ -173,7 +173,7 @@ export function LeaderboardPage() {
                         </Link>
                         <ScoreBadge score={item.score} />
                         <span className="text-xs text-base-content/50 tabular-nums w-16 text-right">
-                          {item.weekly_bought?.toLocaleString() ?? '—'}/hft
+                          {item.weekly_bought?.toLocaleString() ?? '—'}{t('common.perWeek')}
                         </span>
                       </div>
                     ))}

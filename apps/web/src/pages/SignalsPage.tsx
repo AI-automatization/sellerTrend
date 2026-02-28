@@ -19,6 +19,19 @@ export function SignalsPage() {
   const [tab, setTab] = useState<Tab>('cannibalization');
   const { t } = useI18n();
 
+  const tabLabel = (key: Tab): string => ({
+    'cannibalization': t('signals.tab.cannibalization'),
+    'dead-stock': t('signals.tab.deadStock'),
+    'saturation': t('signals.tab.saturation'),
+    'flash-sales': t('signals.tab.flashSale'),
+    'early-signals': t('signals.tab.earlySignal'),
+    'stock-cliffs': t('signals.tab.stockAlert'),
+    'ranking': t('signals.tab.ranking'),
+    'checklist': t('signals.tab.checklist'),
+    'price-test': t('signals.tab.priceTest'),
+    'replenishment': t('signals.tab.replenishment'),
+  } as Record<Tab, string>)[key] ?? key;
+
   return (
     <div className="w-full space-y-4 lg:space-y-6">
       {/* Header */}
@@ -48,7 +61,7 @@ export function SignalsPage() {
         >
           {TABS.map((tabItem) => (
             <option key={tabItem.key} value={tabItem.key}>
-              {tabItem.emoji} {tabItem.label}
+              {tabItem.emoji} {tabLabel(tabItem.key)}
             </option>
           ))}
         </select>

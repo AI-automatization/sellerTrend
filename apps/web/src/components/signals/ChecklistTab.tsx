@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { signalsApi } from '../../api/client';
 import { logError, toastError } from '../../utils/handleError';
+import { useI18n } from '../../i18n/I18nContext';
 import { SectionCard } from './SectionCard';
 import { LoadingSpinner } from './LoadingSpinner';
 import type { ChecklistData } from './types';
 
 export function ChecklistTab() {
+  const { t } = useI18n();
   const [checklist, setChecklist] = useState<ChecklistData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -51,10 +53,15 @@ export function ChecklistTab() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-lg lg:text-xl font-bold">{checklist.title}</h2>
-          <p className="text-base-content/50 text-sm">{done}/{total} bajarildi ({pct}%)</p>
+          <p className="text-base-content/50 text-sm">
+            {t('signals.checklist.progress')
+              .replace('{done}', String(done))
+              .replace('{total}', String(total))
+              .replace('{pct}', String(pct))}
+          </p>
         </div>
         <button className="btn btn-primary btn-sm" onClick={saveChecklist} disabled={saving}>
-          {saving ? <span className="loading loading-spinner loading-xs" /> : 'Saqlash'}
+          {saving ? <span className="loading loading-spinner loading-xs" /> : t('common.save')}
         </button>
       </div>
       <progress className="progress progress-primary w-full h-2 mb-5" value={pct} max="100" />

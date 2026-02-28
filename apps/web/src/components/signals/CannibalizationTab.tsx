@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { signalsApi } from '../../api/client';
 import { logError } from '../../utils/handleError';
+import { useI18n } from '../../i18n/I18nContext';
 import { SectionCard } from './SectionCard';
 import { SectionHeader } from './SectionHeader';
 import { EmptyState } from './EmptyState';
@@ -8,6 +9,7 @@ import { LoadingSpinner } from './LoadingSpinner';
 import type { CannibalizationPair } from './types';
 
 export function CannibalizationTab() {
+  const { t } = useI18n();
   const [data, setData] = useState<CannibalizationPair[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -23,20 +25,20 @@ export function CannibalizationTab() {
   return (
     <SectionCard>
       <SectionHeader
-        title="Kannibalizatsiya Ogohlantirishi"
-        desc="Sizning mahsulotlaringiz bir-birining bozorini yeyaptimi?"
+        title={t('signals.cann.title')}
+        desc={t('signals.cann.desc')}
       />
       {data.length === 0 ? (
-        <EmptyState text="Kannibalizatsiya aniqlanmadi — yaxshi!" />
+        <EmptyState text={t('signals.cann.empty')} />
       ) : (
         <div className="overflow-x-auto">
           <table className="table table-sm">
             <thead>
               <tr className="text-xs text-base-content/40 uppercase">
-                <th>Mahsulot A</th>
-                <th>Mahsulot B</th>
-                <th className="text-center">Overlap</th>
-                <th>Sabab</th>
+                <th>{t('signals.cann.col.productA')}</th>
+                <th>{t('signals.cann.col.productB')}</th>
+                <th className="text-center">{t('signals.cann.col.overlap')}</th>
+                <th>{t('signals.cann.col.reason')}</th>
               </tr>
             </thead>
             <tbody>

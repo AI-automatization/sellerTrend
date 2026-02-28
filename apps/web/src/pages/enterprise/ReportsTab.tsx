@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { reportsApi } from '../../api/client';
 import { SectionCard, SectionHeader, Loading, EmptyState } from './shared';
 import { logError, toastError } from '../../utils/handleError';
+import { useI18n } from '../../i18n/I18nContext';
 
 interface Report {
   id: string;
@@ -30,6 +31,7 @@ interface MarketShareData {
 }
 
 export function ReportsTab() {
+  const { t } = useI18n();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ title: '', report_type: 'product' });
@@ -65,9 +67,9 @@ export function ReportsTab() {
 
   function downloadMarketShareCSV(data: MarketShareData) {
     if (!data.shops?.length) return;
-    const header = 'Do\'kon,Mahsulotlar,Haftalik sotuv,Bozor ulushi (%)';
+    const header = `${t('reports.market.col.shop')},${t('reports.market.col.products')},${t('reports.market.col.sales')},${t('reports.market.col.share')} (%)`;
     const rows = data.shops.map((s) =>
-      `"${s.name || "Noma'lum"}",${s.product_count},${s.total_sales},${s.market_share_pct}`
+      `"${s.name || t('common.unknown')}",${s.product_count},${s.total_sales},${s.market_share_pct}`
     );
     const csv = [header, ...rows].join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -85,23 +87,23 @@ export function ReportsTab() {
     <div className="space-y-4">
       <SectionCard>
         <SectionHeader
-          title="Hisobot Yaratish"
-          desc="Custom hisobotlar yarating va generatsiya qiling"
+          title={t('reports.create.title')}
+          desc={t('reports.create.desc')}
         />
 
         <div className="rounded-xl bg-base-300/40 border border-base-300/30 p-4 mb-4">
-          <p className="text-xs text-base-content/50 mb-3">Yangi hisobot</p>
+          <p className="text-xs text-base-content/50 mb-3">{t('reports.form.sectionTitle')}</p>
           <div className="flex flex-wrap gap-2">
-            <input className="input input-bordered input-sm flex-1 min-w-40" placeholder="Hisobot nomi" value={form.title}
+            <input className="input input-bordered input-sm flex-1 min-w-40" placeholder={t('reports.form.titlePlaceholder')} value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })} />
             <select className="select select-bordered select-sm" value={form.report_type}
               onChange={(e) => setForm({ ...form, report_type: e.target.value })}>
-              <option value="product">Mahsulot</option>
-              <option value="category">Kategoriya</option>
-              <option value="market">Bozor</option>
+              <option value="product">{t('reports.form.type.product')}</option>
+              <option value="category">{t('reports.form.type.category')}</option>
+              <option value="market">{t('reports.form.type.market')}</option>
             </select>
             <button className="btn btn-primary btn-sm" onClick={createReport} disabled={creating}>
-              {creating ? <span className="loading loading-spinner loading-xs" /> : 'Yaratish'}
+              {creating ? <span className="loading loading-spinner loading-xs" /> : t('reports.form.createBtn')}
             </button>
           </div>
         </div>
@@ -111,9 +113,9 @@ export function ReportsTab() {
             <table className="table table-sm">
               <thead>
                 <tr className="text-xs text-base-content/40 uppercase">
-                  <th>Nomi</th>
-                  <th>Turi</th>
-                  <th>Sana</th>
+                  <th>{t('reports.col.name')}</th>
+                  <th>{t('reports.col.type')}</th>
+                  <th>{t('reports.col.date')}</th>
                   <th />
                 </tr>
               </thead>
@@ -123,7 +125,7 @@ export function ReportsTab() {
                     <td className="text-sm font-medium">{r.title}</td>
                     <td><span className="badge badge-sm badge-outline">{r.report_type}</span></td>
                     <td className="text-xs text-base-content/40">{new Date(r.created_at).toLocaleDateString()}</td>
-                    <td><button className="btn btn-xs btn-ghost text-info" onClick={() => generateReport(r.id)}>Generatsiya</button></td>
+                    <td><button className="btn btn-xs btn-ghost text-info" onClick={() => generateReport(r.id)}>{t('reports.generateBtn')}</button></td>
                   </tr>
                 ))}
               </tbody>
@@ -134,7 +136,7 @@ export function ReportsTab() {
         {generated && (
           <div className="rounded-xl bg-base-300/40 border border-base-300/30 p-4 mt-4">
             <h3 className="font-bold text-sm mb-2">{generated.title}</h3>
-            <p className="text-xs text-base-content/40 mb-3">Yaratildi: {generated.generated_at}</p>
+            <p className="text-xs text-base-content/40 mb-3">{t('reports.generatedAt')} {generated.generated_at}</p>
             <div className="overflow-x-auto">
               <table className="table table-xs">
                 <tbody>
@@ -155,17 +157,17 @@ export function ReportsTab() {
       {/* Market Share */}
       <SectionCard>
         <SectionHeader
-          title="Bozor Ulushi"
-          desc="Kategoriya bo'yicha do'konlar bozor ulushi"
+          title={t('reports.market.title')}
+          desc={t('reports.market.desc')}
         />
         <div className="flex flex-wrap gap-2 mb-4">
-          <input className="input input-bordered input-sm w-40" placeholder="Kategoriya ID" value={marketCatId}
+          <input className="input input-bordered input-sm w-40" placeholder={t('reports.market.categoryIdPlaceholder')} value={marketCatId}
             onChange={(e) => setMarketCatId(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && loadMarketShare()} />
-          <button className="btn btn-sm btn-primary" onClick={loadMarketShare}>Hisoblash</button>
+          <button className="btn btn-sm btn-primary" onClick={loadMarketShare}>{t('reports.market.calculateBtn')}</button>
           {marketData && marketData.shops && marketData.shops.length > 0 && (
             <button className="btn btn-sm btn-outline gap-1" onClick={() => downloadMarketShareCSV(marketData!)}>
-              📥 CSV yuklab olish
+              📥 {t('reports.market.csvBtn')}
             </button>
           )}
         </div>
@@ -173,26 +175,26 @@ export function ReportsTab() {
           <div>
             <div className="flex gap-4 text-sm mb-4">
               <div className="rounded-xl bg-base-300/40 border border-base-300/30 px-4 py-2">
-                Jami mahsulot: <strong>{marketData.total_products}</strong>
+                {t('reports.market.totalProducts')} <strong>{marketData.total_products}</strong>
               </div>
               <div className="rounded-xl bg-base-300/40 border border-base-300/30 px-4 py-2">
-                Jami sotuv: <strong>{marketData.total_sales}</strong>/hafta
+                {t('reports.market.totalSales')} <strong>{marketData.total_sales}</strong>{t('reports.market.perWeek')}
               </div>
             </div>
             <div className="overflow-x-auto">
               <table className="table table-sm">
                 <thead>
                   <tr className="text-xs text-base-content/40 uppercase">
-                    <th>Do'kon</th>
-                    <th className="text-right">Mahsulotlar</th>
-                    <th className="text-right">Sotuv</th>
-                    <th>Ulush</th>
+                    <th>{t('reports.market.col.shop')}</th>
+                    <th className="text-right">{t('reports.market.col.products')}</th>
+                    <th className="text-right">{t('reports.market.col.sales')}</th>
+                    <th>{t('reports.market.col.share')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {marketData.shops?.slice(0, 20).map((s, i) => (
                     <tr key={i} className="hover:bg-base-300/20 transition-colors">
-                      <td className="text-sm">{s.name || "Noma'lum"}</td>
+                      <td className="text-sm">{s.name || t('common.unknown')}</td>
                       <td className="text-right tabular-nums text-sm">{s.product_count}</td>
                       <td className="text-right tabular-nums text-sm">{s.total_sales}</td>
                       <td>
@@ -208,7 +210,7 @@ export function ReportsTab() {
             </div>
           </div>
         ) : (
-          <EmptyState text="Kategoriya ID kiritib, bozor ulushini hisoblang" icon="📊" />
+          <EmptyState text={t('reports.market.empty')} icon="📊" />
         )}
       </SectionCard>
     </div>

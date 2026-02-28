@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { signalsApi } from '../../api/client';
 import { logError, toastError } from '../../utils/handleError';
+import { useI18n } from '../../i18n/I18nContext';
 import { SectionCard } from './SectionCard';
 import { SectionHeader } from './SectionHeader';
 import { EmptyState } from './EmptyState';
@@ -8,6 +9,7 @@ import { LoadingSpinner } from './LoadingSpinner';
 import type { PriceTestItem } from './types';
 
 export function PriceTestTab() {
+  const { t } = useI18n();
   const [tests, setTests] = useState<PriceTestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ product_id: '', original_price: '', test_price: '' });
@@ -53,81 +55,81 @@ export function PriceTestTab() {
   return (
     <SectionCard>
       <SectionHeader
-        title="A/B Narx Testlash"
-        desc="Turli narxlarni sinab, eng yaxshisini toping"
+        title={t('signals.price.title')}
+        desc={t('signals.price.desc')}
       />
 
       {/* Create form */}
       <div className="rounded-xl bg-base-300/40 border border-base-300/30 p-4 mb-6">
-        <p className="text-xs text-base-content/50 mb-3">Yangi test yaratish</p>
+        <p className="text-xs text-base-content/50 mb-3">{t('signals.price.newTestLabel')}</p>
         <div className="flex flex-wrap gap-2">
           <input
             type="text"
             className="input input-bordered input-sm w-36"
-            placeholder="Product ID"
+            placeholder={t('signals.price.placeholder')}
             value={form.product_id}
             onChange={(e) => setForm({ ...form, product_id: e.target.value })}
           />
           <input
             type="number"
             className="input input-bordered input-sm w-36"
-            placeholder="Asl narx"
+            placeholder={t('signals.price.originalPlaceholder')}
             value={form.original_price}
             onChange={(e) => setForm({ ...form, original_price: e.target.value })}
           />
           <input
             type="number"
             className="input input-bordered input-sm w-36"
-            placeholder="Test narx"
+            placeholder={t('signals.price.testPlaceholder')}
             value={form.test_price}
             onChange={(e) => setForm({ ...form, test_price: e.target.value })}
           />
           <button className="btn btn-primary btn-sm" onClick={createTest} disabled={creating}>
-            {creating ? <span className="loading loading-spinner loading-xs" /> : 'Yaratish'}
+            {creating ? <span className="loading loading-spinner loading-xs" /> : t('signals.price.createBtn')}
           </button>
         </div>
       </div>
 
       {tests.length === 0 ? (
-        <EmptyState text="Hali test yo'q — yuqorida yangi test yarating" />
+        <EmptyState text={t('signals.price.empty')} />
       ) : (
         <div className="overflow-x-auto">
           <table className="table table-sm">
             <thead>
               <tr className="text-xs text-base-content/40 uppercase">
-                <th>Mahsulot</th>
-                <th className="text-right">Asl narx</th>
-                <th className="text-right">Test narx</th>
-                <th className="text-center">Status</th>
-                <th className="text-right">Asl sotuv</th>
-                <th className="text-right">Test sotuv</th>
-                <th>Amallar</th>
+                <th>{t('signals.price.col.product')}</th>
+                <th className="text-right">{t('signals.price.col.originalPrice')}</th>
+                <th className="text-right">{t('signals.price.col.testPrice')}</th>
+                <th className="text-center">{t('signals.price.col.status')}</th>
+                <th className="text-right">{t('signals.price.col.originalSales')}</th>
+                <th className="text-right">{t('signals.price.col.testSales')}</th>
+                <th>{t('signals.price.col.actions')}</th>
               </tr>
             </thead>
             <tbody>
-              {tests.map((t) => (
-                <tr key={t.id} className="hover:bg-base-300/20 transition-colors">
-                  <td className="max-w-[150px] truncate text-sm">{t.product_title || `#${t.product_id}`}</td>
-                  <td className="text-right tabular-nums text-sm">{Number(t.original_price).toLocaleString()}</td>
-                  <td className="text-right tabular-nums text-sm">{Number(t.test_price).toLocaleString()}</td>
-                  <td className="text-center"><span className={`badge ${statusColor(t.status)} badge-sm`}>{t.status}</span></td>
-                  <td className="text-right tabular-nums text-sm">{t.original_sales ?? '\u2014'}</td>
-                  <td className="text-right tabular-nums text-sm">{t.test_sales ?? '\u2014'}</td>
+              {tests.map((test) => (
+                <tr key={test.id} className="hover:bg-base-300/20 transition-colors">
+                  <td className="max-w-[150px] truncate text-sm">{test.product_title || `#${test.product_id}`}</td>
+                  <td className="text-right tabular-nums text-sm">{Number(test.original_price).toLocaleString()}</td>
+                  <td className="text-right tabular-nums text-sm">{Number(test.test_price).toLocaleString()}</td>
+                  <td className="text-center"><span className={`badge ${statusColor(test.status)} badge-sm`}>{test.status}</span></td>
+                  <td className="text-right tabular-nums text-sm">{test.original_sales ?? '\u2014'}</td>
+                  <td className="text-right tabular-nums text-sm">{test.test_sales ?? '\u2014'}</td>
                   <td>
                     <div className="flex gap-1">
-                      {t.status === 'PLANNED' && (
-                        <button className="btn btn-xs btn-success" onClick={() => updateStatus(t.id, 'RUNNING')}>
-                          Boshlash
+                      {test.status === 'PLANNED' && (
+                        <button className="btn btn-xs btn-success" onClick={() => updateStatus(test.id, 'RUNNING')}>
+                          {t('signals.price.startBtn')}
                         </button>
                       )}
-                      {t.status === 'RUNNING' && (
-                        <button className="btn btn-xs btn-info" onClick={() => updateStatus(t.id, 'COMPLETED')}>
-                          Tugatish
+                      {test.status === 'RUNNING' && (
+                        <button className="btn btn-xs btn-info" onClick={() => updateStatus(test.id, 'COMPLETED')}>
+                          {t('signals.price.endBtn')}
                         </button>
                       )}
-                      {(t.status === 'PLANNED' || t.status === 'RUNNING') && (
-                        <button className="btn btn-xs btn-ghost text-error" onClick={() => updateStatus(t.id, 'CANCELLED')}>
-                          Bekor
+                      {(test.status === 'PLANNED' || test.status === 'RUNNING') && (
+                        <button className="btn btn-xs btn-ghost text-error" onClick={() => updateStatus(test.id, 'CANCELLED')}>
+                          {t('signals.price.cancelBtn')}
                         </button>
                       )}
                     </div>
