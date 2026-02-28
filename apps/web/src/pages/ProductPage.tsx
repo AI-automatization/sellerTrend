@@ -54,6 +54,9 @@ export function ProductPage() {
   const [error, setError] = useState('');
   const [tracked, setTracked] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [isMine, setIsMine] = useState(() => {
+    try { return localStorage.getItem(`mine_${id}`) === '1'; } catch { return false; }
+  });
 
   const [extItems, setExtItems] = useState<ExternalItem[]>([]);
   const [extLoading, setExtLoading] = useState(false);
@@ -158,7 +161,14 @@ export function ProductPage() {
     setMlForecast(null);
     setTrendAnalysis(null);
     setWeeklyTrend(null);
+    try { setIsMine(localStorage.getItem(`mine_${id}`) === '1'); } catch { /* ignore */ }
   }, [id]);
+
+  function toggleMine() {
+    const next = !isMine;
+    setIsMine(next);
+    try { next ? localStorage.setItem(`mine_${id}`, '1') : localStorage.removeItem(`mine_${id}`); } catch { /* ignore */ }
+  }
 
   async function handleTrack() {
     if (!id) return;
@@ -216,6 +226,7 @@ export function ProductPage() {
             <div className="flex flex-wrap items-center gap-2">
               <span className="badge badge-outline text-xs font-mono">#{result.product_id}</span>
               <span className={`text-xs font-medium ${scoreLevel.color}`}>{scoreLevel.text}</span>
+              {isMine && <span className="badge badge-secondary badge-sm">🏪 {t('product.markedMine')}</span>}
               {refreshing && <span className="loading loading-spinner loading-xs text-primary" />}
             </div>
             <h1 className="font-bold text-xl lg:text-2xl leading-snug">{result.title}</h1>
@@ -232,6 +243,10 @@ export function ProductPage() {
           <button onClick={handleTrack} disabled={tracked}
             className={`btn btn-sm gap-2 ${tracked ? 'btn-success' : 'btn-outline btn-success'}`}>
             {tracked ? t('product.tracking') : t('product.addTracking')}
+          </button>
+          <button onClick={toggleMine}
+            className={`btn btn-sm gap-2 ${isMine ? 'btn-secondary' : 'btn-outline btn-secondary'}`}>
+            🏪 {isMine ? t('product.markedMine') : t('product.markMine')}
           </button>
           <button onClick={() => loadData(true)} disabled={refreshing} className="btn btn-sm btn-outline gap-2">
             {refreshing ? <span className="loading loading-spinner loading-xs" /> : '↻'} {t('product.refresh')}
@@ -341,12 +356,7 @@ export function ProductPage() {
                     derivedTrend === 'up' ? 'text-success' : derivedTrend === 'down' ? 'text-error' : 'text-base-content'
                   }`}>{forecast.forecast_7d.toFixed(2)}</p>
                 </div>
-                <TrendBadge trend={derivedTrend} />
-                {changePct !== 0 && (
-                  <span className={`text-xs font-semibold ${changePct > 0 ? 'text-success' : 'text-error'}`}>
-                    {changePct > 0 ? '+' : ''}{(changePct * 100).toFixed(1)}%
-                  </span>
-                )}
+                <TrendBadge trend={derivedTrend} changePct={changePct !== 0 ? changePct : undefined} />
               </div>
             );
           })()}
@@ -636,24 +646,39 @@ export function ProductPage() {
         </div>
       )}
 
-      {/* AI Explanation */}
-      {result.ai_explanation && result.ai_explanation.length > 0 && (
-        <div className="rounded-2xl bg-base-200/60 border border-primary/20 p-4 lg:p-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">🤖</span>
-            <h2 className="font-bold text-base lg:text-lg">{t('product.aiAnalysis')}</h2>
-            <span className="badge badge-primary badge-sm ml-auto">AI</span>
+      {/* AI Explanation — T-193b: filter + structured 3-bullet display */}
+      {result.ai_explanation && result.ai_explanation.filter((b) => typeof b === 'string' && b.trim().length > 0).length > 0 && (() => {
+        const bullets = result.ai_explanation!.filter((b) => typeof b === 'string' && b.trim().length > 0);
+        const bulletMeta = [
+          { icon: '📌', label: t('product.ai.bullet.1'), color: 'text-info' },
+          { icon: '🎯', label: t('product.ai.bullet.2'), color: 'text-success' },
+          { icon: '⚠️', label: t('product.ai.bullet.3'), color: 'text-warning' },
+        ];
+        return (
+          <div className="rounded-2xl bg-base-200/60 border border-primary/20 p-4 lg:p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🤖</span>
+              <h2 className="font-bold text-base lg:text-lg">{t('product.aiAnalysis')}</h2>
+              {isMine && <span className="badge badge-secondary badge-sm">🏪</span>}
+              <span className="badge badge-primary badge-sm ml-auto">AI</span>
+            </div>
+            <ul className="space-y-3">
+              {bullets.map((bullet, i) => {
+                const meta = bulletMeta[i] ?? { icon: '💡', label: String(i + 1), color: '' };
+                return (
+                  <li key={i} className="flex items-start gap-3 text-sm bg-base-300/60 rounded-xl p-3">
+                    <span className="text-lg shrink-0 mt-0.5">{meta.icon}</span>
+                    <div className="flex-1">
+                      <span className={`text-xs font-bold uppercase tracking-wide ${meta.color} mr-2`}>{meta.label}</span>
+                      <span>{bullet}</span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
-          <ul className="space-y-3">
-            {result.ai_explanation.map((bullet, i) => (
-              <li key={i} className="flex items-start gap-3 text-sm bg-base-300/60 rounded-xl p-3">
-                <span className="text-primary font-bold mt-0.5 shrink-0">{i + 1}.</span>
-                <span>{bullet}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Competitor Price Tracker — Feature 01 */}
       <CompetitorSection productId={String(result.product_id)} productPrice={result.sell_price} />
