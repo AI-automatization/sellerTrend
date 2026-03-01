@@ -71,6 +71,24 @@ export function sleep(ms: number): Promise<void> {
 // ============================================================
 
 /**
+ * Fallback for weekly_bought when calcWeeklyBought returns null (T-268).
+ * Prevents score instability: without this, null weekly_bought → 55% of score = 0.
+ * Returns calculated value if non-null, otherwise last valid snapshot weekly_bought.
+ */
+export function weeklyBoughtWithFallback(
+  calculated: number | null,
+  snapshots: Array<{ weekly_bought?: number | null }>,
+): number | null {
+  if (calculated != null) return calculated;
+  for (const snap of snapshots) {
+    if (snap.weekly_bought != null && snap.weekly_bought > 0) {
+      return snap.weekly_bought;
+    }
+  }
+  return null;
+}
+
+/**
  * Central weekly_bought calculator — 7-day lookback, 24h minimum gap.
  * Replaces all scattered inline calculations across the codebase.
  *

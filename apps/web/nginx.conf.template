@@ -19,6 +19,10 @@ server {
     gzip on;
     gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
 
+    # Block PWA artifacts — prevent SPA fallback from serving index.html as manifest/sw
+    location = /manifest.json { return 404; }
+    location = /sw.js { return 404; }
+
     # React SPA — all routes → index.html
     location / {
         try_files $uri $uri/ /index.html;

@@ -25,6 +25,13 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
     }
   }
 
+  // T-239: per-user rate limiting — JWT user ID agar mavjud bo'lsa, IP o'rniga user ID ishlatadi
+  protected async getTracker(req: Record<string, any>): Promise<string> {
+    // JWT auth guard req.user ga user ma'lumotlarini qo'shadi
+    if (req.user?.sub) return `user_${req.user.sub}`;
+    return this.extractClientIp(req);
+  }
+
   protected async shouldSkip(context: ExecutionContext): Promise<boolean> {
     if (this.whitelistedIps.size === 0) return false;
     const req = context.switchToHttp().getRequest();

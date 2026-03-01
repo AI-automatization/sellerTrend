@@ -7,22 +7,14 @@
 
 # OCHIQ BACKEND TASKLAR
 
-## P0 — KRITIK
-
-### T-267 | Snapshot deduplication yo'q — sekundiga 10+ snapshot | 1h
-### T-268 | Score instability — weekly_bought null → score 50% tushadi | 30min
-
 ## P1 — MUHIM
 
-### T-062 | Anthropic client lazy initialization | 20min
 ### T-241 | totalAvailableAmount Prisma schema + saqlash | 30min
 ### T-269 | Eski noto'g'ri snapshot data tozalash (weekly_bought > 5000) | 30min
 ### T-270 | Duplicate snapshot'larni tozalash (kuniga 1 ta qoldirish) | 15min
 ### T-214 | POST /uzum/batch-quick-score endpoint | 1h
 ### T-235 | Playwright bilan weekly_bought DOM scraping | 2h
 ### T-236 | parseWeeklyBought kengaytirish — "1,2 тыс" formatlar | 30min
-### T-265 | Enterprise page — 3 ta API endpoint 404 | 1h
-
 ## P2 — O'RTA
 
 ### T-239 | Per-user rate limiting — AI endpoint ThrottlerGuard | 30min
@@ -74,7 +66,7 @@
 
 | Kategoriya | Soni |
 |-----------|------|
-| Backend P0 | 2 |
+| Backend P0 | 0 |
 | Backend P1 | 8 |
 | Backend P2-P3 | 3 |
 | Ikkalasi | 3 |

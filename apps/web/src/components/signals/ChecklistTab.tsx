@@ -35,7 +35,7 @@ export function ChecklistTab() {
     setSaving(true);
     signalsApi.saveChecklist({
       title: checklist.title,
-      items: checklist.items,
+      items: checklist.items.map((item) => ({ text: item.label, checked: item.done })),
     }).then((r) => setChecklist({ ...checklist, id: r.data.id }))
       .catch((e) => toastError(e))
       .finally(() => setSaving(false));

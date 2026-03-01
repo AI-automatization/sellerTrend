@@ -338,8 +338,6 @@ export const uz: Record<string, string> = {
     'error.INTERNAL_ERROR': 'Serverda xato yuz berdi',
 
     // ── Discovery ──────────────────────────────────────────────────────────────
-    'discovery.title': 'Category Discovery',
-    'discovery.subtitle': 'Kategoriya skanerlash, mavsumiy trendlar va niche topish',
     'discovery.tab.scan': 'Skanerlash',
     'discovery.tab.seasonal': 'Mavsumiy Kalendar',
     'discovery.tab.niche': 'Niche Topish',
@@ -408,7 +406,6 @@ export const uz: Record<string, string> = {
     'discovery.seasonal.desc': "Qaysi oylarda qaysi trendlar kuchayishini ko'ring",
 
     // ── Signals ────────────────────────────────────────────────────────────────
-    'signals.subtitle': "v3.0 — Ogohlantirish va analitika signallari (Features 21-30)",
     'signals.tab.cannibalization': 'Kannibalizatsiya',
     'signals.tab.deadStock': 'Dead Stock',
     'signals.tab.saturation': 'Saturatsiya',
@@ -523,8 +520,6 @@ export const uz: Record<string, string> = {
     'signals.checklist.progress': '{done}/{total} bajarildi ({pct}%)',
 
     // ── Consultation ───────────────────────────────────────────────────────────
-    'consultation.title': 'Konsultatsiya',
-    'consultation.subtitle': "Uzum ekspertlaridan maslahat oling yoki o'zingiz xizmat ko'rsating",
     'consultation.newListingBtn': "+ E'lon berish",
     'consultation.tab.market': 'Bozor',
     'consultation.tab.myListings': "Mening e'lonlarim",
@@ -548,11 +543,8 @@ export const uz: Record<string, string> = {
     'consultation.booking.confirmBtn': 'Tasdiqlash',
     'consultation.empty.listings': "Hozircha e'lonlar yo'q",
     'consultation.empty.data': "Hali ma'lumot yo'q",
-    'consultation.pricePerMin': 'so\'m / {n} min',
 
     // ── Feedback ───────────────────────────────────────────────────────────────
-    'feedback.title': 'Feedback & Yordam',
-    'feedback.subtitle': "Savol, taklif yoki xatolik haqida yozing",
     'feedback.newTicketBtn': '+ Yangi ticket',
     'feedback.form.title': 'Yangi Ticket',
     'feedback.form.subject': 'Mavzu',
@@ -571,17 +563,12 @@ export const uz: Record<string, string> = {
     'feedback.status.inProgress': 'Jarayonda',
     'feedback.status.resolved': 'Hal qilindi',
     'feedback.status.closed': 'Yopildi',
-    'feedback.myTickets': 'Mening ticketlarim ({n})',
     'feedback.empty': "Hali ticket yo'q",
-    'feedback.selectTicket': "Ticket tanlang yoki yangi yarating",
-    'feedback.messagePlaceholder': 'Xabar yozing...',
     'feedback.messageCount': '{n} xabar',
     'feedback.senderAdmin': 'Admin',
     'feedback.senderYou': 'Siz',
 
     // ── Referral ───────────────────────────────────────────────────────────────
-    'referral.title': 'Referal tizimi',
-    'referral.subtitle': "Do'stlaringizni taklif qiling va bepul kunlar yutib oling",
     'referral.stat.invited': 'Taklif qilganlar',
     'referral.stat.active': 'Faollar',
     'referral.stat.earnedDays': 'Yutilgan kunlar',
@@ -596,10 +583,6 @@ export const uz: Record<string, string> = {
     'referral.codeCard.copyLink': 'Linkni nusxalash',
     'referral.codeCard.linkLabel': 'Referal link',
     'referral.howTitle': "Qanday ishlaydi?",
-    'referral.step1': 'Referal kodingizni yarating',
-    'referral.step2': "Linkni do'stlaringizga yuboring",
-    'referral.step3': "Ular ro'yxatdan o'tishadi",
-    'referral.step4': "Ikkalangiz 7 kun bepul foydalanasiz!",
     'referral.createBtn': 'Kod yaratish',
     'referral.creatingBtn': "Yaratilmoqda...",
 
@@ -711,9 +694,6 @@ export const uz: Record<string, string> = {
     'community.empty': "Hali fikrlar yo'q — birinchi bo'ling!",
 
     // ── Sourcing ───────────────────────────────────────────────────────────────
-    'sourcing.title': 'Sourcing Engine',
-    'sourcing.subtitle': "Xitoy / Yevropa narxlarini solishtiring, AI orqali eng yaxshi variantni toping",
-    'sourcing.ratesNotLoaded': "Kurslar yuklanmadi",
     'sourcing.refreshRatesBtn': 'CBU dan yangilash',
     'sourcing.tab.calculator': 'Kalkulyator',
     'sourcing.tab.quickSearch': 'Tez Qidirish',
@@ -803,7 +783,6 @@ export const uz: Record<string, string> = {
     // ── Product Page ───────────────────────────────────────────────────────────
     'product.loading.fetching': "Uzumdan ma'lumot olinmoqda...",
     'product.loading.analyzing': "Mahsulot yangilanmoqda va AI tahlil qilinmoqda",
-    'product.notFound': 'Mahsulot topilmadi',
     'product.backBtn': '← Orqaga',
     'product.score.weak': 'Zaif',
     'product.score.average': "O'rtacha",
@@ -861,8 +840,6 @@ export const uz: Record<string, string> = {
     'product.ai.bullet.3': 'Xavf',
     'product.markMine': 'Bu mening mahsulotim',
     'product.markedMine': 'Mening mahsulotim',
-    'product.scoreHistory': 'Score tarixi',
-    'product.salesHistory': 'Haftalik sotuvlar tarixi',
     'product.claudeAnalysis.title': 'Claude AI tahlili',
     'product.claudeAnalysis.badge': 'AI',
     'product.globalPrice.title': 'Global Bozor Taqqoslash',

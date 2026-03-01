@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { competitorApi } from '../../api/client';
-import type { TrackedCompetitor, CompetitorDiscoverItem } from '../../api/client';
+import type { CompetitorProduct, DiscoveredCompetitor } from '../../api/competitor';
 import { CompetitorPriceTable } from './CompetitorPriceTable';
 import { PriceComparisonChart } from './PriceComparisonChart';
 
@@ -12,8 +12,8 @@ interface Props {
 }
 
 export function CompetitorSection({ productId, ourPrice, ourTitle }: Props) {
-  const [tracked, setTracked] = useState<TrackedCompetitor[]>([]);
-  const [discovered, setDiscovered] = useState<CompetitorDiscoverItem[]>([]);
+  const [tracked, setTracked] = useState<CompetitorProduct[]>([]);
+  const [discovered, setDiscovered] = useState<DiscoveredCompetitor[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loadingTracked, setLoadingTracked] = useState(true);
   const [loadingDiscover, setLoadingDiscover] = useState(false);
@@ -25,7 +25,7 @@ export function CompetitorSection({ productId, ourPrice, ourTitle }: Props) {
     try {
       setLoadingTracked(true);
       const res = await competitorApi.getTracked(productId);
-      setTracked(res.data.competitors.filter((c) => c.is_active));
+      setTracked(res.data);
     } catch {
       // silent — raqiblar bo'lmasligi mumkin
     } finally {
@@ -42,8 +42,8 @@ export function CompetitorSection({ productId, ourPrice, ourTitle }: Props) {
     setLoadingDiscover(true);
     setError(null);
     try {
-      const res = await competitorApi.getPrices(productId);
-      setDiscovered(res.data.competitors);
+      const res = await competitorApi.discover(productId);
+      setDiscovered(res.data);
     } catch (err: unknown) {
       const message = axios.isAxiosError(err)
         ? (err.response?.data?.message as string) ?? err.message
@@ -68,7 +68,7 @@ export function CompetitorSection({ productId, ourPrice, ourTitle }: Props) {
     setIsTracking(true);
     setError(null);
     try {
-      await competitorApi.trackCompetitors(productId, Array.from(selected));
+      await competitorApi.track(productId, Array.from(selected).map(Number));
       setShowDiscover(false);
       setSelected(new Set());
       setDiscovered([]);
@@ -211,47 +211,54 @@ export function CompetitorSection({ productId, ourPrice, ourTitle }: Props) {
                       <th>Mahsulot</th>
                       <th className="text-right">Narx</th>
                       <th className="text-right">Farq</th>
-                      <th className="text-right">★</th>
+                      <th className="text-right">Buyurtmalar</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {discovered.map((c) => (
-                      <tr
-                        key={c.product_id}
-                        className={`hover cursor-pointer ${c.is_cheaper ? 'bg-error/5' : 'bg-success/5'}`}
-                        onClick={() => toggleSelect(c.product_id)}
-                      >
-                        <td>
-                          <input
-                            type="checkbox"
-                            className="checkbox checkbox-sm checkbox-primary"
-                            checked={selected.has(c.product_id)}
-                            onChange={() => toggleSelect(c.product_id)}
-                            onClick={(e) => e.stopPropagation()}
-                            aria-label={`${c.title} ni tanlash`}
-                          />
-                        </td>
-                        <td>
-                          <p className="font-medium text-sm truncate max-w-xs">{c.title}</p>
-                          <p className="text-xs text-base-content/30">#{c.product_id}</p>
-                        </td>
-                        <td className="text-right tabular-nums text-sm">
-                          {c.sell_price ? (
-                            <span className={`font-medium ${c.is_cheaper ? 'text-error' : 'text-success'}`}>
-                              {Number(c.sell_price).toLocaleString()} so'm
-                            </span>
-                          ) : '—'}
-                        </td>
-                        <td className="text-right tabular-nums text-xs">
-                          <span className={c.is_cheaper ? 'text-error' : 'text-success'}>
-                            {c.is_cheaper ? '↓' : '↑'} {Math.abs(c.price_diff_pct).toFixed(1)}%
-                          </span>
-                        </td>
-                        <td className="text-right text-sm text-yellow-400">
-                          ★ {c.rating.toFixed(1)}
-                        </td>
-                      </tr>
-                    ))}
+                    {discovered.map((c) => {
+                      const pid = String(c.product_id);
+                      const isCheaper = ourPrice !== null && c.sell_price < ourPrice;
+                      const diffPct = ourPrice ? ((c.sell_price - ourPrice) / ourPrice) * 100 : null;
+                      return (
+                        <tr
+                          key={pid}
+                          className={`hover cursor-pointer ${isCheaper ? 'bg-error/5' : 'bg-success/5'}`}
+                          onClick={() => toggleSelect(pid)}
+                        >
+                          <td>
+                            <input
+                              type="checkbox"
+                              className="checkbox checkbox-sm checkbox-primary"
+                              checked={selected.has(pid)}
+                              onChange={() => toggleSelect(pid)}
+                              onClick={(e) => e.stopPropagation()}
+                              aria-label={`${c.title} ni tanlash`}
+                            />
+                          </td>
+                          <td>
+                            <p className="font-medium text-sm truncate max-w-xs">{c.title}</p>
+                            <p className="text-xs text-base-content/30">#{c.product_id}</p>
+                          </td>
+                          <td className="text-right tabular-nums text-sm">
+                            {c.sell_price ? (
+                              <span className={`font-medium ${isCheaper ? 'text-error' : 'text-success'}`}>
+                                {c.sell_price.toLocaleString()} so'm
+                              </span>
+                            ) : '---'}
+                          </td>
+                          <td className="text-right tabular-nums text-xs">
+                            {diffPct !== null ? (
+                              <span className={isCheaper ? 'text-error' : 'text-success'}>
+                                {isCheaper ? '↓' : '↑'} {Math.abs(diffPct).toFixed(1)}%
+                              </span>
+                            ) : '---'}
+                          </td>
+                          <td className="text-right text-sm text-base-content/50">
+                            {c.orders_amount.toLocaleString()}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

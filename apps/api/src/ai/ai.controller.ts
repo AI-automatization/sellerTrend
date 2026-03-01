@@ -1,5 +1,6 @@
 import { Controller, Post, Get, Param, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -9,6 +10,8 @@ import { PrismaService } from '../prisma/prisma.service';
 @ApiTags('ai')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, BillingGuard)
+// T-239: AI endpoint'lar uchun per-user rate limiting — 20 req/min (global 120 o'rniga)
+@Throttle({ default: { ttl: 60000, limit: 20 } })
 @Controller('ai')
 export class AiController {
   constructor(
@@ -27,6 +30,7 @@ export class AiController {
   }
 
   /** Trigger attribute extraction for a product (idempotent, quota-checked) */
+  @Throttle({ default: { ttl: 60000, limit: 5 } }) // 5 req/min — Anthropic API call
   @Post('attributes/:productId/extract')
   async extractAttributes(
     @Param('productId') productId: string,

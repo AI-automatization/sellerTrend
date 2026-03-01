@@ -1,4 +1,3 @@
-import React from 'react';
 import { StatCard } from './AdminComponents';
 import type { SystemHealth, AiUsage, SystemErrors } from './adminTypes';
 

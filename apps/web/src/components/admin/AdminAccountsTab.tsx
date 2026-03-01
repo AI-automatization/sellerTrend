@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RoleBadge, StatusBadge, StatCard } from './AdminComponents';
+import { StatusBadge, StatCard } from './AdminComponents';
 import { ROLES, ROLE_META } from './adminTypes';
 import type { Account, User, Role } from './adminTypes';
 

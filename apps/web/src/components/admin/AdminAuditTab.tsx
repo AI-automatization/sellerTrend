@@ -1,4 +1,3 @@
-import React from 'react';
 import { RoleBadge } from './AdminComponents';
 import { ROLES, PERMISSIONS } from './adminTypes';
 import type { AuditEvent, DepositEntry } from './adminTypes';

@@ -3,6 +3,17 @@
 
 ---
 
+## P0 BACKEND FIX (Bekzod, 2026-02-28)
+
+| # | Task | Muammo | Fayl/Yechim |
+|---|------|--------|-------------|
+| T-267 | Snapshot deduplication | 3 joyda `productSnapshot.create()` — dedup yo'q, sekundiga 10+ snapshot | `SNAPSHOT_MIN_GAP_MS=5min` guard 3 faylda: uzum.service.ts, import.processor.ts, reanalysis.processor.ts |
+| T-268 | Score instability | `weekly_bought` null → `calculateScore()` 55% weight = 0 → score ~50% tushadi | `weeklyBoughtWithFallback()` helper — oxirgi valid snapshot'dan fallback. 3 caller yangilandi |
+| T-062 | Anthropic client lazy init | `new Anthropic()` modul yuklanganda — `ANTHROPIC_API_KEY` yo'q bo'lsa crash | `getAiClient()` lazy pattern — faqat kerak bo'lganda yaratadi |
+| T-265 | Enterprise 404 endpoints | Enterprise sahifa 3 ta API endpoint 404 qaytaradi | Tekshirish: 5 ta controller (ads, team, reports, watchlist, community) hammasi mavjud va registered — ALLAQACHON DONE |
+
+---
+
 ## TUZATILGAN BUGLAR (Sardor, 2026-02-27)
 
 | # | Task | Muammo | Fayl/Yechim |

@@ -7,6 +7,7 @@ import {
   calculateScore,
   getSupplyPressure,
   calcWeeklyBought,
+  weeklyBoughtWithFallback,
   sleep,
   SNAPSHOT_MIN_GAP_MS,
 } from '@uzum/utils';
@@ -109,10 +110,12 @@ export class UzumService {
     }
 
     // 5. Centralized weekly_bought: 7-day lookback, 24h minimum gap (T-207)
-    const weeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
+    // T-268: fallback to last valid snapshot when calcWeeklyBought returns null
+    const rawWeeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
+    const weeklyBought = weeklyBoughtWithFallback(rawWeeklyBought, recentSnapshots);
     this.logger.log(
-      `weekly_bought (T-207): product=${productId}, currentOrders=${currentOrders}, ` +
-      `snapshots=${recentSnapshots.length}, weeklyBought=${weeklyBought}`,
+      `weekly_bought (T-207/T-268): product=${productId}, currentOrders=${currentOrders}, ` +
+      `snapshots=${recentSnapshots.length}, raw=${rawWeeklyBought}, final=${weeklyBought}`,
     );
 
     // 5. Upsert SKUs

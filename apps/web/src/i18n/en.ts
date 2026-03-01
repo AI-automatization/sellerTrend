@@ -322,8 +322,6 @@ export const en: Record<string, string> = {
     'error.INTERNAL_ERROR': 'Server error',
 
     // ── Discovery ──────────────────────────────────────────────────────────────
-    'discovery.title': 'Category Discovery',
-    'discovery.subtitle': 'Scan categories, seasonal trends and find niches',
     'discovery.tab.scan': 'Scan',
     'discovery.tab.seasonal': 'Seasonal Calendar',
     'discovery.tab.niche': 'Niche Finder',
@@ -392,7 +390,6 @@ export const en: Record<string, string> = {
     'discovery.seasonal.desc': 'See which trends gain strength in each month',
 
     // ── Signals ────────────────────────────────────────────────────────────────
-    'signals.subtitle': 'v3.0 — Warning and analytics signals (Features 21-30)',
     'signals.tab.cannibalization': 'Cannibalization',
     'signals.tab.deadStock': 'Dead Stock',
     'signals.tab.saturation': 'Saturation',
@@ -507,8 +504,6 @@ export const en: Record<string, string> = {
     'signals.checklist.progress': '{done}/{total} done ({pct}%)',
 
     // ── Consultation ───────────────────────────────────────────────────────────
-    'consultation.title': 'Consultations',
-    'consultation.subtitle': 'Get advice from Uzum experts or offer your own services',
     'consultation.newListingBtn': '+ Add listing',
     'consultation.tab.market': 'Market',
     'consultation.tab.myListings': 'My listings',
@@ -532,11 +527,8 @@ export const en: Record<string, string> = {
     'consultation.booking.confirmBtn': 'Confirm',
     'consultation.empty.listings': 'No listings yet',
     'consultation.empty.data': 'No data yet',
-    'consultation.pricePerMin': 'UZS / {n} min',
 
     // ── Feedback ───────────────────────────────────────────────────────────────
-    'feedback.title': 'Feedback & Support',
-    'feedback.subtitle': 'Write a question, suggestion, or bug report',
     'feedback.newTicketBtn': '+ New ticket',
     'feedback.form.title': 'New Ticket',
     'feedback.form.subject': 'Subject',
@@ -555,17 +547,12 @@ export const en: Record<string, string> = {
     'feedback.status.inProgress': 'In Progress',
     'feedback.status.resolved': 'Resolved',
     'feedback.status.closed': 'Closed',
-    'feedback.myTickets': 'My tickets ({n})',
     'feedback.empty': 'No tickets yet',
-    'feedback.selectTicket': 'Select a ticket or create a new one',
-    'feedback.messagePlaceholder': 'Write a message...',
     'feedback.messageCount': '{n} messages',
     'feedback.senderAdmin': 'Admin',
     'feedback.senderYou': 'You',
 
     // ── Referral ───────────────────────────────────────────────────────────────
-    'referral.title': 'Referral Program',
-    'referral.subtitle': 'Invite friends and earn free days',
     'referral.stat.invited': 'Invited',
     'referral.stat.active': 'Active',
     'referral.stat.earnedDays': 'Days earned',
@@ -580,10 +567,6 @@ export const en: Record<string, string> = {
     'referral.codeCard.copyLink': 'Copy link',
     'referral.codeCard.linkLabel': 'Referral link',
     'referral.howTitle': 'How it works?',
-    'referral.step1': 'Create your referral code',
-    'referral.step2': 'Send the link to your friends',
-    'referral.step3': 'They sign up',
-    'referral.step4': 'You both get 7 free days!',
     'referral.createBtn': 'Create code',
     'referral.creatingBtn': 'Creating...',
 
@@ -695,9 +678,6 @@ export const en: Record<string, string> = {
     'community.empty': 'No posts yet — be the first!',
 
     // ── Sourcing ───────────────────────────────────────────────────────────────
-    'sourcing.title': 'Sourcing Engine',
-    'sourcing.subtitle': 'Compare China / Europe prices and find the best option with AI',
-    'sourcing.ratesNotLoaded': 'Rates not loaded',
     'sourcing.refreshRatesBtn': 'Refresh from CBU',
     'sourcing.tab.calculator': 'Calculator',
     'sourcing.tab.quickSearch': 'Quick Search',
@@ -787,7 +767,6 @@ export const en: Record<string, string> = {
     // ── Product Page ───────────────────────────────────────────────────────────
     'product.loading.fetching': 'Fetching data from Uzum...',
     'product.loading.analyzing': 'Updating product and running AI analysis',
-    'product.notFound': 'Product not found',
     'product.backBtn': '← Back',
     'product.score.weak': 'Weak',
     'product.score.average': 'Average',
@@ -845,8 +824,6 @@ export const en: Record<string, string> = {
     'product.ai.bullet.3': 'Risk',
     'product.markMine': 'This is my product',
     'product.markedMine': 'My product',
-    'product.scoreHistory': 'Score history',
-    'product.salesHistory': 'Weekly sales history',
     'product.claudeAnalysis.title': 'Claude AI Analysis',
     'product.claudeAnalysis.badge': 'AI',
     'product.globalPrice.title': 'Global Market Comparison',

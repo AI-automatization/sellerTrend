@@ -55,22 +55,7 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 # BACKEND OCHIQ TASKLAR
 # ═══════════════════════════════════════════════════════════
 
-## P0 — KRITIK
-
-### T-267 | P0 | BACKEND | Snapshot deduplication yo'q — bir product uchun sekundiga 10+ snapshot yaratiladi | 1h
-**Muammo:** 3 ta joyda `productSnapshot.create()` chaqiriladi — hech birida dedup yo'q.
-**Fix:** Oxirgi snapshot 5 minutdan yaqin bo'lsa — yangi yaratmaslik.
-**Fayllar:** uzum.service.ts:145, import.processor.ts:108, reanalysis.processor.ts:80
-
-### T-268 | P0 | BACKEND | Score instability — weekly_bought null bo'lganda score 50% ga tushadi | 30min
-**Fix:** weekly_bought null bo'lsa oxirgi valid snapshotdan fallback olish.
-**Fayllar:** packages/utils/src/index.ts — calculateScore(), uzum.service.ts:137
-
 ## P1 — MUHIM
-
-### T-062 | BACKEND | Anthropic client modul yuklanganda yaratiladi — crash xavfi | 20min
-**Fix:** Lazy initialization — `getAiClient()` pattern.
-**Fayl:** apps/worker/src/processors/uzum-ai-scraper.ts:21
 
 ### T-241 | P1 | BACKEND | totalAvailableAmount Prisma schema + saqlash — stock cliff aniq bo'ladi | 30min
 **Fix:** Product modeliga `total_available_amount BigInt?` qo'shish, migration, saqlash.
@@ -82,8 +67,6 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 **Fix:** SQL bilan har product/kun uchun faqat eng yaxshi snapshot qoldirish.
 
 ### T-214 | P1 | BACKEND | POST /uzum/batch-quick-score endpoint — extension uchun batch scoring | 1h
-
-### T-265 | P1 | BACKEND | Enterprise page — 3 ta API endpoint 404 qaytaradi | 1h
 
 ## P2 — O'RTA
 
@@ -165,6 +148,289 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 ### T-262 | P0 | DEVOPS | Railway DB — `prisma db:seed` ishlatilmagan, test data yo'q | 15min
 ### T-263 | P0 | DEVOPS | Railway — SUPER_ADMIN user yo'q, admin panel 403 Forbidden | 10min
 
+## P0 — KRITIK (Latency)
+
+### T-280 | P0 | DEVOPS | Railway EU region migration — latency 300ms→150ms | 2h
+
+**Muammo:** Hozir barcha servicelar US-West (Oregon) regionda. Toshkent→Oregon RTT ~300ms.
+EU-West (Amsterdam/Frankfurt) ga ko'chirsa ~150ms ga tushadi (2x tezroq).
+
+**Benchmark (hozirgi):**
+```
+Health endpoint (DB yo'q): min 200ms, avg 360ms
+DB query endpoints:        min 218ms, avg 280ms
+Server processing:         ~15-30ms (juda tez)
+Network RTT:               ~250-300ms (asosiy bottleneck)
+```
+
+**To'liq yechim — qadamma-qadam:**
+
+#### 1-qadam: Yangi EU PostgreSQL yaratish
+```bash
+# Railway Dashboard → Project → + New → Database → PostgreSQL
+# Region: eu-west (Amsterdam) tanlash
+# Yoki CLI:
+railway add --plugin postgresql   # keyin dashboard dan region o'zgartirish
+```
+
+#### 2-qadam: Eski DB dan data export
+```bash
+# Railway dashboard → eski PostgreSQL → Connect tab → Connection String olish
+# Local terminal:
+pg_dump "postgresql://OLD_CONNECTION_STRING" \
+  --no-owner --no-acl --clean --if-exists \
+  -F custom -f ventra_backup.dump
+
+# Yoki Railway plugin orqali:
+railway connect postgresql  # eski DB ga ulanib
+# \copy yoki pg_dump ishlatish
+```
+
+#### 3-qadam: Yangi EU DB ga import
+```bash
+pg_restore "postgresql://NEW_EU_CONNECTION_STRING" \
+  --no-owner --no-acl --clean --if-exists \
+  ventra_backup.dump
+
+# pgvector extension qo'shish:
+psql "postgresql://NEW_EU_CONNECTION_STRING" -c "CREATE EXTENSION IF NOT EXISTS vector;"
+```
+
+#### 4-qadam: Redis ham EU ga ko'chirish
+```bash
+# Railway Dashboard → + New → Database → Redis
+# Region: eu-west tanlash
+# Eski Redis dan data ko'chirish shart emas (cache + sessions)
+```
+
+#### 5-qadam: API + Worker + Nginx → EU regionga
+```bash
+# Har bir service uchun Railway Dashboard → Service → Settings → Region → eu-west
+# YOKI yangi servicelar yaratish EU regionda va deploy qilish
+
+# Env variablelar yangilash:
+DATABASE_URL=postgresql://NEW_EU_STRING
+DIRECT_DATABASE_URL=postgresql://NEW_EU_DIRECT_STRING
+REDIS_URL=redis://NEW_EU_REDIS_STRING
+```
+
+#### 6-qadam: Prisma migration sync
+```bash
+# EU DB da migration holati tekshirish:
+npx prisma migrate status
+# Agar kerak bo'lsa:
+npx prisma migrate deploy
+```
+
+#### 7-qadam: DNS / Domain
+```bash
+# Custom domain (T-178) bilan birga qilish:
+# Railway Dashboard → Nginx service → Settings → Custom Domain
+# DNS: CNAME ventra.uz → [railway-domain].up.railway.app
+```
+
+#### 8-qadam: Smoke test
+```bash
+node -e "
+async function ping(label, url, n=5) {
+  const t=[];
+  for(let i=0;i<n;i++){const s=Date.now();await fetch(url);t.push(Date.now()-s);}
+  console.log(label, 'min:', Math.min(...t)+'ms', 'avg:', Math.round(t.reduce((a,b)=>a+b)/t.length)+'ms');
+}
+ping('EU Health:', 'https://NEW_DOMAIN/api/v1/health');
+"
+```
+
+**Kutilgan natija:**
+- Health: 200ms → ~80-100ms
+- DB queries: 250ms → ~120-150ms
+- Analyze: 700ms → ~400ms
+
+**Xavflar:**
+- Data migration vaqtida ~10-15 min downtime
+- pgvector extension EU DB da ham enable qilish kerak
+- BullMQ joblar Redis almashinuvida yo'qolishi mumkin (critical emas)
+
+---
+
+### T-281 | P0 | DEVOPS | Cloudflare CDN — frontend static assets 20ms, API caching | 1.5h
+
+**Muammo:** Frontend bundle (JS/CSS/images) har safar Railway serverdan yuklanadi (~300ms per request).
+Cloudflare CDN orqali static fayllar eng yaqin edge serverdan beriladi (~20-50ms).
+
+**Benchmark (hozirgi):**
+```
+index.html:     ~300ms (Railway US)
+main.js (~500KB): ~400-600ms (Railway US)
+CSS/fonts:      ~300ms har biri
+```
+
+**To'liq yechim — qadamma-qadam:**
+
+#### 1-qadam: Cloudflare account + domain
+```
+1. cloudflare.com da bepul account ochish
+2. Domain qo'shish (masalan: ventra.uz yoki ventrastats.com)
+3. Cloudflare nameserverlarni domain registrarda o'rnatish
+4. DNS record qo'shish:
+   - CNAME @ → diligent-courage-production.up.railway.app (Proxied ☁️)
+   - CNAME www → diligent-courage-production.up.railway.app (Proxied ☁️)
+```
+
+#### 2-qadam: Cloudflare SSL/TLS sozlash
+```
+Dashboard → SSL/TLS → Overview:
+  - Encryption mode: Full (strict)
+Dashboard → SSL/TLS → Edge Certificates:
+  - Always Use HTTPS: ON
+  - Minimum TLS Version: 1.2
+  - Automatic HTTPS Rewrites: ON
+```
+
+#### 3-qadam: Cache Rules — static assets
+```
+Dashboard → Caching → Cache Rules → Create Rule:
+
+Rule 1: "Cache Static Assets"
+  When: URI Path matches /assets/*
+  Then: Cache → Eligible for cache
+        Edge TTL: 30 days
+        Browser TTL: 7 days
+
+Rule 2: "Cache Fonts & Images"
+  When: URI Path matches /*.woff2 OR /*.png OR /*.jpg OR /*.svg OR /*.ico
+  Then: Cache → Eligible for cache
+        Edge TTL: 90 days
+        Browser TTL: 30 days
+
+Rule 3: "No Cache API"
+  When: URI Path starts with /api/
+  Then: Cache → Bypass cache
+  (API so'rovlar HECH QACHON cache qilinmasligi kerak)
+```
+
+#### 4-qadam: Page Rules (qo'shimcha)
+```
+Dashboard → Rules → Page Rules:
+
+1. ventra.uz/api/* → Cache Level: Bypass
+2. ventra.uz/assets/* → Cache Level: Cache Everything, Edge TTL: 1 month
+3. ventra.uz/*.js → Cache Level: Cache Everything, Edge TTL: 1 month
+4. ventra.uz/*.css → Cache Level: Cache Everything, Edge TTL: 1 month
+```
+
+#### 5-qadam: Nginx config yangilash (Railway)
+```nginx
+# apps/web/nginx.conf yoki Railway nginx service
+# Cloudflare real IP olish uchun:
+
+set_real_ip_from 103.21.244.0/22;
+set_real_ip_from 103.22.200.0/22;
+set_real_ip_from 103.31.4.0/22;
+set_real_ip_from 104.16.0.0/13;
+set_real_ip_from 104.24.0.0/14;
+set_real_ip_from 108.162.192.0/18;
+set_real_ip_from 131.0.72.0/22;
+set_real_ip_from 141.101.64.0/18;
+set_real_ip_from 162.158.0.0/15;
+set_real_ip_from 172.64.0.0/13;
+set_real_ip_from 173.245.48.0/20;
+set_real_ip_from 188.114.96.0/20;
+set_real_ip_from 190.93.240.0/20;
+set_real_ip_from 197.234.240.0/22;
+set_real_ip_from 198.41.128.0/17;
+real_ip_header CF-Connecting-IP;
+
+# Static assets uchun cache header:
+location /assets/ {
+    add_header Cache-Control "public, max-age=604800, immutable";
+    try_files $uri =404;
+}
+```
+
+#### 6-qadam: Vite build — content hash
+```typescript
+// apps/web/vite.config.ts — allaqachon bor bo'lishi kerak:
+build: {
+  rollupOptions: {
+    output: {
+      // Fayl nomlari hash bilan — cache invalidation avtomatik
+      entryFileNames: 'assets/[name]-[hash].js',
+      chunkFileNames: 'assets/[name]-[hash].js',
+      assetFileNames: 'assets/[name]-[hash].[ext]',
+    }
+  }
+}
+```
+
+#### 7-qadam: Cloudflare Performance sozlash
+```
+Dashboard → Speed → Optimization:
+  - Auto Minify: JavaScript ✓, CSS ✓, HTML ✓
+  - Brotli: ON
+  - Early Hints: ON
+  - HTTP/2: ON (default)
+  - HTTP/3 (QUIC): ON
+
+Dashboard → Speed → Image Optimization (Pro plan):
+  - Polish: Lossless
+  - WebP: ON
+```
+
+#### 8-qadam: Cloudflare Security (bonus)
+```
+Dashboard → Security → Settings:
+  - Security Level: Medium
+  - Challenge Passage: 30 min
+  - Bot Fight Mode: ON (bepul)
+
+Dashboard → Security → WAF:
+  - Managed Rules: ON (Cloudflare Free Ruleset)
+  - Rate Limiting: 100 req/10s per IP (API himoya)
+```
+
+#### 9-qadam: Verify
+```bash
+# Cache ishlayaptimi tekshirish:
+curl -sI https://ventra.uz/assets/main-abc123.js | grep -i "cf-cache-status"
+# Kutilgan: cf-cache-status: HIT
+
+# API bypass tekshirish:
+curl -sI https://ventra.uz/api/v1/health | grep -i "cf-cache-status"
+# Kutilgan: cf-cache-status: DYNAMIC (bypass)
+
+# Latency tekshirish:
+node -e "
+async function p(l,u,n=5){const t=[];for(let i=0;i<n;i++){const s=Date.now();await fetch(u);t.push(Date.now()-s)}console.log(l,'min:',Math.min(...t)+'ms','avg:',Math.round(t.reduce((a,b)=>a+b)/t.length)+'ms')}
+p('Static (CDN):', 'https://ventra.uz/assets/main.js');
+p('API (bypass):', 'https://ventra.uz/api/v1/health');
+"
+```
+
+**Kutilgan natija:**
+```
+OLDIN:                          KEYIN:
+Static assets: ~300ms           Static assets: ~20-50ms (CDN edge)
+index.html:    ~300ms           index.html:    ~50-80ms (CDN edge)
+API calls:     ~300ms           API calls:     ~300ms (bypass, o'zgarmaydi*)
+                                * T-280 bilan birga: ~150ms
+```
+
+**Bepul Cloudflare plan yetarli:**
+- Unlimited bandwidth
+- Global CDN (200+ shaharda edge)
+- DDoS himoya
+- SSL sertifikat (bepul)
+- WAF basic rules
+- Bot protection
+
+**Xavflar:**
+- DNS propagation 1-24 soat kutish
+- API so'rovlar BYPASS bo'lishi KERAK (aks holda stale data)
+- WebSocket bo'lsa Cloudflare Free da cheklangan (100 concurrent)
+
+---
+
 ## P1 — MUHIM
 
 ### T-177 | DEVOPS | pgvector extension — Railway PostgreSQL | 5min
@@ -238,8 +504,8 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 ## BAJARISH KETMA-KETLIGI (TAVSIYA)
 
 ### FAZA 1 — KRITIK: Score/Data to'g'rilash
-1. T-267 → Snapshot dedup guard (yangi buzilgan data to'xtaydi)
-2. T-268 → Score instability fix (weekly_bought null fallback)
+1. ~~T-267~~ ✅ DONE
+2. ~~T-268~~ ✅ DONE
 3. T-269 → Eski noto'g'ri data tozalash
 4. T-270 → Duplicate snapshot tozalash
 
@@ -253,7 +519,7 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 
 ### FAZA 4 — Frontend UX polish
 9. T-264 → Admin route protection
-10. T-265 → Enterprise 404 fix
+10. ~~T-265~~ ✅ DONE
 11. T-266 → Empty state CTA
 
 ---

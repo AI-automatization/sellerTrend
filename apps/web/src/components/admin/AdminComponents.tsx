@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { adminApi } from '../../api/client';
 import { getErrorMessage } from '../../utils/getErrorMessage';
-import { Account, User, Transaction, Role, ROLES, ROLE_META } from './adminTypes';
+import { ROLES, ROLE_META } from './adminTypes';
+import type { Account, User, Transaction, Role } from './adminTypes';
 
 export function RoleBadge({ role }: { role: Role }) {
   const m = ROLE_META[role] ?? ROLE_META.USER;

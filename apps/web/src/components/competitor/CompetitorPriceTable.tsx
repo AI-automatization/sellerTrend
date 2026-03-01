@@ -1,7 +1,7 @@
-import type { TrackedCompetitor } from '../../api/client';
+import type { CompetitorProduct } from '../../api/competitor';
 
 interface Props {
-  competitors: TrackedCompetitor[];
+  competitors: CompetitorProduct[];
   ourPrice: number | null;
   onUntrack: (competitorProductId: string) => void;
 }
@@ -31,7 +31,7 @@ export function CompetitorPriceTable({ competitors, ourPrice, onUntrack }: Props
 
             return (
               <tr
-                key={c.tracking_id}
+                key={c.id}
                 className={`hover ${isCheaper ? 'bg-error/5' : price ? 'bg-success/5' : ''}`}
               >
                 <td className="text-base-content/40 text-xs w-6">{i + 1}</td>
@@ -43,11 +43,11 @@ export function CompetitorPriceTable({ competitors, ourPrice, onUntrack }: Props
                     rel="noopener noreferrer"
                     className="font-medium text-sm hover:text-primary transition-colors truncate block max-w-xs"
                   >
-                    {c.competitor_title}
+                    {c.title}
                   </a>
-                  {c.last_snapshot_at && (
+                  {c.created_at && (
                     <p className="text-xs text-base-content/30">
-                      {new Date(c.last_snapshot_at).toLocaleDateString('uz-UZ', {
+                      {new Date(c.created_at).toLocaleDateString('uz-UZ', {
                         month: 'short',
                         day: 'numeric',
                       })}
@@ -77,13 +77,13 @@ export function CompetitorPriceTable({ competitors, ourPrice, onUntrack }: Props
                 </td>
 
                 <td className="text-center">
-                  {c.trend === 'up' && (
+                  {c.price_trend === 'up' && (
                     <span className="text-error font-bold" title="Narx oshdi">↗</span>
                   )}
-                  {c.trend === 'down' && (
+                  {c.price_trend === 'down' && (
                     <span className="text-success font-bold" title="Narx tushdi">↘</span>
                   )}
-                  {c.trend === 'stable' && (
+                  {c.price_trend === 'stable' && (
                     <span className="text-base-content/30" title="Barqaror">→</span>
                   )}
                 </td>
@@ -92,7 +92,7 @@ export function CompetitorPriceTable({ competitors, ourPrice, onUntrack }: Props
                   <button
                     onClick={() => onUntrack(c.competitor_product_id)}
                     className="btn btn-ghost btn-xs text-error hover:bg-error/10"
-                    aria-label={`${c.competitor_title} kuzatuvdan chiqarish`}
+                    aria-label={`${c.title} kuzatuvdan chiqarish`}
                   >
                     ✕
                   </button>

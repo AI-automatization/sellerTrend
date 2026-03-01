@@ -3,7 +3,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import { StatCard } from './AdminComponents';
-import { TopUser, PopularProduct, PopularCategory, RevenueStats, GrowthStats, CategoryTrend, HeatmapEntry } from './adminTypes';
+import type { TopUser, PopularProduct, PopularCategory, RevenueStats, GrowthStats, CategoryTrend, HeatmapEntry } from './adminTypes';
 
 const CHART_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#8b5cf6', '#14b8a6'];
 

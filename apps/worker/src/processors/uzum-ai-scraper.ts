@@ -19,7 +19,14 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { ProductDetail } from './uzum-scraper';
 import { logJobInfo } from '../logger';
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+// T-062: lazy initialization — client yaratilmaydi ANTHROPIC_API_KEY yo'q bo'lsa
+let _client: Anthropic | null = null;
+function getAiClient(): Anthropic {
+  if (!_client) {
+    _client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  }
+  return _client;
+}
 
 /** Extract a human-readable category name from a Uzum category URL.
  *  https://uzum.uz/ru/category/makiyazh--10091 → "makiyazh"
@@ -68,7 +75,7 @@ Respond with ONLY a JSON array of integer indexes. Example: [0, 2, 5, 7]
 No explanation, no text — just the JSON array.`;
 
   try {
-    const response = await client.messages.create({
+    const response = await getAiClient().messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 256,
       messages: [{ role: 'user', content: prompt }],
@@ -117,7 +124,7 @@ export async function visionExtractProducts(
   try {
     logJobInfo('discovery-queue', '-', 'ai-scraper', 'Running vision extraction on screenshot...');
 
-    const response = await client.messages.create({
+    const response = await getAiClient().messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 1500,
       messages: [

@@ -1,4 +1,3 @@
-import React from 'react';
 import { StatCard } from './AdminComponents';
 import type { Account, User, OverviewStats, RevenueStats, GrowthStats, RealtimeStats } from './adminTypes';
 

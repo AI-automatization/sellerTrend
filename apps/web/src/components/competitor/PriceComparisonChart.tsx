@@ -8,11 +8,11 @@ import {
   Cell,
   ReferenceLine,
 } from 'recharts';
-import type { TrackedCompetitor } from '../../api/client';
+import type { CompetitorProduct } from '../../api/competitor';
 
 interface Props {
   ourProduct: { title: string; sell_price: string | null };
-  competitors: TrackedCompetitor[];
+  competitors: CompetitorProduct[];
 }
 
 interface ChartEntry {
@@ -35,7 +35,7 @@ export function PriceComparisonChart({ ourProduct, competitors }: Props) {
       isOurs: true,
     },
     ...withPrices.slice(0, 5).map((c) => ({
-      name: c.competitor_title.length > 14 ? c.competitor_title.slice(0, 14) + '…' : c.competitor_title,
+      name: c.title.length > 14 ? c.title.slice(0, 14) + '…' : c.title,
       price: Number(c.latest_price),
       isOurs: false,
     })),

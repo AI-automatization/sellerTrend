@@ -1,7 +1,7 @@
 import { Worker, Job } from 'bullmq';
 import { redisConnection } from '../redis';
 import { prisma } from '../prisma';
-import { calculateScore, getSupplyPressure, calcWeeklyBought, sleep, SNAPSHOT_MIN_GAP_MS } from '@uzum/utils';
+import { calculateScore, getSupplyPressure, calcWeeklyBought, weeklyBoughtWithFallback, sleep, SNAPSHOT_MIN_GAP_MS } from '@uzum/utils';
 import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
 import { fetchUzumProductRaw } from './uzum-scraper';
 
@@ -24,7 +24,7 @@ async function reanalyzeProduct(
     where: { product_id: productId },
     orderBy: { snapshot_at: 'desc' },
     take: 20,
-    select: { orders_quantity: true, snapshot_at: true },
+    select: { orders_quantity: true, weekly_bought: true, snapshot_at: true },
   });
 
   // Dedup guard (T-267): skip snapshot if last one is < 5 min old
@@ -34,7 +34,9 @@ async function reanalyzeProduct(
     return { updated: false, weeklyBought: null };
   }
 
-  const weeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
+  // T-268: fallback to last valid snapshot when calcWeeklyBought returns null
+  const rawWeeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
+  const weeklyBought = weeklyBoughtWithFallback(rawWeeklyBought, recentSnapshots);
 
   // Calculate score before transaction
   const skuList = detail.skuList ?? [];

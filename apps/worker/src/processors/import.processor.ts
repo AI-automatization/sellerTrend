@@ -1,7 +1,7 @@
 import { Worker, Job } from 'bullmq';
 import { redisConnection } from '../redis';
 import { prisma } from '../prisma';
-import { parseUzumProductId, calculateScore, getSupplyPressure, calcWeeklyBought, sleep, SNAPSHOT_MIN_GAP_MS } from '@uzum/utils';
+import { parseUzumProductId, calculateScore, getSupplyPressure, calcWeeklyBought, weeklyBoughtWithFallback, sleep, SNAPSHOT_MIN_GAP_MS } from '@uzum/utils';
 import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
 import { fetchUzumProductRaw } from './uzum-scraper';
 
@@ -89,7 +89,7 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
       where: { product_id: pid },
       orderBy: { snapshot_at: 'desc' },
       take: 20,
-      select: { orders_quantity: true, snapshot_at: true },
+      select: { orders_quantity: true, weekly_bought: true, snapshot_at: true },
     });
 
     // Dedup guard (T-267): skip snapshot if last one is < 5 min old
@@ -97,7 +97,9 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
     if (lastSnap && Date.now() - lastSnap.snapshot_at.getTime() < SNAPSHOT_MIN_GAP_MS) {
       logJobInfo('import-batch', jobId, jobName, `Snapshot dedup: product ${productId}, skip — last snap ${Math.round((Date.now() - lastSnap.snapshot_at.getTime()) / 1000)}s ago`);
     } else {
-      const weeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
+      // T-268: fallback to last valid snapshot when calcWeeklyBought returns null
+      const rawWeeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
+      const weeklyBought = weeklyBoughtWithFallback(rawWeeklyBought, recentSnapshots);
 
       const stockType = detail.skuList?.[0]?.stock?.type;
       const supplyPressure = getSupplyPressure(

@@ -322,8 +322,6 @@ export const ru: Record<string, string> = {
     'error.INTERNAL_ERROR': 'Ошибка сервера',
 
     // ── Discovery ──────────────────────────────────────────────────────────────
-    'discovery.title': 'Category Discovery',
-    'discovery.subtitle': 'Сканирование категорий, сезонные тренды и поиск ниш',
     'discovery.tab.scan': 'Сканирование',
     'discovery.tab.seasonal': 'Сезонный календарь',
     'discovery.tab.niche': 'Поиск ниш',
@@ -392,7 +390,6 @@ export const ru: Record<string, string> = {
     'discovery.seasonal.desc': 'Посмотрите, какие тренды усиливаются в каждом месяце',
 
     // ── Signals ────────────────────────────────────────────────────────────────
-    'signals.subtitle': 'v3.0 — Сигналы предупреждений и аналитики (Features 21-30)',
     'signals.tab.cannibalization': 'Каннибализация',
     'signals.tab.deadStock': 'Dead Stock',
     'signals.tab.saturation': 'Насыщение',
@@ -507,8 +504,6 @@ export const ru: Record<string, string> = {
     'signals.checklist.progress': '{done}/{total} выполнено ({pct}%)',
 
     // ── Consultation ───────────────────────────────────────────────────────────
-    'consultation.title': 'Консультации',
-    'consultation.subtitle': 'Получайте советы от экспертов Uzum или предлагайте свои услуги',
     'consultation.newListingBtn': '+ Добавить объявление',
     'consultation.tab.market': 'Рынок',
     'consultation.tab.myListings': 'Мои объявления',
@@ -532,11 +527,8 @@ export const ru: Record<string, string> = {
     'consultation.booking.confirmBtn': 'Подтвердить',
     'consultation.empty.listings': 'Объявлений пока нет',
     'consultation.empty.data': 'Данных пока нет',
-    'consultation.pricePerMin': 'сум / {n} мин',
 
     // ── Feedback ───────────────────────────────────────────────────────────────
-    'feedback.title': 'Обратная связь и поддержка',
-    'feedback.subtitle': 'Напишите вопрос, предложение или сообщение об ошибке',
     'feedback.newTicketBtn': '+ Новый тикет',
     'feedback.form.title': 'Новый тикет',
     'feedback.form.subject': 'Тема',
@@ -555,17 +547,12 @@ export const ru: Record<string, string> = {
     'feedback.status.inProgress': 'В работе',
     'feedback.status.resolved': 'Решён',
     'feedback.status.closed': 'Закрыт',
-    'feedback.myTickets': 'Мои тикеты ({n})',
     'feedback.empty': 'Тикетов пока нет',
-    'feedback.selectTicket': 'Выберите тикет или создайте новый',
-    'feedback.messagePlaceholder': 'Напишите сообщение...',
     'feedback.messageCount': '{n} сообщений',
     'feedback.senderAdmin': 'Администратор',
     'feedback.senderYou': 'Вы',
 
     // ── Referral ───────────────────────────────────────────────────────────────
-    'referral.title': 'Реферальная система',
-    'referral.subtitle': 'Приглашайте друзей и получайте бесплатные дни',
     'referral.stat.invited': 'Приглашённых',
     'referral.stat.active': 'Активных',
     'referral.stat.earnedDays': 'Заработано дней',
@@ -580,10 +567,6 @@ export const ru: Record<string, string> = {
     'referral.codeCard.copyLink': 'Скопировать ссылку',
     'referral.codeCard.linkLabel': 'Реферальная ссылка',
     'referral.howTitle': 'Как это работает?',
-    'referral.step1': 'Создайте реферальный код',
-    'referral.step2': 'Отправьте ссылку друзьям',
-    'referral.step3': 'Они регистрируются',
-    'referral.step4': 'Оба получают 7 дней бесплатно!',
     'referral.createBtn': 'Создать код',
     'referral.creatingBtn': 'Создаётся...',
 
@@ -695,9 +678,6 @@ export const ru: Record<string, string> = {
     'community.empty': 'Идей пока нет — будьте первым!',
 
     // ── Sourcing ───────────────────────────────────────────────────────────────
-    'sourcing.title': 'Sourcing Engine',
-    'sourcing.subtitle': 'Сравнивайте цены Китай/Европа, находите лучший вариант с помощью AI',
-    'sourcing.ratesNotLoaded': 'Курсы не загружены',
     'sourcing.refreshRatesBtn': 'Обновить с CBU',
     'sourcing.tab.calculator': 'Калькулятор',
     'sourcing.tab.quickSearch': 'Быстрый поиск',
@@ -787,7 +767,6 @@ export const ru: Record<string, string> = {
     // ── Product Page ───────────────────────────────────────────────────────────
     'product.loading.fetching': 'Получение данных с Uzum...',
     'product.loading.analyzing': 'Обновление товара и AI-анализ',
-    'product.notFound': 'Товар не найден',
     'product.backBtn': '← Назад',
     'product.score.weak': 'Слабый',
     'product.score.average': 'Средний',
@@ -845,8 +824,6 @@ export const ru: Record<string, string> = {
     'product.ai.bullet.3': 'Риск',
     'product.markMine': 'Это мой товар',
     'product.markedMine': 'Мой товар',
-    'product.scoreHistory': 'История Score',
-    'product.salesHistory': 'История еженедельных продаж',
     'product.claudeAnalysis.title': 'Анализ Claude AI',
     'product.claudeAnalysis.badge': 'AI',
     'product.globalPrice.title': 'Сравнение мирового рынка',
