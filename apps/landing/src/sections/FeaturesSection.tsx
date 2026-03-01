@@ -1,61 +1,24 @@
 import { motion } from 'framer-motion';
 import { FeatureCard } from '../components/FeatureCard';
 import { fadeUp, staggerContainer, VIEWPORT } from '../lib/animations';
+import { useLang } from '../lib/LangContext';
 
 const FEATURES = [
-  {
-    icon: '📊',
-    title: 'Real-time Analytics',
-    description: 'Uzum\'dan jonli ma\'lumotlar — narx, stok, sotuv miqdori har hafta yangilanadi.',
-  },
-  {
-    icon: '✨',
-    title: 'Trend Discovery',
-    description: 'AI avtomatik trend mahsulotlarni topadi va Score 1-10 bilan baholaydi.',
-  },
-  {
-    icon: '🔔',
-    title: 'Signal Detection',
-    description: 'Narx tushdi, stok tugayapti, yangi raqib — muhim o\'zgarishlar darhol xabar.',
-  },
-  {
-    icon: '👁️',
-    title: 'Raqib Kuzatuvi',
-    description: 'Raqiblar narxini 24/7 monitoring. Har o\'zgarishda Telegram notification.',
-  },
-  {
-    icon: '🌐',
-    title: 'Sourcing Engine',
-    description: '1688, Taobao, AliExpress dan eng arzon narxni AI bilan topish.',
-  },
-  {
-    icon: '🤖',
-    title: 'AI Tahlili',
-    description: 'Claude AI mahsulotni tahlil qiladi, bozor pozitsiyasini va maslahatlarni beradi.',
-  },
-  {
-    icon: '🧮',
-    title: 'Profit Kalkulyator',
-    description: 'Cargo, bojxona, QQS, FBO/FBS — aniq foyda foizini hisoblash.',
-  },
-  {
-    icon: '💬',
-    title: 'Telegram Bot',
-    description: 'Muhim signallar va yangiliklar to\'g\'ridan-to\'g\'ri Telegram\'ga yetkaziladi.',
-  },
-  {
-    icon: '🖥️',
-    title: 'Desktop Ilova',
-    description: 'Windows va macOS da brauzer ochmasdan ishlash. Tezroq, qularoq.',
-  },
-  {
-    icon: '🧩',
-    title: 'Browser Extension',
-    description: 'Uzum.uz sahifasida 1 klik bilan mahsulot score va tahlilini ko\'rish.',
-  },
+  { icon: '📊', title: 'Real-time Analytics', description: 'Uzum\'dan jonli ma\'lumotlar — narx, stok, sotuv miqdori har hafta yangilanadi.' },
+  { icon: '✨', title: 'Trend Discovery', description: 'AI avtomatik trend mahsulotlarni topadi va Score 1-10 bilan baholaydi.' },
+  { icon: '🔔', title: 'Signal Detection', description: 'Narx tushdi, stok tugayapti, yangi raqib — muhim o\'zgarishlar darhol xabar.' },
+  { icon: '👁️', title: 'Raqib Kuzatuvi', description: 'Raqiblar narxini 24/7 monitoring. Har o\'zgarishda Telegram notification.' },
+  { icon: '🌐', title: 'Sourcing Engine', description: '1688, Taobao, AliExpress dan eng arzon narxni AI bilan topish.' },
+  { icon: '🤖', title: 'AI Tahlili', description: 'Claude AI mahsulotni tahlil qiladi, bozor pozitsiyasini va maslahatlarni beradi.' },
+  { icon: '🧮', title: 'Profit Kalkulyator', description: 'Cargo, bojxona, QQS, FBO/FBS — aniq foyda foizini hisoblash.' },
+  { icon: '💬', title: 'Telegram Bot', description: 'Muhim signallar va yangiliklar to\'g\'ridan-to\'g\'ri Telegram\'ga yetkaziladi.' },
+  { icon: '🖥️', title: 'Desktop Ilova', description: 'Windows va macOS da brauzer ochmasdan ishlash. Tezroq, qularoq.' },
+  { icon: '🧩', title: 'Browser Extension', description: 'Uzum.uz sahifasida 1 klik bilan mahsulot score va tahlilini ko\'rish.' },
 ];
 
 export function FeaturesSection() {
+  const { t } = useLang();
+
   return (
     <section id="features" className="py-24 px-4 sm:px-6 lg:px-8 relative">
       {/* Background glow */}
@@ -73,14 +36,14 @@ export function FeaturesSection() {
           className="text-center mb-16"
         >
           <span className="inline-block text-xs font-600 text-primary uppercase tracking-widest mb-3">
-            Imkoniyatlar
+            {t('features.tag')}
           </span>
           <h2 className="font-display font-700 text-3xl sm:text-4xl text-white mb-4">
-            Sotuvingizni o'stiradigan{' '}
-            <span className="gradient-text">10 ta kuchli vosita</span>
+            {t('features.title1')}{' '}
+            <span className="gradient-text">{t('features.title2')}</span>
           </h2>
           <p className="text-base-content/60 max-w-xl mx-auto">
-            Bitta platformada barcha kerakli analytics — savdo tahlilidan tortib manba qidirishgacha
+            {t('features.subtitle')}
           </p>
         </motion.div>
 

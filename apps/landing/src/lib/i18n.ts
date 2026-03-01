@@ -87,6 +87,18 @@ const translations = {
     'download.version': 'v1.0.0 · 85 MB · Windows 10+ / macOS 12+',
     'download.win': 'Windows yuklab olish',
     'download.mac': 'macOS',
+
+    // Footer
+    'footer.desc': 'Uzum.uz sotuvchilari uchun premium AI analytics platforma.',
+    'footer.col1': 'Mahsulot',
+    'footer.col2': 'Kompaniya',
+    'footer.col3': 'Yordam',
+    'footer.about': 'Biz haqimizda',
+    'footer.contact': 'Aloqa',
+    'footer.docs': 'Hujjatlar',
+    'footer.copyright': '© 2026 VENTRA. Barcha huquqlar himoyalangan.',
+    'footer.privacy': 'Maxfiylik siyosati',
+    'footer.terms': 'Foydalanish shartlari',
   },
 
   ru: {
@@ -175,6 +187,18 @@ const translations = {
     'download.version': 'v1.0.0 · 85 MB · Windows 10+ / macOS 12+',
     'download.win': 'Скачать для Windows',
     'download.mac': 'macOS',
+
+    // Footer
+    'footer.desc': 'Премиум AI аналитика платформа для продавцов Uzum.uz.',
+    'footer.col1': 'Продукт',
+    'footer.col2': 'Компания',
+    'footer.col3': 'Помощь',
+    'footer.about': 'О нас',
+    'footer.contact': 'Контакты',
+    'footer.docs': 'Документация',
+    'footer.copyright': '© 2026 VENTRA. Все права защищены.',
+    'footer.privacy': 'Политика конфиденциальности',
+    'footer.terms': 'Условия использования',
   },
 } as const;
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { PricingCard } from '../components/PricingCard';
+import { useLang } from '../lib/LangContext';
 
 interface PricingSectionProps {
   appUrl: string;
@@ -12,13 +13,7 @@ const PLANS = [
     monthlyPrice: 'Bepul',
     yearlyPrice: 'Bepul',
     period: '/oy',
-    features: [
-      '5 ta mahsulot tracking',
-      'Asosiy analytics',
-      '1 ta discovery/kun',
-      'Score ko\'rish',
-      'Email support',
-    ],
+    features: ['5 ta mahsulot tracking', 'Asosiy analytics', '1 ta discovery/kun', 'Score ko\'rish', 'Email support'],
     ctaLabel: 'Bepul boshlash',
     highlighted: false,
   },
@@ -28,15 +23,7 @@ const PLANS = [
     yearlyPrice: '79,000',
     period: ' so\'m/oy',
     badge: 'Eng mashhur ⭐',
-    features: [
-      '50 ta mahsulot tracking',
-      'AI tahlili (Claude)',
-      'Cheksiz discovery',
-      'Sourcing engine',
-      'Raqib kuzatuvi',
-      'Telegram bot',
-      'Priority support',
-    ],
+    features: ['50 ta mahsulot tracking', 'AI tahlili (Claude)', 'Cheksiz discovery', 'Sourcing engine', 'Raqib kuzatuvi', 'Telegram bot', 'Priority support'],
     ctaLabel: '14 kun bepul sinash',
     highlighted: true,
   },
@@ -45,15 +32,7 @@ const PLANS = [
     monthlyPrice: '299,000',
     yearlyPrice: '239,000',
     period: ' so\'m/oy',
-    features: [
-      'Cheksiz mahsulotlar',
-      'API access',
-      'Team accounts (5 ta)',
-      'Custom reports',
-      'Dedicated support',
-      'SLA 99.9%',
-      'Branding (white-label)',
-    ],
+    features: ['Cheksiz mahsulotlar', 'API access', 'Team accounts (5 ta)', 'Custom reports', 'Dedicated support', 'SLA 99.9%', 'Branding (white-label)'],
     ctaLabel: 'Bog\'lanish',
     highlighted: false,
   },
@@ -61,6 +40,7 @@ const PLANS = [
 
 export function PricingSection({ appUrl }: PricingSectionProps) {
   const [yearly, setYearly] = useState(false);
+  const { t } = useLang();
 
   return (
     <section id="pricing" className="py-24 px-4 sm:px-6 lg:px-8">
@@ -73,15 +53,15 @@ export function PricingSection({ appUrl }: PricingSectionProps) {
           className="text-center mb-12"
         >
           <h2 className="font-display font-700 text-3xl sm:text-4xl text-white mb-4">
-            Sodda va <span className="gradient-text">shaffof narxlar</span>
+            {t('pricing.title1')} <span className="gradient-text">{t('pricing.title2')}</span>
           </h2>
           <p className="text-base-content/60 mb-8">
-            Yashirin to'lovlar yo'q. Istalgan vaqt bekor qilish mumkin.
+            {t('pricing.subtitle')}
           </p>
 
           {/* Billing toggle */}
           <div className="inline-flex items-center gap-3 glass-card rounded-full px-4 py-2">
-            <span className={`text-sm ${!yearly ? 'text-white' : 'text-base-content/50'}`}>Oylik</span>
+            <span className={`text-sm ${!yearly ? 'text-white' : 'text-base-content/50'}`}>{t('pricing.monthly')}</span>
             <button
               onClick={() => setYearly(!yearly)}
               className={`relative w-12 h-6 rounded-full transition-colors ${yearly ? 'bg-primary' : 'bg-base-300'}`}
@@ -89,7 +69,7 @@ export function PricingSection({ appUrl }: PricingSectionProps) {
               <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${yearly ? 'translate-x-7' : 'translate-x-1'}`} />
             </button>
             <span className={`text-sm ${yearly ? 'text-white' : 'text-base-content/50'}`}>
-              Yillik <span className="text-success text-xs">-20%</span>
+              {t('pricing.yearly')} <span className="text-success text-xs">-20%</span>
             </span>
           </div>
         </motion.div>
@@ -117,7 +97,7 @@ export function PricingSection({ appUrl }: PricingSectionProps) {
           viewport={{ once: true }}
           className="text-center text-sm text-base-content/40 mt-8"
         >
-          To'lov: Click, Payme, Uzum nasiya · Bank kartasi kerak emas Starter uchun
+          {t('pricing.footer')}
         </motion.p>
       </div>
     </section>

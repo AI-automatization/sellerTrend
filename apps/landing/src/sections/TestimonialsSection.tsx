@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { TestimonialCard } from '../components/TestimonialCard';
+import { useLang } from '../lib/LangContext';
 
 const TESTIMONIALS = [
   {
@@ -35,6 +36,7 @@ const TESTIMONIALS = [
 
 export function TestimonialsSection() {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { t } = useLang();
 
   return (
     <section className="py-24 overflow-hidden">
@@ -47,9 +49,9 @@ export function TestimonialsSection() {
           className="text-center mb-12"
         >
           <h2 className="font-display font-700 text-3xl sm:text-4xl text-white mb-4">
-            Sotuvchilar <span className="gradient-text">nima deydi</span>
+            {t('test.title1')} <span className="gradient-text">{t('test.title2')}</span>
           </h2>
-          <p className="text-base-content/60">Haqiqiy foydalanuvchilar, haqiqiy natijalar</p>
+          <p className="text-base-content/60">{t('test.subtitle')}</p>
         </motion.div>
       </div>
 

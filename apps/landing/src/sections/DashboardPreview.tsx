@@ -1,35 +1,16 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useLang } from '../lib/LangContext';
 
 interface DashboardPreviewProps {
   appUrl: string;
 }
 
 const SCREENSHOTS = [
-  {
-    label: 'Dashboard — KPI va trend grafiklari',
-    caption: 'Barcha muhim ko\'rsatkichlar bir sahifada',
-    bg: 'from-blue-900/40 to-violet-900/40',
-    preview: 'dashboard',
-  },
-  {
-    label: 'Mahsulot tahlili — Score, AI maslahat',
-    caption: 'Har mahsulot uchun chuqur tahlil va tavsiyalar',
-    bg: 'from-emerald-900/40 to-blue-900/40',
-    preview: 'product',
-  },
-  {
-    label: 'Discovery — Trend mahsulotlar',
-    caption: 'AI topgan eng yaxshi imkoniyatlar',
-    bg: 'from-violet-900/40 to-pink-900/40',
-    preview: 'discovery',
-  },
-  {
-    label: 'Sourcing — Xitoy narxlari taqqoslash',
-    caption: '1688, Taobao dan aniq foyda bilan',
-    bg: 'from-orange-900/40 to-red-900/40',
-    preview: 'sourcing',
-  },
+  { label: 'Dashboard — KPI va trend grafiklari', caption: 'Barcha muhim ko\'rsatkichlar bir sahifada', bg: 'from-blue-900/40 to-violet-900/40', preview: 'dashboard' },
+  { label: 'Mahsulot tahlili — Score, AI maslahat', caption: 'Har mahsulot uchun chuqur tahlil va tavsiyalar', bg: 'from-emerald-900/40 to-blue-900/40', preview: 'product' },
+  { label: 'Discovery — Trend mahsulotlar', caption: 'AI topgan eng yaxshi imkoniyatlar', bg: 'from-violet-900/40 to-pink-900/40', preview: 'discovery' },
+  { label: 'Sourcing — Xitoy narxlari taqqoslash', caption: '1688, Taobao dan aniq foyda bilan', bg: 'from-orange-900/40 to-red-900/40', preview: 'sourcing' },
 ];
 
 function MockScreen({ type, bg }: { type: string; bg: string }) {
@@ -139,6 +120,7 @@ function MockScreen({ type, bg }: { type: string; bg: string }) {
 
 export function DashboardPreview({ appUrl }: DashboardPreviewProps) {
   const [active, setActive] = useState(0);
+  const { t } = useLang();
 
   return (
     <section className="py-24 px-4 sm:px-6 lg:px-8">
@@ -151,9 +133,9 @@ export function DashboardPreview({ appUrl }: DashboardPreviewProps) {
           className="text-center mb-12"
         >
           <h2 className="font-display font-700 text-3xl sm:text-4xl text-white mb-4">
-            Platformani <span className="gradient-text">ko'ring</span>
+            {t('preview.title1')} <span className="gradient-text">{t('preview.title2')}</span>
           </h2>
-          <p className="text-base-content/60">Haqiqiy dashboard — real ma'lumotlar bilan</p>
+          <p className="text-base-content/60">{t('preview.subtitle')}</p>
         </motion.div>
 
         <div className="grid lg:grid-cols-2 gap-8 items-center">
@@ -185,7 +167,7 @@ export function DashboardPreview({ appUrl }: DashboardPreviewProps) {
               href={`${appUrl}/register`}
               className="btn btn-primary rounded-full w-fit px-6 mt-2"
             >
-              Ko'proq ko'rish →
+              {t('preview.cta')}
             </a>
           </div>
 

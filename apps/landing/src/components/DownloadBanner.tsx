@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLang } from '../lib/LangContext';
 
 const COOKIE_KEY = 'ventra-download-banner-dismissed';
 
 export function DownloadBanner() {
   const [visible, setVisible] = useState(false);
+  const { t } = useLang();
 
   useEffect(() => {
     const dismissed = localStorage.getItem(COOKIE_KEY);
@@ -35,10 +37,10 @@ export function DownloadBanner() {
               <div className="text-2xl">🖥️</div>
               <div className="flex-1 min-w-0">
                 <p className="font-display font-600 text-sm text-white">
-                  VENTRA Desktop — Brauzer ochmasdan ishlang
+                  {t('download.title')}
                 </p>
                 <p className="text-xs text-base-content/50 mt-0.5">
-                  v1.0.0 · 85 MB · Windows 10+ / macOS 12+
+                  {t('download.version')}
                 </p>
                 <div className="flex gap-2 mt-3">
                   <a
@@ -46,14 +48,14 @@ export function DownloadBanner() {
                     className="btn btn-primary btn-xs rounded-full"
                     onClick={dismiss}
                   >
-                    Windows yuklab olish
+                    {t('download.win')}
                   </a>
                   <a
                     href="#"
                     className="btn btn-outline btn-xs rounded-full"
                     onClick={dismiss}
                   >
-                    macOS
+                    {t('download.mac')}
                   </a>
                 </div>
               </div>
