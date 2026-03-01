@@ -18,6 +18,7 @@ import { NicheService } from './niche.service';
 import { RequestLoggerService } from '../common/request-logger.service';
 import { UzumClient } from '../uzum/uzum.client';
 import { PrismaService } from '../prisma/prisma.service';
+import { StartRunDto } from './dto/start-run.dto';
 
 @ApiTags('discovery')
 @ApiBearerAuth()
@@ -36,7 +37,7 @@ export class DiscoveryController {
   @ActivityAction('DISCOVERY_RUN')
   async startRun(
     @CurrentUser('account_id') accountId: string,
-    @Body() body: { input: string },
+    @Body() body: StartRunDto,
   ) {
     if (!body.input?.trim()) {
       throw new BadRequestException('input maydoni kerak (URL yoki kategoriya ID)');

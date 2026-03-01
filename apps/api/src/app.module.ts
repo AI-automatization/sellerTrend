@@ -40,7 +40,10 @@ import { NotificationModule } from './notification/notification.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }]),
+    ThrottlerModule.forRoot([
+      { name: 'default', ttl: 60000, limit: 120 },
+      { name: 'ai', ttl: 60000, limit: 30 },
+    ]),
     CommonModule,
     PrismaModule,
     AuthModule,

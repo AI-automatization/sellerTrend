@@ -21,3 +21,6 @@ tmp_*.json
 hato/
 mahsulot.md
 perm
+
+# Claude multi-agent locks (runtime only)
+.claude/locks/*.lock

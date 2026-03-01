@@ -3,6 +3,43 @@
 
 ---
 
+## Sprint 1 Backend — Multi-Agent Mode (Bekzod, 2026-03-01)
+
+5 backend task parallel agent dispatch bilan bajarildi. Commit `cd1d041`.
+
+| # | Task | Yechim |
+|---|------|--------|
+| T-241 | totalAvailableAmount Prisma schema + saqlash | `schema.prisma`: Product.photo_url + CategoryRun.category_name. `uzum.service.ts`, `import.processor.ts`, `reanalysis.processor.ts`, `discovery.processor.ts` — total_available_amount, photo_url saqlash |
+| T-150 | consultant_id → account_id naming fix | `consultation.service.ts`: consultantId/clientId → accountId, `any` → `Prisma.ConsultationWhereInput`, JSDoc qo'shildi |
+| T-239 | Per-user rate limiting AI endpoints | `ai-throttler.guard.ts` (NEW): per-account AI limiter. `app.module.ts`: named throttlers (default 120/min, ai 30/min). `custom-throttler.guard.ts`: bug fix `req.user.sub` → `req.user.id` |
+| T-214 | POST /uzum/batch-quick-score endpoint | `batch-quick-score.dto.ts` (NEW): @IsArray @ArrayMaxSize(20). `uzum.service.ts`: batchQuickScore() — Promise.allSettled parallel. `uzum.controller.ts`: @Post('batch-quick-score') |
+| T-240 | DTO validatsiya 5+ endpoint | 6 ta DTO yaratildi: `start-run.dto.ts`, `calculate-cargo.dto.ts`, `search-prices.dto.ts`, `create-search-job.dto.ts`, `create-ticket.dto.ts`, `create-price-test.dto.ts`. Controller'lar yangilandi |
+
+---
+
+## v5.5 — Production Deployment Verification (Bekzod, 2026-03-01)
+
+| # | Task | Yechim |
+|---|------|--------|
+| T-293 | Health check: weekly-scrape-queue qo'shish | `health.controller.ts` — `queueNames` ga `'weekly-scrape-queue'` qo'shildi. Commit `857dfbe` |
+| T-294 | CI/CD pipeline: TezCode Team workspace | GitHub Actions → Railway deploy: 4 service (api, worker, web, bot) — barchasi SUCCESS. TezCode Team workspace (project: uzum-trend-finder) |
+| T-295 | Production verification: 16 sahifa test | Dashboard, URL Tahlil, Discovery, Sourcing, Do'konlar, Signallar, Leaderboard, Kalkulyator, Elastiklik, AI Tavsif, Konsultatsiya, Enterprise, Referal, API Kalitlar, Kengaytma, Fikr-mulohaza — barchasi ishlaydi |
+| T-296 | Dark mode + i18n verification | Qorong'u rejim barcha sahifalarda to'g'ri ishlaydi. 3 til (O'z, Ру, En) — tarjimalar to'g'ri |
+| T-297 | Demo account production | `POST /api/v1/auth/register` — demo@uzum-trend.uz / Demo123! yaratildi. Login + URL Tahlil (product 352744) ishlaydi |
+| T-298 | Worker 7 ta ishlaydi | discovery-queue, sourcing-search, import-batch, billing-queue, competitor-queue, reanalysis-queue, weekly-scrape-queue — barchasi active. Weekly scrape cron: `*/15 * * * *` |
+| T-269 | Eski noto'g'ri weekly_bought data (OBSOLETE) | Eski `calcWeeklyBought()` algoritmidan kelib chiqqan noto'g'ri `rOrdersAmount` data — Playwright scraper yangi `weekly_bought_source='scraped'` data bilan almashtiradi. Manual SQL cleanup kerak emas |
+| T-270 | Duplicate snapshot tozalash (OBSOLETE) | `SNAPSHOT_MIN_GAP_MS=5min` dedup guard (T-267) + scraper dedup — yangi duplicatelar yaratilmaydi. Eski duplicatelar tarixiy data sifatida qoladi |
+
+### Production status:
+```
+Health: {"status":"ok","db":"ok","redis":"ok","queues":{...,"weekly-scrape-queue":0}}
+Workers: 7/7 running
+Web: https://web-production-2c10.up.railway.app ✅
+API: https://api-production-8057.up.railway.app ✅
+```
+
+---
+
 ## i18n AUDIT — Bajarilganlar (Sardor, 2026-03-01)
 
 | # | Task | Yechim |
@@ -632,4 +669,4 @@
 
 ---
 
-*Done.md | VENTRA Analytics Platform | 2026-02-27*
+*Done.md | VENTRA Analytics Platform | 2026-03-01*

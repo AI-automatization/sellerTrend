@@ -7,6 +7,7 @@ import { BillingGuard } from '../billing/billing.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ActivityAction } from '../common/decorators/activity-action.decorator';
 import { SignalsService } from './signals.service';
+import { CreatePriceTestDto } from './dto/create-price-test.dto';
 
 @ApiTags('signals')
 @ApiBearerAuth()
@@ -84,7 +85,7 @@ export class SignalsController {
   @ActivityAction('SIGNAL_PRICE_TEST')
   createPriceTest(
     @CurrentUser('account_id') accountId: string,
-    @Body() body: { product_id: string; original_price: number; test_price: number },
+    @Body() body: CreatePriceTestDto,
   ) {
     return this.signalsService.createPriceTest(accountId, body);
   }

@@ -64,6 +64,10 @@ async function reanalyzeProduct(
   const title = detail.localizableTitle?.ru || detail.title;
 
   // Atomic transaction: product + SKUs + snapshot
+  const totalAvailable = detail.totalAvailableAmount != null
+    ? BigInt(detail.totalAvailableAmount)
+    : null;
+
   await prisma.$transaction(async (tx) => {
     await tx.product.update({
       where: { id: productId },
@@ -72,6 +76,7 @@ async function reanalyzeProduct(
         rating: detail.rating ?? null,
         feedback_quantity: detail.reviewsAmount ?? 0,
         orders_quantity: BigInt(currentOrders),
+        total_available_amount: totalAvailable,
       },
     });
 

@@ -97,6 +97,9 @@ export function LeaderboardPage() {
               <div className="flex flex-col items-center py-12 gap-2 text-base-content/40">
                 <FireIcon className="w-10 h-10" />
                 <p>{t('leaderboard.noData')}</p>
+                <Link to="/analyze" className="btn btn-primary btn-sm mt-2">
+                  {t('leaderboard.startTracking')}
+                </Link>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -151,6 +154,9 @@ export function LeaderboardPage() {
               <div className="card-body items-center py-12 text-base-content/40">
                 <FireIcon className="w-10 h-10" />
                 <p>{t('leaderboard.noCatData')}</p>
+                <Link to="/analyze" className="btn btn-primary btn-sm mt-2">
+                  {t('leaderboard.startTracking')}
+                </Link>
               </div>
             </div>
           ) : (

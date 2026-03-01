@@ -162,6 +162,8 @@ model Product {
   rating            Decimal?                    @db.Decimal(3, 2)
   feedback_quantity Int?                        @default(0)
   orders_quantity   BigInt?                     @default(0)
+  total_available_amount BigInt?
+  photo_url         String?                     @db.Text
   is_active         Boolean                     @default(true)
   // embedding      Unsupported("vector(1536)")? — disabled: Railway Postgres lacks pgvector
   created_at        DateTime                    @default(now()) @db.Timestamptz
@@ -240,6 +242,7 @@ model CategoryRun {
   id             String          @id @default(uuid())
   account_id     String
   category_id    BigInt
+  category_name  String?         @db.VarChar(255)
   status         CategoryRunStatus @default(PENDING)
   total_products Int?
   processed      Int             @default(0)
