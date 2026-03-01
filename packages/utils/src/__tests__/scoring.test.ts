@@ -89,6 +89,14 @@ describe('parseUzumProductId', () => {
     expect(parseUzumProductId('https://uzum.uz/ru/product/molochnaya-smes-dlya-155927?skuId=232522')).toBe(155927);
   });
 
+  it('parses URL with number in slug middle (mach3 edge case)', () => {
+    expect(parseUzumProductId('https://uzum.uz/ru/product/gillette-mach3-britva-4700?skuId=5731')).toBe(4700);
+  });
+
+  it('returns null when slug has no trailing product ID (model name only)', () => {
+    expect(parseUzumProductId('https://uzum.uz/ru/product/gillette-mach3?skuId=5731')).toBeNull();
+  });
+
   it('returns null for non-product URL', () => {
     expect(parseUzumProductId('https://uzum.uz/ru/category/electronics')).toBeNull();
   });
