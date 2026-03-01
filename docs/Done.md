@@ -3,6 +3,20 @@
 
 ---
 
+## Sprint 1 Backend — Multi-Agent Mode (Bekzod, 2026-03-01)
+
+5 backend task parallel agent dispatch bilan bajarildi. Commit `cd1d041`.
+
+| # | Task | Yechim |
+|---|------|--------|
+| T-241 | totalAvailableAmount Prisma schema + saqlash | `schema.prisma`: Product.photo_url + CategoryRun.category_name. `uzum.service.ts`, `import.processor.ts`, `reanalysis.processor.ts`, `discovery.processor.ts` — total_available_amount, photo_url saqlash |
+| T-150 | consultant_id → account_id naming fix | `consultation.service.ts`: consultantId/clientId → accountId, `any` → `Prisma.ConsultationWhereInput`, JSDoc qo'shildi |
+| T-239 | Per-user rate limiting AI endpoints | `ai-throttler.guard.ts` (NEW): per-account AI limiter. `app.module.ts`: named throttlers (default 120/min, ai 30/min). `custom-throttler.guard.ts`: bug fix `req.user.sub` → `req.user.id` |
+| T-214 | POST /uzum/batch-quick-score endpoint | `batch-quick-score.dto.ts` (NEW): @IsArray @ArrayMaxSize(20). `uzum.service.ts`: batchQuickScore() — Promise.allSettled parallel. `uzum.controller.ts`: @Post('batch-quick-score') |
+| T-240 | DTO validatsiya 5+ endpoint | 6 ta DTO yaratildi: `start-run.dto.ts`, `calculate-cargo.dto.ts`, `search-prices.dto.ts`, `create-search-job.dto.ts`, `create-ticket.dto.ts`, `create-price-test.dto.ts`. Controller'lar yangilandi |
+
+---
+
 ## v5.5 — Production Deployment Verification (Bekzod, 2026-03-01)
 
 | # | Task | Yechim |

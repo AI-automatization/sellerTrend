@@ -55,21 +55,7 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 # BACKEND OCHIQ TASKLAR
 # ═══════════════════════════════════════════════════════════
 
-## P1 — MUHIM
-
-### T-241 | P1 | BACKEND | totalAvailableAmount Prisma schema + saqlash — stock cliff aniq bo'ladi | 30min
-**Fix:** Product modeliga `total_available_amount BigInt?` qo'shish, migration, saqlash.
-
-### T-214 | P1 | BACKEND | POST /uzum/batch-quick-score endpoint — extension uchun batch scoring | 1h
-
-## P2 — O'RTA
-
-### T-239 | P2 | BACKEND | Per-user rate limiting — AI endpoint lar uchun ThrottlerGuard | 30min
-### T-150 | BACKEND | naming consultant_id aslida account_id | 10min
-
-## P3 — PAST
-
-### T-240 | P3 | BACKEND | DTO validatsiya qo'shish — 5+ endpoint DTO'siz | 30min
+*(Sprint 1 backend tasks completed — see Done.md)*
 
 ---
 
