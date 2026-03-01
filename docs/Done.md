@@ -3,7 +3,7 @@
 
 ---
 
-## Sprint 2 Backend — T-237, T-260, T-261, T-234 (Bekzod, 2026-03-01)
+## Sprint 2 Backend — T-237, T-260, T-261, T-234, T-262, T-263 (Bekzod, 2026-03-01)
 
 | # | Task | Yechim |
 |---|------|--------|
@@ -11,6 +11,8 @@
 | T-260 | Discovery category nomi API da | Backend allaqachon tayyor edi (Sprint 1 T-241). category_name getRun() va getLeaderboard() da qaytarilmoqda. Frontend Sardor'da |
 | T-261 | Discovery leaderboard boyitish | `discovery.service.ts`: getLeaderboard() — rating, feedback_quantity, photo_url, total_available_amount, shop_title, shop_rating qo'shildi. Frontend Sardor'da |
 | T-234 | Desktop login bug fix | `window.ts`: app:// protocol /api/* path larni HTTP backend ga proxy qiladi. `apps/desktop/.env` yaratildi (VITE_API_URL=http://localhost:3000) |
+| T-262 | Railway DB seed | `SeedService` (OnApplicationBootstrap) — API startup da auto-seed: admin, demo, platforms, cargo, trends. Upsert = idempotent |
+| T-263 | SUPER_ADMIN user | SeedService admin@ventra.uz / Admin123! SUPER_ADMIN role bilan yaratadi |
 
 ---
 

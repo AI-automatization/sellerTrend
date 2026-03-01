@@ -46,15 +46,13 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 # DESKTOP APP LOGIN BUG (2026-02-27)
 # ═══════════════════════════════════════════════════════════
 
-### T-234 | DESKTOP | Login ishlamaydi — DONE (window.ts API proxy + .env) |
-
 ---
 
 # ═══════════════════════════════════════════════════════════
 # BACKEND OCHIQ TASKLAR
 # ═══════════════════════════════════════════════════════════
 
-*(Sprint 1 backend tasks completed — see Done.md)*
+*(Sprint 1-2 backend tasks completed — see Done.md)*
 
 ---
 
@@ -99,9 +97,7 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 
 ## P0 — KRITIK
 
-### T-262 | P0 | DEVOPS | Railway DB — `prisma db:seed` ishlatilmagan, seed data yo'q (platforms, categories) | 15min
-### T-263 | P0 | DEVOPS | Railway — SUPER_ADMIN user yo'q, admin panel 403 Forbidden | 10min
-**Izoh:** Demo user yaratildi (demo@uzum-trend.uz), lekin SUPER_ADMIN role berilmagan.
+### T-262 + T-263 | DONE | SeedService auto-seed on API startup — admin, platforms, cargo, trends |
 
 ## P0 — KRITIK (Latency)
 
