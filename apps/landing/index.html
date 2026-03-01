@@ -6,18 +6,83 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>VENTRA — Uzum.uz sotuvchilari uchun AI analytics</title>
     <meta name="description" content="Qaysi mahsulot trend? Raqibingiz qancha sotayapti? Xitoydan arzon narx qayerda? VENTRA barchasini ko'rsatadi. Uzum.uz sotuvchilari uchun premium AI analytics platforma." />
-    <meta name="keywords" content="uzum analytics, uzum sotuvchi, marketplace analytics, trend mahsulot, uzum uz, ventra" />
+    <meta name="keywords" content="uzum analytics, uzum sotuvchi, marketplace analytics, trend mahsulot, uzum uz, ventra, uzum seller" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://ventra.uz" />
+
+    <!-- Open Graph -->
     <meta property="og:title" content="VENTRA — Uzum.uz sotuvchilari uchun AI analytics" />
     <meta property="og:description" content="Qaysi mahsulot trend? Raqibingiz qancha sotayapti? VENTRA barchasini ko'rsatadi." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://ventra.uz" />
     <meta property="og:image" content="https://ventra.uz/og-image.png" />
+    <meta property="og:locale" content="uz_UZ" />
+    <meta property="og:site_name" content="VENTRA" />
+
+    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="VENTRA — Uzum.uz sotuvchilari uchun AI analytics" />
     <meta name="twitter:description" content="Qaysi mahsulot trend? VENTRA barchasini ko'rsatadi." />
+    <meta name="twitter:image" content="https://ventra.uz/og-image.png" />
+
+    <!-- L-017: Font preloading for performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="preload" as="style"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap"
+          rel="stylesheet" media="print" onload="this.media='all'" />
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet" />
+    </noscript>
+
+    <!-- L-016: JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "VENTRA",
+      "description": "Uzum.uz sotuvchilari uchun premium AI analytics platforma",
+      "url": "https://ventra.uz",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web, Windows, macOS",
+      "offers": [
+        {
+          "@type": "Offer",
+          "name": "Starter",
+          "price": "0",
+          "priceCurrency": "UZS"
+        },
+        {
+          "@type": "Offer",
+          "name": "Pro",
+          "price": "99000",
+          "priceCurrency": "UZS"
+        }
+      ],
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "reviewCount": "120"
+      }
+    }
+    </script>
+
+    <!-- L-018: Theme detection before render (no flash) -->
+    <script>
+      (function() {
+        var stored = localStorage.getItem('ventra-landing-theme');
+        if (stored === 'light') {
+          document.documentElement.setAttribute('data-theme', 'ventra-light');
+        } else if (!stored) {
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (!prefersDark) {
+            document.documentElement.setAttribute('data-theme', 'ventra-light');
+            localStorage.setItem('ventra-landing-theme', 'light');
+          }
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

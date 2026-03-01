@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { staggerItem, VIEWPORT } from '../lib/animations';
 
 interface FeatureCardProps {
   icon: string;
@@ -7,15 +8,16 @@ interface FeatureCardProps {
   index: number;
 }
 
-export function FeatureCard({ icon, title, description, index }: FeatureCardProps) {
+export function FeatureCard({ icon, title, description, index: _index }: FeatureCardProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.2 }}
-      transition={{ duration: 0.5, delay: index * 0.08 }}
+      variants={staggerItem}
+      initial="hidden"
+      whileInView="visible"
+      viewport={VIEWPORT}
       whileHover={{ scale: 1.03, y: -4 }}
-      className="glass-card rounded-2xl p-6 cursor-default group transition-all duration-300
+      transition={{ duration: 0.2 }}
+      className="glass-card rounded-2xl p-6 cursor-default group
                  hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10"
     >
       <div className="text-3xl mb-4">{icon}</div>

@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { fadeUp, staggerContainer, staggerItem, VIEWPORT } from '../lib/animations';
 
 const PAIN_POINTS = [
   {
@@ -29,10 +30,10 @@ export function PainPointsSection() {
     <section className="py-24 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: 0.6 }}
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="visible"
+          viewport={VIEWPORT}
           className="text-center mb-16"
         >
           <h2 className="font-display font-700 text-3xl sm:text-4xl text-white mb-4">
@@ -44,14 +45,17 @@ export function PainPointsSection() {
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-6">
-          {PAIN_POINTS.map((item, i) => (
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="visible"
+          viewport={VIEWPORT}
+          className="grid md:grid-cols-3 gap-6"
+        >
+          {PAIN_POINTS.map((item) => (
             <motion.div
               key={item.problem}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.6, delay: i * 0.1 }}
+              variants={staggerItem}
               className="glass-card rounded-2xl overflow-hidden"
             >
               {/* Problem (red) */}
@@ -79,7 +83,7 @@ export function PainPointsSection() {
               </div>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

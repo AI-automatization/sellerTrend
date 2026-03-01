@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { FeatureCard } from '../components/FeatureCard';
+import { fadeUp, staggerContainer, VIEWPORT } from '../lib/animations';
 
 const FEATURES = [
   {
@@ -65,10 +66,10 @@ export function FeaturesSection() {
 
       <div className="max-w-7xl mx-auto relative">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: 0.6 }}
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="visible"
+          viewport={VIEWPORT}
           className="text-center mb-16"
         >
           <span className="inline-block text-xs font-600 text-primary uppercase tracking-widest mb-3">
@@ -83,11 +84,17 @@ export function FeaturesSection() {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="visible"
+          viewport={VIEWPORT}
+          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"
+        >
           {FEATURES.map((feature, i) => (
             <FeatureCard key={feature.title} {...feature} index={i} />
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );
