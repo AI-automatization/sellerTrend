@@ -60,6 +60,14 @@ Commit `f6565e4` — 7 fayl, +173/-72 qator.
 
 ---
 
+## DevOps — T-184 Staging Environment (Bekzod, 2026-03-01)
+
+| # | Task | Yechim |
+|---|------|--------|
+| T-184 | Railway staging environment | Railway GraphQL API orqali `staging` environment yaratildi. Postgres-OaET + Redis-FA1J DB service'lar deploy qilindi. api, worker, web, bot — GitHub `AI-automatization/sellerTrend` repo'ga ulandi. api (SUCCESS, health OK, seed ishladi), worker (SUCCESS), web (SUCCESS, frontend yuklanadi), bot (CRASHED — `TELEGRAM_BOT_TOKEN` kerak, optional). Staging URL'lar: `api-staging-5e3c.up.railway.app`, `web-staging-e927.up.railway.app` |
+
+---
+
 ## DevOps ENV — T-242, T-244, E-009 (Bekzod, 2026-03-01)
 
 | # | Task | Yechim |

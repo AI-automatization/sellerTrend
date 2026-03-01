@@ -273,7 +273,7 @@ API calls:     ~300ms           API calls:     ~300ms (bypass, o'zgarmaydi*)
 
 ## P2 — O'RTA
 
-### T-184 | DEVOPS | Staging environment (optional) | 30min
+### T-184 | DONE | Staging environment — api/worker/web SUCCESS, bot optional (TELEGRAM_BOT_TOKEN kerak) |
 ### T-242 | DONE | SERPAPI_API_KEY — Railway production api + worker ga qo'shildi |
 ### T-243 | DEVOPS | ALIEXPRESS_APP_KEY + SECRET — API | 5min
 ### T-244 | DONE | SENTRY_DSN — Railway production api ga qo'shildi (ventra-69.sentry.io EU) |
