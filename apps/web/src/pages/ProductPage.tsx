@@ -73,6 +73,10 @@ export function ProductPage() {
   // Weekly trend state
   const [weeklyTrend, setWeeklyTrend] = useState<WeeklyTrend | null>(null);
 
+  // UI collapse state
+  const [showHistory, setShowHistory] = useState(false);
+  const [showMlDetail, setShowMlDetail] = useState(false);
+
   async function loadData(showRefreshing = false) {
     if (!id) return;
     if (showRefreshing) setRefreshing(true);
@@ -343,6 +347,40 @@ export function ProductPage() {
         />
       </div>
 
+      {/* AI Explanation — sotuvchi uchun eng muhim, metrics dan keyin */}
+      {result.ai_explanation && result.ai_explanation.filter((b) => typeof b === 'string' && b.trim().length > 0).length > 0 && (() => {
+        const bullets = result.ai_explanation!.filter((b) => typeof b === 'string' && b.trim().length > 0);
+        const bulletMeta = [
+          { icon: '📌', label: t('product.ai.bullet.1'), color: 'text-info' },
+          { icon: '🎯', label: t('product.ai.bullet.2'), color: 'text-success' },
+          { icon: '⚠️', label: t('product.ai.bullet.3'), color: 'text-warning' },
+        ];
+        return (
+          <div className="rounded-2xl bg-base-200/60 border border-primary/20 p-4 lg:p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🤖</span>
+              <h2 className="font-bold text-base lg:text-lg">{t('product.aiAnalysis')}</h2>
+              {isMine && <span className="badge badge-secondary badge-sm">🏪</span>}
+              <span className="badge badge-primary badge-sm ml-auto">AI</span>
+            </div>
+            <ul className="space-y-3">
+              {bullets.map((bullet, i) => {
+                const meta = bulletMeta[i] ?? { icon: '💡', label: String(i + 1), color: '' };
+                return (
+                  <li key={i} className="flex items-start gap-3 text-sm bg-base-300/60 rounded-xl p-3">
+                    <span className="text-lg shrink-0 mt-0.5">{meta.icon}</span>
+                    <div className="flex-1">
+                      <span className={`text-xs font-bold uppercase tracking-wide ${meta.color} mr-2`}>{meta.label}</span>
+                      <span>{bullet}</span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        );
+      })()}
+
       {/* Forecast */}
       {forecast && (
         <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-6 space-y-4">
@@ -517,20 +555,24 @@ export function ProductPage() {
         </div>
       )}
 
-      {/* ML Forecast — Feature 11 */}
+      {/* ML Forecast — Feature 11 (collapsible) */}
       {(mlForecast || mlLoading) && (
         <div className="rounded-2xl bg-base-200/60 border border-primary/20 p-4 lg:p-6 space-y-4">
-          <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowMlDetail((v) => !v)}
+            className="flex items-center gap-2 w-full text-left"
+          >
             <span className="text-xl">🧠</span>
             <h2 className="font-bold text-base lg:text-lg">{t('product.mlForecast')}</h2>
-            <span className="badge badge-primary badge-sm ml-auto">AI+ML</span>
-          </div>
+            <span className="badge badge-primary badge-sm">AI+ML</span>
+            <span className="ml-auto text-base-content/40 text-sm">{showMlDetail ? '▲' : '▼'}</span>
+          </button>
 
-          {mlLoading && !mlForecast ? (
+          {showMlDetail && mlLoading && !mlForecast ? (
             <div className="flex justify-center py-8">
               <span className="loading loading-dots loading-lg text-primary" />
             </div>
-          ) : mlForecast && (
+          ) : showMlDetail && mlForecast && (
             <>
               {/* Score & Sales forecast summaries */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -635,61 +677,38 @@ export function ProductPage() {
         </div>
       )}
 
-      {/* Score + Orders history */}
+      {/* Score + Orders history (collapsible) */}
       {snapshots.length > 1 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-5">
-            <h2 className="font-bold text-sm text-base-content/70 mb-3">{t('product.scoreHistory')}</h2>
-            <ScoreChart data={snapshots} />
-          </div>
-          <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-5">
-            <h2 className="font-bold text-sm text-base-content/70 mb-3">{t('product.salesHistory')}</h2>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={snapshots.filter((s) => s.orders > 0).slice(-15)} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
-                <Tooltip {...glassTooltip} formatter={(value: number) => [`${value.toLocaleString()} dona/hafta`, 'Sotuv']} />
-                <Bar dataKey="orders" fill="#34d399" radius={[4, 4, 0, 0]} name="Haftalik sotuv" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+        <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-5">
+          <button
+            onClick={() => setShowHistory((v) => !v)}
+            className="flex items-center gap-2 w-full text-left"
+          >
+            <h2 className="font-bold text-sm text-base-content/70">{t('product.scoreHistory')} / {t('product.salesHistory')}</h2>
+            <span className="ml-auto text-base-content/40 text-sm">{showHistory ? '▲' : '▼'}</span>
+          </button>
+          {showHistory && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+              <div>
+                <p className="text-xs text-base-content/50 mb-2">{t('product.scoreHistory')}</p>
+                <ScoreChart data={snapshots} />
+              </div>
+              <div>
+                <p className="text-xs text-base-content/50 mb-2">{t('product.salesHistory')}</p>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={snapshots.filter((s) => s.orders > 0).slice(-15)} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
+                    <Tooltip {...glassTooltip} formatter={(value: number) => [`${value.toLocaleString()} dona/hafta`, 'Sotuv']} />
+                    <Bar dataKey="orders" fill="#34d399" radius={[4, 4, 0, 0]} name="Haftalik sotuv" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
         </div>
       )}
-
-      {/* AI Explanation — T-193b: filter + structured 3-bullet display */}
-      {result.ai_explanation && result.ai_explanation.filter((b) => typeof b === 'string' && b.trim().length > 0).length > 0 && (() => {
-        const bullets = result.ai_explanation!.filter((b) => typeof b === 'string' && b.trim().length > 0);
-        const bulletMeta = [
-          { icon: '📌', label: t('product.ai.bullet.1'), color: 'text-info' },
-          { icon: '🎯', label: t('product.ai.bullet.2'), color: 'text-success' },
-          { icon: '⚠️', label: t('product.ai.bullet.3'), color: 'text-warning' },
-        ];
-        return (
-          <div className="rounded-2xl bg-base-200/60 border border-primary/20 p-4 lg:p-6 space-y-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🤖</span>
-              <h2 className="font-bold text-base lg:text-lg">{t('product.aiAnalysis')}</h2>
-              {isMine && <span className="badge badge-secondary badge-sm">🏪</span>}
-              <span className="badge badge-primary badge-sm ml-auto">AI</span>
-            </div>
-            <ul className="space-y-3">
-              {bullets.map((bullet, i) => {
-                const meta = bulletMeta[i] ?? { icon: '💡', label: String(i + 1), color: '' };
-                return (
-                  <li key={i} className="flex items-start gap-3 text-sm bg-base-300/60 rounded-xl p-3">
-                    <span className="text-lg shrink-0 mt-0.5">{meta.icon}</span>
-                    <div className="flex-1">
-                      <span className={`text-xs font-bold uppercase tracking-wide ${meta.color} mr-2`}>{meta.label}</span>
-                      <span>{bullet}</span>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        );
-      })()}
 
       {/* Competitor Price Tracker — Feature 01 */}
       <CompetitorSection productId={String(result.product_id)} productPrice={result.sell_price} />

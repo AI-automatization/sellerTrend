@@ -36,6 +36,17 @@
 
 ---
 
+## Sprint 2 Frontend — T-237, T-260, T-261, T-202 (Sardor, 2026-03-01)
+
+| # | Task | Yechim |
+|---|------|--------|
+| T-237 | photo_url — API + Frontend | `AnalyzeResult` + `TrackedProduct` tipiga `photo_url` qo'shildi. `ProductPage` hero da rasm, `ProductsTable` thumbnail |
+| T-260 | Discovery category nomi | `Run` tipiga `category_name`. Runs table + winners drawer headerda kategoriya nomi ko'rsatiladi |
+| T-261 | Discovery drawer + leaderboard | `Winner` tipiga yangi fieldlar. ScannerTab drawer + PublicLeaderboardPage: thumbnail, shop_title, rating, category_name |
+| T-202 | ProductPage UX soddalash | AI Explanation → metrics dan keyin (3-o'rin). ML Forecast collapsible (default yopiq). Score/Orders history collapsible (default yopiq) |
+
+---
+
 ## Sprint 1 Frontend — Multi-Agent Mode (Sardor, 2026-03-01)
 
 Commit `f6565e4` — 7 fayl, +173/-72 qator.

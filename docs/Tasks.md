@@ -55,7 +55,6 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 
 ## P1 — MUHIM
 
-### T-202 | FRONTEND | ProductPage overall UX — sotuvchi uchun soddalash | 1h
 
 ## P2 — O'RTA
 
