@@ -7,7 +7,7 @@ import { RegisterPage } from './pages/RegisterPage';
 import { Layout } from './components/Layout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PageSkeleton } from './components/skeletons';
-import { isTokenValid } from './api/client';
+import { isTokenValid, getTokenPayload } from './api/client';
 
 // Lazy-loaded pages (code splitting)
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
@@ -37,6 +37,14 @@ function isAuthenticated() {
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   return isAuthenticated() ? <>{children}</> : <Navigate to="/login" replace />;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const payload = getTokenPayload();
+  if (!payload || payload.role !== 'SUPER_ADMIN') {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
 }
 
 function LazyRoute({ children }: { children: React.ReactNode }) {
@@ -84,7 +92,7 @@ export default function App() {
           <Route path="enterprise" element={<LazyRoute><EnterprisePage /></LazyRoute>} />
           <Route path="feedback" element={<LazyRoute><FeedbackPage /></LazyRoute>} />
           <Route path="extension" element={<LazyRoute><ExtensionPage /></LazyRoute>} />
-          <Route path="admin" element={<LazyRoute><AdminPage /></LazyRoute>} />
+          <Route path="admin" element={<AdminRoute><LazyRoute><AdminPage /></LazyRoute></AdminRoute>} />
         </Route>
       </Routes>
     </BrowserRouter>

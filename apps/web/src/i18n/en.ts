@@ -1185,4 +1185,28 @@ export const en: Record<string, string> = {
     'feedback.statusInProgress': 'In progress',
     'feedback.statusResolved': 'Resolved',
     'feedback.statusClosed': 'Closed',
+    // Competitor i18n keys
+    'competitor.title': 'Competitor Price Monitoring',
+    'competitor.subtitle': 'Track prices of stores in this category',
+    'competitor.discoverBtn': 'Discover competitors',
+    'competitor.discoverError': 'Failed to find competitors',
+    'competitor.trackedCount': 'Tracked competitors',
+    'competitor.discoveredCount': 'Discovered competitors',
+    'competitor.col.product': 'Competitor product',
+    'competitor.col.shop': 'Shop',
+    'competitor.col.price': 'Price',
+    'competitor.col.diff': 'Difference',
+    'competitor.col.trend': 'Trend',
+    'competitor.priceHistory': 'Price history',
+    'competitor.noHistory': 'Not enough history',
+    'competitor.loadError': 'Failed to load competitors',
+    'competitor.notTracked': 'No competitors tracked yet',
+    'competitor.retryHint': 'Try again or check later',
+    'competitor.discoverHint': 'Click "Discover competitors" button',
+    'competitor.trackBtn': '+ Track',
+    // Shops empty state
+    'shops.emptyState': 'Enter a shop ID to view its data',
+    'shops.emptyHint': 'You can find the ID on the Uzum shop page',
+    // Leaderboard CTA
+    'leaderboard.startTracking': 'Start tracking products',
 };
