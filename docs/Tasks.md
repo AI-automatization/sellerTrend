@@ -66,17 +66,13 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 ## P1 — MUHIM
 
 ### T-202 | FRONTEND | ProductPage overall UX — sotuvchi uchun soddalash | 1h
-### T-206 | FRONTEND | Raqiblar — "50 ta kuzatilmoqda" + "topilmadi" bir vaqtda | 10min
-### T-264 | P1 | FRONTEND | Admin panel — role USER bo'lsa /admin sahifaga redirect yo'q | 30min
 
 ## P2 — O'RTA
 
-### T-266 | P2 | FRONTEND | Shops, Leaderboard, Sourcing — bo'sh sahifa, yo'naltiruvchi xabar yo'q | 30min
 ### T-257 | P2 | FRONTEND | Granular ErrorBoundary per section | —
 
-## i18n AUDIT
-
-✅ T-276..T-279 — Barchasi bajarildi (Done.md ga ko'chirildi, 2026-03-01)
+### L-022 | P2 | LANDING | i18n uz/ru — barcha sectionlarni useLang() ga ulash | 1h
+**Holat:** LangContext + i18n.ts + Navbar toggle tayyor. Qolgan: HeroSection, PainPointsSection, FeaturesSection, DashboardPreview, StatsSection, PricingSection, TestimonialsSection, FAQSection, CTASection, FooterSection, DownloadBanner — barchasida `useLang()` import qilib `t()` ishlatish kerak.
 
 ---
 
@@ -464,8 +460,7 @@ API calls:     ~300ms           API calls:     ~300ms (bypass, o'zgarmaydi*)
 4. T-261 → Discovery drawer data boyitish
 
 ### FAZA 3 — Frontend UX polish
-5. T-264 → Admin route protection
-6. T-266 → Empty state CTA
+*(T-264, T-266 bajarildi — Done.md)*
 
 ---
 
