@@ -113,6 +113,7 @@ export class UzumService {
         snapshot_id: lastSnap.id,
         sell_price: detail.skuList?.[0]?.sellPrice,
         total_available_amount: detail.totalAvailableAmount ?? 0,
+        photo_url: detail.photoUrl ?? null,
         ai_explanation: null,
       };
     }
@@ -239,6 +240,7 @@ export class UzumService {
       snapshot_id: snapshot.id,
       sell_price: primarySku?.sellPrice,
       total_available_amount: detail.totalAvailableAmount ?? 0,
+      photo_url: detail.photoUrl ?? null,
       ai_explanation: aiExplanation,
     };
   }

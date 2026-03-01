@@ -126,7 +126,18 @@ export class DiscoveryService {
       include: {
         winners: {
           orderBy: { rank: 'asc' },
-          include: { product: { select: { title: true } } },
+          include: {
+            product: {
+              select: {
+                title: true,
+                rating: true,
+                feedback_quantity: true,
+                photo_url: true,
+                total_available_amount: true,
+                shop: { select: { title: true, rating: true } },
+              },
+            },
+          },
         },
       },
     });
@@ -146,6 +157,12 @@ export class DiscoveryService {
         weekly_bought: w.weekly_bought,
         orders_quantity: w.orders_quantity?.toString(),
         sell_price: w.sell_price?.toString(),
+        rating: w.product.rating ? Number(w.product.rating) : null,
+        feedback_quantity: w.product.feedback_quantity,
+        photo_url: w.product.photo_url,
+        total_available_amount: w.product.total_available_amount?.toString() ?? null,
+        shop_title: w.product.shop?.title ?? null,
+        shop_rating: w.product.shop?.rating ? Number(w.product.shop.rating) : null,
       })),
     };
   }
