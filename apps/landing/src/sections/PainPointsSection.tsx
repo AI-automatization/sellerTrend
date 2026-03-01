@@ -1,0 +1,86 @@
+import { motion } from 'framer-motion';
+
+const PAIN_POINTS = [
+  {
+    emoji: '😕',
+    problem: 'Qaysi mahsulot sotiladi — bilmaysiz',
+    problemDesc: 'Yangi mahsulot qo\'shsam sotilarmikan? Trend nima? Raqiblar nima sotayapti?',
+    solution: 'VENTRA Trend Discovery',
+    solutionDesc: 'AI har kuni trend mahsulotlarni topadi. Score 1-10 bilan baholaydi. Siz faqat tanlaysiz.',
+  },
+  {
+    emoji: '😤',
+    problem: 'Raqiblar arzonroq sotayapti — ko\'rmaysiz',
+    problemDesc: 'Raqibim narxini tushirdimi? Qachon tushurdi? Meniki yuqorimi?',
+    solution: 'VENTRA Raqib Kuzatuvi',
+    solutionDesc: '24/7 raqiblar narxini monitoring. Narx o\'zgarganda darhol Telegram da xabar.',
+  },
+  {
+    emoji: '🤔',
+    problem: 'Xitoydan narxni bilmaysiz — qidirib ko\'rmaysiz',
+    problemDesc: '1688, Taobao, AliExpress — hammasi turli tilda, turli narxda.',
+    solution: 'VENTRA Sourcing Engine',
+    solutionDesc: 'AI barcha platformalarni qidiradi, cargo va QQS bilan aniq foyda hisoblaydi.',
+  },
+];
+
+export function PainPointsSection() {
+  return (
+    <section className="py-24 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-16"
+        >
+          <h2 className="font-display font-700 text-3xl sm:text-4xl text-white mb-4">
+            Har kuni duch kelayotgan{' '}
+            <span className="gradient-text">muammolar</span>
+          </h2>
+          <p className="text-base-content/60 max-w-xl mx-auto">
+            Uzum sotuvchilari uchun eng katta to'siqlar — va VENTRA ularning yechimi
+          </p>
+        </motion.div>
+
+        <div className="grid md:grid-cols-3 gap-6">
+          {PAIN_POINTS.map((item, i) => (
+            <motion.div
+              key={item.problem}
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.6, delay: i * 0.1 }}
+              className="glass-card rounded-2xl overflow-hidden"
+            >
+              {/* Problem (red) */}
+              <div className="p-5 border-b border-white/5">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-2xl">{item.emoji}</span>
+                  <span className="text-xs text-error font-600 uppercase tracking-wide">Muammo</span>
+                </div>
+                <h3 className="font-display font-600 text-base text-white mb-2">
+                  {item.problem}
+                </h3>
+                <p className="text-sm text-base-content/50">{item.problemDesc}</p>
+              </div>
+
+              {/* Arrow */}
+              <div className="flex items-center justify-center py-3 text-primary text-xl">↓</div>
+
+              {/* Solution (green) */}
+              <div className="p-5 bg-success/5 border-t border-success/10">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs text-success font-600 uppercase tracking-wide">Yechim</span>
+                  <span className="badge badge-success badge-xs">{item.solution}</span>
+                </div>
+                <p className="text-sm text-base-content/70 leading-relaxed">{item.solutionDesc}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
