@@ -82,14 +82,14 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
       },
     });
 
-    // Centralized weekly_bought: 7-day lookback, 24h minimum gap (T-207)
+    // Centralized weekly_bought: prefer stored scraped, fallback to calculated (T-207)
     const currentOrders = detail.ordersAmount ?? 0;
 
     const recentSnapshots = await prisma.productSnapshot.findMany({
       where: { product_id: pid },
       orderBy: { snapshot_at: 'desc' },
       take: 20,
-      select: { orders_quantity: true, weekly_bought: true, snapshot_at: true },
+      select: { orders_quantity: true, weekly_bought: true, weekly_bought_source: true, snapshot_at: true },
     });
 
     // Dedup guard (T-267): skip snapshot if last one is < 5 min old
@@ -97,9 +97,18 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
     if (lastSnap && Date.now() - lastSnap.snapshot_at.getTime() < SNAPSHOT_MIN_GAP_MS) {
       logJobInfo('import-batch', jobId, jobName, `Snapshot dedup: product ${productId}, skip — last snap ${Math.round((Date.now() - lastSnap.snapshot_at.getTime()) / 1000)}s ago`);
     } else {
-      // T-268: fallback to last valid snapshot when calcWeeklyBought returns null
-      const rawWeeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
-      const weeklyBought = weeklyBoughtWithFallback(rawWeeklyBought, recentSnapshots);
+      // Prefer last scraped weekly_bought; fallback to calculation (transitional)
+      let weeklyBought: number | null = null;
+      let wbSource = 'calculated';
+
+      const lastScraped = recentSnapshots.find((s) => s.weekly_bought_source === 'scraped' && s.weekly_bought != null);
+      if (lastScraped) {
+        weeklyBought = lastScraped.weekly_bought;
+        wbSource = 'stored_scraped';
+      } else {
+        const rawWeeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
+        weeklyBought = weeklyBoughtWithFallback(rawWeeklyBought, recentSnapshots);
+      }
 
       const stockType = detail.skuList?.[0]?.stock?.type;
       const supplyPressure = getSupplyPressure(
@@ -117,11 +126,22 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
           product_id: pid,
           orders_quantity: currentOrders ? BigInt(currentOrders) : null,
           weekly_bought: weeklyBought,
+          weekly_bought_source: wbSource,
           rating: detail.rating ?? null,
           score,
         },
       });
     }
+
+    // Enqueue immediate Playwright scrape (fire-and-forget)
+    try {
+      const { weeklyScrapeQueue } = await import('../jobs/weekly-scrape.job');
+      await weeklyScrapeQueue.add('immediate-scrape', { mode: 'single', productId: productId.toString() }, {
+        attempts: 1,
+        removeOnComplete: 100,
+        removeOnFail: 50,
+      });
+    } catch { /* queue unavailable — non-critical */ }
 
     // Track product
     await prisma.trackedProduct.upsert({

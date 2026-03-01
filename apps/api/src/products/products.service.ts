@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { forecastEnsemble, calcWeeklyBought, recalcWeeklyBoughtSeries } from '@uzum/utils';
+import { forecastEnsemble, calcWeeklyBought } from '@uzum/utils';
 
 @Injectable()
 export class ProductsService {
@@ -15,6 +15,10 @@ export class ProductsService {
             snapshots: {
               orderBy: { snapshot_at: 'desc' },
               take: 20,
+              select: {
+                id: true, product_id: true, orders_quantity: true, weekly_bought: true,
+                weekly_bought_source: true, rating: true, feedback_quantity: true, score: true, snapshot_at: true,
+              },
             },
             skus: {
               where: { is_available: true },
@@ -44,10 +48,16 @@ export class ProductsService {
             : 'flat'
           : null;
 
-      // Centralized weekly_bought: 7-day lookback, 24h minimum gap (T-207)
-      const currentOrders = Number(latest?.orders_quantity ?? t.product.orders_quantity ?? 0);
-      const currentTime = latest?.snapshot_at?.getTime() ?? Date.now();
-      const weeklyBought = calcWeeklyBought(snaps, currentOrders, currentTime);
+      // Prefer stored scraped weekly_bought; fallback to calculated (transitional)
+      let weeklyBought: number | null = null;
+      const scrapedSnap = snaps.find((s) => (s as any).weekly_bought_source === 'scraped' && s.weekly_bought != null);
+      if (scrapedSnap) {
+        weeklyBought = scrapedSnap.weekly_bought;
+      } else {
+        const currentOrders = Number(latest?.orders_quantity ?? t.product.orders_quantity ?? 0);
+        const currentTime = latest?.snapshot_at?.getTime() ?? Date.now();
+        weeklyBought = calcWeeklyBought(snaps, currentOrders, currentTime);
+      }
 
       return {
         product_id: t.product.id.toString(),
@@ -74,6 +84,10 @@ export class ProductsService {
           snapshots: {
             orderBy: { snapshot_at: 'desc' },
             take: 20,
+            select: {
+              id: true, product_id: true, orders_quantity: true, weekly_bought: true,
+              weekly_bought_source: true, rating: true, feedback_quantity: true, score: true, snapshot_at: true,
+            },
           },
           skus: {
             where: { is_available: true },
@@ -104,10 +118,16 @@ export class ProductsService {
       }
     }
 
-    // Centralized weekly_bought: 7-day lookback, 24h minimum gap (T-207)
-    const currentOrders = Number(latest?.orders_quantity ?? product.orders_quantity ?? 0);
-    const currentTime = latest?.snapshot_at?.getTime() ?? Date.now();
-    const weeklyBought = calcWeeklyBought(snaps, currentOrders, currentTime);
+    // Prefer stored scraped weekly_bought; fallback to calculated (transitional)
+    let weeklyBought: number | null = null;
+    const scrapedSnap = snaps.find((s) => s.weekly_bought_source === 'scraped' && s.weekly_bought != null);
+    if (scrapedSnap) {
+      weeklyBought = scrapedSnap.weekly_bought;
+    } else {
+      const currentOrders = Number(latest?.orders_quantity ?? product.orders_quantity ?? 0);
+      const currentTime = latest?.snapshot_at?.getTime() ?? Date.now();
+      weeklyBought = calcWeeklyBought(snaps, currentOrders, currentTime);
+    }
 
     return {
       product_id: product.id.toString(),
@@ -150,19 +170,16 @@ export class ProductsService {
       select: {
         score: true,
         weekly_bought: true,
+        weekly_bought_source: true,
         orders_quantity: true,
         rating: true,
         snapshot_at: true,
       },
     });
 
-    // Recalculate weekly_bought with 7-day lookback (fix stale stored values) (T-207)
-    const asc = [...rows].reverse();
-    const wbValues = recalcWeeklyBoughtSeries(asc);
-
-    return rows.map((s, idx) => ({
+    return rows.map((s) => ({
       score: s.score ? Number(s.score) : null,
-      weekly_bought: wbValues[rows.length - 1 - idx],
+      weekly_bought: s.weekly_bought ?? 0,
       orders_quantity: s.orders_quantity ? Number(s.orders_quantity) : null,
       rating: s.rating ? Number(s.rating) : null,
       snapshot_at: s.snapshot_at,
@@ -233,10 +250,7 @@ export class ProductsService {
     });
 
     const scoreValues = rows.map((s) => Number(s.score ?? 0));
-
-    // Centralized weekly_bought recalculation with 7-day lookback (T-207)
-    const wbValues = recalcWeeklyBoughtSeries(rows);
-
+    const wbValues = rows.map((s) => s.weekly_bought ?? 0);
     const dates = rows.map((s) => s.snapshot_at.toISOString());
 
     const scoreForecast = forecastEnsemble(scoreValues, dates, 7);

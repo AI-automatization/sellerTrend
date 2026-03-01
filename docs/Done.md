@@ -1,5 +1,23 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
-# Yangilangan: 2026-02-28
+# Yangilangan: 2026-03-01
+
+---
+
+## v5.4 — Weekly Bought Playwright Scraping (Bekzod, 2026-03-01)
+
+| # | Task | Yechim |
+|---|------|--------|
+| T-282 | Prisma migration: weekly scrape fields | `TrackedProduct`: +next_scrape_at, +last_scraped_at, +@@index(next_scrape_at). `ProductSnapshot`: +weekly_bought_source VARCHAR(20) |
+| T-283 | Banner parser funksiya | `parseWeeklyBoughtBanner()` — "115 человек купили" / "1,2 тыс." format parse. `packages/utils/src/index.ts` |
+| T-284 | Playwright weekly scraper | `weekly-scraper.ts` — shared browser, 3 strategiya: SSR regex, DOM text, badge_bought img parent. Anti-detection: context isolation, images disabled |
+| T-285 | Weekly scrape BullMQ processor | `weekly-scrape.processor.ts` — batch (cron) va single (immediate) mode. Scrape → REST → snapshot(source='scraped'). Jitter, retry, dedup |
+| T-286 | Weekly scrape job scheduler | `weekly-scrape.job.ts` — `*/15 * * * *` cron. `weekly-scrape.queue.ts` API-side fire-and-forget trigger |
+| T-287 | Worker main.ts: 7-chi worker | `createWeeklyScrapeWorker()` + `scheduleWeeklyScrape()` registered. Health check: workers=7. Graceful shutdown |
+| T-288 | Reanalysis processor: stored scraped wb | `reanalysis.processor.ts` — scraped weekly_bought priority, calcWeeklyBought fallback. Snapshot: weekly_bought_source field |
+| T-289 | Import processor: stored scraped wb | `import.processor.ts` — scraped priority + fallback. Import tugagach immediate scrape enqueue |
+| T-290 | Products/Signals: stored wb read paths | `products.service.ts` — getTrackedProducts, getProductById, getProductSnapshots, getAdvancedForecast: stored wb. `signals.service.ts` — 6 feature: stored wb, recalcWeeklyBoughtSeries o'chirildi |
+| T-291 | UzumService: immediate scrape enqueue | `uzum.service.ts` — analyzeProduct() da scraped wb priority + `enqueueImmediateScrape()` fire-and-forget. weekly_bought_source snapshot ga yoziladi |
+| T-292 | Deprecated functions | `calcWeeklyBought()`, `weeklyBoughtWithFallback()`, `recalcWeeklyBoughtSeries()` — @deprecated JSDoc. Transitional fallback sifatida qoldi |
 
 ---
 

@@ -9,7 +9,6 @@ import {
   detectEarlySignals,
   detectStockCliff,
   planReplenishment,
-  recalcWeeklyBoughtSeries,
 } from '@uzum/utils';
 
 @Injectable()
@@ -30,15 +29,14 @@ export class SignalsService {
     });
 
     const products = tracked.map((t) => {
-      const snaps = [...t.product.snapshots].reverse(); // ASC order
-      const weeklyValues = recalcWeeklyBoughtSeries(snaps);
-      const latest = snaps[snaps.length - 1];
+      const snaps = t.product.snapshots; // DESC order
+      const latest = snaps[0];
       return {
         id: t.product.id.toString(),
         title: t.product.title,
         category_id: t.product.category_id ? Number(t.product.category_id) : null,
         score: latest?.score ? Number(latest.score) : 0,
-        weekly_bought: weeklyValues[weeklyValues.length - 1] ?? 0,
+        weekly_bought: latest?.weekly_bought ?? 0,
         shop_id: t.product.shop_id?.toString() ?? null,
       };
     });
@@ -61,10 +59,9 @@ export class SignalsService {
 
     return tracked
       .map((t) => {
-        const weeklyValues = recalcWeeklyBoughtSeries(t.product.snapshots);
-        const snaps = t.product.snapshots.map((s, i) => ({
+        const snaps = t.product.snapshots.map((s) => ({
           score: Number(s.score ?? 0),
-          weekly_bought: weeklyValues[i],
+          weekly_bought: s.weekly_bought ?? 0,
           date: s.snapshot_at.toISOString(),
         }));
         return predictDeadStock(snaps, t.product.id.toString(), t.product.title);
@@ -83,12 +80,10 @@ export class SignalsService {
     });
 
     const data = products.map((p) => {
-      const snaps = [...p.snapshots].reverse(); // ASC
-      const weeklyValues = recalcWeeklyBoughtSeries(snaps);
-      const latest = snaps[snaps.length - 1];
+      const latest = p.snapshots[0]; // DESC — first is latest
       return {
         score: latest?.score ? Number(latest.score) : 0,
-        weekly_bought: weeklyValues[weeklyValues.length - 1] ?? 0,
+        weekly_bought: latest?.weekly_bought ?? 0,
         shop_id: p.shop_id?.toString() ?? null,
       };
     });
@@ -147,14 +142,13 @@ export class SignalsService {
     });
 
     const products = tracked.map((t) => {
-      const weeklyValues = recalcWeeklyBoughtSeries(t.product.snapshots);
       return {
         product_id: t.product.id.toString(),
         title: t.product.title,
         created_at: t.product.created_at.toISOString(),
-        snapshots: t.product.snapshots.map((s, i) => ({
+        snapshots: t.product.snapshots.map((s) => ({
           score: Number(s.score ?? 0),
-          weekly_bought: weeklyValues[i],
+          weekly_bought: s.weekly_bought ?? 0,
           date: s.snapshot_at.toISOString(),
         })),
       };
@@ -177,16 +171,15 @@ export class SignalsService {
     });
 
     const products = tracked.map((t) => {
-      const snaps = [...t.product.snapshots].reverse(); // ASC order
-      const weeklyValues = recalcWeeklyBoughtSeries(snaps);
+      const snaps = t.product.snapshots; // DESC order
+      const latest = snaps[0];
       return {
         product_id: t.product.id.toString(),
         title: t.product.title,
-        weekly_bought: weeklyValues[weeklyValues.length - 1] ?? 0,
+        weekly_bought: latest?.weekly_bought ?? 0,
         orders_quantity: Number(t.product.orders_quantity ?? 0),
-        // total_available_amount not in schema yet — rely on orders_quantity heuristic
-        snapshots: snaps.map((s, i) => ({
-          weekly_bought: weeklyValues[i],
+        snapshots: snaps.map((s) => ({
+          weekly_bought: s.weekly_bought ?? 0,
           date: s.snapshot_at.toISOString(),
         })),
       };
@@ -386,12 +379,11 @@ export class SignalsService {
     });
 
     const products = tracked.map((t) => {
-      const snaps = [...t.product.snapshots].reverse(); // ASC
-      const weeklyValues = recalcWeeklyBoughtSeries(snaps);
+      const latest = t.product.snapshots[0]; // DESC — first is latest
       return {
         product_id: t.product.id.toString(),
         title: t.product.title,
-        weekly_bought: weeklyValues[weeklyValues.length - 1] ?? 0,
+        weekly_bought: latest?.weekly_bought ?? 0,
       };
     });
 

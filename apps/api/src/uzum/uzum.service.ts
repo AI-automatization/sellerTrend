@@ -86,7 +86,7 @@ export class UzumService {
       where: { product_id: BigInt(productId) },
       orderBy: { snapshot_at: 'desc' },
       take: 20,
-      select: { id: true, orders_quantity: true, snapshot_at: true, score: true, weekly_bought: true },
+      select: { id: true, orders_quantity: true, snapshot_at: true, score: true, weekly_bought: true, weekly_bought_source: true },
     });
 
     const lastSnap = recentSnapshots[0];
@@ -109,13 +109,21 @@ export class UzumService {
       };
     }
 
-    // 5. Centralized weekly_bought: 7-day lookback, 24h minimum gap (T-207)
-    // T-268: fallback to last valid snapshot when calcWeeklyBought returns null
-    const rawWeeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
-    const weeklyBought = weeklyBoughtWithFallback(rawWeeklyBought, recentSnapshots);
+    // 5. Prefer stored scraped weekly_bought; fallback to calculated (transitional)
+    let weeklyBought: number | null = null;
+    let wbSource = 'calculated';
+
+    const lastScraped = recentSnapshots.find((s) => s.weekly_bought != null && (s as any).weekly_bought_source === 'scraped');
+    if (lastScraped) {
+      weeklyBought = lastScraped.weekly_bought;
+      wbSource = 'stored_scraped';
+    } else {
+      const rawWeeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
+      weeklyBought = weeklyBoughtWithFallback(rawWeeklyBought, recentSnapshots);
+    }
     this.logger.log(
-      `weekly_bought (T-207/T-268): product=${productId}, currentOrders=${currentOrders}, ` +
-      `snapshots=${recentSnapshots.length}, raw=${rawWeeklyBought}, final=${weeklyBought}`,
+      `weekly_bought: product=${productId}, currentOrders=${currentOrders}, ` +
+      `snapshots=${recentSnapshots.length}, wb=${weeklyBought}, source=${wbSource}`,
     );
 
     // 5. Upsert SKUs
@@ -172,11 +180,17 @@ export class UzumService {
         product_id: BigInt(productId),
         orders_quantity: BigInt(detail.ordersQuantity ?? 0),
         weekly_bought: weeklyBought,
+        weekly_bought_source: wbSource,
         rating: detail.rating,
         feedback_quantity: detail.feedbackQuantity,
         score: score,
       },
     });
+
+    // 7b. Enqueue immediate Playwright scrape (fire-and-forget)
+    import('../products/weekly-scrape.queue')
+      .then((mod) => mod.enqueueImmediateScrape(String(productId)))
+      .catch(() => {});
 
     // 8. Anomaly detection: score spike check (fire-and-forget)
     const scoreNum = Number(score.toFixed(4));

@@ -67,10 +67,44 @@ export function sleep(ms: number): Promise<void> {
 }
 
 // ============================================================
+// Weekly Bought Banner Parser (Playwright scraping)
+// ============================================================
+
+/**
+ * Parse Uzum product page banner label to extract weekly buyers count.
+ * Handles formats:
+ *   "115 человек купили на этой неделе" → 115
+ *   "1,2 тыс. человек купили"          → 1200
+ *   "12 тыс. человек купили"           → 12000
+ *   null / unrecognized                 → null
+ */
+export function parseWeeklyBoughtBanner(label: string): number | null {
+  if (!label) return null;
+
+  // Format: "1,2 тыс." or "12 тыс."
+  const tysMatch = label.match(/([\d]+[,.]?\d*)\s*тыс/i);
+  if (tysMatch) {
+    const numStr = tysMatch[1].replace(',', '.');
+    return Math.round(parseFloat(numStr) * 1000);
+  }
+
+  // Format: "115 человек" — plain number before "человек"
+  const plainMatch = label.match(/(\d+)\s*человек/i);
+  if (plainMatch) {
+    return parseInt(plainMatch[1], 10);
+  }
+
+  return null;
+}
+
+// ============================================================
 // Centralized weekly_bought calculation (T-207)
 // ============================================================
 
 /**
+ * @deprecated Use stored scraped weekly_bought from ProductSnapshot.weekly_bought_source='scraped'.
+ * Kept as transitional fallback for products not yet scraped.
+ *
  * Fallback for weekly_bought when calcWeeklyBought returns null (T-268).
  * Prevents score instability: without this, null weekly_bought → 55% of score = 0.
  * Returns calculated value if non-null, otherwise last valid snapshot weekly_bought.
@@ -89,6 +123,9 @@ export function weeklyBoughtWithFallback(
 }
 
 /**
+ * @deprecated Use stored scraped weekly_bought from ProductSnapshot.weekly_bought_source='scraped'.
+ * Kept as transitional fallback for products not yet scraped.
+ *
  * Central weekly_bought calculator — 7-day lookback, 24h minimum gap.
  * Replaces all scattered inline calculations across the codebase.
  *
@@ -143,6 +180,9 @@ export function calcWeeklyBought(
 }
 
 /**
+ * @deprecated Use stored scraped weekly_bought from ProductSnapshot.weekly_bought_source='scraped'.
+ * Kept as transitional fallback for products not yet scraped.
+ *
  * Recalculate weekly_bought for a time series of snapshots.
  * Uses wider lookback (not just consecutive) with 7-day target and 24h minimum gap.
  * Replaces the old consecutive-delta approach that caused extrapolation errors.

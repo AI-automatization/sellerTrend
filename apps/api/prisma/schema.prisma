@@ -201,14 +201,15 @@ model Sku {
 }
 
 model ProductSnapshot {
-  id                String   @id @default(uuid())
-  product_id        BigInt
-  orders_quantity   BigInt?
-  weekly_bought     Int?
-  rating            Decimal? @db.Decimal(3, 2)
-  feedback_quantity Int?
-  score             Decimal? @db.Decimal(8, 4)
-  snapshot_at       DateTime @default(now()) @db.Timestamptz
+  id                   String   @id @default(uuid())
+  product_id           BigInt
+  orders_quantity      BigInt?
+  weekly_bought        Int?
+  weekly_bought_source String?  @db.VarChar(20) // 'scraped' | 'calculated' | 'stored_scraped'
+  rating               Decimal? @db.Decimal(3, 2)
+  feedback_quantity    Int?
+  score                Decimal? @db.Decimal(8, 4)
+  snapshot_at          DateTime @default(now()) @db.Timestamptz
 
   product         Product                @relation(fields: [product_id], references: [id], onDelete: Cascade)
   ai_explanations ProductAiExplanation[]
@@ -279,17 +280,20 @@ model CategoryWinner {
 }
 
 model TrackedProduct {
-  id         String   @id @default(uuid())
-  account_id String
-  product_id BigInt
-  is_active  Boolean  @default(true)
-  created_at DateTime @default(now()) @db.Timestamptz
+  id             String    @id @default(uuid())
+  account_id     String
+  product_id     BigInt
+  is_active      Boolean   @default(true)
+  next_scrape_at DateTime? @db.Timestamptz
+  last_scraped_at DateTime? @db.Timestamptz
+  created_at     DateTime  @default(now()) @db.Timestamptz
 
   account Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
   product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
 
   @@unique([account_id, product_id])
   @@index([created_at])
+  @@index([next_scrape_at])
   @@map("tracked_products")
 }
 

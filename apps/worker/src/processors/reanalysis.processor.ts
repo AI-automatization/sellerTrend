@@ -19,12 +19,12 @@ async function reanalyzeProduct(
 
   const currentOrders = detail.ordersAmount ?? 0;
 
-  // Centralized weekly_bought: 7-day lookback, 24h minimum gap (T-207)
+  // Centralized weekly_bought: prefer stored scraped value, fallback to calculated (T-207)
   const recentSnapshots = await prisma.productSnapshot.findMany({
     where: { product_id: productId },
     orderBy: { snapshot_at: 'desc' },
     take: 20,
-    select: { orders_quantity: true, weekly_bought: true, snapshot_at: true },
+    select: { orders_quantity: true, weekly_bought: true, weekly_bought_source: true, snapshot_at: true },
   });
 
   // Dedup guard (T-267): skip snapshot if last one is < 5 min old
@@ -34,9 +34,19 @@ async function reanalyzeProduct(
     return { updated: false, weeklyBought: null };
   }
 
-  // T-268: fallback to last valid snapshot when calcWeeklyBought returns null
-  const rawWeeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
-  const weeklyBought = weeklyBoughtWithFallback(rawWeeklyBought, recentSnapshots);
+  // Prefer last scraped weekly_bought; fallback to calculation (transitional)
+  let weeklyBought: number | null = null;
+  let wbSource = 'calculated';
+
+  const lastScraped = recentSnapshots.find((s) => s.weekly_bought_source === 'scraped' && s.weekly_bought != null);
+  if (lastScraped) {
+    weeklyBought = lastScraped.weekly_bought;
+    wbSource = 'stored_scraped';
+  } else {
+    // T-268: fallback to calculated
+    const rawWeeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
+    weeklyBought = weeklyBoughtWithFallback(rawWeeklyBought, recentSnapshots);
+  }
 
   // Calculate score before transaction
   const skuList = detail.skuList ?? [];
@@ -91,6 +101,7 @@ async function reanalyzeProduct(
         product_id: productId,
         orders_quantity: BigInt(currentOrders),
         weekly_bought: weeklyBought,
+        weekly_bought_source: wbSource,
         rating: detail.rating ?? null,
         feedback_quantity: detail.reviewsAmount ?? 0,
         score,
