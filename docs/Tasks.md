@@ -17,10 +17,6 @@
 # QO'LDA QILINADIGAN ISHLAR — .env KALITLARI VA CONFIG
 # ═══════════════════════════════════════════════════════════
 
-## ENV-P0 — KRITIK (Ilovasiz ishlamaydi)
-
-### E-001 + E-002 | DONE | Desktop .env yaratildi + proxy allaqachon mavjud edi (T-234 bilan) |
-
 ## ENV-P1 — MUHIM (Feature'lar ishlamaydi)
 
 ### E-006 | CONFIG | `ALIEXPRESS_APP_KEY` + `ALIEXPRESS_APP_SECRET` yo'q | 5min
@@ -30,31 +26,13 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 
 ## ENV-P2 — O'RTA (Optional)
 
-### E-009 | DONE | `SENTRY_DSN` Railway production ga qo'shildi — Sentry EU (ventra-69.sentry.io) |
 ### E-010 | CONFIG | `PROXY_URL` yo'q — Uzum API block qilsa kerak bo'ladi | 2min
-
----
-
-# ═══════════════════════════════════════════════════════════
-# DESKTOP APP LOGIN BUG (2026-02-27)
-# ═══════════════════════════════════════════════════════════
-
----
-
-# ═══════════════════════════════════════════════════════════
-# BACKEND OCHIQ TASKLAR
-# ═══════════════════════════════════════════════════════════
-
-*(Sprint 1-2 backend tasks completed — see Done.md)*
 
 ---
 
 # ═══════════════════════════════════════════════════════════
 # FRONTEND OCHIQ TASKLAR
 # ═══════════════════════════════════════════════════════════
-
-## P1 — MUHIM
-
 
 ## P2 — O'RTA
 
@@ -63,23 +41,10 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 ---
 
 # ═══════════════════════════════════════════════════════════
-# IKKALASI (BACKEND + FRONTEND)
-# ═══════════════════════════════════════════════════════════
-
-
----
-
-# ═══════════════════════════════════════════════════════════
 # DEVOPS OCHIQ TASKLAR
 # ═══════════════════════════════════════════════════════════
 
 ## P0 — KRITIK
-
-### T-262 + T-263 | DONE | SeedService auto-seed on API startup — admin, platforms, cargo, trends |
-
-### T-280 | DONE | Railway EU region migration — barcha 8 service europe-west4 da |
-
----
 
 ### T-281 | P0 | DEVOPS | Cloudflare CDN — frontend static assets 20ms, API caching | 1.5h
 
@@ -261,18 +226,12 @@ API calls:     ~300ms           API calls:     ~300ms (bypass, o'zgarmaydi*)
 
 ## P1 — MUHIM
 
-### T-177 | DONE | pgvector extension — SeedService orqali auto-enable |
 ### T-178 | DEVOPS | Custom domain + SSL — web service | 10min (manual: domain kerak)
-### T-179 | DONE | Worker memory/CPU — Railway Pro plan default limits, 7/7 workers healthy |
-### T-180 | DONE | Monitoring — Railway Pro crash notifications + health endpoint queueDepth |
-### T-181 | DONE | DB backup — Railway Pro automatic daily backups enabled |
 
 ## P2 — O'RTA
 
 ### T-184 | DEVOPS | Staging environment (optional) | 30min
-### T-242 | DONE | SERPAPI_API_KEY — Railway production api + worker ga qo'shildi |
 ### T-243 | DEVOPS | ALIEXPRESS_APP_KEY + SECRET — API | 5min
-### T-244 | DONE | SENTRY_DSN — Railway production api ga qo'shildi (ventra-69.sentry.io EU) |
 ### T-245 | DEVOPS | PROXY_URL — API + Worker (optional) | 5min
 
 ---
@@ -326,21 +285,6 @@ API calls:     ~300ms           API calls:     ~300ms (bypass, o'zgarmaydi*)
 ### T-231 | P1 | FRONTEND | Onboarding flow (birinchi marta ochganda) | 1h
 ### T-232 | P2 | FRONTEND | Extension icon set (16/48/128) | 30min
 ### T-233 | P2 | FRONTEND | Error handling + offline mode + graceful degradation | 1h
-
----
-
-## BAJARISH KETMA-KETLIGI (TAVSIYA)
-
-### FAZA 1 — DEVOPS: Railway production
-1. T-262 → Railway DB seed
-2. T-263 → SUPER_ADMIN user yaratish
-
-### FAZA 2 — Discovery UX
-3. T-260 → Category nomi ko'rsatish
-4. T-261 → Discovery drawer data boyitish
-
-### FAZA 3 — Frontend UX polish
-*(T-264, T-266 bajarildi — Done.md)*
 
 ---
 
