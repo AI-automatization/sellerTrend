@@ -165,7 +165,7 @@ model Product {
   total_available_amount BigInt?
   photo_url         String?                     @db.Text
   is_active         Boolean                     @default(true)
-  // embedding      Unsupported("vector(1536)")? — disabled: Railway Postgres lacks pgvector
+  // embedding      Unsupported("vector(1536)")? — pgvector enabled via SeedService (T-177)
   created_at        DateTime                    @default(now()) @db.Timestamptz
   updated_at        DateTime                    @updatedAt @db.Timestamptz
 

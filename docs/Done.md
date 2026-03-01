@@ -48,6 +48,31 @@ Commit `f6565e4` — 7 fayl, +173/-72 qator.
 
 ---
 
+## DevOps — T-280, T-177, T-179-181 (Bekzod, 2026-03-01)
+
+| # | Task | Yechim |
+|---|------|--------|
+| T-280 | Railway EU region migration | `serviceInstanceUpdate` GraphQL mutation orqali barcha 8 ta service (api, worker, bot, web, postgres x2, redis x2) `europe-west4` regionga ko'chirildi. Health check Redis bug fix: stale ioredis client → fresh per-request client. `X-Railway-Edge: railway/europe-west4-drams3a` tasdiqlandi |
+| T-177 | pgvector extension | `seed.service.ts` ga `CREATE EXTENSION IF NOT EXISTS vector` qo'shildi. Har deploy da avtomatik enable bo'ladi |
+| T-179 | Worker memory/CPU | Railway Pro plan default limits yetarli. 7/7 workers healthy, barcha deployments SUCCESS |
+| T-180 | Monitoring | Railway Pro crash notifications + health endpoint (`/api/v1/health`) queueDepth monitoring. Worker logs `weekly-scrape-queue` cron registered |
+| T-181 | DB backup | Railway Pro automatic daily backups enabled (PostgreSQL service) |
+
+---
+
+## Sprint 2 Backend — T-237, T-260, T-261, T-234, T-262, T-263 (Bekzod, 2026-03-01)
+
+| # | Task | Yechim |
+|---|------|--------|
+| T-237 | photo_url API response larga qo'shish | `uzum.service.ts`: analyzeProduct() 2 joyda + `products.service.ts`: getTrackedProducts() — photo_url qaytaradi. Frontend qismi Sardor'da |
+| T-260 | Discovery category nomi API da | Backend allaqachon tayyor edi (Sprint 1 T-241). category_name getRun() va getLeaderboard() da qaytarilmoqda. Frontend Sardor'da |
+| T-261 | Discovery leaderboard boyitish | `discovery.service.ts`: getLeaderboard() — rating, feedback_quantity, photo_url, total_available_amount, shop_title, shop_rating qo'shildi. Frontend Sardor'da |
+| T-234 | Desktop login bug fix | `window.ts`: app:// protocol /api/* path larni HTTP backend ga proxy qiladi. `apps/desktop/.env` yaratildi (VITE_API_URL=http://localhost:3000) |
+| T-262 | Railway DB seed | `SeedService` (OnApplicationBootstrap) — API startup da auto-seed: admin, demo, platforms, cargo, trends. Upsert = idempotent |
+| T-263 | SUPER_ADMIN user | SeedService admin@ventra.uz / Admin123! SUPER_ADMIN role bilan yaratadi |
+
+---
+
 ## Sprint 1 Backend — Multi-Agent Mode (Bekzod, 2026-03-01)
 
 5 backend task parallel agent dispatch bilan bajarildi. Commit `cd1d041`.

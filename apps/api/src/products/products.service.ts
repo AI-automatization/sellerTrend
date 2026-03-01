@@ -70,6 +70,7 @@ export class ProductsService {
         trend,
         weekly_bought: weeklyBought,
         sell_price: sku?.min_sell_price ? Number(sku.min_sell_price) : null,
+        photo_url: t.product.photo_url ?? null,
         tracked_since: t.created_at,
       };
     });

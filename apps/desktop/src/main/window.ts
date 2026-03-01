@@ -18,6 +18,16 @@ function registerAppProtocol(): void {
     const url = new URL(req.url);
     let pathname = decodeURIComponent(url.pathname);
 
+    // Bypass: proxy API requests to the real backend server
+    if (pathname.startsWith('/api/')) {
+      const apiBase = process.env.VITE_API_URL || 'http://localhost:3000';
+      return net.fetch(`${apiBase}${pathname}${url.search || ''}`, {
+        method: req.method,
+        headers: req.headers,
+        body: req.body,
+      });
+    }
+
     // Normalize: remove leading slash, handle empty/root path
     if (pathname.startsWith('/')) pathname = pathname.slice(1);
     if (!pathname || pathname === '.') pathname = 'index.html';

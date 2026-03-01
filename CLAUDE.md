@@ -25,8 +25,10 @@ Javob kelgach:
 1. Tegishli faylni o'qib kontekstga kirish:
    - Bekzod → `CLAUDE_BACKEND.md`
    - Sardor → `CLAUDE_FRONTEND.md`
-2. `docs/Tasks.md` o'qib ochiq tasklarni ko'rish
-3. **Mode B** tanlansa → Multi-Agent Protocol (pastda) faollashadi
+2. `git pull origin main` — eng yangi holatni olish
+3. `docs/Tasks.md` o'qib ochiq tasklarni ko'rish + `pending[X]` statuslarni tekshirish
+4. Task boshlashdan oldin **GIT-BASED TASK LOCKING** protokolini bajarish (pastda)
+5. **Mode B** tanlansa → Multi-Agent Protocol (pastda) faollashadi
 
 ---
 
@@ -104,6 +106,42 @@ Format: `T-XXX | [KATEGORIYA] | Sarlavha | Mas'ul | Vaqt`
 - Bug/task topilgan paytda DARHOL yoziladi
 - Har sessiyada avval `docs/Tasks.md` o'qib, T-raqamni davom ettirish
 - Takroriy task yaratmaslik, mavjudini yangilash
+
+### GIT-BASED TASK LOCKING (MAJBURIY)
+
+**Taskni boshlashdan OLDIN quyidagi qadamlar bajariladi:**
+
+```
+1. git pull origin main                          ← eng yangi holatni ol
+2. docs/Tasks.md ni o'qi                         ← pending[Sardor/Bekzod] bormi tekshir
+3. Agar task pending[boshqa_dasturchi] bo'lsa     ← TEGIZMA, boshqa task ol
+4. Task ochiq bo'lsa → pending[SeningSming] yoz   ← masalan: pending[Bekzod]
+5. git add docs/Tasks.md
+6. git commit -m "task: claim T-XXX [Bekzod]"
+7. git push origin main                          ← boshqalar ko'rishi uchun
+8. ENDI ishni boshlash mumkin
+```
+
+**Tasks.md da status format:**
+
+```markdown
+### T-241 | P1 | BACKEND | totalAvailableAmount ... | pending[Bekzod]
+### T-264 | P1 | FRONTEND | Admin route ... | pending[Sardor]
+### T-280 | P0 | DEVOPS | Railway EU migration ... |              ← ochiq, hech kim olmagan
+```
+
+**Task tugaganda:**
+```
+1. Tasks.md dan taskni o'chirish
+2. Done.md ga ko'chirish
+3. git add docs/Tasks.md docs/Done.md
+4. git commit + push
+```
+
+**Xavflardan himoya:**
+- `git push` reject bo'lsa → `git pull --rebase` qilib qayta push
+- 1 soatdan ortiq pending[X] o'zgarishsiz tursa → task "stuck" deb hisoblanadi, boshqasi olishi mumkin
+- Multi-agent mode da: barcha batch tasklarni BIR commit da claim qilish (conflict kamaytirish)
 
 ---
 
