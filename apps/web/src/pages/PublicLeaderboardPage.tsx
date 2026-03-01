@@ -14,11 +14,18 @@ interface Winner {
   weekly_bought: number | null;
   orders_quantity: string | null;
   sell_price: string | null;
+  rating?: number | null;
+  feedback_quantity?: number | null;
+  photo_url?: string | null;
+  total_available_amount?: string | null;
+  shop_title?: string | null;
+  shop_rating?: number | null;
 }
 
 interface LeaderboardData {
   run_id: string | null;
   category_id: string | null;
+  category_name?: string | null;
   finished_at: string | null;
   winners: Winner[];
 }
@@ -91,18 +98,38 @@ function WinnerRow({
         <RankBadge rank={winner.rank} />
       </td>
       <td>
-        <div className={`max-w-xs ${blurred ? 'blur-sm' : ''}`}>
-          {!blurred && isAuthenticated ? (
-            <Link
-              to={`/products/${winner.product_id}`}
-              className="font-medium text-sm hover:text-primary transition-colors truncate block"
-            >
-              {winner.title}
-            </Link>
+        <div className={`flex items-center gap-2 max-w-sm ${blurred ? 'blur-sm' : ''}`}>
+          {winner.photo_url ? (
+            <img
+              src={winner.photo_url}
+              alt=""
+              className="w-9 h-9 rounded-lg object-cover shrink-0 bg-base-300/40"
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
           ) : (
-            <p className="font-medium text-sm truncate">{winner.title}</p>
+            <div className="w-9 h-9 rounded-lg bg-base-300/20 shrink-0" />
           )}
-          <p className="text-xs text-base-content/30">#{winner.product_id}</p>
+          <div className="min-w-0">
+            {!blurred && isAuthenticated ? (
+              <Link
+                to={`/products/${winner.product_id}`}
+                className="font-medium text-sm hover:text-primary transition-colors truncate block"
+              >
+                {winner.title}
+              </Link>
+            ) : (
+              <p className="font-medium text-sm truncate">{winner.title}</p>
+            )}
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="text-xs text-base-content/30">#{winner.product_id}</p>
+              {winner.shop_title && (
+                <p className="text-xs text-base-content/30 truncate max-w-[120px]">{winner.shop_title}</p>
+              )}
+              {winner.rating != null && (
+                <p className="text-xs text-yellow-500/70">★ {winner.rating.toFixed(1)}</p>
+              )}
+            </div>
+          </div>
         </div>
       </td>
       <td className={`text-center ${blurred ? 'blur-sm' : ''}`}>
@@ -173,6 +200,9 @@ export function PublicLeaderboardPage() {
         <p className="text-base-content/50 text-sm max-w-md mx-auto">
           Uzum.uz marketplace'dagi eng yuqori trend score'li va ko'p sotilayotgan mahsulotlar
         </p>
+        {data?.category_name && (
+          <p className="text-sm font-medium text-primary/80">{data.category_name}</p>
+        )}
         {data?.finished_at && (
           <p className="text-xs text-base-content/30">
             Oxirgi yangilanish:{' '}

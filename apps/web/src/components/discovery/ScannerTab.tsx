@@ -190,9 +190,24 @@ export function ScannerTab() {
                       <tr key={w.product_id} className="hover">
                         <td><span className={`font-bold text-sm ${w.rank === 1 ? 'text-yellow-400' : w.rank === 2 ? 'text-gray-400' : w.rank === 3 ? 'text-amber-600' : 'text-base-content/40'}`}>{w.rank === 1 ? '\u{1F947}' : w.rank === 2 ? '\u{1F948}' : w.rank === 3 ? '\u{1F949}' : w.rank}</span></td>
                         <td>
-                          <div className="max-w-xs">
-                            <Link to={`/products/${w.product_id}`} onClick={() => setSelectedRun(null)} className="text-sm font-medium leading-tight line-clamp-2 hover:text-primary transition-colors">{w.title}</Link>
-                            <p className="text-xs text-base-content/40 mt-0.5">#{w.product_id}</p>
+                          <div className="flex items-center gap-2 max-w-xs">
+                            {w.photo_url ? (
+                              <img
+                                src={w.photo_url}
+                                alt=""
+                                className="w-8 h-8 rounded-lg object-cover shrink-0 bg-base-300/40"
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-lg bg-base-300/20 shrink-0" />
+                            )}
+                            <div className="min-w-0">
+                              <Link to={`/products/${w.product_id}`} onClick={() => setSelectedRun(null)} className="text-sm font-medium leading-tight line-clamp-2 hover:text-primary transition-colors">{w.title}</Link>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <p className="text-xs text-base-content/40">#{w.product_id}</p>
+                                {w.shop_title && <p className="text-xs text-base-content/30 truncate max-w-[120px]">{w.shop_title}</p>}
+                              </div>
+                            </div>
                           </div>
                         </td>
                         <td className="text-right"><ScoreBadge score={w.score} /></td>

@@ -21,6 +21,12 @@ export interface Winner {
   weekly_bought: number | null;
   orders_quantity: string | null;
   sell_price: string | null;
+  rating?: number | null;
+  feedback_quantity?: number | null;
+  photo_url?: string | null;
+  total_available_amount?: string | null;
+  shop_title?: string | null;
+  shop_rating?: number | null;
 }
 
 export interface RunDetail extends Omit<Run, 'winner_count'> {

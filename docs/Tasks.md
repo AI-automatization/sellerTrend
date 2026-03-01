@@ -67,7 +67,6 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 # IKKALASI (BACKEND + FRONTEND)
 # ═══════════════════════════════════════════════════════════
 
-### T-261 | P1 | IKKALASI | Discovery drawer — Backend DONE, Frontend kerak | pending[Sardor]
 
 ---
 
