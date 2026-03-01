@@ -17,10 +17,6 @@
 # QO'LDA QILINADIGAN ISHLAR — .env KALITLARI VA CONFIG
 # ═══════════════════════════════════════════════════════════
 
-## ENV-P0 — KRITIK (Ilovasiz ishlamaydi)
-
-### E-001 + E-002 | DONE | Desktop .env yaratildi + proxy allaqachon mavjud edi (T-234 bilan) |
-
 ## ENV-P1 — MUHIM (Feature'lar ishlamaydi)
 
 ### E-006 | CONFIG | `ALIEXPRESS_APP_KEY` + `ALIEXPRESS_APP_SECRET` yo'q | 5min
@@ -30,22 +26,7 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 
 ## ENV-P2 — O'RTA (Optional)
 
-### E-009 | DONE | `SENTRY_DSN` Railway production ga qo'shildi — Sentry EU (ventra-69.sentry.io) |
 ### E-010 | CONFIG | `PROXY_URL` yo'q — Uzum API block qilsa kerak bo'ladi | 2min
-
----
-
-# ═══════════════════════════════════════════════════════════
-# DESKTOP APP LOGIN BUG (2026-02-27)
-# ═══════════════════════════════════════════════════════════
-
----
-
-# ═══════════════════════════════════════════════════════════
-# BACKEND OCHIQ TASKLAR
-# ═══════════════════════════════════════════════════════════
-
-*(Sprint 1-2 backend tasks completed — see Done.md)*
 
 ---
 
@@ -53,23 +34,34 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 # FRONTEND OCHIQ TASKLAR
 # ═══════════════════════════════════════════════════════════
 
-## P1 — MUHIM
+## P0 — KRITIK
 
-### T-202 | FRONTEND | ProductPage overall UX — sotuvchi uchun soddalash | 1h
+### T-282 | P0 | BACKEND | `ai_explanation` production da null — AI key tekshirish | 10min
 
-## P2 — O'RTA
+**Muammo:** Production QA testida `POST /api/v1/uzum/analyze` javobi `ai_explanation: null` qaytaryapti.
+140 ta mahsulot tahlili — birortasida ham AI tahlil yo'q.
 
-### T-257 | P2 | FRONTEND | Granular ErrorBoundary per section | —
+**Tekshirish:**
+```bash
+# Railway dashboard → api service → Variables:
+# OPENAI_API_KEY   → bormi?
+# ANTHROPIC_API_KEY → bormi?
+
+# Yoki API handler da tekshirish:
+# apps/api/src/uzum/uzum.service.ts → ai_explanation qanday to'ldiriladi?
+```
+
+**Ehtimoliy sabablar:**
+1. `OPENAI_API_KEY` yoki `ANTHROPIC_API_KEY` Railway env da yo'q
+2. `uzum.service.ts` da AI call exception ga tushib silent fail bo'lyapti
+3. AI async job queue ga solingan — analyze response da yo'q, alohida endpoint kerak
+
+**Natija:** AI token ishlay boshlashi kerak — ProductPage da AI tahlil ko'rinsin.
 
 ---
 
-# ═══════════════════════════════════════════════════════════
-# IKKALASI (BACKEND + FRONTEND)
-# ═══════════════════════════════════════════════════════════
+## P2 — O'RTA
 
-### T-237 | P1 | IKKALASI | ProductPage da mahsulot rasmi ko'rsatish — Backend DONE, Frontend kerak | pending[Sardor]
-### T-260 | P1 | FRONTEND | Discovery — kategoriya nomi frontend'da ko'rsatish (API tayyor) | pending[Sardor]
-### T-261 | P1 | IKKALASI | Discovery drawer — Backend DONE, Frontend kerak | pending[Sardor]
 
 ---
 
@@ -78,12 +70,6 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 # ═══════════════════════════════════════════════════════════
 
 ## P0 — KRITIK
-
-### T-262 + T-263 | DONE | SeedService auto-seed on API startup — admin, platforms, cargo, trends |
-
-### T-280 | DONE | Railway EU region migration — barcha 8 service europe-west4 da |
-
----
 
 ### T-281 | P0 | DEVOPS | Cloudflare CDN — frontend static assets 20ms, API caching | 1.5h
 
@@ -265,18 +251,12 @@ API calls:     ~300ms           API calls:     ~300ms (bypass, o'zgarmaydi*)
 
 ## P1 — MUHIM
 
-### T-177 | DONE | pgvector extension — SeedService orqali auto-enable |
 ### T-178 | DEVOPS | Custom domain + SSL — web service | 10min (manual: domain kerak)
-### T-179 | DONE | Worker memory/CPU — Railway Pro plan default limits, 7/7 workers healthy |
-### T-180 | DONE | Monitoring — Railway Pro crash notifications + health endpoint queueDepth |
-### T-181 | DONE | DB backup — Railway Pro automatic daily backups enabled |
 
 ## P2 — O'RTA
 
 ### T-184 | DONE | Staging environment — api/worker/web SUCCESS, bot optional (TELEGRAM_BOT_TOKEN kerak) |
-### T-242 | DONE | SERPAPI_API_KEY — Railway production api + worker ga qo'shildi |
 ### T-243 | DEVOPS | ALIEXPRESS_APP_KEY + SECRET — API | 5min
-### T-244 | DONE | SENTRY_DSN — Railway production api ga qo'shildi (ventra-69.sentry.io EU) |
 ### T-245 | DEVOPS | PROXY_URL — API + Worker (optional) | 5min
 
 ---
@@ -330,21 +310,6 @@ API calls:     ~300ms           API calls:     ~300ms (bypass, o'zgarmaydi*)
 ### T-231 | P1 | FRONTEND | Onboarding flow (birinchi marta ochganda) | 1h
 ### T-232 | P2 | FRONTEND | Extension icon set (16/48/128) | 30min
 ### T-233 | P2 | FRONTEND | Error handling + offline mode + graceful degradation | 1h
-
----
-
-## BAJARISH KETMA-KETLIGI (TAVSIYA)
-
-### FAZA 1 — DEVOPS: Railway production
-1. T-262 → Railway DB seed
-2. T-263 → SUPER_ADMIN user yaratish
-
-### FAZA 2 — Discovery UX
-3. T-260 → Category nomi ko'rsatish
-4. T-261 → Discovery drawer data boyitish
-
-### FAZA 3 — Frontend UX polish
-*(T-264, T-266 bajarildi — Done.md)*
 
 ---
 

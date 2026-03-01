@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useI18n } from '../i18n/I18nContext';
 import { ArrowTrendingUpIcon } from '../components/icons';
 import { ScannerTab, SeasonalCalendarTab, NicheFinderTab } from '../components/discovery';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 export function DiscoveryPage() {
   const [tab, setTab] = useState<'scanner' | 'seasonal' | 'niche'>('scanner');
@@ -36,9 +37,9 @@ export function DiscoveryPage() {
         </button>
       </div>
 
-      {tab === 'scanner' && <ScannerTab />}
-      {tab === 'seasonal' && <SeasonalCalendarTab />}
-      {tab === 'niche' && <NicheFinderTab />}
+      {tab === 'scanner' && <ErrorBoundary variant="section" label="Scanner"><ScannerTab /></ErrorBoundary>}
+      {tab === 'seasonal' && <ErrorBoundary variant="section" label="Mavsumiy kalendar"><SeasonalCalendarTab /></ErrorBoundary>}
+      {tab === 'niche' && <ErrorBoundary variant="section" label="Niche finder"><NicheFinderTab /></ErrorBoundary>}
     </div>
   );
 }

@@ -3,6 +3,10 @@ import { Component, type ReactNode } from 'react';
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
+  /** 'page' = full-screen fallback (default), 'section' = compact inline fallback */
+  variant?: 'page' | 'section';
+  /** Section label shown in compact fallback */
+  label?: string;
 }
 
 interface State {
@@ -29,6 +33,30 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
+
+      if (this.props.variant === 'section') {
+        return (
+          <div className="rounded-2xl border border-error/20 bg-error/5 p-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-xl shrink-0">⚠️</span>
+              <div>
+                <p className="text-sm font-medium text-base-content/80">
+                  {this.props.label ?? 'Bo\'lim'} yuklanmadi
+                </p>
+                <p className="text-xs text-base-content/40 mt-0.5">
+                  {this.state.error?.message ?? 'Kutilmagan xato'}
+                </p>
+              </div>
+            </div>
+            <button
+              className="btn btn-ghost btn-xs shrink-0"
+              onClick={() => this.setState({ hasError: false, error: null })}
+            >
+              Qayta
+            </button>
+          </div>
+        );
+      }
 
       return (
         <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4 p-8">

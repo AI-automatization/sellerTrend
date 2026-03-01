@@ -36,6 +36,43 @@
 
 ---
 
+## Production QA — tests/ui/production-qa.spec.ts (Sardor, 2026-03-01)
+
+**18/18 tests passed** in 3.7 min. Target: `web-production-2c10.up.railway.app`
+
+| Check | Natija |
+|-------|--------|
+| Admin `/admin` page | ✅ 34 SVG/chart, 6 stat card, 0 JS error |
+| 10 users × 15 URL analysis | ✅ 140/150 success (10 fail = 2 delisted Uzum products) |
+| Data accuracy (5 products) | ✅ product_id, title, sell_price, rating 0-5, score 0-10 barcha to'g'ri |
+| ProductPage browser render | ✅ title + price visible, 0 JS error |
+| AnalyzePage UI flow | ✅ URL submit ishlaydi, no JS crash |
+| **AI token** | ⚠️ `ai_explanation: null` barcha productsda — AI key yo'q yoki async |
+
+**Topilgan muammo (Bekzod uchun):**
+- `ai_explanation` production da HECH QACHON to'ldirilmayapti.
+- Sabab: `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` Railway env da yo'q, yoki `/uzum/analyze` handler AI ni chaqirmayapti.
+- Report: `screenshots/production-qa/ai-token-report.json`
+
+**Delisted Uzum mahsulotlari (mahsulot.md dan o'chirish kerak):**
+- `tolstovka-mma-139472` → 404
+- `blender-dlya-smuzi-i-koktejl-400-731913` → 404
+- `Bolalar-golf-toplami-255201` → 404
+
+---
+
+## Sprint 2 Frontend — T-237, T-260, T-261, T-202 (Sardor, 2026-03-01)
+
+| # | Task | Yechim |
+|---|------|--------|
+| T-237 | photo_url — API + Frontend | `AnalyzeResult` + `TrackedProduct` tipiga `photo_url` qo'shildi. `ProductPage` hero da rasm, `ProductsTable` thumbnail |
+| T-260 | Discovery category nomi | `Run` tipiga `category_name`. Runs table + winners drawer headerda kategoriya nomi ko'rsatiladi |
+| T-261 | Discovery drawer + leaderboard | `Winner` tipiga yangi fieldlar. ScannerTab drawer + PublicLeaderboardPage: thumbnail, shop_title, rating, category_name |
+| T-202 | ProductPage UX soddalash | AI Explanation → metrics dan keyin (3-o'rin). ML Forecast collapsible (default yopiq). Score/Orders history collapsible (default yopiq) |
+| T-257 | Granular ErrorBoundary per section | `ErrorBoundary` ga `variant='section'` + `label` prop qo'shildi. `ProductPage`: WeeklyTrend, ML Forecast, CompetitorSection, GlobalPriceComparison o'ralgan. `DiscoveryPage`: 3 ta tab o'ralgan |
+
+---
+
 ## Sprint 1 Frontend — Multi-Agent Mode (Sardor, 2026-03-01)
 
 Commit `f6565e4` — 7 fayl, +173/-72 qator.
@@ -82,9 +119,9 @@ Commit `f6565e4` — 7 fayl, +173/-72 qator.
 
 | # | Task | Yechim |
 |---|------|--------|
-| T-237 | photo_url API response larga qo'shish | `uzum.service.ts`: analyzeProduct() 2 joyda + `products.service.ts`: getTrackedProducts() — photo_url qaytaradi. Frontend qismi Sardor'da |
-| T-260 | Discovery category nomi API da | Backend allaqachon tayyor edi (Sprint 1 T-241). category_name getRun() va getLeaderboard() da qaytarilmoqda. Frontend Sardor'da |
-| T-261 | Discovery leaderboard boyitish | `discovery.service.ts`: getLeaderboard() — rating, feedback_quantity, photo_url, total_available_amount, shop_title, shop_rating qo'shildi. Frontend Sardor'da |
+| T-237 | photo_url — API + Frontend | Backend: `uzum.service.ts`, `products.service.ts` photo_url qaytaradi (Bekzod). Frontend: `AnalyzeResult` + `TrackedProduct` tipiga `photo_url` qo'shildi, `ProductPage.tsx` hero da rasm ko'rsatiladi, `ProductsTable.tsx` har row da thumbnail (Sardor) |
+| T-260 | Discovery category nomi Frontend | `Run` tipiga `category_name` qo'shildi. Runs tableda kategoriya nomi (yoki ID fallback) ko'rsatiladi. Winners drawer headerda ham kategoriya nomi + ID subtitle |
+| T-261 | Discovery drawer + leaderboard boyitish | Backend: getLeaderboard() + getRun() — rating, feedback_quantity, photo_url, total_available_amount, shop_title, shop_rating (Bekzod). Frontend: Winner tipiga yangi fieldlar, ScannerTab drawer da thumbnail+shop_title, PublicLeaderboardPage da thumbnail+shop_title+rating+category_name (Sardor) |
 | T-234 | Desktop login bug fix | `window.ts`: app:// protocol /api/* path larni HTTP backend ga proxy qiladi. `apps/desktop/.env` yaratildi (VITE_API_URL=http://localhost:3000) |
 | T-262 | Railway DB seed | `SeedService` (OnApplicationBootstrap) — API startup da auto-seed: admin, demo, platforms, cargo, trends. Upsert = idempotent |
 | T-263 | SUPER_ADMIN user | SeedService admin@ventra.uz / Admin123! SUPER_ADMIN role bilan yaratadi |

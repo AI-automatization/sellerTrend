@@ -1,7 +1,5 @@
 import { useLang } from '../lib/LangContext';
 
-const APP_URL = 'https://app.ventra.uz';
-
 export function FooterSection() {
   const { t } = useLang();
 
