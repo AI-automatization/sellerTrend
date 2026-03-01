@@ -3,6 +3,51 @@
 
 ---
 
+## Landing Page App — apps/landing/ (Sardor, 2026-03-01)
+
+24 ta task, 3 commit, 2527 qator qo'shildi.
+
+| # | Task | Yechim |
+|---|------|--------|
+| L-001 | `apps/landing/` monorepo package | React 19, Vite 7, Tailwind v4, DaisyUI v5, Framer Motion scaffold |
+| L-002 | Navbar | Scroll effect, mobile hamburger, smooth scroll |
+| L-003 | HeroSection | Animated gradient mesh, laptop mockup, CTA |
+| L-004 | PainPointsSection | 3 muammo→yechim card |
+| L-005 | FeaturesSection | 10 ta feature, staggered animation |
+| L-006 | DashboardPreview | Interactive screenshot tabs, mock screens |
+| L-007 | StatsSection | Animated CountUp counters |
+| L-008 | PricingSection | 3 tarif, oylik/yillik toggle |
+| L-009 | TestimonialsSection | 4 mijoz fikri, horizontal scroll |
+| L-010 | FAQSection | 7 savol accordion |
+| L-011 | CTASection | Final CTA, gradient, glow button |
+| L-012 | FooterSection | 4 ustun, social links |
+| L-013 | DownloadBanner | Floating download banner, dismissible |
+| L-014 | Framer Motion variants | `animations.ts` — fadeUp, staggerContainer, VIEWPORT; barcha sections bir xil animatsiya tizimi |
+| L-015 | Responsive grid | Features: 1→2→3→5 col (sm/md/lg), mobile-friendly nav |
+| L-016 | SEO | JSON-LD structured data, sitemap.xml, robots.txt, OG/Twitter meta |
+| L-017 | Performance | Font preload, Vite chunk splitting (vendor + motion alohida) |
+| L-018 | Dark/Light toggle | System preference, localStorage persistence, no-flash |
+| L-019 | EmailCaptureSection | Email form, validation, success/error state (TODO: /api/v1/newsletter/subscribe) |
+| L-020 | useAnalytics hook | Plausible-compatible event tracking, script ready |
+| L-021 | — | Skipped (Blog section — optional) |
+| L-022 | i18n uz/ru | ⚠️ PARTIAL — LangContext, i18n.ts, Navbar toggle yaratildi. Lekin HeroSection, FeaturesSection, PricingSection, FAQSection va boshqa 8+ section hardcoded. Tasks.md ga qaytarildi |
+| L-023 | Dockerfile + nginx.conf | Multi-stage build, gzip, cache headers, docker-compose.prod.yml |
+| L-024 | CI/CD | Landing tsc check + Railway deploy — ci.yml ga qo'shildi |
+
+---
+
+## Sprint 1 Frontend — Multi-Agent Mode (Sardor, 2026-03-01)
+
+Commit `f6565e4` — 7 fayl, +173/-72 qator.
+
+| # | Task | Yechim |
+|---|------|--------|
+| T-264 | Admin panel — USER role redirect yo'q | `App.tsx`: `AdminRoute` wrapper — `SUPER_ADMIN` role tekshiradi, boshqa rol `/` ga redirect |
+| T-206 | CompetitorSection hardcoded matnlar | 19 ta hardcoded string → `t()` orqali i18n. `competitor.*` kalitlari uz/ru/en ga qo'shildi |
+| T-266 | Shops, Leaderboard — bo'sh sahifa | `ShopsPage.tsx` + `LeaderboardPage.tsx`: empty state CTA qo'shildi. `shops.*` + `leaderboard.*` kalitlari |
+
+---
+
 ## DevOps — T-280, T-177, T-179-181 (Bekzod, 2026-03-01)
 
 | # | Task | Yechim |
@@ -84,6 +129,13 @@ API: https://api-production-8057.up.railway.app ✅
 | T-273 | SignalsPage tab nomlari va content hardcoded | 10 ta signal component (Cannibalization, DeadStock, Saturation, FlashSales, EarlySignals, StockCliffs, Ranking, Checklist, PriceTest, Replenishment) — barchasi useI18n + t() |
 | T-274 | ScannerTab.tsx (Discovery) butunlay i18n siz | ScannerTab.tsx — useI18n import, discovery.scanner.* kalitlari qo'shildi |
 | T-275 | CargoCalculator.tsx (Sourcing) butunlay i18n siz | CargoCalculator.tsx — useI18n import, t() ishlatiladi |
+| T-276 | UZ faylida ~85 ta inglizcha tarjima qilinmagan | uz.ts — nav.*, dashboard.*, calculator.*, enterprise.*, ads.*, extension.*, feedback.*, sourcing.*, discovery.*, signals.* kalitlari o'zbek tiliga o'girildi |
+| T-277 | RU faylida ~24 ta inglizcha tarjima qilinmagan | ru.ts — nav.*, sourcing.*, discovery.*, enterprise.*, ads.*, extension.*, signals.* kalitlari ruscha o'girildi |
+| T-278 | feedback.title UZ da aralash til | uz.ts: "Feedback & Yordam" → "Murojaat & Yordam" |
+| T-279 | discovery.title barcha 3 tilda tarjima qilinmagan | uz.ts: "Kategoriya kashfiyoti", ru.ts: "Обзор категорий", en.ts: "Category Discovery" |
+| — | discovery/types.ts POPULAR_CATEGORIES i18n | label hardcoded → labelKey pattern; NicheFinderTab + ScannerTab da t(cat.labelKey); 10 ta discovery.cat.* kalit barcha 3 tilda |
+| — | SignalsPage.tsx desktop tabs i18n | tabItem.label → tabLabel(tabItem.key) — desktop tab buttonlari ham t() orqali |
+| — | AnalyzePage.tsx placeholder i18n | Hardcoded URL placeholder → t('analyze.urlPlaceholder') barcha 3 tilda |
 
 ---
 

@@ -2,7 +2,7 @@ export const ru: Record<string, string> = {
     'nav.dashboard': 'Дашборд',
     'nav.analyze': 'Анализ URL',
     'nav.discovery': 'Обзор',
-    'nav.sourcing': 'Поиск поставщиков',
+    'nav.sourcing': 'Поставки',
     'nav.shops': 'Магазины',
     'nav.leaderboard': 'Лидерборд',
     'nav.calculator': 'Калькулятор',
@@ -14,7 +14,7 @@ export const ru: Record<string, string> = {
     'nav.description': 'AI Описание',
     'nav.elasticity': 'Эластичность',
     'nav.signals': 'Сигналы',
-    'nav.enterprise': 'Предприятие',
+    'nav.enterprise': 'Корпоративный',
     'nav.extension': 'Расширение',
     'nav.feedback': 'Обратная связь',
     'nav.logout': 'Выход',
@@ -603,7 +603,7 @@ export const ru: Record<string, string> = {
     'watchlist.tab.viewCount': '{n} просмотров',
 
     // ── Enterprise ─────────────────────────────────────────────────────────────
-    'enterprise.title': 'Предприятие',
+    'enterprise.title': 'Корпоративный',
     'enterprise.subtitle': 'v4.0 — Корпоративные функции (Features 31-43)',
     'enterprise.tab.ads': 'Ads ROI',
     'enterprise.tab.team': 'Команда',
@@ -1107,7 +1107,7 @@ export const ru: Record<string, string> = {
     'signals.subtitle': 'v3.0 — Сигналы предупреждений и аналитики',
     'signals.modules': 'модулей сигналов',
     // Sourcing
-    'sourcing.title': 'Поиск поставщиков',
+    'sourcing.title': 'Система поставок',
     'sourcing.subtitle': 'Сравните цены из Китая / Европы, найдите лучший вариант с AI',
     'sourcing.currency': 'сум',
     'sourcing.ratesNotLoaded': 'Курсы не загружены',

@@ -102,7 +102,7 @@ export function AnalyzePage() {
               onChange={(e) => setUrl(e.target.value)}
               required
               className="input input-bordered w-full"
-              placeholder="https://uzum.uz/ru/product/mahsulot-nomi-123456"
+              placeholder={t('analyze.urlPlaceholder')}
             />
             <p className="fieldset-label">
               {t('analyze.inputHelp')}

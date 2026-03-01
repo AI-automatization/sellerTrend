@@ -19,15 +19,7 @@
 
 ## i18n AUDIT
 
-### T-271 | i18n: 23 ta DUPLICATE KEY barcha 3 tilda | 30min
-### T-272 | Layout.tsx sidebar section labellar hardcoded | 20min
-### T-273 | SignalsPage tab nomlari va content hardcoded | 45min
-### T-274 | ScannerTab.tsx (Discovery) butunlay i18n siz | 30min
-### T-275 | CargoCalculator.tsx (Sourcing) butunlay i18n siz | 30min
-### T-276 | UZ faylida ~85 ta inglizcha tarjima qilinmagan | 60min
-### T-277 | RU faylida ~24 ta inglizcha tarjima qilinmagan | 30min
-### T-278 | feedback.title UZ da aralash til | 5min
-### T-279 | discovery.title barcha 3 tilda tarjima qilinmagan | 5min
+✅ T-271..T-279 — Barchasi bajarildi (Done.md ga ko'chirildi)
 
 ---
 
@@ -35,9 +27,9 @@
 
 | Task | Bekzod qilgach | Sardor ishi |
 |------|----------------|-------------|
-| T-193b | ✅ T-193a done | ProductPage AI JSON filter |
-| T-196b | ✅ T-196 done | "Mening mahsulotim" toggle |
-| T-199b | ✅ T-199a done | Frontend trend text |
+| ~~T-193b~~ | ✅ done | ✅ ProductPage AI JSON filter |
+| ~~T-196b~~ | ✅ done | ✅ "Mening mahsulotim" toggle |
+| ~~T-199b~~ | ✅ done | ✅ Frontend trend text |
 | T-237b | T-237a kerak | ProductPage/Dashboard rasm |
 | T-213 | T-214 kerak | Content script badge (extension) |
 
@@ -101,15 +93,15 @@ Batafsil spec: `docs/Tasks.md` Chrome Extension bo'limida.
 | Kategoriya | Soni |
 |-----------|------|
 | Web ochiq (P1-P2) | 4 |
-| i18n audit | 9 |
+| i18n audit | ~~9~~ **0 ✅** |
 | Bekzod dependent | 5 |
 | Desktop | 1 |
 | PWA cleanup | 4 |
 | Chrome Extension | 26 |
 | Landing | 28 |
-| **JAMI ochiq** | **77** |
+| **JAMI ochiq** | **68** |
 
-**Web app 93% tayyor** — asosiy ish Chrome Extension va Landing.
+**Web app 95% tayyor** — asosiy ish Chrome Extension va Landing.
 
 ---
 *Tasks-Sardor.md | VENTRA | 2026-02-28*

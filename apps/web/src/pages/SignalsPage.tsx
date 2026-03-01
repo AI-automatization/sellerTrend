@@ -79,7 +79,7 @@ export function SignalsPage() {
               }`}
             >
               <span className="text-base">{tabItem.emoji}</span>
-              {tabItem.label}
+              {tabLabel(tabItem.key)}
             </button>
           ))}
         </div>
