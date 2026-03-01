@@ -46,7 +46,7 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 # DESKTOP APP LOGIN BUG (2026-02-27)
 # ═══════════════════════════════════════════════════════════
 
-### T-234 | DESKTOP | Login ishlamaydi — VITE_API_URL yo'q, URL `app://api/v1` bo'ladi | 30min
+### T-234 | DESKTOP | Login ishlamaydi — VITE_API_URL yo'q, URL `app://api/v1` bo'ladi | pending[Bekzod]
 **Fix:** E-001 + E-002 + production build uchun VITE_API_URL inject qilish.
 
 ---
@@ -88,9 +88,9 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 # IKKALASI (BACKEND + FRONTEND)
 # ═══════════════════════════════════════════════════════════
 
-### T-237 | P1 | IKKALASI | ProductPage da mahsulot rasmi ko'rsatish — Uzum API dan photo olish | 2h
-### T-260 | P1 | FRONTEND+BACKEND | Discovery — kategoriya nomi ko'rsatish (faqat ID emas) | 1.5h
-### T-261 | P1 | IKKALASI | Discovery natijalar drawer — sotuvchi uchun kerakli ma'lumotlar yo'q | 3h
+### T-237 | P1 | IKKALASI | ProductPage da mahsulot rasmi ko'rsatish — Uzum API dan photo olish | pending[Bekzod]
+### T-260 | P1 | FRONTEND+BACKEND | Discovery — kategoriya nomi ko'rsatish (faqat ID emas) | pending[Bekzod]
+### T-261 | P1 | IKKALASI | Discovery natijalar drawer — sotuvchi uchun kerakli ma'lumotlar yo'q | pending[Bekzod]
 
 ---
 
