@@ -130,7 +130,10 @@ export function ScannerTab() {
                   <tbody>
                     {runs.map((run) => (
                       <tr key={run.id} className="hover">
-                        <td className="font-mono font-medium">{t('discovery.scanner.catPrefix')}{run.category_id}</td>
+                        <td>
+                          <p className="font-medium text-sm">{run.category_name ?? `${t('discovery.scanner.catPrefix')}${run.category_id}`}</p>
+                          {run.category_name && <p className="text-xs text-base-content/40 font-mono">#{run.category_id}</p>}
+                        </td>
                         <td>
                           <div className="flex flex-col gap-1">
                             <StatusBadge status={run.status} />
@@ -158,9 +161,12 @@ export function ScannerTab() {
           <div className="w-full max-w-2xl bg-base-200 h-full overflow-y-auto flex flex-col shadow-2xl">
             <div className="flex items-center justify-between p-4 border-b border-base-300">
               <div>
-                <p className="text-xs text-base-content/40">{t('discovery.scanner.catPrefix')}{selectedRun.category_id}</p>
-                <h2 className="font-bold">Top {selectedRun.winners.length} {t('discovery.scanner.topProducts')}</h2>
-                {selectedRun.finished_at && <p className="text-xs text-base-content/40 mt-0.5">{new Date(selectedRun.finished_at).toLocaleString('ru-RU')}</p>}
+                <h2 className="font-bold">{selectedRun.category_name ?? `${t('discovery.scanner.catPrefix')}${selectedRun.category_id}`}</h2>
+                <p className="text-xs text-base-content/40">
+                  {selectedRun.category_name && `#${selectedRun.category_id} · `}
+                  Top {selectedRun.winners.length} {t('discovery.scanner.topProducts')}
+                  {selectedRun.finished_at && ` · ${new Date(selectedRun.finished_at).toLocaleString('ru-RU')}`}
+                </p>
               </div>
               <button onClick={() => setSelectedRun(null)} className="btn btn-ghost btn-sm btn-square">✕</button>
             </div>

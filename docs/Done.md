@@ -75,7 +75,7 @@ Commit `f6565e4` — 7 fayl, +173/-72 qator.
 | # | Task | Yechim |
 |---|------|--------|
 | T-237 | photo_url — API + Frontend | Backend: `uzum.service.ts`, `products.service.ts` photo_url qaytaradi (Bekzod). Frontend: `AnalyzeResult` + `TrackedProduct` tipiga `photo_url` qo'shildi, `ProductPage.tsx` hero da rasm ko'rsatiladi, `ProductsTable.tsx` har row da thumbnail (Sardor) |
-| T-260 | Discovery category nomi API da | Backend allaqachon tayyor edi (Sprint 1 T-241). category_name getRun() va getLeaderboard() da qaytarilmoqda. Frontend Sardor'da |
+| T-260 | Discovery category nomi Frontend | `Run` tipiga `category_name` qo'shildi. Runs tableda kategoriya nomi (yoki ID fallback) ko'rsatiladi. Winners drawer headerda ham kategoriya nomi + ID subtitle |
 | T-261 | Discovery leaderboard boyitish | `discovery.service.ts`: getLeaderboard() — rating, feedback_quantity, photo_url, total_available_amount, shop_title, shop_rating qo'shildi. Frontend Sardor'da |
 | T-234 | Desktop login bug fix | `window.ts`: app:// protocol /api/* path larni HTTP backend ga proxy qiladi. `apps/desktop/.env` yaratildi (VITE_API_URL=http://localhost:3000) |
 | T-262 | Railway DB seed | `SeedService` (OnApplicationBootstrap) — API startup da auto-seed: admin, demo, platforms, cargo, trends. Upsert = idempotent |
