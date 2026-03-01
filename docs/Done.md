@@ -36,6 +36,31 @@
 
 ---
 
+## Production QA — tests/ui/production-qa.spec.ts (Sardor, 2026-03-01)
+
+**18/18 tests passed** in 3.7 min. Target: `web-production-2c10.up.railway.app`
+
+| Check | Natija |
+|-------|--------|
+| Admin `/admin` page | ✅ 34 SVG/chart, 6 stat card, 0 JS error |
+| 10 users × 15 URL analysis | ✅ 140/150 success (10 fail = 2 delisted Uzum products) |
+| Data accuracy (5 products) | ✅ product_id, title, sell_price, rating 0-5, score 0-10 barcha to'g'ri |
+| ProductPage browser render | ✅ title + price visible, 0 JS error |
+| AnalyzePage UI flow | ✅ URL submit ishlaydi, no JS crash |
+| **AI token** | ⚠️ `ai_explanation: null` barcha productsda — AI key yo'q yoki async |
+
+**Topilgan muammo (Bekzod uchun):**
+- `ai_explanation` production da HECH QACHON to'ldirilmayapti.
+- Sabab: `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` Railway env da yo'q, yoki `/uzum/analyze` handler AI ni chaqirmayapti.
+- Report: `screenshots/production-qa/ai-token-report.json`
+
+**Delisted Uzum mahsulotlari (mahsulot.md dan o'chirish kerak):**
+- `tolstovka-mma-139472` → 404
+- `blender-dlya-smuzi-i-koktejl-400-731913` → 404
+- `Bolalar-golf-toplami-255201` → 404
+
+---
+
 ## Sprint 2 Frontend — T-237, T-260, T-261, T-202 (Sardor, 2026-03-01)
 
 | # | Task | Yechim |

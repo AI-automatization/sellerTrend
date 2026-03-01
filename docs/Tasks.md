@@ -34,6 +34,32 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 # FRONTEND OCHIQ TASKLAR
 # ═══════════════════════════════════════════════════════════
 
+## P0 — KRITIK
+
+### T-282 | P0 | BACKEND | `ai_explanation` production da null — AI key tekshirish | 10min
+
+**Muammo:** Production QA testida `POST /api/v1/uzum/analyze` javobi `ai_explanation: null` qaytaryapti.
+140 ta mahsulot tahlili — birortasida ham AI tahlil yo'q.
+
+**Tekshirish:**
+```bash
+# Railway dashboard → api service → Variables:
+# OPENAI_API_KEY   → bormi?
+# ANTHROPIC_API_KEY → bormi?
+
+# Yoki API handler da tekshirish:
+# apps/api/src/uzum/uzum.service.ts → ai_explanation qanday to'ldiriladi?
+```
+
+**Ehtimoliy sabablar:**
+1. `OPENAI_API_KEY` yoki `ANTHROPIC_API_KEY` Railway env da yo'q
+2. `uzum.service.ts` da AI call exception ga tushib silent fail bo'lyapti
+3. AI async job queue ga solingan — analyze response da yo'q, alohida endpoint kerak
+
+**Natija:** AI token ishlay boshlashi kerak — ProductPage da AI tahlil ko'rinsin.
+
+---
+
 ## P2 — O'RTA
 
 
