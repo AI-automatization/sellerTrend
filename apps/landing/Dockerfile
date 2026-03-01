@@ -1,4 +1,4 @@
-FROM node:20-alpine AS base
+FROM node:20-slim AS base
 RUN npm install -g pnpm@10.30.1
 
 FROM base AS deps
@@ -10,8 +10,17 @@ RUN pnpm install --no-frozen-lockfile --filter landing
 
 FROM deps AS builder
 WORKDIR /app
+# Install Chromium dependencies for Playwright prerender
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    chromium \
+    fonts-noto-cjk \
+    fonts-freefont-ttf \
+    && rm -rf /var/lib/apt/lists/*
+ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 COPY apps/landing/ ./apps/landing/
 WORKDIR /app/apps/landing
+RUN npx playwright install --with-deps chromium 2>/dev/null || true
 RUN pnpm run build
 
 FROM nginx:alpine AS runner
