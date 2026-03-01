@@ -30,7 +30,7 @@ export function StatsSection() {
   const { t } = useLang();
 
   return (
-    <section ref={ref} className="py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <section id="stats" aria-label="Statistika" ref={ref} className="py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       <div className="absolute inset-0 gradient-bg opacity-10" />
       <div className="absolute inset-0 pointer-events-none"
            style={{

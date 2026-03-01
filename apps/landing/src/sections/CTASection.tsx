@@ -9,7 +9,7 @@ export function CTASection({ appUrl }: CTASectionProps) {
   const { t } = useLang();
 
   return (
-    <section className="py-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <section id="cta" aria-label="Boshlash" className="py-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 gradient-bg opacity-10" />
       <div className="absolute inset-0 pointer-events-none">

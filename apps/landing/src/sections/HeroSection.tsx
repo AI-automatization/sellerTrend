@@ -9,7 +9,7 @@ export function HeroSection({ appUrl }: HeroSectionProps) {
   const { t } = useLang();
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
+    <section id="hero" aria-label="Bosh sahifa" className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
       {/* Animated gradient mesh background */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="mesh-blob absolute top-1/4 -left-32 w-96 h-96 rounded-full opacity-20"
@@ -30,49 +30,30 @@ export function HeroSection({ appUrl }: HeroSectionProps) {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left: Text */}
           <div>
-            {/* Social proof badge */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 glass-card rounded-full px-4 py-2 mb-6"
-            >
+            {/* Social proof badge — no animation for LCP */}
+            <div className="inline-flex items-center gap-2 glass-card rounded-full px-4 py-2 mb-6">
               <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
               <span className="text-xs text-base-content/70">{t('hero.badge')}</span>
-            </motion.div>
+            </div>
 
-            {/* Heading */}
-            <motion.h1
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="font-display font-800 text-4xl sm:text-5xl lg:text-6xl text-white leading-tight mb-6"
-            >
+            {/* Heading — no animation for SEO crawlability + LCP */}
+            <h1 className="font-display font-800 text-4xl sm:text-5xl lg:text-6xl text-white leading-tight mb-6">
               {t('hero.title1')}{' '}
               <span className="gradient-text">{t('hero.title2')}</span>
               {' '}{t('hero.title3')}
-            </motion.h1>
+            </h1>
 
-            {/* Description */}
-            <motion.p
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="text-base-content/60 text-lg leading-relaxed mb-8 max-w-xl"
-            >
+            {/* Description — no animation for crawler visibility */}
+            <p className="text-base-content/60 text-lg leading-relaxed mb-8 max-w-xl">
               {t('hero.desc')}
-            </motion.p>
+            </p>
 
-            {/* CTA buttons */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="flex flex-wrap gap-3 mb-8"
-            >
+            {/* CTA buttons — no animation for LCP */}
+            <div className="flex flex-wrap gap-3 mb-8">
               <a
                 href={`${appUrl}/register`}
                 className="btn btn-primary rounded-full px-8 py-3 text-base font-600 glow-btn"
+                aria-label="Bepul ro'yxatdan o'tish"
               >
                 {t('hero.cta1')}
               </a>
@@ -83,18 +64,14 @@ export function HeroSection({ appUrl }: HeroSectionProps) {
                   document.querySelector('#download')?.scrollIntoView({ behavior: 'smooth' });
                 }}
                 className="btn btn-outline rounded-full px-8 py-3 text-base font-600 border-white/20 text-white hover:bg-white/10"
+                aria-label="Desktop ilovani yuklab olish"
               >
                 🖥️ {t('hero.cta2')}
               </a>
-            </motion.div>
+            </div>
 
-            {/* Trust signals */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
-              className="flex flex-wrap gap-4 text-sm text-base-content/50"
-            >
+            {/* Trust signals — no animation */}
+            <div className="flex flex-wrap gap-4 text-sm text-base-content/50">
               <span className="flex items-center gap-1.5">
                 <span className="text-success">✓</span> {t('hero.trust1')}
               </span>
@@ -104,7 +81,7 @@ export function HeroSection({ appUrl }: HeroSectionProps) {
               <span className="flex items-center gap-1.5">
                 <span className="text-success">✓</span> {t('hero.trust3')}
               </span>
-            </motion.div>
+            </div>
           </div>
 
           {/* Right: Dashboard mockup */}

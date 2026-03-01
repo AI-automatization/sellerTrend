@@ -1,4 +1,11 @@
 User-agent: *
 Allow: /
+Disallow: /assets/
+
+# Yandex-specific
+User-agent: Yandex
+Allow: /
+Clean-param: utm_source&utm_medium&utm_campaign
 
 Sitemap: https://ventra.uz/sitemap.xml
+Host: https://ventra.uz

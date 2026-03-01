@@ -65,7 +65,7 @@ export function FooterSection() {
 
           {/* Link columns */}
           {COLUMNS.map((col) => (
-            <div key={col.title}>
+            <nav key={col.title} aria-label={col.title}>
               <h4 className="font-600 text-sm text-white mb-4">{col.title}</h4>
               <ul className="space-y-2">
                 {col.links.map((link) => (
@@ -79,7 +79,7 @@ export function FooterSection() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </nav>
           ))}
         </div>
 

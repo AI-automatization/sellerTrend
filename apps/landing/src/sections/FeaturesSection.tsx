@@ -20,7 +20,7 @@ export function FeaturesSection() {
   const { t } = useLang();
 
   return (
-    <section id="features" className="py-24 px-4 sm:px-6 lg:px-8 relative">
+    <section id="features" aria-label="Imkoniyatlar" className="py-24 px-4 sm:px-6 lg:px-8 relative">
       {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] opacity-5 rounded-full"

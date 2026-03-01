@@ -16,7 +16,7 @@ export function FAQSection() {
   const { t } = useLang();
 
   return (
-    <section id="faq" className="py-24 px-4 sm:px-6 lg:px-8">
+    <section id="faq" aria-label="Tez-tez so'raladigan savollar" className="py-24 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 30 }}

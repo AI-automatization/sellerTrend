@@ -123,7 +123,7 @@ export function DashboardPreview({ appUrl }: DashboardPreviewProps) {
   const { t } = useLang();
 
   return (
-    <section className="py-24 px-4 sm:px-6 lg:px-8">
+    <section id="preview" aria-label="Dashboard ko'rinishi" className="py-24 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 30 }}

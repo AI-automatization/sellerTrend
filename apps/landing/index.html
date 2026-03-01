@@ -10,6 +10,22 @@
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://ventra.uz" />
 
+    <!-- hreflang — Google/Yandex multilingual signal -->
+    <link rel="alternate" hreflang="uz" href="https://ventra.uz" />
+    <link rel="alternate" hreflang="ru" href="https://ventra.uz?lang=ru" />
+    <link rel="alternate" hreflang="x-default" href="https://ventra.uz" />
+
+    <!-- Yandex verification (replace with real code from Yandex Webmaster) -->
+    <meta name="yandex-verification" content="YANDEX_VERIFICATION_CODE" />
+    <!-- Google verification (replace with real code from Google Search Console) -->
+    <meta name="google-site-verification" content="GOOGLE_VERIFICATION_CODE" />
+
+    <!-- Geo targeting -->
+    <meta name="geo.region" content="UZ" />
+    <meta name="geo.placename" content="Tashkent" />
+    <meta name="ICBM" content="41.2995, 69.2401" />
+    <meta name="referrer" content="origin" />
+
     <!-- Open Graph -->
     <meta property="og:title" content="VENTRA — Uzum.uz sotuvchilari uchun AI analytics" />
     <meta property="og:description" content="Qaysi mahsulot trend? Raqibingiz qancha sotayapti? VENTRA barchasini ko'rsatadi." />
@@ -18,6 +34,7 @@
     <meta property="og:image" content="https://ventra.uz/og-image.png" />
     <meta property="og:locale" content="uz_UZ" />
     <meta property="og:site_name" content="VENTRA" />
+    <meta property="og:locale:alternate" content="ru_RU" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
@@ -65,6 +82,117 @@
         "ratingValue": "4.9",
         "reviewCount": "120"
       }
+    }
+    </script>
+
+    <!-- Organization schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "VENTRA",
+      "url": "https://ventra.uz",
+      "logo": "https://ventra.uz/favicon.svg",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "email": "support@ventra.uz",
+        "contactType": "customer support"
+      },
+      "sameAs": ["https://t.me/ventra_uz"]
+    }
+    </script>
+
+    <!-- FAQPage schema — Google Featured Snippets -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "VENTRA nima?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "VENTRA — Uzum.uz marketplace sotuvchilari uchun premium AI analytics platforma. Qaysi mahsulot trend, raqiblar narxi, Xitoydan arzon narx topish va boshqa imkoniyatlarni taqdim etadi."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Bepul foydalansa bo'ladimi?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Ha! Starter tarif mutlaqo bepul — 5 ta mahsulot tracking, asosiy analytics va kunlik discovery bilan. Bank kartasi kiritish shart emas."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Ma'lumotlar qayerdan olinadi?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Ma'lumotlar Uzum.uz dan real-time olinadi. Hafta sayin mahsulot snapshotlari yangilanadi, stok va narx o'zgarishlari kuzatiladi."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Desktop ilova qaysi OS da ishlaydi?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Windows 10 va undan yuqori versiyalar, hamda macOS 12 (Monterey) va undan yuqori versiyalarda ishlaydi."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Telegram bot nima qiladi?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Telegram bot muhim o'zgarishlarni darhol xabar qiladi: narx tushishi, stok tugayotganligi, yangi trend signal, raqib narx o'zgarishi va boshqalar."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Ma'lumotlarim xavfsizmi?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Ha. JWT autentifikatsiya, bcrypt parol xeshlash, va har so'rovda account_id filtrlash ishlatiladi. Ma'lumotlar faqat sizniki."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Qanday to'lash mumkin?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Click, Payme va Uzum nasiya orqali to'lash mumkin. Yillik obuna uchun 20% chegirma mavjud."
+          }
+        }
+      ]
+    }
+    </script>
+
+    <!-- WebSite schema — Sitelinks Search Box -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "VENTRA",
+      "url": "https://ventra.uz",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://app.ventra.uz/analyze?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
+    <!-- BreadcrumbList schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Bosh sahifa", "item": "https://ventra.uz" },
+        { "@type": "ListItem", "position": 2, "name": "Narxlar", "item": "https://ventra.uz/#pricing" },
+        { "@type": "ListItem", "position": 3, "name": "FAQ", "item": "https://ventra.uz/#faq" }
+      ]
     }
     </script>
 
