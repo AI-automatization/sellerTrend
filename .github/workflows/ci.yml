@@ -47,6 +47,7 @@ jobs:
           pnpm --filter web exec tsc --noEmit &
           pnpm --filter worker exec tsc --noEmit &
           pnpm --filter bot exec tsc --noEmit &
+          pnpm --filter landing exec tsc --noEmit &
           wait
 
       - name: Unit tests
@@ -97,6 +98,11 @@ jobs:
 
       - name: Deploy Bot
         run: railway up --service bot --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      - name: Deploy Landing
+        run: railway up --service landing --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 

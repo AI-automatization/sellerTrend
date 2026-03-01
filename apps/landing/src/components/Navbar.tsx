@@ -1,16 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useLang } from '../lib/LangContext';
+import type { Lang } from '../lib/i18n';
 
 interface NavbarProps {
   appUrl: string;
 }
-
-const NAV_LINKS = [
-  { label: 'Imkoniyatlar', href: '#features' },
-  { label: 'Narxlar', href: '#pricing' },
-  { label: 'FAQ', href: '#faq' },
-  { label: 'Desktop', href: '#download' },
-];
 
 const THEME_KEY = 'ventra-landing-theme';
 
@@ -36,6 +31,18 @@ export function Navbar({ appUrl }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const { dark, toggle } = useTheme();
+  const { lang, setLang, t } = useLang();
+
+  const NAV_LINKS = [
+    { label: t('nav.features'), href: '#features' },
+    { label: t('nav.pricing'), href: '#pricing' },
+    { label: t('nav.faq'), href: '#faq' },
+    { label: t('nav.desktop'), href: '#download' },
+  ];
+
+  function toggleLang() {
+    setLang(lang === 'uz' ? 'ru' : 'uz' as Lang);
+  }
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -83,8 +90,16 @@ export function Navbar({ appUrl }: NavbarProps) {
             ))}
           </nav>
 
-          {/* CTA + theme toggle */}
+          {/* CTA + theme + lang toggle */}
           <div className="hidden md:flex items-center gap-3">
+            {/* Lang toggle */}
+            <button
+              onClick={toggleLang}
+              aria-label="Til o'zgartirish"
+              className="btn btn-ghost btn-sm text-base-content/60 hover:text-base-content font-600 text-xs px-2"
+            >
+              {lang === 'uz' ? 'RU' : 'UZ'}
+            </button>
             {/* Theme toggle */}
             <button
               onClick={toggle}
@@ -97,18 +112,24 @@ export function Navbar({ appUrl }: NavbarProps) {
               href={`${appUrl}/login`}
               className="text-sm text-base-content/70 hover:text-base-content transition-colors"
             >
-              Kirish
+              {t('nav.login')}
             </a>
             <a
               href={`${appUrl}/register`}
               className="btn btn-primary btn-sm rounded-full px-5"
             >
-              Dashboard →
+              {t('nav.dashboard')}
             </a>
           </div>
 
-          {/* Mobile: theme toggle + hamburger */}
+          {/* Mobile: lang + theme toggle + hamburger */}
           <div className="md:hidden flex items-center gap-1">
+            <button
+              onClick={toggleLang}
+              className="btn btn-ghost btn-xs font-600 text-base-content/60 px-1"
+            >
+              {lang === 'uz' ? 'RU' : 'UZ'}
+            </button>
             <button
               onClick={toggle}
               aria-label="Tema"
@@ -151,10 +172,10 @@ export function Navbar({ appUrl }: NavbarProps) {
             ))}
             <div className="flex gap-3 pt-2">
               <a href={`${appUrl}/login`} className="btn btn-ghost btn-sm flex-1">
-                Kirish
+                {t('nav.login')}
               </a>
               <a href={`${appUrl}/register`} className="btn btn-primary btn-sm flex-1">
-                Dashboard →
+                {t('nav.dashboard')}
               </a>
             </div>
           </motion.div>

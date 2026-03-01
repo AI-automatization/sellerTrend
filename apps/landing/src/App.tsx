@@ -9,6 +9,7 @@ import { PricingSection } from './sections/PricingSection';
 import { TestimonialsSection } from './sections/TestimonialsSection';
 import { FAQSection } from './sections/FAQSection';
 import { CTASection } from './sections/CTASection';
+import { EmailCaptureSection } from './sections/EmailCaptureSection';
 import { FooterSection } from './sections/FooterSection';
 
 const APP_URL = 'https://app.ventra.uz';
@@ -27,6 +28,7 @@ export default function App() {
         <TestimonialsSection />
         <FAQSection />
         <CTASection appUrl={APP_URL} />
+        <EmailCaptureSection />
       </main>
       <FooterSection />
       <DownloadBanner />
