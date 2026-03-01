@@ -30,7 +30,7 @@
 | L-019 | EmailCaptureSection | Email form, validation, success/error state (TODO: /api/v1/newsletter/subscribe) |
 | L-020 | useAnalytics hook | Plausible-compatible event tracking, script ready |
 | L-021 | — | Skipped (Blog section — optional) |
-| L-022 | i18n uz/ru | ⚠️ PARTIAL — LangContext, i18n.ts, Navbar toggle yaratildi. Lekin HeroSection, FeaturesSection, PricingSection, FAQSection va boshqa 8+ section hardcoded. Tasks.md ga qaytarildi |
+| L-022 | i18n uz/ru | ✅ DONE — barcha 11 section + DownloadBanner useLang() ga ulandi. i18n.ts ga footer.* keys qo'shildi. tsc PASS |
 | L-023 | Dockerfile + nginx.conf | Multi-stage build, gzip, cache headers, docker-compose.prod.yml |
 | L-024 | CI/CD | Landing tsc check + Railway deploy — ci.yml ga qo'shildi |
 

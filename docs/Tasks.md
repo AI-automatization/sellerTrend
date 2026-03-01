@@ -61,9 +61,6 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 
 ### T-257 | P2 | FRONTEND | Granular ErrorBoundary per section | —
 
-### L-022 | P2 | LANDING | i18n uz/ru — barcha sectionlarni useLang() ga ulash | 1h
-**Holat:** LangContext + i18n.ts + Navbar toggle tayyor. Qolgan: HeroSection, PainPointsSection, FeaturesSection, DashboardPreview, StatsSection, PricingSection, TestimonialsSection, FAQSection, CTASection, FooterSection, DownloadBanner — barchasida `useLang()` import qilib `t()` ishlatish kerak.
-
 ---
 
 # ═══════════════════════════════════════════════════════════
