@@ -45,6 +45,7 @@ export class HealthController {
         'billing-queue',
         'competitor-queue',
         'reanalysis-queue',
+        'weekly-scrape-queue',
       ];
       queueDepth = {};
       for (const name of queueNames) {

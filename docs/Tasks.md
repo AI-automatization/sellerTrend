@@ -1,5 +1,5 @@
 # VENTRA — OCHIQ VAZIFALAR
-# Yangilangan: 2026-02-28
+# Yangilangan: 2026-03-01
 # Bajarilganlar → docs/Done.md
 
 ---
@@ -85,45 +85,22 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 
 ## P1 — MUHIM
 
-### T-198 | FRONTEND | Haftalik sotuvlar chart — noto'g'ri data ko'rsatadi | 20min
-### T-201 | FRONTEND | Raqiblar Narx Kuzatuvi + Global Bozor — loading/bo'sh | 15min
 ### T-202 | FRONTEND | ProductPage overall UX — sotuvchi uchun soddalash | 1h
 ### T-206 | FRONTEND | Raqiblar — "50 ta kuzatilmoqda" + "topilmadi" bir vaqtda | 10min
 ### T-264 | P1 | FRONTEND | Admin panel — role USER bo'lsa /admin sahifaga redirect yo'q | 30min
-
-## PWA O'chirish
-
-### T-188 | FRONTEND | Service Worker o'chirish + unregister script | 20min
-### T-189 | FRONTEND | manifest.json va PWA meta taglar o'chirish | 10min
-### T-190 | FRONTEND | PWA-only ikonalar o'chirish | 5min
-### T-192 | FRONTEND | dist/manifest.json build artifact tozalash | 5min
 
 ## P2 — O'RTA
 
 ### T-266 | P2 | FRONTEND | Shops, Leaderboard, Sourcing — bo'sh sahifa, yo'naltiruvchi xabar yo'q | 30min
 ### T-257 | P2 | FRONTEND | Granular ErrorBoundary per section | —
-### T-085 | FRONTEND | AnalyzePage tracked=true API xatosida ham o'rnatiladi | 10min
-### T-097 | FRONTEND | WebSocket dev proxy yo'q | 15min
 
 ## i18n AUDIT
 
-### T-271 | FRONTEND | i18n: 23 ta DUPLICATE KEY barcha 3 tilda | 30min
-### T-272 | FRONTEND | Layout.tsx sidebar section labellar hardcoded — i18n yo'q | 20min
-### T-273 | FRONTEND | SignalsPage tab nomlari va content hardcoded — i18n yo'q | 45min
-### T-274 | FRONTEND | ScannerTab.tsx (Discovery) butunlay i18n siz | 30min
-### T-275 | FRONTEND | CargoCalculator.tsx (Sourcing) butunlay i18n siz | 30min
 ### T-276 | FRONTEND | UZ faylida ~85 ta inglizcha tarjima qilinmagan value | 60min
 ### T-277 | FRONTEND | RU faylida ~24 ta inglizcha tarjima qilinmagan value | 30min
 ### T-278 | FRONTEND | feedback.title UZ da aralash til: "Feedback & Yordam" | 5min
-### T-279 | FRONTEND | discovery.title barcha 3 tilda tarjima qilinmagan | 5min
-
 ### T-279 | FRONTEND | discovery.title barcha 3 tilda "Category Discovery" — tarjima qilinmagan | 5min
-**Muammo:** `discovery.title` key barcha 3 faylda ham inglizcha "Category Discovery" qilib qolgan.
-**Fix:**
-- `uz.ts`: `"Kategoriya Kashfiyoti"` yoki `"Kategoriya Tahlili"`
-- `ru.ts`: `"Обзор категорий"` yoki `"Исследование категорий"`
-- `en.ts`: `"Category Discovery"` (to'g'ri)
-**Fayllar:** `apps/web/src/i18n/uz.ts`, `apps/web/src/i18n/ru.ts`
+**Fix:** `uz.ts`: "Kategoriya Kashfiyoti", `ru.ts`: "Обзор категорий"
 
 ---
 
@@ -131,8 +108,6 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 # IKKALASI (BACKEND + FRONTEND)
 # ═══════════════════════════════════════════════════════════
 
-### T-235 | P1 | BACKEND+WORKER | Playwright bilan weekly_bought DOM scraping | 2h
-### T-236 | P1 | BACKEND | parseWeeklyBought kengaytirish — "1,2 тыс" formatlar | 30min
 ### T-237 | P1 | IKKALASI | ProductPage da mahsulot rasmi ko'rsatish — Uzum API dan photo olish | 2h
 ### T-260 | P1 | FRONTEND+BACKEND | Discovery — kategoriya nomi ko'rsatish (faqat ID emas) | 1.5h
 ### T-261 | P1 | IKKALASI | Discovery natijalar drawer — sotuvchi uchun kerakli ma'lumotlar yo'q | 3h
@@ -504,10 +479,8 @@ API calls:     ~300ms           API calls:     ~300ms (bypass, o'zgarmaydi*)
 ## BAJARISH KETMA-KETLIGI (TAVSIYA)
 
 ### FAZA 1 — KRITIK: Score/Data to'g'rilash
-1. ~~T-267~~ ✅ DONE
-2. ~~T-268~~ ✅ DONE
-3. T-269 → Eski noto'g'ri data tozalash
-4. T-270 → Duplicate snapshot tozalash
+1. T-269 → Eski noto'g'ri data tozalash
+2. T-270 → Duplicate snapshot tozalash
 
 ### FAZA 2 — DEVOPS: Railway production
 5. T-262 → Railway DB seed
@@ -519,9 +492,8 @@ API calls:     ~300ms           API calls:     ~300ms (bypass, o'zgarmaydi*)
 
 ### FAZA 4 — Frontend UX polish
 9. T-264 → Admin route protection
-10. ~~T-265~~ ✅ DONE
-11. T-266 → Empty state CTA
+10. T-266 → Empty state CTA
 
 ---
 
-*Tasks.md | VENTRA Analytics Platform | 2026-02-28*
+*Tasks.md | VENTRA Analytics Platform | 2026-03-01*

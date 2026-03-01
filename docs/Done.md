@@ -3,6 +3,18 @@
 
 ---
 
+## i18n AUDIT — Bajarilganlar (Sardor, 2026-03-01)
+
+| # | Task | Yechim |
+|---|------|--------|
+| T-271 | 23 ta DUPLICATE KEY barcha 3 tilda | Commit c5f49bc — 23 ta duplicate key uz.ts, ru.ts, en.ts dan o'chirildi |
+| T-272 | Layout.tsx sidebar section labellar hardcoded | t('nav.section.main'), t('nav.section.product'), t('nav.tools'), t('nav.section.business') — barchasi i18n |
+| T-273 | SignalsPage tab nomlari va content hardcoded | 10 ta signal component (Cannibalization, DeadStock, Saturation, FlashSales, EarlySignals, StockCliffs, Ranking, Checklist, PriceTest, Replenishment) — barchasi useI18n + t() |
+| T-274 | ScannerTab.tsx (Discovery) butunlay i18n siz | ScannerTab.tsx — useI18n import, discovery.scanner.* kalitlari qo'shildi |
+| T-275 | CargoCalculator.tsx (Sourcing) butunlay i18n siz | CargoCalculator.tsx — useI18n import, t() ishlatiladi |
+
+---
+
 ## v5.4 — Weekly Bought Playwright Scraping (Bekzod, 2026-03-01)
 
 | # | Task | Yechim |
