@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { fadeUp, staggerContainer, staggerItem, VIEWPORT } from '../lib/animations';
+import { useLang } from '../lib/LangContext';
 
 const PAIN_POINTS = [
   {
@@ -26,6 +27,8 @@ const PAIN_POINTS = [
 ];
 
 export function PainPointsSection() {
+  const { t } = useLang();
+
   return (
     <section className="py-24 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -37,11 +40,10 @@ export function PainPointsSection() {
           className="text-center mb-16"
         >
           <h2 className="font-display font-700 text-3xl sm:text-4xl text-white mb-4">
-            Har kuni duch kelayotgan{' '}
-            <span className="gradient-text">muammolar</span>
+            {t('pain.title')}
           </h2>
           <p className="text-base-content/60 max-w-xl mx-auto">
-            Uzum sotuvchilari uchun eng katta to'siqlar — va VENTRA ularning yechimi
+            {t('pain.subtitle')}
           </p>
         </motion.div>
 
@@ -62,7 +64,7 @@ export function PainPointsSection() {
               <div className="p-5 border-b border-white/5">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-2xl">{item.emoji}</span>
-                  <span className="text-xs text-error font-600 uppercase tracking-wide">Muammo</span>
+                  <span className="text-xs text-error font-600 uppercase tracking-wide">{t('pain.label')}</span>
                 </div>
                 <h3 className="font-display font-600 text-base text-white mb-2">
                   {item.problem}
@@ -76,7 +78,7 @@ export function PainPointsSection() {
               {/* Solution (green) */}
               <div className="p-5 bg-success/5 border-t border-success/10">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="text-xs text-success font-600 uppercase tracking-wide">Yechim</span>
+                  <span className="text-xs text-success font-600 uppercase tracking-wide">{t('pain.solution')}</span>
                   <span className="badge badge-success badge-xs">{item.solution}</span>
                 </div>
                 <p className="text-sm text-base-content/70 leading-relaxed">{item.solutionDesc}</p>

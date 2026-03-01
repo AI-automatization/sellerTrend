@@ -1,34 +1,38 @@
+import { useLang } from '../lib/LangContext';
+
 const APP_URL = 'https://app.ventra.uz';
 
-const COLUMNS = [
-  {
-    title: 'Mahsulot',
-    links: [
-      { label: 'Imkoniyatlar', href: '#features' },
-      { label: 'Narxlar', href: '#pricing' },
-      { label: 'Desktop Ilova', href: '#download' },
-      { label: 'Browser Extension', href: '#' },
-    ],
-  },
-  {
-    title: 'Kompaniya',
-    links: [
-      { label: 'Biz haqimizda', href: '#' },
-      { label: 'Blog', href: '#' },
-      { label: 'Aloqa', href: 'mailto:support@ventra.uz' },
-    ],
-  },
-  {
-    title: 'Yordam',
-    links: [
-      { label: 'FAQ', href: '#faq' },
-      { label: 'Hujjatlar', href: '#' },
-      { label: 'support@ventra.uz', href: 'mailto:support@ventra.uz' },
-    ],
-  },
-];
-
 export function FooterSection() {
+  const { t } = useLang();
+
+  const COLUMNS = [
+    {
+      title: t('footer.col1'),
+      links: [
+        { label: t('nav.features'), href: '#features' },
+        { label: t('nav.pricing'), href: '#pricing' },
+        { label: t('nav.desktop'), href: '#download' },
+        { label: 'Browser Extension', href: '#' },
+      ],
+    },
+    {
+      title: t('footer.col2'),
+      links: [
+        { label: t('footer.about'), href: '#' },
+        { label: 'Blog', href: '#' },
+        { label: t('footer.contact'), href: 'mailto:support@ventra.uz' },
+      ],
+    },
+    {
+      title: t('footer.col3'),
+      links: [
+        { label: 'FAQ', href: '#faq' },
+        { label: t('footer.docs'), href: '#' },
+        { label: 'support@ventra.uz', href: 'mailto:support@ventra.uz' },
+      ],
+    },
+  ];
+
   return (
     <footer className="border-t border-white/5 pt-16 pb-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -42,7 +46,7 @@ export function FooterSection() {
               <span className="font-display font-700 text-lg text-white">VENTRA</span>
             </div>
             <p className="text-sm text-base-content/50 leading-relaxed mb-4">
-              Uzum.uz sotuvchilari uchun premium AI analytics platforma.
+              {t('footer.desc')}
             </p>
             {/* Social */}
             <div className="flex gap-3">
@@ -84,14 +88,14 @@ export function FooterSection() {
         {/* Bottom bar */}
         <div className="border-t border-white/5 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-base-content/40">
-            © 2026 VENTRA. Barcha huquqlar himoyalangan.
+            {t('footer.copyright')}
           </p>
           <div className="flex gap-4">
             <a href="#" className="text-xs text-base-content/40 hover:text-white transition-colors">
-              Maxfiylik siyosati
+              {t('footer.privacy')}
             </a>
             <a href="#" className="text-xs text-base-content/40 hover:text-white transition-colors">
-              Foydalanish shartlari
+              {t('footer.terms')}
             </a>
           </div>
         </div>

@@ -1,10 +1,13 @@
 import { motion } from 'framer-motion';
+import { useLang } from '../lib/LangContext';
 
 interface HeroSectionProps {
   appUrl: string;
 }
 
 export function HeroSection({ appUrl }: HeroSectionProps) {
+  const { t } = useLang();
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
       {/* Animated gradient mesh background */}
@@ -35,7 +38,7 @@ export function HeroSection({ appUrl }: HeroSectionProps) {
               className="inline-flex items-center gap-2 glass-card rounded-full px-4 py-2 mb-6"
             >
               <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
-              <span className="text-xs text-base-content/70">1000+ Uzum sotuvchi ishonadi</span>
+              <span className="text-xs text-base-content/70">{t('hero.badge')}</span>
             </motion.div>
 
             {/* Heading */}
@@ -45,9 +48,9 @@ export function HeroSection({ appUrl }: HeroSectionProps) {
               transition={{ duration: 0.6, delay: 0.1 }}
               className="font-display font-800 text-4xl sm:text-5xl lg:text-6xl text-white leading-tight mb-6"
             >
-              Uzum sotuvingizni{' '}
-              <span className="gradient-text">3x oshiring</span>
-              {' '}— AI bilan
+              {t('hero.title1')}{' '}
+              <span className="gradient-text">{t('hero.title2')}</span>
+              {' '}{t('hero.title3')}
             </motion.h1>
 
             {/* Description */}
@@ -57,8 +60,7 @@ export function HeroSection({ appUrl }: HeroSectionProps) {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="text-base-content/60 text-lg leading-relaxed mb-8 max-w-xl"
             >
-              Qaysi mahsulot trend? Raqibingiz qancha sotayapti? Qayerdan arzon olib kelish mumkin?
-              <strong className="text-white"> VENTRA barchasini ko'rsatadi.</strong>
+              {t('hero.desc')}
             </motion.p>
 
             {/* CTA buttons */}
@@ -72,7 +74,7 @@ export function HeroSection({ appUrl }: HeroSectionProps) {
                 href={`${appUrl}/register`}
                 className="btn btn-primary rounded-full px-8 py-3 text-base font-600 glow-btn"
               >
-                Bepul boshlash →
+                {t('hero.cta1')}
               </a>
               <a
                 href="#download"
@@ -82,7 +84,7 @@ export function HeroSection({ appUrl }: HeroSectionProps) {
                 }}
                 className="btn btn-outline rounded-full px-8 py-3 text-base font-600 border-white/20 text-white hover:bg-white/10"
               >
-                🖥️ Desktop yuklab olish
+                🖥️ {t('hero.cta2')}
               </a>
             </motion.div>
 
@@ -94,13 +96,13 @@ export function HeroSection({ appUrl }: HeroSectionProps) {
               className="flex flex-wrap gap-4 text-sm text-base-content/50"
             >
               <span className="flex items-center gap-1.5">
-                <span className="text-success">✓</span> Birinchi 14 kun BEPUL
+                <span className="text-success">✓</span> {t('hero.trust1')}
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="text-success">✓</span> Bank kartasi kerak emas
+                <span className="text-success">✓</span> {t('hero.trust2')}
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="text-success">✓</span> 5 daqiqada trend topish
+                <span className="text-success">✓</span> {t('hero.trust3')}
               </span>
             </motion.div>
           </div>

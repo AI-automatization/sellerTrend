@@ -1,10 +1,13 @@
 import { motion } from 'framer-motion';
+import { useLang } from '../lib/LangContext';
 
 interface CTASectionProps {
   appUrl: string;
 }
 
 export function CTASection({ appUrl }: CTASectionProps) {
+  const { t } = useLang();
+
   return (
     <section className="py-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Background */}
@@ -24,12 +27,12 @@ export function CTASection({ appUrl }: CTASectionProps) {
           transition={{ duration: 0.7 }}
         >
           <h2 className="font-display font-800 text-4xl sm:text-5xl lg:text-6xl text-white mb-6 leading-tight">
-            Raqiblaringiz allaqachon{' '}
-            <span className="gradient-text">VENTRA</span>{' '}
-            ishlatayapti. Siz-chi?
+            {t('cta.title1')}{' '}
+            <span className="gradient-text">{t('cta.title2')}</span>{' '}
+            {t('cta.title3')}
           </h2>
           <p className="text-base-content/60 text-lg mb-10 max-w-xl mx-auto">
-            Har kuni kechikish — yo'qotilgan sotuv. Hoziroq boshlang, 14 kun bepul sinab ko'ring.
+            {t('cta.desc')}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -37,12 +40,12 @@ export function CTASection({ appUrl }: CTASectionProps) {
               href={`${appUrl}/register`}
               className="btn btn-primary btn-lg rounded-full px-10 glow-btn font-600 text-base"
             >
-              Hoziroq boshlash — 14 kun bepul →
+              {t('cta.btn')}
             </a>
           </div>
 
           <p className="text-base-content/40 text-sm mt-6">
-            Bank kartasi talab qilinmaydi · Istalgan vaqt bekor qilish mumkin
+            {t('cta.note')}
           </p>
         </motion.div>
       </div>
