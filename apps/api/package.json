@@ -26,6 +26,7 @@
     "@nestjs/throttler": "^6.5.0",
     "@nestjs/websockets": "^10.4.15",
     "@prisma/client": "^6.3.1",
+    "@sentry/node": "^10.40.0",
     "@uzum/types": "workspace:*",
     "@uzum/utils": "workspace:*",
     "bcryptjs": "^2.4.3",

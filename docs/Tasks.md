@@ -30,7 +30,7 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 
 ## ENV-P2 — O'RTA (Optional)
 
-### E-009 | CONFIG | `SENTRY_DSN` yo'q — error tracking o'chirilgan | 2min
+### E-009 | DONE | `SENTRY_DSN` Railway production ga qo'shildi — Sentry EU (ventra-69.sentry.io) |
 ### E-010 | CONFIG | `PROXY_URL` yo'q — Uzum API block qilsa kerak bo'ladi | 2min
 
 ---
@@ -285,9 +285,9 @@ API calls:     ~300ms           API calls:     ~300ms (bypass, o'zgarmaydi*)
 ## P2 — O'RTA
 
 ### T-184 | DEVOPS | Staging environment (optional) | 30min
-### T-242 | DEVOPS | SERPAPI_API_KEY — API + Worker | 5min
+### T-242 | DONE | SERPAPI_API_KEY — Railway production api + worker ga qo'shildi |
 ### T-243 | DEVOPS | ALIEXPRESS_APP_KEY + SECRET — API | 5min
-### T-244 | DEVOPS | SENTRY_DSN — API | 5min
+### T-244 | DONE | SENTRY_DSN — Railway production api ga qo'shildi (ventra-69.sentry.io EU) |
 ### T-245 | DEVOPS | PROXY_URL — API + Worker (optional) | 5min
 
 ---

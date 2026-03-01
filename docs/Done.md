@@ -15,6 +15,16 @@
 
 ---
 
+## DevOps ENV — T-242, T-244, E-009 (Bekzod, 2026-03-01)
+
+| # | Task | Yechim |
+|---|------|--------|
+| T-242 | SERPAPI_API_KEY production | Railway `api` + `worker` service lariga `SERPAPI_API_KEY` qo'shildi. Sourcing engine (1688, Taobao, Alibaba, Google Shopping, Amazon.de) production da ishlaydi |
+| T-244 | SENTRY_DSN production | Sentry.io da `ventra-69` org yaratildi (EU region). `@sentry/node` allaqachon o'rnatilgan, `sentry.ts` dynamic import bilan ishlaydi. DSN Railway `api` service ga qo'shildi |
+| E-009 | SENTRY_DSN config | Sentry error tracking yoqildi — production dagi barcha 4xx/5xx errorlar avtomatik Sentry ga yuboriladi |
+
+---
+
 ## Sprint 2 Backend — T-237, T-260, T-261, T-234, T-262, T-263 (Bekzod, 2026-03-01)
 
 | # | Task | Yechim |
