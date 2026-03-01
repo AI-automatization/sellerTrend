@@ -36,7 +36,6 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 
 ## P2 — O'RTA
 
-### T-257 | P2 | FRONTEND | Granular ErrorBoundary per section | —
 
 ---
 

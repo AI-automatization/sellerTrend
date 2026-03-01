@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useI18n } from '../i18n/I18nContext';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { uzumApi, productsApi, sourcingApi } from '../api/client';
 import { getErrorMessage } from '../utils/getErrorMessage';
@@ -439,6 +440,7 @@ export function ProductPage() {
       )}
 
       {/* Weekly Trend Card — Haftalik sotuv trendi + maslahat */}
+      <ErrorBoundary variant="section" label="Haftalik trend">
       {weeklyTrend && (
         <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-6 space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
@@ -554,8 +556,10 @@ export function ProductPage() {
           )}
         </div>
       )}
+      </ErrorBoundary>
 
       {/* ML Forecast — Feature 11 (collapsible) */}
+      <ErrorBoundary variant="section" label="ML Prognoz">
       {(mlForecast || mlLoading) && (
         <div className="rounded-2xl bg-base-200/60 border border-primary/20 p-4 lg:p-6 space-y-4">
           <button
@@ -676,6 +680,7 @@ export function ProductPage() {
           )}
         </div>
       )}
+      </ErrorBoundary>
 
       {/* Score + Orders history (collapsible) */}
       {snapshots.length > 1 && (
@@ -711,14 +716,18 @@ export function ProductPage() {
       )}
 
       {/* Competitor Price Tracker — Feature 01 */}
-      <CompetitorSection productId={String(result.product_id)} productPrice={result.sell_price} />
+      <ErrorBoundary variant="section" label="Raqiblar narxi">
+        <CompetitorSection productId={String(result.product_id)} productPrice={result.sell_price} />
+      </ErrorBoundary>
 
       {/* Global Market Price Comparison */}
-      <GlobalPriceComparison
-        items={extItems} loading={extLoading} note={extNote}
-        uzumPrice={result.sell_price} productTitle={result.title}
-        usdRate={usdRate}
-      />
+      <ErrorBoundary variant="section" label="Xitoy narxlari">
+        <GlobalPriceComparison
+          items={extItems} loading={extLoading} note={extNote}
+          uzumPrice={result.sell_price} productTitle={result.title}
+          usdRate={usdRate}
+        />
+      </ErrorBoundary>
 
       {/* Score info */}
       <div className="alert alert-info alert-soft text-xs">

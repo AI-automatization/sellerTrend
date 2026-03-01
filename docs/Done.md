@@ -44,6 +44,7 @@
 | T-260 | Discovery category nomi | `Run` tipiga `category_name`. Runs table + winners drawer headerda kategoriya nomi ko'rsatiladi |
 | T-261 | Discovery drawer + leaderboard | `Winner` tipiga yangi fieldlar. ScannerTab drawer + PublicLeaderboardPage: thumbnail, shop_title, rating, category_name |
 | T-202 | ProductPage UX soddalash | AI Explanation → metrics dan keyin (3-o'rin). ML Forecast collapsible (default yopiq). Score/Orders history collapsible (default yopiq) |
+| T-257 | Granular ErrorBoundary per section | `ErrorBoundary` ga `variant='section'` + `label` prop qo'shildi. `ProductPage`: WeeklyTrend, ML Forecast, CompetitorSection, GlobalPriceComparison o'ralgan. `DiscoveryPage`: 3 ta tab o'ralgan |
 
 ---
 
