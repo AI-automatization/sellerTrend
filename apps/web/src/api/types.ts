@@ -19,6 +19,7 @@ export interface AnalyzeResult {
   total_available_amount?: number;
   ai_explanation: string[] | null;
   snapshot_id?: string;
+  photo_url?: string | null;
 }
 
 export interface WeeklyTrend {
@@ -95,6 +96,7 @@ export interface TrackedProduct {
   weekly_bought: number | null;
   sell_price: number | null;
   tracked_since: string;
+  photo_url?: string | null;
 }
 
 // ─── Admin Domain ────────────────────────────────────────────────────────────

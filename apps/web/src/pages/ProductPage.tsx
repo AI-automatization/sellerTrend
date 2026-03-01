@@ -222,6 +222,17 @@ export function ProductPage() {
       {/* Hero card */}
       <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-6 space-y-5">
         <div className="flex items-start gap-4 lg:gap-6 flex-wrap sm:flex-nowrap">
+          {/* Product image */}
+          {result.photo_url && (
+            <div className="shrink-0">
+              <img
+                src={result.photo_url}
+                alt={result.title}
+                className="w-20 h-20 lg:w-24 lg:h-24 rounded-xl object-cover bg-base-300/40"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+            </div>
+          )}
           <div className="flex-1 min-w-0 space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="badge badge-outline text-xs font-mono">#{result.product_id}</span>

@@ -85,15 +85,27 @@ export function ProductsTable({ products, sortedProducts, sortKey, setSortKey }:
                     className="hover:bg-base-300/15 transition-colors group/row border-b border-base-300/10 last:border-0"
                     style={{ animationDelay: `${idx * 20}ms` }}>
                     <td className="pl-5">
-                      <div className="max-w-xs lg:max-w-sm xl:max-w-md">
-                        <Link to={`/products/${p.product_id}`}
-                          className="font-medium text-sm truncate block hover:text-primary transition-colors">
-                          {p.title}
-                        </Link>
-                        <p className="text-[10px] text-base-content/20 mt-0.5 tabular-nums">
-                          #{p.product_id}
-                          {p.feedback_quantity ? ` · ${p.feedback_quantity.toLocaleString()} ${t('dashboard.review')}` : ''}
-                        </p>
+                      <div className="flex items-center gap-3 max-w-xs lg:max-w-sm xl:max-w-md">
+                        {p.photo_url ? (
+                          <img
+                            src={p.photo_url}
+                            alt=""
+                            className="w-8 h-8 rounded-lg object-cover shrink-0 bg-base-300/40"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-base-300/30 shrink-0" />
+                        )}
+                        <div className="min-w-0">
+                          <Link to={`/products/${p.product_id}`}
+                            className="font-medium text-sm truncate block hover:text-primary transition-colors">
+                            {p.title}
+                          </Link>
+                          <p className="text-[10px] text-base-content/20 mt-0.5 tabular-nums">
+                            #{p.product_id}
+                            {p.feedback_quantity ? ` · ${p.feedback_quantity.toLocaleString()} ${t('dashboard.review')}` : ''}
+                          </p>
+                        </div>
                       </div>
                     </td>
                     <td className="text-center"><ScorePill score={p.score} /></td>
