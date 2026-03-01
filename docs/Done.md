@@ -3,6 +3,18 @@
 
 ---
 
+## DevOps — T-280, T-177, T-179-181 (Bekzod, 2026-03-01)
+
+| # | Task | Yechim |
+|---|------|--------|
+| T-280 | Railway EU region migration | `serviceInstanceUpdate` GraphQL mutation orqali barcha 8 ta service (api, worker, bot, web, postgres x2, redis x2) `europe-west4` regionga ko'chirildi. Health check Redis bug fix: stale ioredis client → fresh per-request client. `X-Railway-Edge: railway/europe-west4-drams3a` tasdiqlandi |
+| T-177 | pgvector extension | `seed.service.ts` ga `CREATE EXTENSION IF NOT EXISTS vector` qo'shildi. Har deploy da avtomatik enable bo'ladi |
+| T-179 | Worker memory/CPU | Railway Pro plan default limits yetarli. 7/7 workers healthy, barcha deployments SUCCESS |
+| T-180 | Monitoring | Railway Pro crash notifications + health endpoint (`/api/v1/health`) queueDepth monitoring. Worker logs `weekly-scrape-queue` cron registered |
+| T-181 | DB backup | Railway Pro automatic daily backups enabled (PostgreSQL service) |
+
+---
+
 ## Sprint 2 Backend — T-237, T-260, T-261, T-234, T-262, T-263 (Bekzod, 2026-03-01)
 
 | # | Task | Yechim |

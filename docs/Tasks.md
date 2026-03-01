@@ -92,108 +92,7 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 
 ### T-262 + T-263 | DONE | SeedService auto-seed on API startup — admin, platforms, cargo, trends |
 
-## P0 — KRITIK (Latency)
-
-### T-280 | P0 | DEVOPS | Railway EU region migration — latency 300ms→150ms | 2h
-
-**Muammo:** Hozir barcha servicelar US-West (Oregon) regionda. Toshkent→Oregon RTT ~300ms.
-EU-West (Amsterdam/Frankfurt) ga ko'chirsa ~150ms ga tushadi (2x tezroq).
-
-**Benchmark (hozirgi):**
-```
-Health endpoint (DB yo'q): min 200ms, avg 360ms
-DB query endpoints:        min 218ms, avg 280ms
-Server processing:         ~15-30ms (juda tez)
-Network RTT:               ~250-300ms (asosiy bottleneck)
-```
-
-**To'liq yechim — qadamma-qadam:**
-
-#### 1-qadam: Yangi EU PostgreSQL yaratish
-```bash
-# Railway Dashboard → Project → + New → Database → PostgreSQL
-# Region: eu-west (Amsterdam) tanlash
-# Yoki CLI:
-railway add --plugin postgresql   # keyin dashboard dan region o'zgartirish
-```
-
-#### 2-qadam: Eski DB dan data export
-```bash
-# Railway dashboard → eski PostgreSQL → Connect tab → Connection String olish
-# Local terminal:
-pg_dump "postgresql://OLD_CONNECTION_STRING" \
-  --no-owner --no-acl --clean --if-exists \
-  -F custom -f ventra_backup.dump
-
-# Yoki Railway plugin orqali:
-railway connect postgresql  # eski DB ga ulanib
-# \copy yoki pg_dump ishlatish
-```
-
-#### 3-qadam: Yangi EU DB ga import
-```bash
-pg_restore "postgresql://NEW_EU_CONNECTION_STRING" \
-  --no-owner --no-acl --clean --if-exists \
-  ventra_backup.dump
-
-# pgvector extension qo'shish:
-psql "postgresql://NEW_EU_CONNECTION_STRING" -c "CREATE EXTENSION IF NOT EXISTS vector;"
-```
-
-#### 4-qadam: Redis ham EU ga ko'chirish
-```bash
-# Railway Dashboard → + New → Database → Redis
-# Region: eu-west tanlash
-# Eski Redis dan data ko'chirish shart emas (cache + sessions)
-```
-
-#### 5-qadam: API + Worker + Nginx → EU regionga
-```bash
-# Har bir service uchun Railway Dashboard → Service → Settings → Region → eu-west
-# YOKI yangi servicelar yaratish EU regionda va deploy qilish
-
-# Env variablelar yangilash:
-DATABASE_URL=postgresql://NEW_EU_STRING
-DIRECT_DATABASE_URL=postgresql://NEW_EU_DIRECT_STRING
-REDIS_URL=redis://NEW_EU_REDIS_STRING
-```
-
-#### 6-qadam: Prisma migration sync
-```bash
-# EU DB da migration holati tekshirish:
-npx prisma migrate status
-# Agar kerak bo'lsa:
-npx prisma migrate deploy
-```
-
-#### 7-qadam: DNS / Domain
-```bash
-# Custom domain (T-178) bilan birga qilish:
-# Railway Dashboard → Nginx service → Settings → Custom Domain
-# DNS: CNAME ventra.uz → [railway-domain].up.railway.app
-```
-
-#### 8-qadam: Smoke test
-```bash
-node -e "
-async function ping(label, url, n=5) {
-  const t=[];
-  for(let i=0;i<n;i++){const s=Date.now();await fetch(url);t.push(Date.now()-s);}
-  console.log(label, 'min:', Math.min(...t)+'ms', 'avg:', Math.round(t.reduce((a,b)=>a+b)/t.length)+'ms');
-}
-ping('EU Health:', 'https://NEW_DOMAIN/api/v1/health');
-"
-```
-
-**Kutilgan natija:**
-- Health: 200ms → ~80-100ms
-- DB queries: 250ms → ~120-150ms
-- Analyze: 700ms → ~400ms
-
-**Xavflar:**
-- Data migration vaqtida ~10-15 min downtime
-- pgvector extension EU DB da ham enable qilish kerak
-- BullMQ joblar Redis almashinuvida yo'qolishi mumkin (critical emas)
+### T-280 | DONE | Railway EU region migration — barcha 8 service europe-west4 da |
 
 ---
 
@@ -377,11 +276,11 @@ API calls:     ~300ms           API calls:     ~300ms (bypass, o'zgarmaydi*)
 
 ## P1 — MUHIM
 
-### T-177 | DEVOPS | pgvector extension — Railway PostgreSQL | 5min
-### T-178 | DEVOPS | Custom domain + SSL — web service | 10min
-### T-179 | DEVOPS | Worker memory/CPU limit tekshirish | 15min
-### T-180 | DEVOPS | Monitoring + Uptime alert | 15min
-### T-181 | DEVOPS | Railway database backup tekshirish | 10min
+### T-177 | DONE | pgvector extension — SeedService orqali auto-enable |
+### T-178 | DEVOPS | Custom domain + SSL — web service | 10min (manual: domain kerak)
+### T-179 | DONE | Worker memory/CPU — Railway Pro plan default limits, 7/7 workers healthy |
+### T-180 | DONE | Monitoring — Railway Pro crash notifications + health endpoint queueDepth |
+### T-181 | DONE | DB backup — Railway Pro automatic daily backups enabled |
 
 ## P2 — O'RTA
 

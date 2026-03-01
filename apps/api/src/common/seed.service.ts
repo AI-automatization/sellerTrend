@@ -22,6 +22,14 @@ export class SeedService implements OnApplicationBootstrap {
   }
 
   private async seed() {
+    // 0. Enable pgvector extension (T-177)
+    try {
+      await this.prisma.$executeRawUnsafe('CREATE EXTENSION IF NOT EXISTS vector');
+      this.logger.log('pgvector extension enabled');
+    } catch {
+      this.logger.warn('pgvector extension not available — embedding features disabled');
+    }
+
     // 1. System settings
     await this.prisma.systemSetting.upsert({
       where: { key: 'daily_fee_default' },
