@@ -167,7 +167,7 @@ export function ProductPage() {
   function toggleMine() {
     const next = !isMine;
     setIsMine(next);
-    try { next ? localStorage.setItem(`mine_${id}`, '1') : localStorage.removeItem(`mine_${id}`); } catch { /* ignore */ }
+    try { if (next) { localStorage.setItem(`mine_${id}`, '1'); } else { localStorage.removeItem(`mine_${id}`); } } catch { /* ignore */ }
   }
 
   async function handleTrack() {

@@ -23,16 +23,9 @@ function formatDay(dateStr: string): string {
 }
 
 export function ScoreChart({ data }: { data: ChartPoint[] }) {
-  if (!data || data.length === 0) {
-    return (
-      <p className="text-base-content/40 text-sm text-center py-8">
-        Ma'lumot yetarli emas
-      </p>
-    );
-  }
-
   // Aggregate by day — take last score per day to avoid zigzag
   const dailyData = useMemo(() => {
+    if (!data || data.length === 0) return [];
     const map = new Map<string, ChartPoint>();
     for (const point of data) {
       const day = point.date.substring(0, 10);
@@ -40,6 +33,14 @@ export function ScoreChart({ data }: { data: ChartPoint[] }) {
     }
     return Array.from(map.values());
   }, [data]);
+
+  if (!data || data.length === 0) {
+    return (
+      <p className="text-base-content/40 text-sm text-center py-8">
+        Ma'lumot yetarli emas
+      </p>
+    );
+  }
 
   return (
     <ResponsiveContainer width="100%" height={200}>
