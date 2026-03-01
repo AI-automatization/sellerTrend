@@ -19,14 +19,7 @@
 
 ## ENV-P0 — KRITIK (Ilovasiz ishlamaydi)
 
-### E-001 | DESKTOP | `apps/desktop/.env` fayl YARATISH — login ishlamaydi | 5min
-**Fayl yaratish:** `apps/desktop/.env`
-```env
-VITE_API_URL=http://localhost:3000
-```
-
-### E-002 | DESKTOP | `electron.vite.config.ts` ga proxy qo'shish — dev mode login | 10min
-**Fayl:** `apps/desktop/electron.vite.config.ts` — renderer.server bo'limiga proxy qo'shish.
+### E-001 + E-002 | DONE | Desktop .env yaratildi + proxy allaqachon mavjud edi (T-234 bilan) |
 
 ## ENV-P1 — MUHIM (Feature'lar ishlamaydi)
 
