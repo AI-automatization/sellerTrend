@@ -50,6 +50,7 @@ export class DiscoveryService {
     return runs.map((r) => ({
       id: r.id,
       category_id: r.category_id.toString(),
+      category_name: r.category_name,
       status: r.status,
       total_products: r.total_products,
       processed: r.processed,
@@ -67,7 +68,18 @@ export class DiscoveryService {
       include: {
         winners: {
           orderBy: { rank: 'asc' },
-          include: { product: { select: { title: true } } },
+          include: {
+            product: {
+              select: {
+                title: true,
+                rating: true,
+                feedback_quantity: true,
+                photo_url: true,
+                total_available_amount: true,
+                shop: { select: { title: true, rating: true } },
+              },
+            },
+          },
         },
       },
     });
@@ -77,6 +89,7 @@ export class DiscoveryService {
     return {
       id: run.id,
       category_id: run.category_id.toString(),
+      category_name: run.category_name,
       status: run.status,
       total_products: run.total_products,
       processed: run.processed,
@@ -91,6 +104,12 @@ export class DiscoveryService {
         weekly_bought: w.weekly_bought,
         orders_quantity: w.orders_quantity?.toString(),
         sell_price: w.sell_price?.toString(),
+        rating: w.product.rating ? Number(w.product.rating) : null,
+        feedback_quantity: w.product.feedback_quantity,
+        photo_url: w.product.photo_url,
+        total_available_amount: w.product.total_available_amount?.toString() ?? null,
+        shop_title: w.product.shop?.title ?? null,
+        shop_rating: w.product.shop?.rating ? Number(w.product.shop.rating) : null,
       })),
     };
   }
@@ -112,11 +131,12 @@ export class DiscoveryService {
       },
     });
 
-    if (!latestRun) return { run_id: null, category_id: null, winners: [] };
+    if (!latestRun) return { run_id: null, category_id: null, category_name: null, winners: [] };
 
     return {
       run_id: latestRun.id,
       category_id: latestRun.category_id.toString(),
+      category_name: latestRun.category_name,
       finished_at: latestRun.finished_at,
       winners: latestRun.winners.map((w) => ({
         rank: w.rank,

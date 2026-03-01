@@ -58,4 +58,32 @@ export class UzumController {
       last_updated: product.last_updated,
     };
   }
+
+  /** Batch quick-score — up to 50 products at once, DB-only (no Uzum API calls) */
+  @Post('batch-quick-score')
+  @UseGuards(JwtAuthGuard)
+  async batchQuickScore(@Body() body: { product_ids: string[] }) {
+    const MAX_BATCH_SIZE = 50;
+    const ids = (body.product_ids || []).slice(0, MAX_BATCH_SIZE);
+    const results = await Promise.all(
+      ids.map(async (id) => {
+        try {
+          const product = await this.productsService.getProductById(BigInt(id));
+          if (!product) return { product_id: id, found: false };
+          return {
+            product_id: id,
+            found: true,
+            score: product.score,
+            weekly_bought: product.weekly_bought,
+            sell_price: product.sell_price?.toString(),
+            photo_url: product.photo_url,
+            title: product.title,
+          };
+        } catch {
+          return { product_id: id, found: false };
+        }
+      }),
+    );
+    return { results };
+  }
 }

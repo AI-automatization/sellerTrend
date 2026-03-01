@@ -60,6 +60,10 @@ export class UzumService {
     }
 
     // 3. Upsert product
+    const totalAvailable = detail.totalAvailableAmount != null
+      ? BigInt(detail.totalAvailableAmount)
+      : null;
+
     await this.prisma.product.upsert({
       where: { id: BigInt(productId) },
       update: {
@@ -67,6 +71,8 @@ export class UzumService {
         rating: detail.rating,
         feedback_quantity: detail.feedbackQuantity,
         orders_quantity: BigInt(detail.ordersQuantity ?? 0),
+        total_available_amount: totalAvailable,
+        photo_url: detail.photoUrl ?? undefined,
         shop_id: detail.shop ? BigInt(detail.shop.id) : undefined,
       },
       create: {
@@ -75,6 +81,8 @@ export class UzumService {
         rating: detail.rating,
         feedback_quantity: detail.feedbackQuantity,
         orders_quantity: BigInt(detail.ordersQuantity ?? 0),
+        total_available_amount: totalAvailable,
+        photo_url: detail.photoUrl ?? undefined,
         shop_id: detail.shop ? BigInt(detail.shop.id) : undefined,
       },
     });
@@ -233,6 +241,120 @@ export class UzumService {
       total_available_amount: detail.totalAvailableAmount ?? 0,
       ai_explanation: aiExplanation,
     };
+  }
+
+  /**
+   * Batch quick score: fetch multiple products from Uzum API in parallel,
+   * calculate score for each, return partial results (skip failures).
+   * Used by Chrome extension for overlay scoring.
+   */
+  async batchQuickScore(
+    productIds: string[],
+    accountId: string,
+  ): Promise<{
+    results: Array<{
+      product_id: string;
+      title: string;
+      score: number;
+      orders_quantity: number;
+      rating: number;
+      weekly_bought: number | null;
+    }>;
+    errors: Array<{ product_id: string; error: string }>;
+  }> {
+    this.logger.log(
+      `batchQuickScore: account=${accountId}, products=${productIds.length}`,
+    );
+
+    const settled = await Promise.allSettled(
+      productIds.map(async (id) => {
+        const numericId = Number(id);
+        if (Number.isNaN(numericId) || numericId <= 0) {
+          throw new Error('Invalid product ID');
+        }
+
+        const detail = await this.uzumClient.fetchProductDetail(numericId);
+        if (!detail) {
+          throw new Error('Product not found on Uzum');
+        }
+
+        const primarySku = detail.skuList?.[0];
+        const stockType = (primarySku?.stockType as 'FBO' | 'FBS') ?? 'FBS';
+        const supplyPressure = getSupplyPressure(stockType);
+
+        // Try to get weekly_bought from existing snapshots
+        let weeklyBought: number | null = null;
+        const recentSnapshots = await this.prisma.productSnapshot.findMany({
+          where: { product_id: BigInt(numericId) },
+          orderBy: { snapshot_at: 'desc' },
+          take: 20,
+          select: {
+            orders_quantity: true,
+            snapshot_at: true,
+            weekly_bought: true,
+            weekly_bought_source: true,
+          },
+        });
+
+        const lastScraped = recentSnapshots.find(
+          (s) =>
+            s.weekly_bought != null &&
+            (s as Record<string, unknown>).weekly_bought_source === 'scraped',
+        );
+        if (lastScraped) {
+          weeklyBought = lastScraped.weekly_bought;
+        } else {
+          const currentOrders = detail.ordersQuantity ?? 0;
+          const rawWb = calcWeeklyBought(recentSnapshots, currentOrders);
+          weeklyBought = weeklyBoughtWithFallback(rawWb, recentSnapshots);
+        }
+
+        const score = calculateScore({
+          weekly_bought: weeklyBought,
+          orders_quantity: detail.ordersQuantity ?? 0,
+          rating: detail.rating ?? 0,
+          supply_pressure: supplyPressure,
+        });
+
+        return {
+          product_id: String(numericId),
+          title: detail.title,
+          score: Number(score.toFixed(4)),
+          orders_quantity: detail.ordersQuantity ?? 0,
+          rating: detail.rating ?? 0,
+          weekly_bought: weeklyBought,
+        };
+      }),
+    );
+
+    const results: Array<{
+      product_id: string;
+      title: string;
+      score: number;
+      orders_quantity: number;
+      rating: number;
+      weekly_bought: number | null;
+    }> = [];
+
+    const errors: Array<{ product_id: string; error: string }> = [];
+
+    for (let i = 0; i < settled.length; i++) {
+      const outcome = settled[i];
+      if (outcome.status === 'fulfilled') {
+        results.push(outcome.value);
+      } else {
+        const reason =
+          outcome.reason instanceof Error
+            ? outcome.reason.message
+            : String(outcome.reason);
+        errors.push({ product_id: productIds[i], error: reason });
+        this.logger.warn(
+          `batchQuickScore failed for ${productIds[i]}: ${reason}`,
+        );
+      }
+    }
+
+    return { results, errors };
   }
 
   /**

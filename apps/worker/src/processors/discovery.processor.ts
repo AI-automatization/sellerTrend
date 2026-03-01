@@ -43,12 +43,12 @@ async function processDiscovery(data: CategoryDiscoveryJobData, jobId: string, j
   const url =
     categoryUrl ?? `https://uzum.uz/ru/category/c--${categoryId}`;
 
+  const categoryName = extractCategoryName(url);
+
   await prisma.categoryRun.update({
     where: { id: runId },
-    data: { status: 'RUNNING', started_at: new Date() },
+    data: { status: 'RUNNING', started_at: new Date(), category_name: categoryName ?? undefined },
   });
-
-  const categoryName = extractCategoryName(url);
   logJobInfo('discovery-queue', jobId, jobName, `Category name: "${categoryName}"`);
 
   // Step 1: Scrape product IDs from the category page via Playwright

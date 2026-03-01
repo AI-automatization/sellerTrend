@@ -52,6 +52,9 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
       detail.title ||
       `Product ${productId}`;
     const pid = BigInt(productId);
+    const totalAvailable = detail.totalAvailableAmount != null
+      ? BigInt(detail.totalAvailableAmount)
+      : null;
 
     await prisma.product.upsert({
       where: { id: pid },
@@ -62,6 +65,7 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
         orders_quantity: detail.ordersAmount
           ? BigInt(detail.ordersAmount)
           : BigInt(0),
+        total_available_amount: totalAvailable,
         shop_id: shopId,
         category_id: detail.category?.id
           ? BigInt(detail.category.id)
@@ -75,6 +79,7 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
         orders_quantity: detail.ordersAmount
           ? BigInt(detail.ordersAmount)
           : BigInt(0),
+        total_available_amount: totalAvailable,
         shop_id: shopId,
         category_id: detail.category?.id
           ? BigInt(detail.category.id)

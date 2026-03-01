@@ -13,6 +13,9 @@ import { BillingGuard } from '../billing/billing.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ActivityAction } from '../common/decorators/activity-action.decorator';
 import { SourcingService } from './sourcing.service';
+import { CalculateCargoDto } from './dto/calculate-cargo.dto';
+import { SearchPricesDto } from './dto/search-prices.dto';
+import { CreateSearchJobDto } from './dto/create-search-job.dto';
 
 @ApiTags('sourcing')
 @ApiBearerAuth()
@@ -43,16 +46,7 @@ export class SourcingController {
   @Post('cargo/calculate')
   @ActivityAction('SOURCING_CARGO_CALC')
   calculate(
-    @Body()
-    body: {
-      item_name?: string;
-      item_cost_usd: number;
-      weight_kg: number;
-      quantity: number;
-      provider_id: string;
-      customs_rate?: number;
-      sell_price_uzs?: number;
-    },
+    @Body() body: CalculateCargoDto,
     @CurrentUser('account_id') account_id: string,
   ) {
     return this.sourcingService.calculateCargo({ ...body, account_id });
@@ -62,7 +56,7 @@ export class SourcingController {
   @Post('search')
   @ActivityAction('SOURCING_SEARCH')
   search(
-    @Body() body: { query: string; source: string },
+    @Body() body: SearchPricesDto,
     @CurrentUser('account_id') account_id: string,
   ) {
     return this.sourcingService.searchExternalPrices(
@@ -75,12 +69,7 @@ export class SourcingController {
   @Post('jobs')
   @ActivityAction('SOURCING_JOB_CREATE')
   createJob(
-    @Body()
-    body: {
-      product_id: number;
-      product_title: string;
-      platforms?: string[];
-    },
+    @Body() body: CreateSearchJobDto,
     @CurrentUser('account_id') account_id: string,
   ) {
     return this.sourcingService.createSearchJob({

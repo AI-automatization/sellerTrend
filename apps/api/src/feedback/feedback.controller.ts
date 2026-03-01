@@ -19,6 +19,7 @@ import { ActivityLoggerInterceptor } from '../common/interceptors/activity-logge
 import { ActivityAction } from '../common/decorators/activity-action.decorator';
 import { FeedbackService } from './feedback.service';
 import { FeedbackType, FeedbackPriority, FeedbackStatus } from '@prisma/client';
+import { CreateTicketDto } from './dto/create-ticket.dto';
 
 @ApiTags('feedback')
 @ApiBearerAuth()
@@ -34,13 +35,7 @@ export class FeedbackController {
   @UseGuards(JwtAuthGuard, BillingGuard)
   @ActivityAction('FEEDBACK_CREATE')
   createTicket(
-    @Body()
-    body: {
-      subject: string;
-      type: FeedbackType;
-      priority: FeedbackPriority;
-      content: string;
-    },
+    @Body() body: CreateTicketDto,
     @CurrentUser('id') userId: string,
     @CurrentUser('account_id') accountId: string,
   ) {

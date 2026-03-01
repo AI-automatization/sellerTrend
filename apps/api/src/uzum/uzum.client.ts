@@ -253,6 +253,15 @@ export class UzumClient {
             }
           : null;
 
+        // Extract first photo URL from photos array
+        const photoUrl: string | null =
+          d.photos?.[0]?.photo?.['800']?.high ??
+          d.photos?.[0]?.photo?.['240']?.high ??
+          d.photos?.[0]?.original?.high ??
+          d.photos?.[0]?.original ??
+          d.gallery?.[0]?.url ??
+          null;
+
         return {
           id: d.id,
           title: d.title,
@@ -263,6 +272,7 @@ export class UzumClient {
           rOrdersAmount: d.rOrdersAmount ?? null,
           // totalAvailableAmount = haqiqiy ombordagi stok (sku.availableAmount = per-order limit)
           totalAvailableAmount: d.totalAvailableAmount ?? 0,
+          photoUrl,
           skuList,
           shop,
         };
