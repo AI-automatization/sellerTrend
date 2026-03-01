@@ -12,6 +12,13 @@
 | T-273 | SignalsPage tab nomlari va content hardcoded | 10 ta signal component (Cannibalization, DeadStock, Saturation, FlashSales, EarlySignals, StockCliffs, Ranking, Checklist, PriceTest, Replenishment) — barchasi useI18n + t() |
 | T-274 | ScannerTab.tsx (Discovery) butunlay i18n siz | ScannerTab.tsx — useI18n import, discovery.scanner.* kalitlari qo'shildi |
 | T-275 | CargoCalculator.tsx (Sourcing) butunlay i18n siz | CargoCalculator.tsx — useI18n import, t() ishlatiladi |
+| T-276 | UZ faylida ~85 ta inglizcha tarjima qilinmagan | uz.ts — nav.*, dashboard.*, calculator.*, enterprise.*, ads.*, extension.*, feedback.*, sourcing.*, discovery.*, signals.* kalitlari o'zbek tiliga o'girildi |
+| T-277 | RU faylida ~24 ta inglizcha tarjima qilinmagan | ru.ts — nav.*, sourcing.*, discovery.*, enterprise.*, ads.*, extension.*, signals.* kalitlari ruscha o'girildi |
+| T-278 | feedback.title UZ da aralash til | uz.ts: "Feedback & Yordam" → "Murojaat & Yordam" |
+| T-279 | discovery.title barcha 3 tilda tarjima qilinmagan | uz.ts: "Kategoriya kashfiyoti", ru.ts: "Обзор категорий", en.ts: "Category Discovery" |
+| — | discovery/types.ts POPULAR_CATEGORIES i18n | label hardcoded → labelKey pattern; NicheFinderTab + ScannerTab da t(cat.labelKey); 10 ta discovery.cat.* kalit barcha 3 tilda |
+| — | SignalsPage.tsx desktop tabs i18n | tabItem.label → tabLabel(tabItem.key) — desktop tab buttonlari ham t() orqali |
+| — | AnalyzePage.tsx placeholder i18n | Hardcoded URL placeholder → t('analyze.urlPlaceholder') barcha 3 tilda |
 
 ---
 

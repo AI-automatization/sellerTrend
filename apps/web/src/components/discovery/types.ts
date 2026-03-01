@@ -53,16 +53,16 @@ export interface GapItem {
 }
 
 export const POPULAR_CATEGORIES = [
-  { id: 676, label: 'Elektronika' },
-  { id: 879, label: 'Smartfonlar' },
-  { id: 4830, label: 'Kiyim' },
-  { id: 10012, label: "Go'zallik" },
-  { id: 10091, label: 'Makiyaj' },
-  { id: 3854, label: 'Maishiy texnika' },
-  { id: 4073, label: "Uy-ro'zg'or" },
-  { id: 6820, label: 'Bolalar' },
-  { id: 5058, label: 'Sport' },
-  { id: 10165, label: 'Soch parvarishi' },
+  { id: 676, labelKey: 'discovery.cat.electronics' },
+  { id: 879, labelKey: 'discovery.cat.smartphones' },
+  { id: 4830, labelKey: 'discovery.cat.clothing' },
+  { id: 10012, labelKey: 'discovery.cat.beauty' },
+  { id: 10091, labelKey: 'discovery.cat.makeup' },
+  { id: 3854, labelKey: 'discovery.cat.appliances' },
+  { id: 4073, labelKey: 'discovery.cat.household' },
+  { id: 6820, labelKey: 'discovery.cat.kids' },
+  { id: 5058, labelKey: 'discovery.cat.sports' },
+  { id: 10165, labelKey: 'discovery.cat.haircare' },
 ];
 
 export const MONTH_NAMES = [

@@ -96,11 +96,7 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 
 ## i18n AUDIT
 
-### T-276 | FRONTEND | UZ faylida ~85 ta inglizcha tarjima qilinmagan value | 60min
-### T-277 | FRONTEND | RU faylida ~24 ta inglizcha tarjima qilinmagan value | 30min
-### T-278 | FRONTEND | feedback.title UZ da aralash til: "Feedback & Yordam" | 5min
-### T-279 | FRONTEND | discovery.title barcha 3 tilda "Category Discovery" — tarjima qilinmagan | 5min
-**Fix:** `uz.ts`: "Kategoriya Kashfiyoti", `ru.ts`: "Обзор категорий"
+✅ T-276..T-279 — Barchasi bajarildi (Done.md ga ko'chirildi, 2026-03-01)
 
 ---
 

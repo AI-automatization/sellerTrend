@@ -41,7 +41,7 @@ export function NicheFinderTab() {
             {POPULAR_CATEGORIES.map((cat) => (
               <button key={cat.id} onClick={() => setCatId(String(cat.id))}
                 className="btn btn-xs btn-ghost border border-base-300">
-                {cat.label} <span className="text-base-content/40 ml-1">#{cat.id}</span>
+                {t(cat.labelKey)} <span className="text-base-content/40 ml-1">#{cat.id}</span>
               </button>
             ))}
           </div>
