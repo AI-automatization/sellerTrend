@@ -3,6 +3,17 @@
 
 ---
 
+## Sprint 2 Backend — T-237, T-260, T-261, T-234 (Bekzod, 2026-03-01)
+
+| # | Task | Yechim |
+|---|------|--------|
+| T-237 | photo_url API response larga qo'shish | `uzum.service.ts`: analyzeProduct() 2 joyda + `products.service.ts`: getTrackedProducts() — photo_url qaytaradi. Frontend qismi Sardor'da |
+| T-260 | Discovery category nomi API da | Backend allaqachon tayyor edi (Sprint 1 T-241). category_name getRun() va getLeaderboard() da qaytarilmoqda. Frontend Sardor'da |
+| T-261 | Discovery leaderboard boyitish | `discovery.service.ts`: getLeaderboard() — rating, feedback_quantity, photo_url, total_available_amount, shop_title, shop_rating qo'shildi. Frontend Sardor'da |
+| T-234 | Desktop login bug fix | `window.ts`: app:// protocol /api/* path larni HTTP backend ga proxy qiladi. `apps/desktop/.env` yaratildi (VITE_API_URL=http://localhost:3000) |
+
+---
+
 ## Sprint 1 Backend — Multi-Agent Mode (Bekzod, 2026-03-01)
 
 5 backend task parallel agent dispatch bilan bajarildi. Commit `cd1d041`.
