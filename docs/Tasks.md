@@ -60,12 +60,6 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 ### T-241 | P1 | BACKEND | totalAvailableAmount Prisma schema + saqlash — stock cliff aniq bo'ladi | 30min
 **Fix:** Product modeliga `total_available_amount BigInt?` qo'shish, migration, saqlash.
 
-### T-269 | P1 | BACKEND | Eski noto'g'ri snapshot data — weekly_bought=44500 (rOrdersAmount) | 30min
-**Fix:** `UPDATE product_snapshots SET weekly_bought = NULL WHERE weekly_bought > 5000;`
-
-### T-270 | P1 | BACKEND | Duplicate snapshot'larni tozalash — 80 ta o'rniga ~20 bo'lishi kerak | 15min
-**Fix:** SQL bilan har product/kun uchun faqat eng yaxshi snapshot qoldirish.
-
 ### T-214 | P1 | BACKEND | POST /uzum/batch-quick-score endpoint — extension uchun batch scoring | 1h
 
 ## P2 — O'RTA
@@ -120,8 +114,9 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 
 ## P0 — KRITIK
 
-### T-262 | P0 | DEVOPS | Railway DB — `prisma db:seed` ishlatilmagan, test data yo'q | 15min
+### T-262 | P0 | DEVOPS | Railway DB — `prisma db:seed` ishlatilmagan, seed data yo'q (platforms, categories) | 15min
 ### T-263 | P0 | DEVOPS | Railway — SUPER_ADMIN user yo'q, admin panel 403 Forbidden | 10min
+**Izoh:** Demo user yaratildi (demo@uzum-trend.uz), lekin SUPER_ADMIN role berilmagan.
 
 ## P0 — KRITIK (Latency)
 
@@ -478,21 +473,17 @@ API calls:     ~300ms           API calls:     ~300ms (bypass, o'zgarmaydi*)
 
 ## BAJARISH KETMA-KETLIGI (TAVSIYA)
 
-### FAZA 1 — KRITIK: Score/Data to'g'rilash
-1. T-269 → Eski noto'g'ri data tozalash
-2. T-270 → Duplicate snapshot tozalash
+### FAZA 1 — DEVOPS: Railway production
+1. T-262 → Railway DB seed
+2. T-263 → SUPER_ADMIN user yaratish
 
-### FAZA 2 — DEVOPS: Railway production
-5. T-262 → Railway DB seed
-6. T-263 → SUPER_ADMIN user yaratish
+### FAZA 2 — Discovery UX
+3. T-260 → Category nomi ko'rsatish
+4. T-261 → Discovery drawer data boyitish
 
-### FAZA 3 — Discovery UX
-7. T-260 → Category nomi ko'rsatish
-8. T-261 → Discovery drawer data boyitish
-
-### FAZA 4 — Frontend UX polish
-9. T-264 → Admin route protection
-10. T-266 → Empty state CTA
+### FAZA 3 — Frontend UX polish
+5. T-264 → Admin route protection
+6. T-266 → Empty state CTA
 
 ---
 
