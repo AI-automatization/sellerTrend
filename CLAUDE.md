@@ -10,14 +10,23 @@
 
 ```
 Salom! Men VENTRA loyihasidaman.
+
 Kimligingizni aniqlay olmayman — ismingiz kim?
   1. Bekzod (Backend)
   2. Sardor (Frontend)
+
+Ishlash rejimi:
+  A. Single Task  — 1 agent, oddiy task
+  B. Multi-Agent  — parallel agentlar, sprint mode
+  C. Review Only  — QA + code review
 ```
 
-Javob kelgach, tegishli faylni o'qib kontekstga kirish:
-- Bekzod → `CLAUDE_BACKEND.md`
-- Sardor → `CLAUDE_FRONTEND.md`
+Javob kelgach:
+1. Tegishli faylni o'qib kontekstga kirish:
+   - Bekzod → `CLAUDE_BACKEND.md`
+   - Sardor → `CLAUDE_FRONTEND.md`
+2. `docs/Tasks.md` o'qib ochiq tasklarni ko'rish
+3. **Mode B** tanlansa → Multi-Agent Protocol (pastda) faollashadi
 
 ---
 
@@ -102,11 +111,21 @@ Format: `T-XXX | [KATEGORIYA] | Sarlavha | Mas'ul | Vaqt`
 
 `packages/types/` yoki `packages/utils/` o'zgartirish kerak bo'lsa:
 
+**Single mode:**
 ```
 1. Telegram/chat orqali ikkinchi dasturchiga xabar ber
 2. Tasdiq olingach o'zgartir
 3. Commit: "types: [nima qo'shildi] ([ism])"
 4. Ikkinchi dasturchi DARHOL pull qiladi
+```
+
+**Multi-Agent mode:**
+```
+1. Orchestrator lock faylni tekshiradi
+2. Lock bo'sh → .claude/locks/packages-{name}.lock yaratadi
+3. Agent o'zgarishni bajaradi
+4. Tugagach lock faylni o'chiradi
+5. Ikkinchi agent endi ishlashi mumkin
 ```
 
 ---
@@ -195,6 +214,152 @@ pnpm --filter web exec tsc --noEmit
 
 ---
 
+## MULTI-AGENT PROTOCOL
+
+> To'liq arxitektura: `docs/MULTI_AGENT_ARCHITECTURE.md`
+
+### Agent turlari
+
+| Agent | Tool | Zona | Vazifasi |
+|-------|------|------|----------|
+| **Orchestrator** | Main CLI session | docs/, git | Task parsing, dispatch, merge, archive |
+| **Backend Agent** | `Agent(subagent_type: "general-purpose", isolation: "worktree")` | apps/api, worker, bot | NestJS, Prisma, BullMQ |
+| **Frontend Agent** | `Agent(subagent_type: "general-purpose", isolation: "worktree")` | apps/web, desktop | React, Tailwind, i18n |
+| **QA Agent** | `Agent(subagent_type: "general-purpose")` | read-only, barcha fayllar | tsc, build, lint, test |
+| **Explorer** | `Agent(subagent_type: "Explore")` | read-only | Code research, bug analysis |
+| **Planner** | `Agent(subagent_type: "Plan")` | read-only | Architecture, decomposition |
+
+### Ishlash tartibi (Mode B)
+
+```
+1. PLAN   — Orchestrator: Tasks.md o'qish → dependency graph → parallel batch
+2. DISPATCH — Parallel agentlar ishga tushirish (worktree isolation)
+   ├─ Backend Agent  → backend task (worktree A)
+   ├─ Frontend Agent → frontend task (worktree B)
+   └─ Explorer Agent → research (read-only, agar kerak)
+3. VALIDATE — QA Agent: tsc + build + test (MAJBURIY, har merge dan oldin)
+4. MERGE   — Orchestrator: worktree → main, conflict resolve
+5. ARCHIVE — Tasks.md → Done.md ko'chirish
+```
+
+### Zone qoidalari — QATTIQ
+
+```
+ZONE MATRIX:
+                Backend    Frontend   Shared    Docs
+  Backend Agent:  ✅ o'zi    ❌ tegma   🔒 lock   ❌ tegma
+  Frontend Agent: ❌ tegma   ✅ o'zi    🔒 lock   ❌ tegma
+  QA Agent:       👁 read    👁 read    👁 read   ❌ tegma
+  Orchestrator:   👁 read    👁 read    ✅ merge  ✅ yozadi
+
+ZONE MAP:
+  backend  = apps/api/, apps/worker/, apps/bot/
+  frontend = apps/web/, apps/desktop/
+  shared   = packages/types/, packages/utils/
+  docs     = docs/, CLAUDE*.md
+```
+
+### Lock protocol (packages/* uchun)
+
+```
+Lock fayl: .claude/locks/{zone}.lock
+Format:    {"agent":"...", "task":"T-XXX", "locked_at":"ISO", "ttl_minutes":30}
+
+Qoidalar:
+  1. O'zgartirish OLDIN lock tekshir
+  2. Lock mavjud → KUTISH yoki boshqa task
+  3. Lock TTL 30 daqiqa — expired lock = bo'sh
+  4. O'zgartirish tugagach → lock o'chirish
+  5. Orchestrator expired lock larni tozalashi mumkin
+```
+
+### Agent prompt template
+
+Har sub-agent ga beriladigan prompt formati:
+
+```
+You are {ROLE} AGENT for VENTRA Analytics Platform.
+
+ZONE:       {allowed directories}
+FORBIDDEN:  {restricted directories — DO NOT touch}
+RULES:      {top 5 rules from CLAUDE_BACKEND.md or CLAUDE_FRONTEND.md}
+
+TASK:
+  ID:    T-{XXX}
+  Title: {task title}
+  Files: {expected files to modify}
+  Deps:  {prerequisite tasks — already done}
+
+DELIVERABLES:
+  1. Code changes within your ZONE only
+  2. Self-check: tsc --noEmit for your app
+  3. Summary: files changed + what + why
+
+CONSTRAINTS:
+  - DO NOT touch files outside your zone
+  - DO NOT modify docs/Tasks.md or docs/Done.md
+  - DO NOT commit — Orchestrator handles git
+  - NO `any` type — TypeScript strict
+  - If blocked → return error, do not guess
+```
+
+### Task classification
+
+```
+Task fayllariga qarab agent tanlanadi:
+
+  apps/api/**          → Backend Agent
+  apps/worker/**       → Backend Agent
+  apps/bot/**          → Backend Agent
+  apps/web/**          → Frontend Agent
+  apps/desktop/**      → Frontend Agent
+  packages/**          → Lock → birinchi kelgan agent
+  prisma/schema.prisma → Backend Agent
+  IKKALASI tasks       → Sequential: Backend → Frontend
+
+Task hajmi → mode:
+  < 30 min, 1-2 fayl   → Single Agent (worktree'siz)
+  30-60 min, 3-5 fayl   → Single Agent + worktree
+  > 60 min, 5+ fayl     → Multi-Agent + worktrees
+  Cross-zone (IKKALASI)  → Sequential: Backend birinchi, keyin Frontend
+```
+
+### QA Agent — MAJBURIY validatsiya
+
+```
+Har merge dan OLDIN QA Agent quyidagilarni tekshiradi:
+
+  1. pnpm --filter api exec tsc --noEmit
+  2. pnpm --filter web exec tsc --noEmit
+  3. pnpm --filter worker exec tsc --noEmit
+  4. pnpm --filter bot exec tsc --noEmit
+  5. pnpm build
+  6. pnpm --filter @uzum/utils test
+
+NATIJA:
+  ✅ PASS → Orchestrator merge qiladi
+  ❌ FAIL → Tegishli agent ga error qaytariladi, tuzatish kerak
+```
+
+### Ikkala developer bir vaqtda ishlasa
+
+```
+  Bekzod (Terminal 1)              Sardor (Terminal 2)
+  ═══════════════════              ═══════════════════
+  Mode B → Backend Orch.           Mode B → Frontend Orch.
+    │                                │
+    ├─ Agent: T-241 (Prisma)         ├─ Agent: T-276 (i18n UZ)
+    ├─ Agent: T-214 (batch API)      ├─ Agent: T-202 (ProductPage)
+    ├─ QA: tsc api+worker            ├─ QA: tsc web
+    ├─ git commit + push             ├─ git commit + push
+    └─ Done.md update                └─ Done.md update
+
+  PARALLEL OK: backend zone ≠ frontend zone → conflict YO'Q
+  SHARED ZONE: packages/* → LOCK protocol faollashadi
+```
+
+---
+
 ## XAVFLI ZONALAR (IKKALA DASTURCHI UCHUN)
 
 ```
@@ -202,9 +367,11 @@ pnpm --filter web exec tsc --noEmit
 ❌ main branch'ga to'g'ridan push — PR orqali
 ❌ .env faylni commit qilma — .gitignore da bo'lishi kerak
 ❌ O'zga dasturchining papkasiga teginma (apps/api ↔ apps/web)
-❌ packages/* o'zgartirish — avval kelishib olish
+❌ packages/* o'zgartirish — avval kelishib olish (yoki lock protocol)
+❌ Multi-Agent: agent zone dan tashqari fayl o'zgartirishi TAQIQLANGAN
+❌ Multi-Agent: QA Agent tekshirmasdan merge qilish TAQIQLANGAN
 ```
 
 ---
 
-*CLAUDE.md | VENTRA Analytics Platform | 2026-02-28*
+*CLAUDE.md | VENTRA Analytics Platform | 2026-03-01*
