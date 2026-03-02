@@ -1,5 +1,51 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
-# Yangilangan: 2026-03-02
+# Yangilangan: 2026-03-04
+
+---
+
+## T-212..T-215 | P0 | FRONTEND | Chrome Extension Faza 2 — CSUI Overlay + Track (2026-03-03)
+
+**T-212: Product Page CSUI — Score Overlay**
+- Plasmo CSUI (`product-page.tsx`) — `https://uzum.uz/*` match, SPA-aware
+- `ScoreCard.tsx`: fixed-position card (bottom-right) — score, trend, weekly_bought, price, Track button
+- Score color coding: 0-2 red, 2-3 orange, 3-4 green, 4-5 dark green
+- Login hint shown when not authenticated
+
+**T-213: Category Page CSUI — Product Card Badges**
+- Plasmo CSUI (`category-page.tsx`) — renders null, injects badges via DOM manipulation
+- `ScoreBadge.tsx`: `createBadgeElement()` — inline-styled badge injected into `[data-test-id="product-card--default"]` cards
+- Batch score fetch via `batch-quick-score` background message (50 products max)
+- In-memory score cache (`Map<productId, score>`) — avoids duplicate API calls
+- MutationObserver for infinite scroll — new cards get badges automatically
+
+**T-214: SPA Navigation Detection + MutationObserver**
+- `spa-observer.ts`: `onUrlChange()` — monkey-patches `pushState`/`replaceState` + `popstate` listener
+- `onProductCardsAdded()` — MutationObserver detects new product cards (infinite scroll)
+- `url-parser.ts`: `parseProductIdFromUrl()`, `parseCategoryIdFromUrl()`, `isProductPage()`, `isCategoryPage()`
+
+**T-215: Track/Untrack + Popup Tracked List**
+- `track-product.ts` background handler — calls `POST /products/:id/track`, updates badge count
+- `batch-quick-score.ts` background handler — calls `POST /uzum/batch-quick-score`
+- `get-tracked-products.ts` background handler — calls `GET /products`
+- `TrackedList.tsx`: compact list in popup (max 10, score + weekly, click opens uzum.uz)
+- `api.ts`: added `trackProduct()`, `getTrackedProducts()` methods
+
+**Fayllar (11 new + 2 modified):**
+`contents/product-page.tsx`, `contents/category-page.tsx`, `contents/plasmo-overlay.css`,
+`components/ScoreCard.tsx`, `components/ScoreBadge.tsx`, `components/TrackedList.tsx`,
+`background/messages/batch-quick-score.ts`, `background/messages/track-product.ts`,
+`background/messages/get-tracked-products.ts`, `lib/url-parser.ts`, `lib/spa-observer.ts`,
+`lib/api.ts` (edited), `popup.tsx` (edited)
+
+---
+
+## T-208..T-211 | P0 | FRONTEND | Chrome Extension Faza 1 — Scaffold + Auth (2026-03-03)
+
+Plasmo scaffold, popup login/logout, background service worker (token refresh alarm),
+API client with JWT auto-refresh, chrome.storage token management, badge states.
+
+**Fayllar:** `popup.tsx`, `background/index.ts`, `lib/api.ts`, `lib/storage.ts`, `lib/badge.ts`,
+`components/LoginForm.tsx`, `background/messages/{get-auth-state,login,logout,quick-score}.ts`
 
 ---
 
