@@ -212,9 +212,10 @@ export class UzumService {
       .extractAttributes(BigInt(productId), detail.title)
       .catch(() => {});
 
-    // 10. AI — winner explanation if score is notable (score > 3)
+    // 10. AI — seller advice (score > 1 OR 50+ orders — Haiku ~$0.001/call)
     let aiExplanation: string[] | null = null;
-    if (scoreNum > 3) {
+    const ordersQty = detail.ordersQuantity ?? 0;
+    if (scoreNum > 1 || ordersQty > 50) {
       aiExplanation = await this.aiService
         .explainWinner({
           productId: BigInt(productId),
@@ -222,11 +223,14 @@ export class UzumService {
           title: detail.title,
           score: scoreNum,
           weeklyBought: weeklyBought,
-          ordersQuantity: detail.ordersQuantity ?? 0,
+          ordersQuantity: ordersQty,
           discountPercent: primaryDiscount,
           rating: detail.rating ?? 0,
         })
-        .catch(() => null);
+        .catch((err) => {
+          this.logger.warn(`AI explanation failed: ${err instanceof Error ? err.message : err}`);
+          return null;
+        });
     }
 
     return {
