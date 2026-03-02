@@ -3,6 +3,82 @@
 
 ---
 
+## T-287 | FRONTEND | MonitoringTab → SystemTab birlashtirish + Heap % fix (2026-03-02)
+
+**2 ta muammo hal qilindi:**
+
+1. **Heap % noto'g'ri edi**: `heap_used_mb / heap_total_mb` (V8 allocated, 56/64=88%) → `heap_used_mb / max_heap_mb` (container limit, 56/2048=2.7%)
+2. **2 ta alohida tab** (Tizim + Monitoring) → **1 ta "Tizim" tab**ga birlashtirildi
+
+**SystemTab yangi 6 section:**
+1. Tizim Holati (real-time 15s refresh) — heap gauge, CPU, event loop, DB pool, queue depths, capacity
+2. API Health — status, uptime, database, redis
+3. AI Xarajatlari — today/30d stats, by method table, errors
+4. Foydalanuvchi Salomatligi — sortable table (errors, requests, slow, rate limits), expandable rows
+5. Tizim Xatolari — by status/endpoint, error table, pagination
+6. Sig'im Tarixi & Ogohlantirishlar — baseline capture, alert history
+
+**O'chirilgan:**
+- `MonitoringTab.tsx` — o'chirildi (kontent SystemTab ichiga ko'chirildi)
+- `types.ts` — `'monitoring'` Tab union, VALID_TABS, TAB_TITLES dan olib tashlandi
+- `AdminPage.tsx` — MonitoringTab import va render olib tashlandi
+- `index.ts` — MonitoringTab export olib tashlandi
+- `Layout.tsx` — Sidebar monitoring link va CpuChipIcon import olib tashlandi
+- `i18n/{uz,en,ru}.ts` — `nav.admin.monitoring` key olib tashlandi
+
+**Fayllar:** 9 ta o'zgartirildi (594 qo'shildi, 610 o'chirildi)
+**Commit:** `70e9f85`
+
+---
+
+## T-285 | DEVOPS | Railway Pro RAM scaling + Monitoring System (2026-03-02)
+
+### RAM va Resource Scaling
+- **API service**: V8 heap 2GB (`MAX_HEAP_MB=2048`, entrypoint.sh env-configurable)
+- **Worker service**: V8 heap 4GB (`MAX_HEAP_MB=4096`, Dockerfile CMD shell form)
+- **Bot service**: V8 heap 512MB (`MAX_HEAP_MB=512`, Dockerfile CMD shell form)
+- **DB connection pool**: API=20, Worker=10 (`connection_limit` via DATABASE_URL)
+- Dockerfile CMD: `ENV` → `CMD export` pattern (runtime expansion)
+
+### Monitoring System (25 faylda, 1792 qator)
+
+**Backend (6 yangi fayl + 8 o'zgartirilgan):**
+- `MetricsService`: har 15s yig'adi (heap, CPU, event loop, DB pool, queue depths), ring buffer 240 entry, DB persist 5m
+- `ConcurrencyTracker`: NestJS interceptor, in-flight requests counter (global + per-user)
+- `CapacityEstimator`: pure function — max concurrent users taxmin (memory/DB/event loop)
+- `MemoryPressureMiddleware`: heap > 85% → HTTP 503 + Retry-After header
+- `AdminMonitoringService`: per-user health (errors, activity, sessions), baseline capture, alerts
+- 7 yangi admin endpoint (`/admin/monitoring/metrics|capacity|user-health|baselines|alerts`)
+- Prisma: SystemMetric, CapacityBaseline, SystemAlert — 3 ta yangi model
+
+**6 xavfli query tuzatildi:**
+- `getStatsRevenue()`: ALL transactions → SQL `GROUP BY DATE` aggregation
+- `getPopularCategories()`: ALL categoryRuns → SQL `GROUP BY LIMIT 50`
+- `getTopUsers()`: deep nested include → scalar subquery
+- `getExportUsersData()`: unbounded → `take: 5000`
+- `getExportRevenueData()`: unbounded → `take: 10000`
+- `getExportActivityData()`: `take: 10000` → `take: 5000`
+
+**Frontend:**
+- `MonitoringTab.tsx`: system gauge (memory/CPU/lag), per-user health table, capacity baselines, alert history
+- Admin panel'da "Monitoring" tab qo'shildi → keyin T-287 da SystemTab ga birlashtirildi
+- 6 ta API method + TypeScript interfaces
+- i18n (uz/en/ru)
+
+**Baseline (deploy vaqtida):**
+- Heap idle: 57.78 MB, RSS: 141.36 MB
+- Estimated max users: 248 concurrent
+- Event loop lag: 1ms
+
+---
+
+## T-286 | DEVOPS | Nginx API proxy keepalive fix (2026-03-02)
+- **Muammo**: nginx `Connection 'upgrade'` header API proxy da WebSocket handshake kutardi
+- **Fix**: `Connection ''` (empty) + `Upgrade` header olib tashlandi
+- Fayl: `apps/web/nginx.conf.template`
+
+---
+
 ## T-284 | FRONTEND | Login 401 page reload fix (2026-03-02)
 - **Muammo**: Noto'g'ri credentials bilan login qilganda sahifa reload bo'lardi, error alert ko'rinmasdi
 - **Sabab**: Axios response interceptor (`base.ts`) har qanday 401 da `window.location.href = '/login'` qilardi — `/auth/login` uchun ham
