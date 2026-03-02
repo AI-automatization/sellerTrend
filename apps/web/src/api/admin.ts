@@ -1,5 +1,68 @@
 import { api } from './base';
 
+// ─── Monitoring Types ────────────────────────────────────────────────────────
+
+export interface MetricsSnapshot {
+  timestamp: string;
+  heap_used_mb: number;
+  heap_total_mb: number;
+  rss_mb: number;
+  external_mb: number;
+  cpu_pct: number;
+  active_requests: number;
+  peak_concurrent: number;
+  event_loop_lag_ms: number;
+  db_pool_active: number;
+  queue_depths: Record<string, number>;
+}
+
+export interface UserHealthRow {
+  user_id: string;
+  email: string;
+  account_name: string;
+  requests_1h: number;
+  requests_24h: number;
+  errors_24h: number;
+  error_rate_pct: number;
+  top_error_endpoint: string | null;
+  slow_requests_24h: number;
+  avg_response_ms: number;
+  last_active: string | null;
+  active_sessions: number;
+  rate_limit_hits_24h: number;
+}
+
+export interface CapacityEstimate {
+  estimated_max_concurrent_users: number;
+  memory_headroom_mb: number;
+  memory_per_request_mb: number;
+  bottleneck: 'memory' | 'cpu' | 'db_pool' | 'event_loop' | 'none';
+  recommendations: string[];
+}
+
+export interface CapacityBaseline {
+  id: string;
+  label: string;
+  heap_idle_mb: number;
+  heap_loaded_mb: number;
+  rss_mb: number;
+  estimated_max_users: number;
+  event_loop_lag_ms: number;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface SystemAlert {
+  id: string;
+  level: 'warning' | 'critical' | 'resolved';
+  type: string;
+  message: string;
+  value: number;
+  threshold: number;
+  resolved_at: string | null;
+  created_at: string;
+}
+
 export const adminApi = {
   listAccounts: () => api.get('/admin/accounts'),
   getAccount: (id: string) => api.get(`/admin/accounts/${id}`),
@@ -74,6 +137,20 @@ export const adminApi = {
   getAiUsageStats: (period = 30) => api.get('/admin/stats/ai-usage', { params: { period } }),
   getSystemErrors: (params?: { page?: number; limit?: number; endpoint?: string; status_gte?: number; account_id?: string; period?: number }) =>
     api.get('/admin/system-errors', { params }),
+
+  // ── Monitoring ──
+  getMonitoringMetrics: (period = '1h') =>
+    api.get<{ snapshots: MetricsSnapshot[]; latest: MetricsSnapshot }>('/admin/monitoring/metrics', { params: { period } }),
+  getUserHealth: (params?: { period?: string; limit?: number; sort?: string }) =>
+    api.get<UserHealthRow[]>('/admin/monitoring/user-health', { params }),
+  getCapacityEstimate: () =>
+    api.get<CapacityEstimate>('/admin/monitoring/capacity'),
+  getCapacityBaselines: () =>
+    api.get<CapacityBaseline[]>('/admin/monitoring/baselines'),
+  captureBaseline: (label: string) =>
+    api.post<CapacityBaseline>('/admin/monitoring/baseline', { label }),
+  getSystemAlerts: (limit = 50) =>
+    api.get<SystemAlert[]>('/admin/monitoring/alerts', { params: { limit } }),
 };
 
 export const feedbackApi = {

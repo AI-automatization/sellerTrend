@@ -118,10 +118,11 @@ export class AdminLogService {
     return { date: targetDate, ...perf };
   }
 
-  /** Export — Users CSV data */
+  /** Export — Users CSV data (capped at 5000 rows to prevent OOM) */
   async getExportUsersData() {
     const users = await this.prisma.user.findMany({
       orderBy: { created_at: 'desc' },
+      take: 5000,
       include: { account: { select: { name: true, status: true, balance: true } } },
     });
 
@@ -150,6 +151,7 @@ export class AdminLogService {
     const transactions = await this.prisma.transaction.findMany({
       where,
       orderBy: { created_at: 'asc' },
+      take: 10000,
       include: { account: { select: { name: true } } },
     });
 
@@ -178,7 +180,7 @@ export class AdminLogService {
     const activities = await this.prisma.userActivity.findMany({
       where,
       orderBy: { created_at: 'desc' },
-      take: 10000,
+      take: 5000,
       include: { user: { select: { email: true } } },
     });
 

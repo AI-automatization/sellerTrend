@@ -37,7 +37,7 @@ export interface AuditEvent {
   created_at: string;
 }
 
-export type Tab = 'dashboard' | 'accounts' | 'analytics' | 'system' | 'feedback' | 'notifications' | 'audit' | 'permissions' | 'deposits' | 'whitelabel';
+export type Tab = 'dashboard' | 'accounts' | 'analytics' | 'system' | 'monitoring' | 'feedback' | 'notifications' | 'audit' | 'permissions' | 'deposits' | 'whitelabel';
 
 export const ROLES: Role[] = ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'USER'];
 
@@ -55,13 +55,14 @@ export const PERMISSIONS: Record<Role, string[]> = {
   USER: ['manage_discovery', 'analyze_products', 'manage_tracked', 'view_dashboard'],
 };
 
-export const VALID_TABS: Tab[] = ['dashboard', 'accounts', 'analytics', 'system', 'feedback', 'notifications', 'audit', 'permissions', 'deposits', 'whitelabel'];
+export const VALID_TABS: Tab[] = ['dashboard', 'accounts', 'analytics', 'system', 'monitoring', 'feedback', 'notifications', 'audit', 'permissions', 'deposits', 'whitelabel'];
 
 export const TAB_TITLES: Record<Tab, { title: string; desc: string }> = {
   dashboard: { title: 'Dashboard', desc: 'Umumiy statistika va real-time ko\'rsatkichlar' },
   accounts: { title: 'Akkauntlar', desc: '' },
   analytics: { title: 'Analitika & Mashhur', desc: 'Top mahsulotlar, kategoriyalar va foydalanuvchilar' },
   system: { title: 'Tizim', desc: 'API, Database, AI xarajatlari, xatolar' },
+  monitoring: { title: 'Monitoring', desc: 'RAM, CPU, foydalanuvchi salomatligi, sig\'im baholash' },
   feedback: { title: 'Feedback Boshqaruv', desc: 'Foydalanuvchi murojatlari' },
   notifications: { title: 'Xabarnomalar', desc: 'Shablon yoki custom xabar yuborish' },
   audit: { title: 'Audit Log', desc: 'Admin amallar + foydalanuvchi faoliyati tarixi' },

@@ -24,6 +24,7 @@ export const ru: Record<string, string> = {
     'nav.admin.accounts': 'Аккаунты',
     'nav.admin.analytics': 'Аналитика',
     'nav.admin.system': 'Система',
+    'nav.admin.monitoring': 'Мониторинг',
     'nav.admin.feedback': 'Обратная связь',
     'nav.admin.notifications': 'Уведомления',
     'nav.admin.audit': 'Журнал аудита',

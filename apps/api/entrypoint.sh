@@ -11,4 +11,5 @@ else
 fi
 
 echo "[entrypoint] Starting API server..."
+export NODE_OPTIONS="--max-old-space-size=400"
 exec node dist/main

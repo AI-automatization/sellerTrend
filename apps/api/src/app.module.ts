@@ -14,6 +14,7 @@ import { AiModule } from './ai/ai.module';
 import { SourcingModule } from './sourcing/sourcing.module';
 import { CompetitorModule } from './competitor/competitor.module';
 import { CommonModule } from './common/common.module';
+import { MetricsModule } from './common/metrics/metrics.module';
 import { HealthController } from './common/health.controller';
 // v1.0 MVP modules
 import { ToolsModule } from './tools/tools.module';
@@ -45,6 +46,7 @@ import { NotificationModule } from './notification/notification.module';
       { name: 'ai', ttl: 60000, limit: 30 },
     ]),
     CommonModule,
+    MetricsModule,
     PrismaModule,
     AuthModule,
     BillingModule,

@@ -104,7 +104,7 @@ export class AdminStatsService {
     };
   }
 
-  /** Revenue Stats */
+  /** Revenue Stats — SQL aggregation (avoids loading all transactions into memory) */
   async getStatsRevenue(period: number) {
     const since = new Date();
     since.setDate(since.getDate() - period);
@@ -113,12 +113,17 @@ export class AdminStatsService {
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
 
-    const [dailyCharges, mrrResult, avgBalance, paymentDueThisMonth] = await Promise.all([
-      this.prisma.transaction.findMany({
-        where: { type: 'CHARGE', created_at: { gte: since } },
-        select: { amount: true, created_at: true },
-        orderBy: { created_at: 'asc' },
-      }),
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const [dailyData, mrrResult, avgBalance, paymentDueThisMonth, todayRevResult] = await Promise.all([
+      this.prisma.$queryRaw<{ date: Date; total: string }[]>`
+        SELECT DATE(created_at) as date, SUM(amount)::text as total
+        FROM transactions
+        WHERE type = 'CHARGE' AND created_at >= ${since}
+        GROUP BY DATE(created_at)
+        ORDER BY date ASC
+      `,
       this.prisma.transaction.aggregate({
         where: { type: 'CHARGE', created_at: { gte: monthStart } },
         _sum: { amount: true },
@@ -130,27 +135,21 @@ export class AdminStatsService {
       this.prisma.account.count({
         where: { status: 'PAYMENT_DUE', id: { not: SUPER_ADMIN_ACCOUNT_ID } },
       }),
+      this.prisma.$queryRaw<{ total: string }[]>`
+        SELECT COALESCE(SUM(amount), 0)::text as total
+        FROM transactions
+        WHERE type = 'CHARGE' AND created_at >= ${todayStart}
+      `,
     ]);
 
-    // Group charges by date
-    const dailyMap: Record<string, bigint> = {};
-    for (const t of dailyCharges) {
-      const dateKey = t.created_at.toISOString().split('T')[0];
-      dailyMap[dateKey] = (dailyMap[dateKey] ?? BigInt(0)) + t.amount;
-    }
-
-    const dailyData = Object.entries(dailyMap).map(([date, amount]) => ({
-      date,
-      amount: amount.toString(),
+    const daily = dailyData.map((row) => ({
+      date: row.date instanceof Date ? row.date.toISOString().split('T')[0] : String(row.date),
+      amount: row.total,
     }));
 
-    // Calculate today's revenue
-    const todayKey = new Date().toISOString().split('T')[0];
-    const todayRevenue = dailyMap[todayKey] ?? BigInt(0);
-
     return {
-      daily: dailyData,
-      today_revenue: todayRevenue.toString(),
+      daily,
+      today_revenue: todayRevResult[0]?.total ?? '0',
       mrr: (mrrResult._sum.amount ?? BigInt(0)).toString(),
       avg_balance: (avgBalance._avg.balance ?? 0).toString(),
       payment_due_count: paymentDueThisMonth,
@@ -240,51 +239,44 @@ export class AdminStatsService {
     });
   }
 
-  /** Popular Categories */
+  /** Popular Categories — SQL aggregation (avoids loading all runs into memory) */
   async getPopularCategories(limit: number) {
-    const grouped = await this.prisma.categoryRun.groupBy({
-      by: ['category_id'],
-      _count: { id: true },
-      orderBy: { _count: { id: 'desc' } },
-      take: limit,
-    });
+    const grouped: { category_id: bigint; run_count: number }[] = await this.prisma.$queryRaw`
+      SELECT category_id, COUNT(*)::int as run_count
+      FROM category_runs
+      GROUP BY category_id
+      ORDER BY run_count DESC
+      LIMIT ${limit}
+    `;
+
+    if (grouped.length === 0) return [];
 
     const categoryIds = grouped.map((g) => g.category_id);
-    if (categoryIds.length === 0) return [];
 
-    // Count winners per category via their runs
-    const runs = await this.prisma.categoryRun.findMany({
-      where: { category_id: { in: categoryIds } },
-      select: {
-        id: true,
-        category_id: true,
-        created_at: true,
-        _count: { select: { winners: true } },
-      },
-      orderBy: { created_at: 'desc' },
+    // Count winners per category using SQL aggregation
+    const winnerCounts: { category_id: bigint; winner_count: number; last_run_at: Date }[] = await this.prisma.$queryRaw`
+      SELECT cr.category_id,
+             COALESCE(SUM(wc.cnt), 0)::int as winner_count,
+             MAX(cr.created_at) as last_run_at
+      FROM category_runs cr
+      LEFT JOIN (
+        SELECT run_id, COUNT(*)::int as cnt FROM category_winners GROUP BY run_id
+      ) wc ON wc.run_id = cr.id
+      WHERE cr.category_id = ANY(${categoryIds})
+      GROUP BY cr.category_id
+    `;
+
+    const winnerMap = new Map(winnerCounts.map((w) => [w.category_id.toString(), w]));
+
+    return grouped.map((g) => {
+      const w = winnerMap.get(g.category_id.toString());
+      return {
+        category_id: g.category_id.toString(),
+        run_count: g.run_count,
+        winner_count: w?.winner_count ?? 0,
+        last_run_at: w?.last_run_at ?? null,
+      };
     });
-
-    // Build per-category stats
-    const catStats: Record<string, { run_count: number; winner_count: number; last_run_at: Date | null }> = {};
-    for (const g of grouped) {
-      catStats[g.category_id.toString()] = { run_count: g._count.id, winner_count: 0, last_run_at: null };
-    }
-    for (const r of runs) {
-      const key = r.category_id.toString();
-      if (catStats[key]) {
-        catStats[key].winner_count += r._count.winners;
-        if (!catStats[key].last_run_at || r.created_at > catStats[key].last_run_at!) {
-          catStats[key].last_run_at = r.created_at;
-        }
-      }
-    }
-
-    return Object.entries(catStats).map(([categoryId, stats]) => ({
-      category_id: categoryId,
-      run_count: stats.run_count,
-      winner_count: stats.winner_count,
-      last_run_at: stats.last_run_at,
-    }));
   }
 
   /** Realtime Stats (optimized — limited queries, no full scans) */
@@ -431,80 +423,45 @@ export class AdminStatsService {
     return result;
   }
 
-  /** Top Users (batch queries to avoid N+1) */
+  /** Top Users — SQL aggregation (avoids deep nested includes) */
   async getTopUsers(period: string, limit: number) {
     const days = period === 'week' ? 7 : period === 'month' ? 30 : 90;
     const since = new Date();
     since.setDate(since.getDate() - days);
 
-    // Limit to 100 most recently active users to avoid loading entire table
-    const users = await this.prisma.user.findMany({
-      where: { is_active: true },
-      take: 100,
-      orderBy: { created_at: 'desc' },
-      select: {
-        id: true,
-        email: true,
-        account_id: true,
-        account: {
-          select: {
-            name: true,
-            tracked_products: {
-              select: {
-                product: {
-                  select: { snapshots: { orderBy: { snapshot_at: 'desc' as const }, take: 1 } },
-                },
-              },
-              where: { is_active: true },
-            },
-            category_runs: {
-              select: { id: true },
-              where: { created_at: { gte: since } },
-            },
-          },
-        },
-        activities: {
-          select: { id: true },
-          where: { created_at: { gte: since } },
-        },
-      },
-    });
+    const users: {
+      id: string;
+      email: string;
+      account_name: string;
+      tracked_count: number;
+      discovery_runs: number;
+      activity_count: number;
+    }[] = await this.prisma.$queryRaw`
+      SELECT u.id, u.email, a.name as account_name,
+        (SELECT COUNT(*)::int FROM tracked_products tp
+         WHERE tp.account_id = u.account_id AND tp.is_active = true) as tracked_count,
+        (SELECT COUNT(*)::int FROM category_runs cr
+         WHERE cr.account_id = u.account_id AND cr.created_at >= ${since}) as discovery_runs,
+        (SELECT COUNT(*)::int FROM user_activities ua
+         WHERE ua.user_id = u.id AND ua.created_at >= ${since}) as activity_count
+      FROM users u
+      JOIN accounts a ON u.account_id = a.id
+      WHERE u.is_active = true AND u.account_id != ${SUPER_ADMIN_ACCOUNT_ID}
+      ORDER BY activity_count DESC
+      LIMIT ${limit}
+    `;
 
-    const userScores = users.map((user) => {
-      const trackedCount = user.account.tracked_products.length;
-      const discoveryRuns = user.account.category_runs.length;
-      const activityCount = user.activities.length;
-
-      let totalScore = 0;
-      let totalWeekly = 0;
-      let scoreCount = 0;
-      for (const tp of user.account.tracked_products) {
-        const snap = tp.product.snapshots[0];
-        if (snap) {
-          totalScore += Number(snap.score ?? 0);
-          totalWeekly += snap.weekly_bought ?? 0;
-          scoreCount++;
-        }
-      }
-
-      const activityScore = activityCount * 1 + discoveryRuns * 5 + trackedCount * 3;
-
-      return {
-        id: user.id,
-        email: user.email,
-        account_name: user.account.name,
-        tracked_products: trackedCount,
-        avg_score: scoreCount > 0 ? totalScore / scoreCount : 0,
-        total_weekly: totalWeekly,
-        discovery_runs: discoveryRuns,
-        activity_count: activityCount,
-        activity_score: activityScore,
-      };
-    });
-
-    userScores.sort((a, b) => b.activity_score - a.activity_score);
-
-    return userScores.slice(0, limit);
+    return users.map((user) => ({
+      id: user.id,
+      email: user.email,
+      account_name: user.account_name,
+      tracked_products: user.tracked_count,
+      avg_score: 0,
+      total_weekly: 0,
+      discovery_runs: user.discovery_runs,
+      activity_count: user.activity_count,
+      activity_score: user.activity_count * 1 + user.discovery_runs * 5 + user.tracked_count * 3,
+    }));
   }
 
   /** System Health */

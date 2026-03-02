@@ -9,7 +9,7 @@ import {
   VALID_TABS, TAB_TITLES, ROLE_META,
   RoleBadge, StatusBadge,
   CreateAccountModal, DepositModal, ChangePasswordModal, AccountDrawer,
-  DashboardTab, AccountsTab, AnalyticsTab, SystemTab,
+  DashboardTab, AccountsTab, AnalyticsTab, SystemTab, MonitoringTab,
   FeedbackTab, NotificationsTab, AuditLogTab, PermissionsTab,
   DepositsTab, WhitelabelTab,
 } from '../components/admin';
@@ -89,11 +89,13 @@ export function AdminPage() {
 
   async function load() {
     setLoading(true);
+    const timeout = <T,>(p: Promise<T>, ms = 10000): Promise<T> =>
+      Promise.race([p, new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
     const [accRes, feeRes, auditRes, usersRes] = await Promise.all([
-      adminApi.listAccounts().catch((e) => { logError(e); return null; }),
-      adminApi.getGlobalFee().catch((e) => { logError(e); return null; }),
-      adminApi.getAuditLog(50).catch((e) => { logError(e); return null; }),
-      adminApi.listUsers().catch((e) => { logError(e); return null; }),
+      timeout(adminApi.listAccounts()).catch((e) => { logError(e); return null; }),
+      timeout(adminApi.getGlobalFee()).catch((e) => { logError(e); return null; }),
+      timeout(adminApi.getAuditLog(50)).catch((e) => { logError(e); return null; }),
+      timeout(adminApi.listUsers()).catch((e) => { logError(e); return null; }),
     ]);
     if (accRes) setAccounts(accRes.data?.items ?? accRes.data);
     if (feeRes) setGlobalFeeInput(feeRes.data.daily_fee_default);
@@ -374,6 +376,8 @@ export function AdminPage() {
             onLoadErrorsPage={loadErrorsPage}
           />
         )}
+
+        {activeTab === 'monitoring' && <MonitoringTab />}
 
         {activeTab === 'feedback' && (
           <FeedbackTab

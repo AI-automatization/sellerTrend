@@ -22,6 +22,7 @@ import { AdminUserService } from './admin-user.service';
 import { AdminStatsService } from './admin-stats.service';
 import { AdminFeedbackService } from './admin-feedback.service';
 import { AdminLogService } from './admin-log.service';
+import { AdminMonitoringService } from './admin-monitoring.service';
 
 @ApiTags('admin')
 @ApiBearerAuth()
@@ -35,6 +36,7 @@ export class AdminController {
     private readonly statsService: AdminStatsService,
     private readonly feedbackService: AdminFeedbackService,
     private readonly logService: AdminLogService,
+    private readonly monitoringService: AdminMonitoringService,
   ) {}
 
   // ============================================================
@@ -573,6 +575,60 @@ export class AdminController {
       date,
       top ? parseInt(top) : 20,
     );
+  }
+
+  // ============================================================
+  // MONITORING ENDPOINTS
+  // ============================================================
+
+  /** M1 — System Metrics (ring buffer + current snapshot) */
+  @Get('monitoring/metrics')
+  getMonitoringMetrics(@Query('period') period?: string) {
+    return this.monitoringService.getMetrics(period || '1h');
+  }
+
+  /** M2 — Per-User Health Summary */
+  @Get('monitoring/user-health')
+  getUserHealth(
+    @Query('period') period?: string,
+    @Query('limit') limit?: string,
+    @Query('sort') sort?: string,
+  ) {
+    return this.monitoringService.getUserHealthSummary(
+      period || '24h',
+      parseInt(limit || '50', 10),
+      sort || 'errors',
+    );
+  }
+
+  /** M3 — Capacity Estimate */
+  @Get('monitoring/capacity')
+  getCapacityEstimate() {
+    return this.monitoringService.getCapacityEstimate();
+  }
+
+  /** M4 — Capacity Baselines */
+  @Get('monitoring/baselines')
+  getBaselines() {
+    return this.monitoringService.getCapacityBaselines();
+  }
+
+  /** M5 — Capture Capacity Baseline */
+  @Post('monitoring/baseline')
+  captureBaseline(@Body() body: { label: string }) {
+    return this.monitoringService.captureBaseline(body.label);
+  }
+
+  /** M6 — System Alerts History */
+  @Get('monitoring/alerts')
+  getAlerts(@Query('limit') limit?: string) {
+    return this.monitoringService.getAlerts(parseInt(limit || '50', 10));
+  }
+
+  /** M7 — Single User Health Detail */
+  @Get('monitoring/users/:id/health')
+  getSingleUserHealth(@Param('id') userId: string) {
+    return this.monitoringService.getSingleUserHealth(userId);
   }
 
   // ============================================================

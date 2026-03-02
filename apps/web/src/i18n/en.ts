@@ -24,6 +24,7 @@ export const en: Record<string, string> = {
     'nav.admin.accounts': 'Accounts',
     'nav.admin.analytics': 'Analytics',
     'nav.admin.system': 'System',
+    'nav.admin.monitoring': 'Monitoring',
     'nav.admin.feedback': 'Feedback',
     'nav.admin.notifications': 'Notifications',
     'nav.admin.audit': 'Audit Log',

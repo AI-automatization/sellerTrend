@@ -3,7 +3,9 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { GlobalLoggerInterceptor } from './common/interceptors/global-logger.interceptor';
+import { ConcurrencyTrackerInterceptor } from './common/interceptors/concurrency-tracker.interceptor';
 import { ErrorTrackerFilter } from './common/filters/error-tracker.filter';
+import { memoryPressureMiddleware } from './common/middleware/memory-pressure.middleware';
 import { PrismaService } from './prisma/prisma.service';
 import { initSentry } from './common/sentry';
 
@@ -41,6 +43,9 @@ async function bootstrap() {
 
   await initSentry();
 
+  // Memory pressure guard — reject requests when heap > 85%
+  app.use(memoryPressureMiddleware);
+
   app.setGlobalPrefix('api/v1');
 
   app.useGlobalPipes(
@@ -51,7 +56,10 @@ async function bootstrap() {
     }),
   );
 
-  app.useGlobalInterceptors(new GlobalLoggerInterceptor());
+  app.useGlobalInterceptors(
+    new GlobalLoggerInterceptor(),
+    new ConcurrencyTrackerInterceptor(),
+  );
 
   // Error tracker — saves 4xx/5xx errors to system_errors table
   const { httpAdapter } = app.get(HttpAdapterHost);

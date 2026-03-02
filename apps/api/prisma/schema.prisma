@@ -1032,3 +1032,55 @@ model SystemError {
   @@index([account_id, created_at])
   @@map("system_errors")
 }
+
+// ============================================================
+// SYSTEM MONITORING (Monitoring v1)
+// ============================================================
+
+model SystemMetric {
+  id                String   @id @default(uuid())
+  heap_used_mb      Float
+  heap_total_mb     Float
+  rss_mb            Float
+  external_mb       Float
+  cpu_pct           Float
+  active_requests   Int
+  peak_concurrent   Int
+  event_loop_lag_ms Float
+  db_pool_active    Int
+  queue_depths      Json
+  created_at        DateTime @default(now()) @db.Timestamptz
+
+  @@index([created_at])
+  @@map("system_metrics")
+}
+
+model CapacityBaseline {
+  id                  String   @id @default(uuid())
+  label               String   @db.VarChar(200)
+  commit_hash         String?  @db.VarChar(40)
+  heap_idle_mb        Float
+  heap_loaded_mb      Float
+  rss_mb              Float
+  estimated_max_users Int
+  event_loop_lag_ms   Float
+  notes               String?  @db.Text
+  created_at          DateTime @default(now()) @db.Timestamptz
+
+  @@map("capacity_baselines")
+}
+
+model SystemAlert {
+  id          String    @id @default(uuid())
+  level       String    @db.VarChar(20)
+  type        String    @db.VarChar(50)
+  message     String    @db.Text
+  value       Float
+  threshold   Float
+  resolved_at DateTime? @db.Timestamptz
+  created_at  DateTime  @default(now()) @db.Timestamptz
+
+  @@index([created_at])
+  @@index([type, level])
+  @@map("system_alerts")
+}
