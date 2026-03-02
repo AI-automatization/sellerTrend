@@ -36,19 +36,7 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 
 ## P0 — KRITIK
 
-### T-282 | P0 | BACKEND | `ai_explanation` production da null — 2 ta sabab topildi, 1 tasi fix | pending[Bekzod]
-
-**Diagnostika natijasi (2026-03-01):**
-
-| # | Sabab | Holat |
-|---|-------|-------|
-| 1 | `ANTHROPIC_API_KEY` **invalid** — 401 authentication_error | QO'LDA: yangi key kerak (Console → Settings → API Keys) |
-| 2 | Score threshold `> 3` juda baland — birinchi tahlilda `weekly_bought=null` → 55% score = 0, hech qachon > 3 bo'lmaydi | **FIX DONE**: `> 1 \|\| orders > 50` ga o'zgartirildi (`uzum.service.ts:217`) |
-
-**Qolgan qadam:**
-1. `platform.claude.com/settings/keys` dan yangi API key yaratish
-2. Railway production `api` + `worker` + staging `api` ga qo'yish
-3. Redeploy → test: `POST /api/v1/uzum/analyze` → `ai_explanation` massiv qaytishi kerak
+(hozircha yo'q)
 
 ---
 
@@ -267,7 +255,6 @@ TXT    _railway-verify  → railway-verify=railway-verify=822d30ad3e89eb5a8c969c
 
 ## P2 — O'RTA
 
-### T-184 | DONE | Staging environment — api/worker/web SUCCESS, bot optional (TELEGRAM_BOT_TOKEN kerak) |
 ### T-243 | DEVOPS | ALIEXPRESS_APP_KEY + SECRET — API | 5min
 ### T-245 | DEVOPS | PROXY_URL — API + Worker (optional) | 5min
 

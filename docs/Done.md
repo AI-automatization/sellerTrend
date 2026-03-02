@@ -1,5 +1,13 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
-# Yangilangan: 2026-03-01
+# Yangilangan: 2026-03-02
+
+---
+
+## T-282 | BACKEND | `ai_explanation` null fix (2026-03-02)
+- **Sabab 1**: `ANTHROPIC_API_KEY` invalid (401) → yangi key yaratildi, Railway api + worker ga qo'yildi
+- **Sabab 2**: Score threshold `> 3` juda baland → `> 1 || ordersQty > 50` ga o'zgartirildi
+- **Qo'shimcha**: AI catch silently swallowed → `logger.warn` qo'shildi
+- Fayl: `apps/api/src/uzum/uzum.service.ts:215-230`
 
 ---
 
