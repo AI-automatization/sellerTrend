@@ -356,7 +356,7 @@ export function MonitoringTab() {
                 </thead>
                 <tbody>
                   {userHealth.map((u) => {
-                    const isHighError = u.error_rate_pct > 10;
+                    const isHighError = (u.error_rate_pct ?? 0) > 10;
                     const isExpanded = expandedUser === u.user_id;
                     return (
                       <>
@@ -371,8 +371,8 @@ export function MonitoringTab() {
                           <td className="tabular-nums">{u.requests_24h}</td>
                           <td className={`tabular-nums font-bold ${u.errors_24h > 0 ? 'text-error' : ''}`}>{u.errors_24h}</td>
                           <td>
-                            <span className={`badge badge-xs ${u.error_rate_pct > 10 ? 'badge-error' : u.error_rate_pct > 5 ? 'badge-warning' : 'badge-ghost'}`}>
-                              {u.error_rate_pct.toFixed(1)}%
+                            <span className={`badge badge-xs ${(u.error_rate_pct ?? 0) > 10 ? 'badge-error' : (u.error_rate_pct ?? 0) > 5 ? 'badge-warning' : 'badge-ghost'}`}>
+                              {(u.error_rate_pct ?? 0).toFixed(1)}%
                             </span>
                           </td>
                           <td className={`tabular-nums ${u.slow_requests_24h > 5 ? 'text-warning font-bold' : ''}`}>{u.slow_requests_24h}</td>
@@ -387,7 +387,7 @@ export function MonitoringTab() {
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                                   <div>
                                     <span className="text-base-content/50">O'rt. javob vaqti:</span>
-                                    <span className="ml-1 font-bold">{u.avg_response_ms.toFixed(0)}ms</span>
+                                    <span className="ml-1 font-bold">{(u.avg_response_ms ?? 0).toFixed(0)}ms</span>
                                   </div>
                                   <div>
                                     <span className="text-base-content/50">Top xato endpoint:</span>

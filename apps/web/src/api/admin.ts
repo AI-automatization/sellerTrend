@@ -3,7 +3,7 @@ import { api } from './base';
 // ─── Monitoring Types ────────────────────────────────────────────────────────
 
 export interface MetricsSnapshot {
-  timestamp: string;
+  collected_at: string;
   heap_used_mb: number;
   heap_total_mb: number;
   rss_mb: number;
@@ -35,9 +35,15 @@ export interface UserHealthRow {
 export interface CapacityEstimate {
   estimated_max_concurrent_users: number;
   memory_headroom_mb: number;
-  memory_per_request_mb: number;
   bottleneck: 'memory' | 'cpu' | 'db_pool' | 'event_loop' | 'none';
   recommendations: string[];
+  details?: {
+    max_by_memory: number;
+    max_by_db: number;
+    max_by_event_loop: number;
+    memory_per_user_mb: number;
+    heap_used_pct: number;
+  };
 }
 
 export interface CapacityBaseline {
@@ -140,7 +146,7 @@ export const adminApi = {
 
   // ── Monitoring ──
   getMonitoringMetrics: (period = '1h') =>
-    api.get<{ snapshots: MetricsSnapshot[]; latest: MetricsSnapshot }>('/admin/monitoring/metrics', { params: { period } }),
+    api.get<{ snapshots: MetricsSnapshot[]; latest: MetricsSnapshot | null; max_heap_mb: number }>('/admin/monitoring/metrics', { params: { period } }),
   getUserHealth: (params?: { period?: string; limit?: number; sort?: string }) =>
     api.get<UserHealthRow[]>('/admin/monitoring/user-health', { params }),
   getCapacityEstimate: () =>

@@ -15,13 +15,13 @@ export class AdminMonitoringService {
 
   /** Get current metrics snapshot + ring buffer history */
   getMetrics(period: string): {
-    current: MetricsSnapshot | null;
-    history: MetricsSnapshot[];
+    latest: MetricsSnapshot | null;
+    snapshots: MetricsSnapshot[];
     max_heap_mb: number;
   } {
     return {
-      current: this.metricsService.getLatestSnapshot(),
-      history: this.metricsService.getRingBuffer(period),
+      latest: this.metricsService.getLatestSnapshot(),
+      snapshots: this.metricsService.getRingBuffer(period),
       max_heap_mb: this.metricsService.getMaxHeapMb(),
     };
   }
@@ -112,10 +112,13 @@ export class AdminMonitoringService {
         email: user?.email ?? 'unknown',
         account_name: user?.account?.name ?? 'unknown',
         requests_1h: activity?.requests_1h ?? 0,
-        requests_period: requestsPeriod,
-        errors_period: errorCount,
-        error_rate: Math.round(errorRate * 10000) / 100, // percentage with 2 decimals
+        requests_24h: requestsPeriod,
+        errors_24h: errorCount,
+        error_rate_pct: Math.round(errorRate * 10000) / 100,
         top_error_endpoint: errors?.top_error_endpoint ?? null,
+        slow_requests_24h: 0,
+        avg_response_ms: 0,
+        rate_limit_hits_24h: 0,
         last_active: activity?.last_active ?? null,
         active_sessions: session?.active_sessions ?? 0,
       };
@@ -124,19 +127,19 @@ export class AdminMonitoringService {
     // Sort
     switch (sort) {
       case 'errors':
-        healthRows.sort((a, b) => b.errors_period - a.errors_period);
+        healthRows.sort((a, b) => b.errors_24h - a.errors_24h);
         break;
       case 'requests':
-        healthRows.sort((a, b) => b.requests_period - a.requests_period);
+        healthRows.sort((a, b) => b.requests_24h - a.requests_24h);
         break;
       case 'error_rate':
-        healthRows.sort((a, b) => b.error_rate - a.error_rate);
+        healthRows.sort((a, b) => b.error_rate_pct - a.error_rate_pct);
         break;
       case 'sessions':
         healthRows.sort((a, b) => b.active_sessions - a.active_sessions);
         break;
       default:
-        healthRows.sort((a, b) => b.errors_period - a.errors_period);
+        healthRows.sort((a, b) => b.errors_24h - a.errors_24h);
     }
 
     return healthRows.slice(0, limit);
