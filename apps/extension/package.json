@@ -1,0 +1,42 @@
+{
+  "name": "@uzum/extension",
+  "displayName": "VENTRA — Uzum Analytics",
+  "version": "0.0.1",
+  "description": "Uzum.uz mahsulot tahlili va trend ko'rsatkichlari",
+  "private": true,
+  "scripts": {
+    "dev": "plasmo dev",
+    "build": "plasmo build",
+    "package": "plasmo package"
+  },
+  "dependencies": {
+    "plasmo": "^0.90.2",
+    "@plasmohq/messaging": "^0.7.0",
+    "@plasmohq/storage": "^1.13.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@uzum/types": "workspace:*",
+    "@uzum/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "tailwindcss": "^3.4.0",
+    "postcss": "^8.4.0",
+    "autoprefixer": "^10.4.0",
+    "daisyui": "^4.12.0",
+    "@types/chrome": "^0.0.300",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0"
+  },
+  "manifest": {
+    "permissions": [
+      "storage",
+      "alarms",
+      "notifications"
+    ],
+    "host_permissions": [
+      "https://uzum.uz/*",
+      "https://api.uzum.uz/*"
+    ]
+  }
+}

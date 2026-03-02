@@ -1,0 +1,16 @@
+{
+  "extends": "plasmo/templates/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@uzum/types": ["../../packages/types/src"],
+      "@uzum/utils": ["../../packages/utils/src"],
+      "~/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    ".plasmo/index.d.ts"
+  ]
+}

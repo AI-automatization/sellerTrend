@@ -15,6 +15,12 @@ test-results/
 *.png
 !apps/web/public/**/*.png
 !apps/desktop/resources/**/*.png
+!apps/extension/assets/**/*.png
+
+# Plasmo extension build artifacts
+apps/extension/build/
+apps/extension/.plasmo/
+apps/extension/tsconfig.tsbuildinfo
 apps/desktop/out/
 apps/desktop/release/
 tmp_*.json
