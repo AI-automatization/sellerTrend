@@ -13,7 +13,6 @@ export { DashboardTab } from './DashboardTab';
 export { AccountsTab } from './AccountsTab';
 export { AnalyticsTab } from './AnalyticsTab';
 export { SystemTab } from './SystemTab';
-export { MonitoringTab } from './MonitoringTab';
 export { FeedbackTab } from './FeedbackTab';
 export { NotificationsTab } from './NotificationsTab';
 export { AuditLogTab } from './AuditLogTab';

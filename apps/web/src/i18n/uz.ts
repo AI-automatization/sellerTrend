@@ -25,7 +25,6 @@ export const uz: Record<string, string> = {
     'nav.admin.accounts': 'Akkauntlar',
     'nav.admin.analytics': 'Analitika',
     'nav.admin.system': 'Tizim',
-    'nav.admin.monitoring': 'Monitoring',
     'nav.admin.feedback': 'Fikr-mulohaza',
     'nav.admin.notifications': 'Xabarnomalar',
     'nav.admin.audit': 'Tekshiruv jurnali',

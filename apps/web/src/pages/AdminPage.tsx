@@ -9,7 +9,7 @@ import {
   VALID_TABS, TAB_TITLES, ROLE_META,
   RoleBadge, StatusBadge,
   CreateAccountModal, DepositModal, ChangePasswordModal, AccountDrawer,
-  DashboardTab, AccountsTab, AnalyticsTab, SystemTab, MonitoringTab,
+  DashboardTab, AccountsTab, AnalyticsTab, SystemTab,
   FeedbackTab, NotificationsTab, AuditLogTab, PermissionsTab,
   DepositsTab, WhitelabelTab,
 } from '../components/admin';
@@ -376,8 +376,6 @@ export function AdminPage() {
             onLoadErrorsPage={loadErrorsPage}
           />
         )}
-
-        {activeTab === 'monitoring' && <MonitoringTab />}
 
         {activeTab === 'feedback' && (
           <FeedbackTab
