@@ -92,8 +92,11 @@ api.interceptors.response.use(
       }
     }
 
-    // 401 on auth endpoints — just redirect
-    if (err.response?.status === 401) {
+    // 401 on non-auth endpoints without refresh token — redirect to login
+    if (
+      err.response?.status === 401 &&
+      !originalRequest?.url?.includes('/auth/')
+    ) {
       queryClient.clear();
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
