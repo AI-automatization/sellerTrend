@@ -122,9 +122,11 @@ export function AdminPage() {
       adminApi.getCategoryTrends(8).then((r) => setCategoryTrends(r.data || [])).catch(logError);
       adminApi.getProductHeatmap('30d').then((r) => setProductHeatmap(r.data || [])).catch(logError);
     } else if (activeTab === 'system') {
-      adminApi.getSystemHealth().then((r) => setHealth(r.data)).catch(logError);
-      adminApi.getAiUsageStats().then((r) => setAiUsage(r.data)).catch(logError);
-      adminApi.getSystemErrors({ page: 1, limit: 50, period: 7 }).then((r) => setSystemErrors(r.data)).catch(logError);
+      // Sequential to avoid DB pool exhaustion (each call does multiple DB queries)
+      adminApi.getSystemHealth().then((r) => setHealth(r.data))
+        .then(() => adminApi.getAiUsageStats()).then((r) => setAiUsage(r.data))
+        .then(() => adminApi.getSystemErrors({ page: 1, limit: 50, period: 7 })).then((r) => setSystemErrors(r.data))
+        .catch(logError);
     } else if (activeTab === 'notifications') {
       adminApi.listNotificationTemplates().then((r) => setTemplates(Array.isArray(r.data) ? r.data : [])).catch(logError);
     } else if (activeTab === 'feedback') {

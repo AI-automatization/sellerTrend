@@ -21,20 +21,18 @@ const TENANT_MODELS = new Set([
   'FeedbackTicket',
 ]);
 
-/** Ensure pool_timeout is set in DATABASE_URL to prevent infinite waits */
-function ensurePoolTimeout(envUrl?: string): string {
-  const url = envUrl ?? 'postgresql://localhost:5432/ventra';
-  try {
-    const parsed = new URL(url);
-    if (!parsed.searchParams.has('pool_timeout')) {
-      parsed.searchParams.set('pool_timeout', '10');
-    }
-    return parsed.toString();
-  } catch {
-    // Malformed URL — append as query string
+/** Ensure pool_timeout and statement_timeout are set in DATABASE_URL */
+function ensurePoolParams(envUrl?: string): string {
+  let url = envUrl ?? 'postgresql://localhost:5432/ventra';
+  // Simple string append — avoids new URL() which can mangle passwords
+  if (!url.includes('pool_timeout')) {
     const sep = url.includes('?') ? '&' : '?';
-    return url.includes('pool_timeout') ? url : `${url}${sep}pool_timeout=10`;
+    url = `${url}${sep}pool_timeout=10`;
   }
+  if (!url.includes('statement_timeout')) {
+    url = `${url}&statement_timeout=15000`;
+  }
+  return url;
 }
 
 @Injectable()
@@ -46,7 +44,7 @@ export class PrismaService
 
   constructor() {
     super({
-      datasourceUrl: ensurePoolTimeout(process.env.DATABASE_URL),
+      datasourceUrl: ensurePoolParams(process.env.DATABASE_URL),
     });
   }
 

@@ -93,16 +93,12 @@ export function SystemTab({ health, aiUsage, systemErrors, errorsPage, onLoadErr
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ── Fetch metrics (15s auto-refresh) ──
+  // ── Fetch metrics (15s auto-refresh) — sequential to avoid pool exhaustion ──
   const fetchMetrics = useCallback(async () => {
     try {
-      const [metricsRes, capacityRes] = await Promise.all([
-        adminApi.getMonitoringMetrics('1h'),
-        adminApi.getCapacityEstimate(),
-      ]);
+      const metricsRes = await adminApi.getMonitoringMetrics('1h');
       setMetrics(metricsRes.data.latest);
       setMaxHeapMb(metricsRes.data.max_heap_mb || 2048);
-      setCapacity(capacityRes.data);
       setMetricsError(null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Metrikalarni yuklashda xatolik';
@@ -110,6 +106,14 @@ export function SystemTab({ health, aiUsage, systemErrors, errorsPage, onLoadErr
       logError(err);
     } finally {
       setMetricsLoading(false);
+    }
+
+    // Capacity — separate call, non-blocking
+    try {
+      const capacityRes = await adminApi.getCapacityEstimate();
+      setCapacity(capacityRes.data);
+    } catch (err: unknown) {
+      logError(err);
     }
   }, []);
 
@@ -130,19 +134,23 @@ export function SystemTab({ health, aiUsage, systemErrors, errorsPage, onLoadErr
     }
   }, []);
 
-  // ── Fetch baselines + alerts ──
+  // ── Fetch baselines + alerts — sequential to avoid pool exhaustion ──
   const fetchHistory = useCallback(async () => {
     try {
-      const [baselinesRes, alertsRes] = await Promise.all([
-        adminApi.getCapacityBaselines(),
-        adminApi.getSystemAlerts(50),
-      ]);
+      const baselinesRes = await adminApi.getCapacityBaselines();
       setBaselines(Array.isArray(baselinesRes.data) ? baselinesRes.data : []);
-      setAlerts(Array.isArray(alertsRes.data) ? alertsRes.data : []);
     } catch (err: unknown) {
       logError(err);
     } finally {
       setBaselinesLoading(false);
+    }
+
+    try {
+      const alertsRes = await adminApi.getSystemAlerts(50);
+      setAlerts(Array.isArray(alertsRes.data) ? alertsRes.data : []);
+    } catch (err: unknown) {
+      logError(err);
+    } finally {
       setAlertsLoading(false);
     }
   }, []);

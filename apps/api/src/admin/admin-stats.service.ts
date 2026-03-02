@@ -495,7 +495,8 @@ export class AdminStatsService {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    const [totalLogs, todayLogs, byMethod, byDay, recentErrors] = await Promise.all([
+    // Split into 2 batches (max 3 concurrent connections) to avoid pool exhaustion
+    const [totalLogs, todayLogs, byMethod] = await Promise.all([
       this.prisma.aiUsageLog.aggregate({
         where: { created_at: { gte: since } },
         _sum: { input_tokens: true, output_tokens: true, cost_usd: true },
@@ -513,6 +514,9 @@ export class AdminStatsService {
         _count: { id: true },
         _avg: { duration_ms: true },
       }),
+    ]);
+
+    const [byDay, recentErrors] = await Promise.all([
       this.prisma.$queryRaw`
         SELECT DATE(created_at) as date,
                COUNT(*)::int as calls,
