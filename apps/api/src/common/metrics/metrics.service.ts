@@ -3,7 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { ConcurrencyTrackerInterceptor } from '../interceptors/concurrency-tracker.interceptor';
 import Redis from 'ioredis';
 
-const MAX_HEAP_MB = parseInt(process.env.MAX_HEAP_MB || '400', 10);
+const MAX_HEAP_MB = parseInt(process.env.MAX_HEAP_MB || '2048', 10);
 const RING_BUFFER_SIZE = 240; // 240 x 15s = 1 hour
 const COLLECT_INTERVAL_MS = 15_000; // 15 seconds
 const PERSIST_INTERVAL_MS = 5 * 60_000; // 5 minutes

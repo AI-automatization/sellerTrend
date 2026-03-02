@@ -77,4 +77,6 @@ RUN pnpm exec prisma generate
 RUN node -e "require('@uzum/utils'); console.log('OK: @uzum/utils')"
 RUN node -e "require('@uzum/types'); console.log('OK: @uzum/types')"
 
-CMD ["node", "dist/apps/worker/src/main"]
+# V8 heap limit — configurable via Railway env MAX_HEAP_MB, default 4GB for Pro plan (Playwright needs more)
+# Shell form CMD to enable variable expansion at runtime
+CMD export NODE_OPTIONS="--max-old-space-size=${MAX_HEAP_MB:-4096}" && echo "[worker] NODE_OPTIONS=$NODE_OPTIONS" && exec node dist/apps/worker/src/main

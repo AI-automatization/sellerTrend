@@ -45,4 +45,5 @@ COPY --from=builder /app/apps/bot/prisma ./apps/bot/prisma
 
 WORKDIR /app/apps/bot
 RUN pnpm exec prisma generate
-CMD ["node", "dist/apps/bot/src/main"]
+# V8 heap limit — configurable via Railway env MAX_HEAP_MB, default 512MB
+CMD export NODE_OPTIONS="--max-old-space-size=${MAX_HEAP_MB:-512}" && echo "[bot] NODE_OPTIONS=$NODE_OPTIONS" && exec node dist/apps/bot/src/main

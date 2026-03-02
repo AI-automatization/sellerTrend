@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 
-// 400MB max heap (from NODE_OPTIONS --max-old-space-size=400)
-const MAX_HEAP_MB = parseInt(process.env.MAX_HEAP_MB || '400', 10);
+// Max heap from NODE_OPTIONS (default 2048MB for Railway Pro)
+const MAX_HEAP_MB = parseInt(process.env.MAX_HEAP_MB || '2048', 10);
 const CRITICAL_PCT = 0.85; // 85% = 340MB
 
 const WHITELIST = ['/api/v1/health', '/api/v1/admin/monitoring'];

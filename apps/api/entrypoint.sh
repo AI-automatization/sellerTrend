@@ -11,5 +11,9 @@ else
 fi
 
 echo "[entrypoint] Starting API server..."
-export NODE_OPTIONS="--max-old-space-size=400"
+
+# V8 heap limit — configurable via Railway env, default 2GB for Pro plan
+export NODE_OPTIONS="--max-old-space-size=${MAX_HEAP_MB:-2048}"
+echo "[entrypoint] NODE_OPTIONS=$NODE_OPTIONS"
+
 exec node dist/main
