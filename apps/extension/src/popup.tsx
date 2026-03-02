@@ -3,6 +3,7 @@ import { sendToBackground } from "@plasmohq/messaging";
 
 import "./style.css";
 import LoginForm from "~/components/LoginForm";
+import TrackedList from "~/components/TrackedList";
 import type { AuthStateResponseBody } from "~/background/messages/get-auth-state";
 import type { LogoutResponseBody } from "~/background/messages/logout";
 
@@ -80,6 +81,10 @@ function Popup() {
           <p className="text-xs opacity-60">{authState.email}</p>
         </div>
       </div>
+
+      <div className="divider my-2" />
+
+      <TrackedList />
 
       <div className="divider my-2" />
 

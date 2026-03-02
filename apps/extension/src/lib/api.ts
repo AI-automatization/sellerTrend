@@ -190,4 +190,28 @@ export async function getProfile(): Promise<UserProfile> {
   return apiFetch<UserProfile>("/auth/profile");
 }
 
+// ── Track / Tracked products ─────────────────────────────────
+
+export async function trackProduct(productId: string): Promise<{ id: string }> {
+  return apiFetch<{ id: string }>(`/products/${productId}/track`, {
+    method: "POST",
+  });
+}
+
+export interface TrackedProductItem {
+  product_id: string;
+  is_active: boolean;
+  product?: {
+    title?: string;
+    score?: number | null;
+    photo_url?: string | null;
+    sell_price?: string | null;
+    weekly_bought?: number | null;
+  };
+}
+
+export async function getTrackedProducts(): Promise<TrackedProductItem[]> {
+  return apiFetch<TrackedProductItem[]>("/products");
+}
+
 export { tryRefreshToken, isTokenExpired, BASE_URL };

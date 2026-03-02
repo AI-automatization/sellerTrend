@@ -1,0 +1,242 @@
+/* VENTRA Extension — CSUI Overlay Styles */
+/* Injected into shadow DOM via getStyle() */
+
+:host {
+  all: initial;
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  z-index: 2147483647;
+}
+
+/* ── Score Card (Product Page) ────────────────────────── */
+
+.ventra-score-card {
+  pointer-events: auto;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 2147483647;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  width: 280px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #1f2937;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.ventra-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.ventra-card-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 13px;
+  color: #6366f1;
+  letter-spacing: 0.5px;
+}
+
+.ventra-card-logo {
+  width: 20px;
+  height: 20px;
+  background: #6366f1;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 800;
+  font-size: 11px;
+}
+
+.ventra-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ventra-score-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ventra-score-value {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.ventra-score-max {
+  font-size: 14px;
+  font-weight: 400;
+  color: #9ca3af;
+}
+
+.ventra-score-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.ventra-trend-rising {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.ventra-trend-falling {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.ventra-trend-stable {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.ventra-score-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.ventra-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.ventra-detail-label {
+  color: #6b7280;
+}
+
+.ventra-detail-value {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* ── Track Button ─────────────────────────────────────── */
+
+.ventra-track-btn {
+  width: 100%;
+  padding: 8px 12px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.ventra-track-default {
+  background: #6366f1;
+  color: white;
+}
+
+.ventra-track-default:hover {
+  background: #4f46e5;
+}
+
+.ventra-track-tracked {
+  background: #dcfce7;
+  color: #16a34a;
+  cursor: default;
+}
+
+.ventra-track-loading {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: wait;
+}
+
+.ventra-track-error {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* ── Score Colors ─────────────────────────────────────── */
+
+.ventra-score-red { color: #dc2626; }
+.ventra-score-orange { color: #ea580c; }
+.ventra-score-yellow { color: #ca8a04; }
+.ventra-score-green { color: #16a34a; }
+.ventra-score-dark-green { color: #15803d; }
+
+/* ── Close Button ─────────────────────────────────────── */
+
+.ventra-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  padding: 2px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ventra-close-btn:hover {
+  color: #6b7280;
+  background: #f3f4f6;
+}
+
+/* ── Login Hint ───────────────────────────────────────── */
+
+.ventra-login-hint {
+  pointer-events: auto;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 2147483647;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 12px;
+  color: #6b7280;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ventra-login-logo {
+  width: 16px;
+  height: 16px;
+  background: #6366f1;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 800;
+  font-size: 9px;
+}
