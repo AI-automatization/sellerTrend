@@ -46,6 +46,30 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 ---
 
 # ═══════════════════════════════════════════════════════════
+# BACKEND OCHIQ TASKLAR
+# ═══════════════════════════════════════════════════════════
+
+## P0 — KRITIK
+
+### T-288 | P0 | BACKEND | API Hang — Prisma Connection Pool Exhaustion | Bekzod
+
+**Muammo:** System tab ochilganda barcha API endpoint'lar muzlaydi (504/timeout). Sabab: `connection_limit=20` + `pool_timeout` yo'q → MetricsService background loop (3 conn) + System tab 8 endpoint (18 conn) = 21 > 20 → pool to'ladi → abadiy kutish.
+
+**Batafsil hisobot:** `docs/T-288-API-HANG-REPORT.md`
+
+**Darhol fixlar:**
+- F1: `pool_timeout=10` qo'shish (Railway DATABASE_URL env)
+- F2: `getUserHealthSummary()` sequential → `Promise.all()` (`admin-monitoring.service.ts`)
+- F3: MetricsService `getDbPoolActive()` o'chirish/cache (`metrics.service.ts`)
+- F4: Redis `lazyConnect: false` + parallel queue check (`metrics.service.ts`)
+- F5: Frontend monitoring timeout: 10s (`SystemTab.tsx`)
+- F6: `connection_limit` 20 → 30 (Railway DATABASE_URL env)
+- F7: Monitoring endpoint try/catch + fallback (`admin-monitoring.service.ts`)
+- F8: Real API health check (`nginx.conf.template` + `health.controller.ts`)
+
+---
+
+# ═══════════════════════════════════════════════════════════
 # DEVOPS OCHIQ TASKLAR
 # ═══════════════════════════════════════════════════════════
 
