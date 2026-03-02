@@ -40,17 +40,18 @@ export class MetricsService implements OnModuleInit, OnModuleDestroy {
   private prevCpuUsage: NodeJS.CpuUsage | null = null;
   private prevCpuTime = 0;
   private redis: Redis | null = null;
+  private lastDbPoolActive = 0;
 
   constructor(private readonly prisma: PrismaService) {}
 
   onModuleInit() {
-    // Initialize Redis connection
+    // Initialize Redis connection (eager connect to avoid blocking on first call)
     const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379';
     this.redis = new Redis(redisUrl, {
       maxRetriesPerRequest: 0,
       connectTimeout: 3000,
       enableOfflineQueue: false,
-      lazyConnect: true,
+      lazyConnect: false,
       retryStrategy: () => null,
     });
 
@@ -86,7 +87,8 @@ export class MetricsService implements OnModuleInit, OnModuleDestroy {
     const mem = process.memoryUsage();
     const cpuPct = this.computeCpuPercent();
     const eventLoopLag = await this.measureEventLoopLag();
-    const dbPoolActive = await this.getDbPoolActive();
+    // Skip DB query in background loop — use cached value (updated on-demand)
+    const dbPoolActive = this.lastDbPoolActive;
     const queueDepths = await this.getQueueDepths();
 
     const snapshot: MetricsSnapshot = {
@@ -147,8 +149,8 @@ export class MetricsService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  /** Get active DB connections from pg_stat_activity */
-  private async getDbPoolActive(): Promise<number> {
+  /** Get active DB connections from pg_stat_activity (on-demand, updates cache) */
+  async refreshDbPoolActive(): Promise<number> {
     try {
       const result: { count: number }[] = await this.prisma.$queryRaw`
         SELECT count(*)::int as count
@@ -156,22 +158,33 @@ export class MetricsService implements OnModuleInit, OnModuleDestroy {
         WHERE datname = current_database()
           AND state = 'active'
       `;
-      return result[0]?.count ?? 0;
+      this.lastDbPoolActive = result[0]?.count ?? 0;
     } catch {
-      return 0;
+      // Keep last known value
     }
+    return this.lastDbPoolActive;
   }
 
-  /** Get queue depths from Redis */
+  /** Get queue depths from Redis using pipeline (single round-trip) */
   private async getQueueDepths(): Promise<Record<string, number>> {
     const depths: Record<string, number> = {};
-    if (!this.redis) return depths;
+    if (!this.redis || this.redis.status !== 'ready') return depths;
 
     try {
+      const pipeline = this.redis.pipeline();
       for (const name of QUEUE_NAMES) {
-        const waiting = await this.redis.llen(`bull:${name}:wait`);
-        const active = await this.redis.llen(`bull:${name}:active`);
-        depths[name] = waiting + active;
+        pipeline.llen(`bull:${name}:wait`);
+        pipeline.llen(`bull:${name}:active`);
+      }
+      const results = await pipeline.exec();
+      if (!results) return depths;
+
+      for (let i = 0; i < QUEUE_NAMES.length; i++) {
+        const waitResult = results[i * 2];
+        const activeResult = results[i * 2 + 1];
+        const waiting = (waitResult?.[1] as number) ?? 0;
+        const active = (activeResult?.[1] as number) ?? 0;
+        depths[QUEUE_NAMES[i]] = waiting + active;
       }
     } catch {
       // Redis unavailable — return empty

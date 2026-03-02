@@ -100,7 +100,7 @@ export const adminApi = {
   getProductHeatmap: (period = '30d') => api.get('/admin/stats/product-heatmap', { params: { period } }),
   getCategoryTrends: (weeks = 8) => api.get('/admin/stats/category-trends', { params: { weeks } }),
   getTopUsers: (limit = 20) => api.get('/admin/stats/top-users', { params: { limit } }),
-  getSystemHealth: () => api.get('/admin/stats/health'),
+  getSystemHealth: () => api.get('/admin/stats/health', { timeout: 10_000 }),
   getUserActivity: (userId: string, page = 1, limit = 50) =>
     api.get(`/admin/users/${userId}/activity`, { params: { page, limit } }),
   getUserTrackedProducts: (userId: string) => api.get(`/admin/users/${userId}/tracked-products`),
@@ -140,23 +140,23 @@ export const adminApi = {
   deleteNotificationTemplate: (id: string) => api.delete(`/admin/notification-templates/${id}`),
   sendNotificationAdvanced: (data: { message: string; type: string; target: 'all' | string[] }) =>
     api.post('/admin/notifications/send', data),
-  getAiUsageStats: (period = 30) => api.get('/admin/stats/ai-usage', { params: { period } }),
+  getAiUsageStats: (period = 30) => api.get('/admin/stats/ai-usage', { params: { period }, timeout: 10_000 }),
   getSystemErrors: (params?: { page?: number; limit?: number; endpoint?: string; status_gte?: number; account_id?: string; period?: number }) =>
-    api.get('/admin/system-errors', { params }),
+    api.get('/admin/system-errors', { params, timeout: 10_000 }),
 
-  // ── Monitoring ──
+  // ── Monitoring (10s timeout to prevent infinite hang) ──
   getMonitoringMetrics: (period = '1h') =>
-    api.get<{ snapshots: MetricsSnapshot[]; latest: MetricsSnapshot | null; max_heap_mb: number }>('/admin/monitoring/metrics', { params: { period } }),
+    api.get<{ snapshots: MetricsSnapshot[]; latest: MetricsSnapshot | null; max_heap_mb: number }>('/admin/monitoring/metrics', { params: { period }, timeout: 10_000 }),
   getUserHealth: (params?: { period?: string; limit?: number; sort?: string }) =>
-    api.get<UserHealthRow[]>('/admin/monitoring/user-health', { params }),
+    api.get<UserHealthRow[]>('/admin/monitoring/user-health', { params, timeout: 10_000 }),
   getCapacityEstimate: () =>
-    api.get<CapacityEstimate>('/admin/monitoring/capacity'),
+    api.get<CapacityEstimate>('/admin/monitoring/capacity', { timeout: 10_000 }),
   getCapacityBaselines: () =>
-    api.get<CapacityBaseline[]>('/admin/monitoring/baselines'),
+    api.get<CapacityBaseline[]>('/admin/monitoring/baselines', { timeout: 10_000 }),
   captureBaseline: (label: string) =>
-    api.post<CapacityBaseline>('/admin/monitoring/baseline', { label }),
+    api.post<CapacityBaseline>('/admin/monitoring/baseline', { label }, { timeout: 10_000 }),
   getSystemAlerts: (limit = 50) =>
-    api.get<SystemAlert[]>('/admin/monitoring/alerts', { params: { limit } }),
+    api.get<SystemAlert[]>('/admin/monitoring/alerts', { params: { limit }, timeout: 10_000 }),
 };
 
 export const feedbackApi = {

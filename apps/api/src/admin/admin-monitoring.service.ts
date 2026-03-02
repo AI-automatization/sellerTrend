@@ -14,11 +14,18 @@ export class AdminMonitoringService {
   ) {}
 
   /** Get current metrics snapshot + ring buffer history */
-  getMetrics(period: string): {
+  async getMetrics(period: string): Promise<{
     latest: MetricsSnapshot | null;
     snapshots: MetricsSnapshot[];
     max_heap_mb: number;
-  } {
+  }> {
+    try {
+      // Refresh DB pool count on-demand (not in background loop)
+      await this.metricsService.refreshDbPoolActive();
+    } catch (err) {
+      this.logger.warn('Failed to refresh DB pool active count', err);
+    }
+
     return {
       latest: this.metricsService.getLatestSnapshot(),
       snapshots: this.metricsService.getRingBuffer(period),
@@ -32,50 +39,65 @@ export class AdminMonitoringService {
     limit: number,
     sort: string,
   ): Promise<unknown[]> {
+    try {
+      return await this.getUserHealthSummaryInternal(period, limit, sort);
+    } catch (err) {
+      this.logger.error('getUserHealthSummary failed — returning empty', err);
+      return [];
+    }
+  }
+
+  private async getUserHealthSummaryInternal(
+    period: string,
+    limit: number,
+    sort: string,
+  ): Promise<unknown[]> {
     const hours = this.parsePeriodHours(period);
     const since = new Date(Date.now() - hours * 60 * 60_000);
 
-    // Per-user error counts
-    const errorData: {
-      user_id: string;
-      error_count: number;
-      top_error_endpoint: string | null;
-    }[] = await this.prisma.$queryRaw`
-      SELECT user_id,
-             COUNT(*)::int as error_count,
-             (ARRAY_AGG(endpoint ORDER BY created_at DESC))[1] as top_error_endpoint
-      FROM system_errors
-      WHERE created_at >= ${since} AND user_id IS NOT NULL
-      GROUP BY user_id
-    `;
-
-    // Per-user activity counts (1h and full period)
+    // Run all 3 queries in parallel to reduce connection hold time
     const oneHourAgo = new Date(Date.now() - 60 * 60_000);
-    const activityData: {
-      user_id: string;
-      requests_1h: number;
-      requests_period: number;
-      last_active: Date;
-    }[] = await this.prisma.$queryRaw`
-      SELECT user_id,
-        COUNT(*) FILTER (WHERE created_at >= ${oneHourAgo})::int as requests_1h,
-        COUNT(*)::int as requests_period,
-        MAX(created_at) as last_active
-      FROM user_activities
-      WHERE created_at >= ${since}
-      GROUP BY user_id
-    `;
 
-    // Active sessions per user
-    const sessionData: {
-      user_id: string;
-      active_sessions: number;
-    }[] = await this.prisma.$queryRaw`
-      SELECT user_id, COUNT(*)::int as active_sessions
-      FROM user_sessions
-      WHERE revoked_at IS NULL
-      GROUP BY user_id
-    `;
+    const [errorData, activityData, sessionData] = await Promise.all([
+      // Per-user error counts
+      this.prisma.$queryRaw<{
+        user_id: string;
+        error_count: number;
+        top_error_endpoint: string | null;
+      }[]>`
+        SELECT user_id,
+               COUNT(*)::int as error_count,
+               (ARRAY_AGG(endpoint ORDER BY created_at DESC))[1] as top_error_endpoint
+        FROM system_errors
+        WHERE created_at >= ${since} AND user_id IS NOT NULL
+        GROUP BY user_id
+      `,
+      // Per-user activity counts (1h and full period)
+      this.prisma.$queryRaw<{
+        user_id: string;
+        requests_1h: number;
+        requests_period: number;
+        last_active: Date;
+      }[]>`
+        SELECT user_id,
+          COUNT(*) FILTER (WHERE created_at >= ${oneHourAgo})::int as requests_1h,
+          COUNT(*)::int as requests_period,
+          MAX(created_at) as last_active
+        FROM user_activities
+        WHERE created_at >= ${since}
+        GROUP BY user_id
+      `,
+      // Active sessions per user
+      this.prisma.$queryRaw<{
+        user_id: string;
+        active_sessions: number;
+      }[]>`
+        SELECT user_id, COUNT(*)::int as active_sessions
+        FROM user_sessions
+        WHERE revoked_at IS NULL
+        GROUP BY user_id
+      `,
+    ]);
 
     // User info lookup
     const allUserIds = new Set<string>();
@@ -217,8 +239,17 @@ export class AdminMonitoringService {
     };
   }
 
-  /** Get capacity estimate based on current metrics */
+  /** Get capacity estimate based on current metrics (graceful on failure) */
   async getCapacityEstimate(): Promise<CapacityEstimate | { error: string }> {
+    try {
+      return await this.getCapacityEstimateInternal();
+    } catch (err) {
+      this.logger.error('getCapacityEstimate failed', err);
+      return { error: 'Capacity estimation failed' };
+    }
+  }
+
+  private async getCapacityEstimateInternal(): Promise<CapacityEstimate | { error: string }> {
     const snapshot = this.metricsService.getLatestSnapshot();
     if (!snapshot) {
       return {
