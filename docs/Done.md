@@ -3,6 +3,15 @@
 
 ---
 
+## T-284 | FRONTEND | Login 401 page reload fix (2026-03-02)
+- **Muammo**: Noto'g'ri credentials bilan login qilganda sahifa reload bo'lardi, error alert ko'rinmasdi
+- **Sabab**: Axios response interceptor (`base.ts`) har qanday 401 da `window.location.href = '/login'` qilardi — `/auth/login` uchun ham
+- **Fix**: Interceptor da `/auth/` URL lar uchun redirect o'chirildi → error `handleSubmit` catch block ga tushadi → "Invalid credentials" alert ko'rinadi
+- **Qo'shimcha**: Railway `API_UPSTREAM=api.railway.internal:3000` env var o'rnatildi (nginx proxy to'g'ri ishlashi uchun)
+- Fayl: `apps/web/src/api/base.ts:95-99`
+
+---
+
 ## T-282 | BACKEND | `ai_explanation` null fix (2026-03-02)
 - **Sabab 1**: `ANTHROPIC_API_KEY` invalid (401) → yangi key yaratildi, Railway api + worker ga qo'yildi
 - **Sabab 2**: Score threshold `> 3` juda baland → `> 1 || ordersQty > 50` ga o'zgartirildi
