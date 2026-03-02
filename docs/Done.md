@@ -8,7 +8,7 @@
 **Muammo:** System tab ochilganda barcha API endpoint'lar muzlab qolardi (504/timeout).
 Root cause: `connection_limit=20` + `pool_timeout` yo'q → MetricsService background loop (3 conn) + System tab 8 endpoint (18 conn) = 21 > 20 → pool to'ladi → abadiy kutish.
 
-**Fixlar (F1-F8):**
+**Fixlar (F1-F8) — v1:**
 - **F1** PrismaService: `pool_timeout=10` programmatik enforce (DATABASE_URL ga inject)
 - **F2** `getUserHealthSummary`: 3 sequential SQL → `Promise.all()` (parallel)
 - **F3** `getDbPoolActive`: background 15s loop dan olib tashlandi → on-demand refresh
@@ -17,7 +17,22 @@ Root cause: `connection_limit=20` + `pool_timeout` yo'q → MetricsService backg
 - **F7** Monitoring endpoint'lar: try/catch + graceful fallback (500 emas, bo'sh data)
 - **F8** nginx: static health check → real API proxy (10s timeout, container restart imkoni)
 
-**Fayllar:** `prisma.service.ts`, `metrics.service.ts`, `admin-monitoring.service.ts`, `health.controller.ts`, `nginx.conf.template`, `admin.ts` (frontend API)
+**v2 — qo'shimcha fixlar (staging test da aniqlangan):**
+v1 dan keyin 8 concurrent request hali pool ni to'ldirardi. Sabab: `new URL()` PostgreSQL parolni buzishi + frontend parallel fetch.
+- `ensurePoolParams`: `new URL()` → simple string append (parol buzilmaydi)
+- `statement_timeout=15000` qo'shildi (PostgreSQL stuck query'larni 15s da o'ldiradi)
+- `getAiUsageStats`: 5 parallel → 2 batch (3+2, max 3 concurrent connection)
+- **SystemTab**: parallel fetch → sequential (metrics → capacity → userHealth → baselines → alerts)
+- **AdminPage**: system tab 3 fire-and-forget → sequential chain (health → ai-usage → errors)
+- Max concurrent DB queries: **~20 → ~5** (pool 20 hech qachon to'lmaydi)
+
+**Staging test natijasi:**
+```
+8 concurrent request × 2 round (15s oraliq) — HAMMASI 200 OK (400-860ms)
+Post-burst health check: 200 OK (254ms) — API tirik, hang YO'Q
+```
+
+**Fayllar:** `prisma.service.ts`, `metrics.service.ts`, `admin-monitoring.service.ts`, `admin-stats.service.ts`, `health.controller.ts`, `nginx.conf.template`, `admin.ts` (frontend API), `SystemTab.tsx`, `AdminPage.tsx`
 
 ---
 
