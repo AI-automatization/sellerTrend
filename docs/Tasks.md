@@ -36,27 +36,19 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 
 ## P0 — KRITIK
 
-### T-282 | P0 | BACKEND | `ai_explanation` production da null — AI key tekshirish | 10min
+### T-282 | P0 | BACKEND | `ai_explanation` production da null — 2 ta sabab topildi, 1 tasi fix | pending[Bekzod]
 
-**Muammo:** Production QA testida `POST /api/v1/uzum/analyze` javobi `ai_explanation: null` qaytaryapti.
-140 ta mahsulot tahlili — birortasida ham AI tahlil yo'q.
+**Diagnostika natijasi (2026-03-01):**
 
-**Tekshirish:**
-```bash
-# Railway dashboard → api service → Variables:
-# OPENAI_API_KEY   → bormi?
-# ANTHROPIC_API_KEY → bormi?
+| # | Sabab | Holat |
+|---|-------|-------|
+| 1 | `ANTHROPIC_API_KEY` **invalid** — 401 authentication_error | QO'LDA: yangi key kerak (Console → Settings → API Keys) |
+| 2 | Score threshold `> 3` juda baland — birinchi tahlilda `weekly_bought=null` → 55% score = 0, hech qachon > 3 bo'lmaydi | **FIX DONE**: `> 1 \|\| orders > 50` ga o'zgartirildi (`uzum.service.ts:217`) |
 
-# Yoki API handler da tekshirish:
-# apps/api/src/uzum/uzum.service.ts → ai_explanation qanday to'ldiriladi?
-```
-
-**Ehtimoliy sabablar:**
-1. `OPENAI_API_KEY` yoki `ANTHROPIC_API_KEY` Railway env da yo'q
-2. `uzum.service.ts` da AI call exception ga tushib silent fail bo'lyapti
-3. AI async job queue ga solingan — analyze response da yo'q, alohida endpoint kerak
-
-**Natija:** AI token ishlay boshlashi kerak — ProductPage da AI tahlil ko'rinsin.
+**Qolgan qadam:**
+1. `platform.claude.com/settings/keys` dan yangi API key yaratish
+2. Railway production `api` + `worker` + staging `api` ga qo'yish
+3. Redeploy → test: `POST /api/v1/uzum/analyze` → `ai_explanation` massiv qaytishi kerak
 
 ---
 
@@ -253,6 +245,26 @@ API calls:     ~300ms           API calls:     ~300ms (bypass, o'zgarmaydi*)
 
 ### T-178 | DEVOPS | Custom domain + SSL — web service | 10min (manual: domain kerak)
 
+### T-283 | P1 | DEVOPS | Landing custom domain — ventra.uz DNS sozlash | 10min (manual)
+
+**Holat:** Landing Railway da deploy qilingan, staging URL ishlaydi:
+- Staging: `https://landing-staging-39b5.up.railway.app/`
+- Railway service: `landing` (staging environment)
+
+**Railway DNS record lari tayyor:**
+```
+CNAME  @               → d7j7qk9x.up.railway.app
+TXT    _railway-verify  → railway-verify=railway-verify=822d30ad3e89eb5a8c969c7ccdcaa4759312a22ee0b2370851e0ded2b6b6b28d
+```
+
+**Qadamlar:**
+1. `ventra.uz` domenni sotib olish (webhost.uz, ahost.uz yoki Cloudflare)
+2. Registrar DNS panelida yuqoridagi CNAME + TXT record qo'shish
+3. Propagatsiya kutish (5 daqiqa — 24 soat)
+4. `https://ventra.uz` ishlashini tekshirish (Railway avtomatik SSL beradi)
+5. Google Search Console da `ventra.uz` verify qilish → `GOOGLE_VERIFICATION_CODE` ni index.html ga qo'yish
+6. Yandex Webmaster da verify → `YANDEX_VERIFICATION_CODE` ni index.html ga qo'yish
+
 ## P2 — O'RTA
 
 ### T-184 | DONE | Staging environment — api/worker/web SUCCESS, bot optional (TELEGRAM_BOT_TOKEN kerak) |
@@ -313,4 +325,4 @@ API calls:     ~300ms           API calls:     ~300ms (bypass, o'zgarmaydi*)
 
 ---
 
-*Tasks.md | VENTRA Analytics Platform | 2026-03-01*
+*Tasks.md | VENTRA Analytics Platform | 2026-03-02*
