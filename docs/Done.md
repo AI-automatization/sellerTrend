@@ -3,6 +3,24 @@
 
 ---
 
+## T-288 | P0 | BACKEND+FRONTEND | API Hang — Prisma Connection Pool Exhaustion fix (2026-03-02)
+
+**Muammo:** System tab ochilganda barcha API endpoint'lar muzlab qolardi (504/timeout).
+Root cause: `connection_limit=20` + `pool_timeout` yo'q → MetricsService background loop (3 conn) + System tab 8 endpoint (18 conn) = 21 > 20 → pool to'ladi → abadiy kutish.
+
+**Fixlar (F1-F8):**
+- **F1** PrismaService: `pool_timeout=10` programmatik enforce (DATABASE_URL ga inject)
+- **F2** `getUserHealthSummary`: 3 sequential SQL → `Promise.all()` (parallel)
+- **F3** `getDbPoolActive`: background 15s loop dan olib tashlandi → on-demand refresh
+- **F4** Redis: `lazyConnect: false` (eager connect) + queue depth `pipeline` (6 call → 1 round-trip)
+- **F5** Frontend: barcha monitoring/stats API call'lariga `timeout: 10_000` qo'shildi
+- **F7** Monitoring endpoint'lar: try/catch + graceful fallback (500 emas, bo'sh data)
+- **F8** nginx: static health check → real API proxy (10s timeout, container restart imkoni)
+
+**Fayllar:** `prisma.service.ts`, `metrics.service.ts`, `admin-monitoring.service.ts`, `health.controller.ts`, `nginx.conf.template`, `admin.ts` (frontend API)
+
+---
+
 ## T-287 | FRONTEND | MonitoringTab → SystemTab birlashtirish + Heap % fix (2026-03-02)
 
 **2 ta muammo hal qilindi:**
