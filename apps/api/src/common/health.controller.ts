@@ -47,7 +47,6 @@ export class HealthController {
         'import-batch',
         'billing-queue',
         'competitor-queue',
-        'reanalysis-queue',
         'weekly-scrape-queue',
       ];
       queueDepth = {};

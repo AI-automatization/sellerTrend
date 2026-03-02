@@ -14,7 +14,6 @@ const QUEUE_NAMES = [
   'import-batch',
   'billing-queue',
   'competitor-queue',
-  'reanalysis-queue',
   'weekly-scrape-queue',
 ];
 

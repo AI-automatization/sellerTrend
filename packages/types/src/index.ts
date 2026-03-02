@@ -244,7 +244,6 @@ export type JobName =
   | 'url-analyze'
   | 'competitor-snapshot'
   | 'import-batch'
-  | 'reanalysis-6h'
   | 'sourcing-search';
 
 export interface UrlAnalyzeJobData {

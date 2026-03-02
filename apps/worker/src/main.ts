@@ -6,11 +6,9 @@ import { createDiscoveryWorker } from './processors/discovery.processor';
 import { createSourcingWorker } from './processors/sourcing.processor';
 import { createCompetitorWorker } from './processors/competitor.processor';
 import { createImportWorker } from './processors/import.processor';
-import { createReanalysisWorker } from './processors/reanalysis.processor';
 import { createWeeklyScrapeWorker } from './processors/weekly-scrape.processor';
 import { scheduleDailyBilling } from './jobs/billing.job';
 import { scheduleCompetitorSnapshots } from './jobs/competitor-snapshot.job';
-import { scheduleReanalysis } from './jobs/reanalysis.job';
 import { scheduleWeeklyScrape } from './jobs/weekly-scrape.job';
 
 async function bootstrap() {
@@ -22,13 +20,11 @@ async function bootstrap() {
   const sourcingWorker = createSourcingWorker();
   const competitorWorker = createCompetitorWorker();
   const importWorker = createImportWorker();
-  const reanalysisWorker = createReanalysisWorker();
   const weeklyScrapeWorker = createWeeklyScrapeWorker();
 
   // Schedule cron jobs
   await scheduleDailyBilling();
   await scheduleCompetitorSnapshots();
-  await scheduleReanalysis();
   await scheduleWeeklyScrape();
 
   console.log('Workers running:');
@@ -37,11 +33,9 @@ async function bootstrap() {
   console.log('  - sourcing-search');
   console.log('  - competitor-queue');
   console.log('  - import-batch');
-  console.log('  - reanalysis-queue');
   console.log('  - weekly-scrape-queue');
   console.log('Daily billing cron scheduled at 00:00');
   console.log('Competitor snapshot cron scheduled every 6h');
-  console.log('Product reanalysis cron scheduled every 6 hours');
   console.log('Weekly scrape cron scheduled every 15 minutes');
 
   // Health check HTTP server
@@ -62,7 +56,7 @@ async function bootstrap() {
       res.end(JSON.stringify({
         status,
         redis: redisOk ? 'ok' : 'unreachable',
-        workers: 7,
+        workers: 6,
         timestamp: new Date().toISOString(),
       }));
     } else {
@@ -90,7 +84,6 @@ async function bootstrap() {
         sourcingWorker.close(),
         competitorWorker.close(),
         importWorker.close(),
-        reanalysisWorker.close(),
         weeklyScrapeWorker.close(),
       ]);
       await redis.quit();

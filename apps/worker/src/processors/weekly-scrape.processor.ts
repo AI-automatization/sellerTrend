@@ -125,6 +125,9 @@ async function scrapeAndSaveProduct(
 
   // 5. Atomic: update product + create snapshot + update scrape timestamps
   const title = detail.localizableTitle?.ru || detail.title;
+  const totalAvailable = detail.totalAvailableAmount != null
+    ? BigInt(detail.totalAvailableAmount)
+    : null;
 
   await prisma.$transaction(async (tx) => {
     await tx.product.update({
@@ -134,6 +137,7 @@ async function scrapeAndSaveProduct(
         rating: detail.rating ?? null,
         feedback_quantity: detail.reviewsAmount ?? 0,
         orders_quantity: BigInt(currentOrders),
+        total_available_amount: totalAvailable,
       },
     });
 
