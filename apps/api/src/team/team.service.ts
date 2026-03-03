@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import * as crypto from 'crypto';
@@ -117,7 +117,13 @@ export class TeamService {
     });
 
     if (existingUser) {
-      // Link existing user to the account
+      // Prevent hijacking: user already belongs to a different account
+      if (existingUser.account_id && existingUser.account_id !== invite.account_id) {
+        throw new ConflictException(
+          'This email is already registered under another account. User must leave their current account first.',
+        );
+      }
+      // Link existing user to the account (only if unassigned or same account)
       await this.prisma.user.update({
         where: { id: existingUser.id },
         data: {

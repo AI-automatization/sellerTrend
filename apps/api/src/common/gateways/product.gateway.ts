@@ -5,6 +5,7 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({
@@ -23,13 +24,37 @@ export class ProductGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
   private readonly logger = new Logger(ProductGateway.name);
 
+  constructor(private readonly jwtService: JwtService) {}
+
   handleConnection(client: Socket) {
-    // Join account-specific room for targeted signals
-    const accountId = client.handshake.query.account_id as string;
-    if (accountId) {
-      client.join(`account:${accountId}`);
+    // Extract JWT from auth header or query param
+    const token =
+      client.handshake.auth?.token ??
+      (client.handshake.headers.authorization?.replace('Bearer ', '') || null);
+
+    if (!token) {
+      this.logger.warn(`WS rejected (no token): ${client.id}`);
+      client.disconnect(true);
+      return;
     }
-    this.logger.log(`WS connected: ${client.id} (account: ${accountId ?? 'anon'})`);
+
+    try {
+      const payload = this.jwtService.verify<{ sub: string; account_id: string }>(token);
+      const accountId = payload.account_id;
+
+      if (accountId) {
+        client.join(`account:${accountId}`);
+      }
+
+      // Store verified account_id on the socket for later use
+      client.data.accountId = accountId;
+      client.data.userId = payload.sub;
+
+      this.logger.log(`WS connected: ${client.id} (account: ${accountId})`);
+    } catch {
+      this.logger.warn(`WS rejected (invalid token): ${client.id}`);
+      client.disconnect(true);
+    }
   }
 
   handleDisconnect(client: Socket) {

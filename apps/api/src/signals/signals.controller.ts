@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ActivityAction } from '../common/decorators/activity-action.decorator';
+import { ParseBigIntPipe } from '../common/pipes/parse-bigint.pipe';
 import { SignalsService } from './signals.service';
 import { CreatePriceTestDto } from './dto/create-price-test.dto';
 
@@ -58,8 +59,8 @@ export class SignalsController {
 
   /** Feature 27 — Ranking Position Tracker */
   @Get('ranking/:productId')
-  getRanking(@Param('productId') productId: string) {
-    return this.signalsService.getRankingHistory(BigInt(productId));
+  getRanking(@Param('productId', ParseBigIntPipe) productId: bigint) {
+    return this.signalsService.getRankingHistory(productId);
   }
 
   /** Feature 28 — Product Launch Checklist */

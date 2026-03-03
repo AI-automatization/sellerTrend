@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ActivityAction } from '../common/decorators/activity-action.decorator';
+import { ParseBigIntPipe } from '../common/pipes/parse-bigint.pipe';
 import { ProductsService } from './products.service';
 import { AiService } from '../ai/ai.service';
 
@@ -24,10 +25,10 @@ export class ProductsController {
 
   @Get(':id')
   async getProduct(
-    @Param('id') productId: string,
+    @Param('id', ParseBigIntPipe) productId: bigint,
     @CurrentUser('account_id') accountId: string,
   ) {
-    const product = await this.productsService.getProductById(BigInt(productId), accountId);
+    const product = await this.productsService.getProductById(productId, accountId);
     if (!product) throw new NotFoundException('Product not found');
     return product;
   }
@@ -36,40 +37,52 @@ export class ProductsController {
   @ActivityAction('PRODUCT_TRACK')
   track(
     @CurrentUser('account_id') accountId: string,
-    @Param('id') productId: string,
+    @Param('id', ParseBigIntPipe) productId: bigint,
   ) {
-    return this.productsService.trackProduct(accountId, BigInt(productId));
+    return this.productsService.trackProduct(accountId, productId);
   }
 
   @Get(':id/snapshots')
-  snapshots(@Param('id') productId: string) {
-    return this.productsService.getProductSnapshots(BigInt(productId));
+  snapshots(
+    @Param('id', ParseBigIntPipe) productId: bigint,
+    @CurrentUser('account_id') accountId: string,
+  ) {
+    return this.productsService.getProductSnapshots(productId);
   }
 
   /** 7-day score forecast with trend direction */
   @Get(':id/forecast')
-  forecast(@Param('id') productId: string) {
-    return this.productsService.getForecast(BigInt(productId));
+  forecast(
+    @Param('id', ParseBigIntPipe) productId: bigint,
+    @CurrentUser('account_id') accountId: string,
+  ) {
+    return this.productsService.getForecast(productId);
   }
 
   /** ML-enhanced ensemble forecast with confidence intervals */
   @Get(':id/ml-forecast')
-  mlForecast(@Param('id') productId: string) {
-    return this.productsService.getAdvancedForecast(BigInt(productId));
+  mlForecast(
+    @Param('id', ParseBigIntPipe) productId: bigint,
+    @CurrentUser('account_id') accountId: string,
+  ) {
+    return this.productsService.getAdvancedForecast(productId);
   }
 
   /** Weekly trend: 7-day delta, daily breakdown, seller advice */
   @Get(':id/weekly-trend')
-  weeklyTrend(@Param('id') productId: string) {
-    return this.productsService.getWeeklyTrend(BigInt(productId));
+  weeklyTrend(
+    @Param('id', ParseBigIntPipe) productId: bigint,
+    @CurrentUser('account_id') accountId: string,
+  ) {
+    return this.productsService.getWeeklyTrend(productId);
   }
 
   /** AI-powered trend analysis */
   @Get(':id/trend-analysis')
   @ActivityAction('PRODUCT_TREND_ANALYSIS')
-  async trendAnalysis(@Param('id') productId: string) {
-    const forecast = await this.productsService.getAdvancedForecast(BigInt(productId));
-    const product = await this.productsService.getProductById(BigInt(productId));
+  async trendAnalysis(@Param('id', ParseBigIntPipe) productId: bigint) {
+    const forecast = await this.productsService.getAdvancedForecast(productId);
+    const product = await this.productsService.getProductById(productId);
     if (!product) throw new NotFoundException('Product not found');
 
     const analysis = await this.aiService.analyzeTrend({

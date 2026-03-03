@@ -12,6 +12,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { ParseBigIntPipe } from '../common/pipes/parse-bigint.pipe';
 import { CompetitorService } from './competitor.service';
 import { TrackCompetitorsDto } from './dto/track-competitors.dto';
 
@@ -25,11 +26,11 @@ export class CompetitorController {
   /** Discover competitors in the same category (live Uzum data) */
   @Get('products/:productId/prices')
   discoverPrices(
-    @Param('productId') productId: string,
+    @Param('productId', ParseBigIntPipe) productId: bigint,
     @CurrentUser('account_id') accountId: string,
   ) {
     return this.competitorService.discoverCompetitorPrices(
-      BigInt(productId),
+      productId,
       accountId,
     );
   }
@@ -50,11 +51,11 @@ export class CompetitorController {
   /** Get tracked competitors with latest prices */
   @Get('products/:productId/tracked')
   getTracked(
-    @Param('productId') productId: string,
+    @Param('productId', ParseBigIntPipe) productId: bigint,
     @CurrentUser('account_id') accountId: string,
   ) {
     return this.competitorService.getTrackedCompetitors(
-      BigInt(productId),
+      productId,
       accountId,
     );
   }
@@ -62,17 +63,14 @@ export class CompetitorController {
   /** Get price history for a competitor (chart data) */
   @Get('products/:productId/history')
   getHistory(
-    @Param('productId') productId: string,
-    @Query('competitor_id') competitorId: string,
+    @Param('productId', ParseBigIntPipe) productId: bigint,
+    @Query('competitor_id', ParseBigIntPipe) competitorId: bigint,
     @CurrentUser('account_id') accountId: string,
     @Query('limit') limit?: string,
   ) {
-    if (!competitorId) {
-      return { error: 'competitor_id query param is required' };
-    }
     return this.competitorService.getCompetitorPriceHistory(
-      BigInt(productId),
-      BigInt(competitorId),
+      productId,
+      competitorId,
       accountId,
       limit ? parseInt(limit, 10) : 50,
     );
@@ -81,14 +79,14 @@ export class CompetitorController {
   /** Get price history for a specific competitor */
   @Get('products/:productId/competitors/:competitorId/history')
   getCompetitorHistory(
-    @Param('productId') productId: string,
-    @Param('competitorId') competitorId: string,
+    @Param('productId', ParseBigIntPipe) productId: bigint,
+    @Param('competitorId', ParseBigIntPipe) competitorId: bigint,
     @CurrentUser('account_id') accountId: string,
     @Query('limit') limit?: string,
   ) {
     return this.competitorService.getCompetitorPriceHistory(
-      BigInt(productId),
-      BigInt(competitorId),
+      productId,
+      competitorId,
       accountId,
       limit ? parseInt(limit, 10) : 50,
     );
@@ -97,13 +95,13 @@ export class CompetitorController {
   /** Stop tracking a competitor */
   @Delete('products/:productId/competitors/:competitorId')
   untrack(
-    @Param('productId') productId: string,
-    @Param('competitorId') competitorId: string,
+    @Param('productId', ParseBigIntPipe) productId: bigint,
+    @Param('competitorId', ParseBigIntPipe) competitorId: bigint,
     @CurrentUser('account_id') accountId: string,
   ) {
     return this.competitorService.untrackCompetitor(
-      BigInt(productId),
-      BigInt(competitorId),
+      productId,
+      competitorId,
       accountId,
     );
   }

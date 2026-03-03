@@ -11,14 +11,14 @@ import { scheduleDailyBilling } from './jobs/billing.job';
 import { scheduleCompetitorSnapshots } from './jobs/competitor-snapshot.job';
 import { scheduleWeeklyScrape } from './jobs/weekly-scrape.job';
 
-// T-300: Global crash handlers
+// T-300 + T-349: Global crash handlers
 process.on('uncaughtException', (err) => {
   console.error('uncaughtException:', err);
-  process.exit(1);
+  // Let the process continue — Railway will restart if truly broken
 });
 process.on('unhandledRejection', (reason) => {
   console.error('unhandledRejection:', reason);
-  process.exit(1);
+  // Do NOT exit — one rejected promise should not kill all 6 workers
 });
 
 async function bootstrap() {

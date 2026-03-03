@@ -2,8 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MetricsService, MetricsSnapshot } from '../common/metrics/metrics.service';
 import { estimateCapacity, CapacityEstimate } from '../common/metrics/capacity-estimator';
-import * as childProcess from 'child_process';
-
 @Injectable()
 export class AdminMonitoringService {
   private readonly logger = new Logger(AdminMonitoringService.name);
@@ -295,15 +293,7 @@ export class AdminMonitoringService {
   async captureBaseline(label: string): Promise<unknown> {
     const snapshot = this.metricsService.getLatestSnapshot();
 
-    // Try to get git commit hash
-    let commitHash: string | null = null;
-    try {
-      commitHash = childProcess
-        .execSync('git rev-parse --short HEAD', { encoding: 'utf8' })
-        .trim();
-    } catch {
-      // Not a git repo or git not available
-    }
+    const commitHash = process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 7) ?? null;
 
     const activeSessions = await this.prisma.userSession.count({
       where: {

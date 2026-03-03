@@ -5,6 +5,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
 import { AiThrottlerGuard } from '../common/guards/ai-throttler.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { ParseBigIntPipe } from '../common/pipes/parse-bigint.pipe';
 import { AiService } from './ai.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -26,9 +27,9 @@ export class AiController {
 
   /** Get cached AI attributes for a product (30 req/min per account) */
   @Get('attributes/:productId')
-  async getAttributes(@Param('productId') productId: string) {
+  async getAttributes(@Param('productId', ParseBigIntPipe) productId: bigint) {
     const attr = await this.prisma.productAiAttribute.findUnique({
-      where: { product_id: BigInt(productId) },
+      where: { product_id: productId },
     });
     if (!attr) return null;
     return { ...attr, product_id: attr.product_id.toString() };
@@ -38,12 +39,12 @@ export class AiController {
   @Throttle({ ai: { ttl: AI_TTL_MS, limit: AI_EXTRACT_LIMIT } })
   @Post('attributes/:productId/extract')
   async extractAttributes(
-    @Param('productId') productId: string,
+    @Param('productId', ParseBigIntPipe) productId: bigint,
     @CurrentUser('account_id') accountId: string,
   ) {
     await this.aiService.checkAiQuota(accountId);
     const product = await this.prisma.product.findUniqueOrThrow({
-      where: { id: BigInt(productId) },
+      where: { id: productId },
       select: { id: true, title: true },
     });
     return this.aiService.extractAttributes(product.id, product.title);
@@ -51,9 +52,9 @@ export class AiController {
 
   /** Get all AI explanations for a product (30 req/min per account) */
   @Get('explanations/:productId')
-  async getExplanations(@Param('productId') productId: string) {
+  async getExplanations(@Param('productId', ParseBigIntPipe) productId: bigint) {
     const rows = await this.prisma.productAiExplanation.findMany({
-      where: { product_id: BigInt(productId) },
+      where: { product_id: productId },
       orderBy: { created_at: 'desc' },
       take: 10,
     });

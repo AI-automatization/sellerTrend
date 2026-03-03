@@ -2,14 +2,14 @@ import 'dotenv/config';
 import http from 'http';
 import { Bot, GrammyError, HttpError } from 'grammy';
 import { prisma } from './prisma';
-// T-300: Global crash handlers
+// T-300 + T-349: Global crash handlers
 process.on('uncaughtException', (err) => {
   console.error('uncaughtException:', err);
-  process.exit(1);
+  // Let the process continue — Railway will restart if truly broken
 });
 process.on('unhandledRejection', (reason) => {
   console.error('unhandledRejection:', reason);
-  process.exit(1);
+  // Do NOT exit — one rejected promise should not kill the bot
 });
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;

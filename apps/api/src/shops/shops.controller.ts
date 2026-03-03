@@ -2,6 +2,7 @@ import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
+import { ParseBigIntPipe } from '../common/pipes/parse-bigint.pipe';
 import { ShopsService } from './shops.service';
 
 @ApiTags('shops')
@@ -12,12 +13,12 @@ export class ShopsController {
   constructor(private readonly shopsService: ShopsService) {}
 
   @Get(':shopId')
-  getShopProfile(@Param('shopId') shopId: string) {
-    return this.shopsService.getShopProfile(BigInt(shopId));
+  getShopProfile(@Param('shopId', ParseBigIntPipe) shopId: bigint) {
+    return this.shopsService.getShopProfile(shopId);
   }
 
   @Get(':shopId/products')
-  getShopProducts(@Param('shopId') shopId: string) {
-    return this.shopsService.getShopProducts(BigInt(shopId));
+  getShopProducts(@Param('shopId', ParseBigIntPipe) shopId: bigint) {
+    return this.shopsService.getShopProducts(shopId);
   }
 }
