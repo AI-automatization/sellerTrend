@@ -145,9 +145,9 @@
 
 > Batafsil sabab/yechim: CODE-AUDIT-DESKTOP-LANDING-2026-03-04.md
 
-## P2 — O'RTA (batch)
+## P2 — O'RTA (batch) — BAJARILDI ✅
 
-### T-342 | P2 | FRONTEND | Landing P2 batch (18 ta) | 2h
+### T-342 | P2 | FRONTEND | Landing P2 batch | DONE
 
 ---
 

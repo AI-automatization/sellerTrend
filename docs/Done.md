@@ -4,6 +4,18 @@
 
 ---
 
+## T-342 | LANDING P2 | Audit batch (2026-03-04)
+
+- DownloadBanner: localStorage try/catch + "Tez kunda" → `t('download.soon')` i18n
+- FAQItem: `aria-expanded` on toggle button
+- PricingSection: `role="switch"` + `aria-checked` on billing toggle
+- FooterSection: privacy + terms links rendered in footer bottom bar
+- Navbar: `aria-expanded` + `aria-controls="mobile-menu"` + `id="mobile-menu"` added
+- index.html: localStorage try/catch in theme detection inline script
+- LangContext: `html[lang]` syncs on language change via useEffect
+
+---
+
 ## T-333..T-341 | LANDING P1 | Audit fixes (2026-03-04)
 
 - T-333: `animations.ts` — unused exports olib tashlandi (fadeIn, scaleIn, slideLeft, slideRight)
