@@ -265,7 +265,9 @@ export function Layout() {
         )}
 
         <main className="flex-1 p-4 lg:p-6 ventra-main-bg relative">
+          <div className="ventra-page-enter">
           <Outlet />
+          </div>
           {paymentDue && !['/', '/admin'].includes(location.pathname) && (
             <div className="absolute inset-0 bg-base-100/80 backdrop-blur-sm z-30 flex items-center justify-center">
               <div className="card bg-base-200 shadow-xl border border-error/30 max-w-md mx-4">
@@ -293,12 +295,12 @@ export function Layout() {
           {/* ── Logo ── */}
           <div className="px-5 py-4 border-b border-base-300/40">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-md shadow-primary/20">
-                <span className="text-primary-content font-bold text-sm font-heading">V</span>
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary via-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/25 ring-1 ring-primary/20">
+                <span className="text-primary-content font-black text-sm font-heading tracking-tight">V</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-heading font-bold text-[15px] leading-none tracking-tight">VENTRA</p>
-                <p className="text-[11px] text-base-content/35 mt-0.5">{t('layout.tagline')}</p>
+                <p className="font-heading font-bold text-[15px] leading-none tracking-[-0.03em] ventra-gradient-text">VENTRA</p>
+                <p className="text-[11px] text-base-content/40 mt-0.5 font-medium">{t('layout.tagline')}</p>
               </div>
             </div>
           </div>
@@ -319,10 +321,10 @@ export function Layout() {
                   {/* Section header */}
                   <button
                     onClick={() => toggleSection(key)}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[11px] uppercase tracking-[0.08em] font-bold transition-colors ${
+                    className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-[10.5px] uppercase tracking-[0.09em] font-bold transition-all duration-150 ${
                       isAdmin
-                        ? 'text-error/60 hover:bg-error/5'
-                        : 'text-base-content/35 hover:bg-base-content/3'
+                        ? 'text-error/55 hover:bg-error/6 hover:text-error/75'
+                        : 'text-base-content/30 hover:bg-base-content/4 hover:text-base-content/50'
                     }`}
                   >
                     <span className="flex items-center gap-2">
@@ -352,14 +354,14 @@ export function Layout() {
                             key={item.to}
                             to={item.to}
                             end={item.end}
-                            className={`group relative flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-all duration-150 ${
+                            className={`group relative flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[13px] transition-all duration-150 ${
                               active
-                                ? 'bg-primary/10 text-primary font-semibold'
-                                : 'text-base-content/65 hover:bg-base-content/5 hover:text-base-content/85 font-medium'
+                                ? 'ventra-nav-active text-primary font-semibold'
+                                : 'text-base-content/60 hover:bg-base-content/5 hover:text-base-content/85 font-medium'
                             }`}
                           >
-                            {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-primary" />}
-                            <Icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-primary' : 'text-base-content/40 group-hover:text-base-content/55'}`} />
+                            {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full bg-primary shadow-sm shadow-primary/40" />}
+                            <Icon className={`w-[17px] h-[17px] shrink-0 transition-colors duration-150 ${active ? 'text-primary' : 'text-base-content/35 group-hover:text-base-content/55'}`} />
                             <span className="truncate">{item.label}</span>
                             {item.badge != null && item.badge > 0 && (
                               <span className="ml-auto text-[10px] font-bold bg-error/15 text-error px-1.5 py-0.5 rounded-md min-w-[20px] text-center">
@@ -400,21 +402,21 @@ export function Layout() {
             </div>
 
             {/* User + Logout */}
-            <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl bg-base-content/3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0">
+            <div className="flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl bg-base-content/4 border border-base-300/30 hover:border-base-300/60 transition-colors duration-200">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/30 via-primary/15 to-secondary/10 flex items-center justify-center shrink-0 ring-1 ring-primary/15">
                 <span className="text-primary font-bold text-xs font-heading">
                   {isSuperAdmin ? 'SA' : userEmail.charAt(0).toUpperCase()}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium truncate">{isSuperAdmin ? 'Super Admin' : userEmail.split('@')[0]}</p>
-                <p className="text-[10px] text-base-content/30 truncate">
+                <p className="text-[12.5px] font-semibold truncate leading-tight">{isSuperAdmin ? 'Super Admin' : userEmail.split('@')[0]}</p>
+                <p className="text-[10px] text-base-content/35 truncate mt-0.5">
                   {isSuperAdmin ? 'admin@ventra' : t('layout.proPlan')}
                 </p>
               </div>
               <button
                 onClick={logout}
-                className="btn btn-ghost btn-xs btn-square rounded-lg text-base-content/30 hover:text-error tooltip tooltip-top"
+                className="btn btn-ghost btn-xs btn-square rounded-lg text-base-content/25 hover:text-error hover:bg-error/8 transition-all duration-150 tooltip tooltip-top"
                 data-tip={t('nav.logout')}
               >
                 <ArrowRightOnRectangleIcon className="w-4 h-4" />
