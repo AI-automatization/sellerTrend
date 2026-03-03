@@ -4,13 +4,6 @@ import { createTray } from './tray';
 import { registerIpcHandlers } from './ipc';
 import { initUpdater } from './updater';
 
-// Extend app with isQuitting flag for tray behavior
-declare module 'electron' {
-  interface App {
-    isQuitting?: boolean;
-  }
-}
-
 // Single instance lock — prevent multiple app windows
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {

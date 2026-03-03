@@ -24,6 +24,7 @@ export default defineConfig({
   },
   renderer: {
     root: resolve(__dirname, '../web'),
+    envDir: resolve(__dirname, '.'),
     plugins: [react(), tailwindcss()],
     resolve: {
       dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],

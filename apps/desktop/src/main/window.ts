@@ -20,7 +20,7 @@ function registerAppProtocol(): void {
 
     // Bypass: proxy API requests to the real backend server
     if (pathname.startsWith('/api/')) {
-      const apiBase = process.env.VITE_API_URL || 'http://localhost:3000';
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       return net.fetch(`${apiBase}${pathname}${url.search || ''}`, {
         method: req.method,
         headers: req.headers,

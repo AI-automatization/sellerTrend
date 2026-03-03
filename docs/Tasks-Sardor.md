@@ -37,8 +37,7 @@
 
 # DESKTOP APP
 
-### T-234 | Login ishlamaydi — VITE_API_URL yo'q | 30min
-E-001 + E-002 + production build fix.
+✅ T-234 — Done (2026-03-03)
 
 ---
 
@@ -95,11 +94,11 @@ Batafsil spec: `docs/Tasks.md` Chrome Extension bo'limida.
 | Web ochiq (P1-P2) | 4 |
 | i18n audit | ~~9~~ **0 ✅** |
 | Bekzod dependent | 5 |
-| Desktop | 1 |
+| Desktop | ~~1~~ **0 ✅** |
 | PWA cleanup | 4 |
 | Chrome Extension | 26 |
 | Landing | 28 |
-| **JAMI ochiq** | **68** |
+| **JAMI ochiq** | **67** |
 
 **Web app 95% tayyor** — asosiy ish Chrome Extension va Landing.
 

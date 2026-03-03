@@ -3,6 +3,15 @@
 
 ---
 
+## T-234 | DESKTOP | Login fix — VITE_API_URL (2026-03-03)
+
+- `electron.vite.config.ts`: `envDir: resolve(__dirname, '.')` — renderer endi `apps/desktop/.env` dan `VITE_API_URL` oladi
+- `window.ts`: `process.env.VITE_API_URL` → `import.meta.env.VITE_API_URL` — main process uchun to'g'ri
+- `src/main/env.d.ts`: yangi — `ImportMeta`/`ImportMetaEnv` type declaration
+- `index.ts`: elektron module augmentation TS2300 xatosi olib tashlandi
+
+---
+
 ## T-299..T-314 | SPRINT | BACKEND+DEVOPS | Stability & 1500 User Scaling (2026-03-03)
 
 **Sprint:** 16 task, 3 faza, ~25 fayl, commit `97d2360`
