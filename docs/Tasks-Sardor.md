@@ -141,8 +141,8 @@
 
 ## P0 — KRITIK (4 ta)
 
-### T-329 | P0 | FRONTEND | Landing: `favicon.svg` yaratish | 10min
-### T-330 | P0 | FRONTEND | Landing: Railway URL fallback o'chirish | 5min
+### T-329 | P0 | FRONTEND | Landing: `favicon.svg` yaratish | 10min | pending[Sardor]
+### T-330 | P0 | FRONTEND | Landing: Railway URL fallback o'chirish | 5min | pending[Sardor]
 ### T-331 | P0 | FRONTEND | Landing: nginx CSP header | 15min
 ### T-332 | P0 | FRONTEND | Landing: Placeholder verification kodlari o'chirish | 5min
 
