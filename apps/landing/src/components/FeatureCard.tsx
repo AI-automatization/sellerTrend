@@ -6,7 +6,6 @@ interface FeatureCardProps {
   icon: ReactNode;
   title: string;
   description: string;
-  index: number;
 }
 
 export function FeatureCard({ icon, title, description }: FeatureCardProps) {

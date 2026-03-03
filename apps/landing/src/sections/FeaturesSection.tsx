@@ -62,8 +62,8 @@ export function FeaturesSection() {
           viewport={VIEWPORT}
           className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"
         >
-          {FEATURES.map((feature, i) => (
-            <FeatureCard key={feature.titleKey} icon={feature.icon} title={t(feature.titleKey)} description={t(feature.descKey)} index={i} />
+          {FEATURES.map((feature) => (
+            <FeatureCard key={feature.titleKey} icon={feature.icon} title={t(feature.titleKey)} description={t(feature.descKey)} />
           ))}
         </motion.div>
       </div>
