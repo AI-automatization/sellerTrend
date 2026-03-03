@@ -15,7 +15,7 @@ export const sourcingApi = {
     sell_price_uzs?: number;
   }) => api.post('/sourcing/cargo/calculate', data),
   searchPrices: (query: string, source: string) =>
-    api.post('/sourcing/search', { query, source }),
+    api.post('/sourcing/search', { query, source }, { timeout: 90_000 }),
   createJob: (data: { product_id: number; product_title: string; platforms?: string[] }) =>
     api.post('/sourcing/jobs', data),
   getJob: (id: string) => api.get(`/sourcing/jobs/${id}`),

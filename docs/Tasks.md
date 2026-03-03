@@ -42,9 +42,7 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 
 ## P1 — MUHIM
 
-### T-303 | P1 | FRONTEND | Axios global timeout=30s + sekin endpoint alohida | Bekzod | 15min
-Tafsilot: Backend Sprint (T-299..T-313) bo'limida to'liq analiz bor.
-Qisqacha: `apps/web/src/api/base.ts` da Axios timeout YO'Q → user 60s hang ko'radi.
+(hozircha yo'q)
 
 ---
 

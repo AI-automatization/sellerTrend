@@ -12,8 +12,8 @@ export const productsApi = {
 };
 
 export const uzumApi = {
-  analyzeUrl: (url: string) => api.post('/uzum/analyze', { url }),
-  analyzeById: (id: string) => api.get(`/uzum/product/${id}`),
+  analyzeUrl: (url: string) => api.post('/uzum/analyze', { url }, { timeout: 60_000 }),
+  analyzeById: (id: string) => api.get(`/uzum/product/${id}`, { timeout: 60_000 }),
 };
 
 export const billingApi = {

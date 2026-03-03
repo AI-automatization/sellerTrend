@@ -3,6 +3,7 @@ import { queryClient } from '../stores/queryClient';
 
 export const api = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL ?? ''}/api/v1`,
+  timeout: 30_000,
 });
 
 // Attach JWT token + cache-busting to every request

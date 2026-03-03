@@ -31,7 +31,7 @@
 
 **Fayllar (25):** worker/prisma.ts, bot/prisma.ts, 3x main.ts, auth.service.ts, admin-stats.service.ts, metrics.service.ts, custom-throttler.guard.ts, 4x queue.ts, 3x job.ts, 6x processor.ts, uzum.client.ts, uzum-scraper.ts, docker-compose.prod.yml, prisma.service.ts, capacity-estimator.ts, admin-monitoring.service.ts, nginx.conf.template, railway.toml
 
-**T-303 (Frontend Axios timeout)** — ochiq qoldi (Sardor/Frontend task)
+**T-303**: Axios global timeout=30s + sekin endpoint alohida (discovery 60s, sourcing 90s, uzum 60s)
 
 ---
 

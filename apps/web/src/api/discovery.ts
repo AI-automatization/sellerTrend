@@ -2,7 +2,7 @@ import { api } from './base';
 
 export const discoveryApi = {
   startRun: (input: string | number) =>
-    api.post('/discovery/run', { input: String(input) }),
+    api.post('/discovery/run', { input: String(input) }, { timeout: 60_000 }),
   listRuns: () => api.get('/discovery/runs'),
   getRun: (id: string) => api.get(`/discovery/runs/${id}`),
   getLeaderboard: (categoryId?: number) =>
