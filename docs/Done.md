@@ -1,6 +1,45 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
-# Yangilangan: 2026-03-03
+# Yangilangan: 2026-03-04
 # Ochiq tasklar → docs/Tasks.md, docs/Tasks-Bekzod.md, docs/Tasks-Sardor.md
+
+---
+
+## T-379 | FRONTEND P2 | Design system cleanup — chart tokens & duplicates (2026-03-04)
+
+**8 fix bajarildi:**
+1. `chartTokens.ts` yaratildi — CHART_COLORS, SCORE_COLORS, scoreColor(), glassTooltip, AXIS_TICK, GRID_STROKE, CHART_ANIMATION_MS
+2. `PriceComparisonChart.tsx` — hardcoded `#570df8`, `rgba(255,255,255,0.4)`, `#1d232a` → CSS variables
+3. `AdminAnalyticsTab.tsx` — 16+ raw `oklch(...)` → `var(--chart-grid)`, `var(--chart-tick)`, `glassTooltip`
+4. `AnalyticsTab.tsx` o'chirildi (439 qator duplicate)
+5. `competitor/CompetitorSection.tsx` o'chirildi (unused duplicate)
+6. `AdminComponents.tsx` StatCard duplicate → re-export
+7. `skeletons/*.tsx` — `animate-pulse bg-base-300/60` → DaisyUI `skeleton` class
+8. Barcha chartlarda `animationDuration={CHART_ANIMATION_MS}` (800ms) standartlashtirildi
+
+**Tekshiruv:** `tsc --noEmit` 0 error, `vite build` OK, Playwright light+dark screenshot verified
+
+---
+
+## T-355, T-356, T-358 | BACKEND P1 | Security & stability batch (2026-03-04)
+
+- T-355: QueueLifecycleService — 4 BullMQ queue graceful close on shutdown; lockDuration 600s on 3 Playwright workers
+- T-356: 7 unbounded findMany queries paginated (community, discovery, feedback, reports, shops) — MAX 50-100 per page
+- T-358: 11 API security fixes — sourcing fire-and-forget, CSV 5000 limit, throttler Logger, Sentry eval fix, parseInt validation, api-key guard early return, team token removal, leaderboard auth, file logger close
+
+---
+
+## T-343..T-352 | BACKEND P0 | Critical security & stability fixes (2026-03-04)
+
+- T-343: IDOR fix — assertProductOwnership() helper, account_id filter on all product/AI/signal/competitor endpoints (7 files)
+- T-344: WebSocket JWT auth — token extraction + verify + typed payload + disconnect on invalid (already fixed)
+- T-345: Team invite hijack — existing user protection (already fixed)
+- T-346: BigInt/ParseIntPipe — uzum.controller.ts analyzeById fixed
+- T-347: Notification markAsRead — per-user clone for broadcast notifications
+- T-348: Race condition batch — 6 TOCTOU fixes with Prisma $transaction (billing, api-keys, referral, consultation, community, discovery)
+- T-349: unhandledRejection handler — worker/bot graceful shutdown (already fixed)
+- T-350: Singleton BrowserPool — shared Chromium instance, OOM prevention, auto-recovery
+- T-351: execSync replaced with async exec in admin-monitoring (already fixed)
+- T-352: Shared RedisModule — consolidated 5 separate Redis connections into 1 shared instance + getBullMQConnection helper
 
 ---
 

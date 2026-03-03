@@ -358,31 +358,19 @@ i18n gaps (4), a11y (3), DRY (4), SEO/build (4), misc (3)
 #
 # Manba: docs/CODE-AUDIT-2026-03-04.md | apps/api, apps/worker, apps/bot
 
-## P0 — KRITIK (10 ta)
+## P0 — KRITIK ✅ DONE (2026-03-04, d5850ca)
 
-| # | Muammo | Fayl | Vaqt |
-|---|--------|------|------|
-| T-343 | IDOR — product endpoint'lar account_id filtersiz | `products.controller.ts` | 30min |
-| T-344 | WebSocket — JWT auth yo'q, ixtiyoriy account_id | `product.gateway.ts:28-31` | 1h |
-| T-345 | Team invite — mavjud user hijack | `team.service.ts:119-127` | 30min |
-| T-346 | BigInt() user input validation yo'q — 500 crash | 5 controller | 15min |
-| T-347 | Notification markAsRead global — barcha userlar uchun | `notification.service.ts:81-102` | 30min |
-| T-348 | Race condition batch — 6 ta TOCTOU fix | billing, api-keys, referral, consultation, community, discovery | 2h |
-| T-349 | unhandledRejection → process.exit(1) fix | `worker/main.ts`, `bot/main.ts` | 15min |
-| T-350 | Chromium shared browser pool — OOM fix | 3 scraper | 2h |
-| T-351 | execSync event loop bloklaydi | `admin-monitoring.service.ts:301-306` | 10min |
-| T-352 | Redis shared module — 5 ta alohida connection | 5 service | 2h |
+> T-343..T-352 → Done.md
 
-## P1 — MUHIM (6 task, ~38 bug)
+## P1 — MUHIM (3 task qoldi)
 
 | # | Muammo | Bug soni | Vaqt |
 |---|--------|----------|------|
 | T-353 | DTO validation — 15+ endpoint raw @Body() | 15 | 3h |
 | T-354 | `any` type cleanup — 40+ instance | 40 | 2h |
-| T-355 | BullMQ lifecycle — shutdown + cleanup + lockDuration | 7 | 1h |
-| T-356 | Unbounded query fix — 7 ta service | 7 | 2h |
 | T-357 | Worker stability batch — 7 ta fix | 7 | 1.5h |
-| T-358 | API security/cleanup batch — 11 ta fix | 11 | 2h |
+
+> T-355, T-356, T-358 → Done.md (2026-03-04, b187672)
 
 ## P2 — O'RTA (2 task, ~41 bug)
 
@@ -489,8 +477,8 @@ i18n gaps (4), a11y (3), DRY (4), SEO/build (4), misc (3)
 
 | Kategoriya | Task | Bug/Fix | Mas'ul |
 |-----------|------|---------|--------|
-| **Backend Kod Audit P0** (T-343..T-352) | 10 | 10 | Bekzod |
-| **Backend Kod Audit P1** (T-353..T-358) | 6 | ~38 | Bekzod |
+| **Backend Kod Audit P0** (T-343..T-352) | ~~10~~ ✅ | ~~10~~ | Bekzod |
+| **Backend Kod Audit P1** (T-353..T-358) | ~~6~~ 3 qoldi | ~17 qoldi | Bekzod |
 | **Backend Kod Audit P2** (T-359..T-360) | 2 | ~41 | Bekzod |
 | **Web Kod Audit P0** (T-361..T-366) | 6 | 6 | Sardor |
 | **Web Kod Audit P1** (T-367..T-369) | 3 | ~28 | Sardor |
