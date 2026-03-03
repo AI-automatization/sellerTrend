@@ -7,7 +7,7 @@ import {
   type JwtTokenPayload,
 } from "./storage";
 
-const BASE_URL = process.env.PLASMO_PUBLIC_API_URL ?? "http://localhost:3000/api/v1";
+const BASE_URL = process.env.PLASMO_PUBLIC_API_URL;
 
 // ── Internal fetch wrapper ───────────────────────────────────
 

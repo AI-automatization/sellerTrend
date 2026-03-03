@@ -36,7 +36,8 @@
     ],
     "host_permissions": [
       "https://uzum.uz/*",
-      "https://api.uzum.uz/*"
+      "https://api.uzum.uz/*",
+      "https://*.up.railway.app/*"
     ]
   }
 }
