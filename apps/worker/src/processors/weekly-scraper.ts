@@ -108,20 +108,29 @@ export async function scrapeWeeklyBought(
   try {
     const page = await context.newPage();
 
-    // Navigate — Uzum does auth redirect, so use networkidle + longer timeout
+    // Navigate — Uzum does auth redirect chain, 'load' is safer than 'networkidle'
+    // (networkidle times out because Uzum has persistent background connections)
     await page.goto(url, {
-      waitUntil: 'networkidle',
-      timeout: 25000,
+      waitUntil: 'load',
+      timeout: 20000,
     });
 
-    // Check SSR/HTML content immediately after load (before waiting for hydration)
+    // Check SSR/HTML content immediately after load
     const earlyHtml = await page.content();
     const earlyResult = extractFromHtml(earlyHtml, productId, jobId);
     if (earlyResult !== null) return earlyResult;
 
-    // Wait for Vue.js hydration + dynamic content rendering
-    // Uzum auth redirect adds latency, so 5s minimum wait
-    await page.waitForTimeout(5000);
+    // Wait for Vue.js hydration + dynamic banner rendering
+    // Try to detect banner element first (faster), fallback to fixed wait
+    try {
+      await page.waitForFunction(
+        () => document.body?.textContent?.includes('человек купили') ?? false,
+        { timeout: 8000 },
+      );
+    } catch {
+      // Banner not found via waitForFunction — wait fixed time for slow renders
+      await page.waitForTimeout(3000);
+    }
 
     // Check HTML again after hydration
     const htmlContent = await page.content();
