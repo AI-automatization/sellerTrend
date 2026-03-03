@@ -1,4 +1,4 @@
-import { Injectable, Inject, ExecutionContext } from '@nestjs/common';
+import { Injectable, Inject, ExecutionContext, Logger } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import Redis from 'ioredis';
 import { REDIS_CLIENT } from '../redis/redis.module';
@@ -10,6 +10,7 @@ import { REDIS_CLIENT } from '../redis/redis.module';
  */
 @Injectable()
 export class CustomThrottlerGuard extends ThrottlerGuard {
+  private readonly logger = new Logger(CustomThrottlerGuard.name);
   private readonly whitelistedIps: Set<string>;
 
   @Inject(REDIS_CLIENT) private readonly rateLimitRedis!: Redis;
@@ -32,8 +33,9 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
     try {
       return await super.canActivate(context);
     } catch (err: unknown) {
-      // Webpack bundling can break Reflector injection — skip throttling rather than crash
+      // Webpack bundling can break Reflector injection — log warning, allow request gracefully
       if (err instanceof Error && err.message?.includes('getAllAndOverride')) {
+        this.logger.warn('Throttler Reflector error — rate limiting bypassed for this request');
         return true;
       }
 

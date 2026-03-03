@@ -55,8 +55,15 @@ export class FeedbackController {
   getMyTickets(
     @CurrentUser('id') userId: string,
     @CurrentUser('account_id') accountId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.feedbackService.getMyTickets(accountId, userId);
+    return this.feedbackService.getMyTickets(
+      accountId,
+      userId,
+      page ? parseInt(page, 10) : 1,
+      limit ? parseInt(limit, 10) : 50,
+    );
   }
 
   /** Get ticket detail (user sees own tickets) */

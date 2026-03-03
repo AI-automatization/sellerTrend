@@ -7,11 +7,14 @@ export class ShopsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getShopProfile(shopId: bigint) {
+    const MAX_SHOP_PROFILE_PRODUCTS = 100;
     const shop = await this.prisma.shop.findUnique({
       where: { id: shopId },
       include: {
         products: {
           where: { is_active: true },
+          orderBy: { orders_quantity: 'desc' },
+          take: MAX_SHOP_PROFILE_PRODUCTS,
           include: {
             snapshots: { orderBy: { snapshot_at: 'desc' }, take: 1 },
             skus: {
@@ -78,46 +81,65 @@ export class ShopsService {
     };
   }
 
-  async getShopProducts(shopId: bigint) {
+  async getShopProducts(shopId: bigint, page = 1, limit = 100) {
     const shop = await this.prisma.shop.findUnique({
       where: { id: shopId },
     });
     if (!shop) throw new NotFoundException('Shop not found');
 
-    const products = await this.prisma.product.findMany({
-      where: { shop_id: shopId, is_active: true },
-      include: {
-        snapshots: { orderBy: { snapshot_at: 'desc' }, take: 1 },
-        skus: {
-          where: { is_available: true },
-          orderBy: { min_sell_price: 'asc' },
-          take: 1,
-        },
-      },
-      orderBy: { orders_quantity: 'desc' },
-    });
+    const MAX_SHOP_PRODUCTS = 100;
+    const take = Math.min(limit, MAX_SHOP_PRODUCTS);
+    const skip = (page - 1) * take;
 
-    return products.map((p) => ({
-      product_id: p.id.toString(),
-      title: p.title,
-      rating: p.rating ? Number(p.rating) : null,
-      feedback_quantity: p.feedback_quantity,
-      orders_quantity: p.orders_quantity?.toString(),
-      score: p.snapshots[0]?.score ? Number(p.snapshots[0].score) : null,
-      weekly_bought: p.snapshots[0]?.weekly_bought ?? null,
-      sell_price: p.skus[0]?.min_sell_price
-        ? Number(p.skus[0].min_sell_price)
-        : null,
-    }));
+    const [products, total] = await Promise.all([
+      this.prisma.product.findMany({
+        where: { shop_id: shopId, is_active: true },
+        include: {
+          snapshots: { orderBy: { snapshot_at: 'desc' }, take: 1 },
+          skus: {
+            where: { is_available: true },
+            orderBy: { min_sell_price: 'asc' },
+            take: 1,
+          },
+        },
+        orderBy: { orders_quantity: 'desc' },
+        take,
+        skip,
+      }),
+      this.prisma.product.count({
+        where: { shop_id: shopId, is_active: true },
+      }),
+    ]);
+
+    return {
+      data: products.map((p) => ({
+        product_id: p.id.toString(),
+        title: p.title,
+        rating: p.rating ? Number(p.rating) : null,
+        feedback_quantity: p.feedback_quantity,
+        orders_quantity: p.orders_quantity?.toString(),
+        score: p.snapshots[0]?.score ? Number(p.snapshots[0].score) : null,
+        weekly_bought: p.snapshots[0]?.weekly_bought ?? null,
+        sell_price: p.skus[0]?.min_sell_price
+          ? Number(p.skus[0].min_sell_price)
+          : null,
+      })),
+      total,
+      page,
+      limit: take,
+      pages: Math.ceil(total / take),
+    };
   }
 
   private async calculateGrowth(shopId: bigint): Promise<number | null> {
     const now = new Date();
     const ago = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
+    const MAX_GROWTH_PRODUCTS = 500;
     const products = await this.prisma.product.findMany({
       where: { shop_id: shopId },
       select: { id: true },
+      take: MAX_GROWTH_PRODUCTS,
     });
     if (products.length === 0) return null;
 

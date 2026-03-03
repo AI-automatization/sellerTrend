@@ -29,10 +29,18 @@ export class CommunityController {
     return this.communityService.createInsight(accountId, body);
   }
 
-  /** List insights (optionally filter by category) */
+  /** List insights (optionally filter by category, paginated) */
   @Get('insights')
-  listInsights(@Query('category') category?: string) {
-    return this.communityService.listInsights(category);
+  listInsights(
+    @Query('category') category?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.communityService.listInsights(
+      category,
+      page ? parseInt(page, 10) : 1,
+      limit ? parseInt(limit, 10) : 50,
+    );
   }
 
   /** Vote on an insight */

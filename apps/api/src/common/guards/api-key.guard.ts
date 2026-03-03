@@ -25,8 +25,10 @@ export class ApiKeyGuard implements CanActivate {
     const { accountId } = await this.apiKeysService.validateKey(apiKey);
 
     // Attach account info to request (same shape as JWT user)
+    // id must be set — many decorators/guards rely on req.user.id
     // role: 'USER' — API key users get standard access, endpoint-level guards control scope
     req.user = {
+      id: `apikey:${accountId}`,
       sub: `apikey:${accountId}`,
       account_id: accountId,
       role: 'USER',

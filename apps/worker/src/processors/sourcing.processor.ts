@@ -630,7 +630,11 @@ export function createSourcingWorker() {
         throw err;
       }
     },
-    { ...redisConnection, concurrency: 1 },
+    {
+      ...redisConnection,
+      concurrency: 1,
+      lockDuration: 600_000, // 10 min — Playwright scraping can take 1-5 min
+    },
   );
 
   worker.on('error', (err) => logJobError('sourcing-search', '-', 'worker', err));

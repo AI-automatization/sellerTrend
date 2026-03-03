@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
@@ -18,7 +18,15 @@ export class ShopsController {
   }
 
   @Get(':shopId/products')
-  getShopProducts(@Param('shopId', ParseBigIntPipe) shopId: bigint) {
-    return this.shopsService.getShopProducts(shopId);
+  getShopProducts(
+    @Param('shopId', ParseBigIntPipe) shopId: bigint,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.shopsService.getShopProducts(
+      shopId,
+      page ? parseInt(page, 10) : 1,
+      limit ? parseInt(limit, 10) : 100,
+    );
   }
 }

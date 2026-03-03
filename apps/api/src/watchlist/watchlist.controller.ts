@@ -7,6 +7,7 @@ import {
   Body,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
@@ -15,6 +16,7 @@ import { WatchlistService } from './watchlist.service';
 
 @ApiTags('watchlists')
 @ApiBearerAuth()
+@Throttle({ default: { limit: 10, ttl: 60000 } })
 @Controller('watchlists')
 export class WatchlistController {
   constructor(private readonly watchlistService: WatchlistService) {}

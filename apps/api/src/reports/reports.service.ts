@@ -89,17 +89,17 @@ export class ReportsService {
       throw new NotFoundException(`Report ${reportId} not found`);
     }
 
-    let rows: any[] = [];
+    let rows: Record<string, unknown>[] = [];
 
     switch (report.report_type) {
       case 'product':
-        rows = await this.generateProductReport(accountId, report.filters as any);
+        rows = await this.generateProductReport(accountId, report.filters as Record<string, unknown>);
         break;
       case 'category':
-        rows = await this.generateCategoryReport(accountId, report.filters as any);
+        rows = await this.generateCategoryReport(accountId, report.filters as Record<string, unknown>);
         break;
       case 'market':
-        rows = await this.generateMarketReport(report.filters as any);
+        rows = await this.generateMarketReport(report.filters as Record<string, unknown>);
         break;
       default:
         rows = [];
@@ -120,7 +120,8 @@ export class ReportsService {
   }
 
   /** Product report — tracked products with latest snapshot data */
-  private async generateProductReport(accountId: string, filters: any) {
+  private async generateProductReport(accountId: string, filters: Record<string, unknown>) {
+    const MAX_TRACKED_PRODUCTS = 500;
     const tracked = await this.prisma.trackedProduct.findMany({
       where: { account_id: accountId, is_active: true },
       include: {
@@ -131,6 +132,8 @@ export class ReportsService {
           },
         },
       },
+      orderBy: { created_at: 'desc' },
+      take: MAX_TRACKED_PRODUCTS,
     });
 
     return tracked.map((t) => {
@@ -151,7 +154,7 @@ export class ReportsService {
   }
 
   /** Category report — category winners from recent runs */
-  private async generateCategoryReport(accountId: string, filters: any) {
+  private async generateCategoryReport(accountId: string, filters: Record<string, unknown>) {
     const runs = await this.prisma.categoryRun.findMany({
       where: { account_id: accountId, status: 'DONE' },
       orderBy: { finished_at: 'desc' },
@@ -184,7 +187,7 @@ export class ReportsService {
   }
 
   /** Market report — top products across categories */
-  private async generateMarketReport(filters: any) {
+  private async generateMarketReport(filters: Record<string, unknown>) {
     const products = await this.prisma.product.findMany({
       where: { is_active: true },
       include: {
@@ -212,12 +215,15 @@ export class ReportsService {
 
   /** Feature 35 — Market Share Report by category */
   async generateMarketShareReport(categoryId: number) {
+    const MAX_MARKET_SHARE_PRODUCTS = 500;
     const products = await this.prisma.product.findMany({
       where: { category_id: BigInt(categoryId), is_active: true },
       include: {
         snapshots: { orderBy: { snapshot_at: 'desc' }, take: 1 },
         shop: { select: { id: true, title: true } },
       },
+      orderBy: { orders_quantity: 'desc' },
+      take: MAX_MARKET_SHARE_PRODUCTS,
     });
 
     // Aggregate by shop

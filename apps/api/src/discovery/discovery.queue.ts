@@ -17,3 +17,11 @@ export async function enqueueDiscovery(data: CategoryDiscoveryJobData) {
     removeOnFail: { age: 86400, count: 500 },
   });
 }
+
+/** Close the queue connection (call on app shutdown). */
+export async function closeDiscoveryQueue(): Promise<void> {
+  if (_queue) {
+    await _queue.close();
+    _queue = null;
+  }
+}

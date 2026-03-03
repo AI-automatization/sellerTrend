@@ -34,11 +34,12 @@ export interface ExternalProduct {
 }
 
 /**
- * Quick search — Job yuboramiz va natijasini kutamiz (max 60 soniya).
+ * Quick search — enqueue job and return job ID immediately.
+ * Client should poll GET /sourcing/jobs/:id for status instead of blocking.
  */
 export async function enqueueSourcingSearch(
   query: string,
-): Promise<ExternalProduct[]> {
+): Promise<{ jobId: string }> {
   const job = await getQueue().add(
     'search',
     { query } satisfies SourcingSearchJobData,
@@ -50,12 +51,7 @@ export async function enqueueSourcingSearch(
     },
   );
 
-  try {
-    const result = await job.waitUntilFinished(getQueueEvents(), 90_000);
-    return Array.isArray(result) ? result : [];
-  } catch {
-    return [];
-  }
+  return { jobId: job.id ?? 'unknown' };
 }
 
 /**
@@ -71,4 +67,16 @@ export async function enqueueSourcingJob(
     removeOnComplete: { age: 3600, count: 1000 },
     removeOnFail: { age: 86400, count: 500 },
   });
+}
+
+/** Close the queue and queue events connections (call on app shutdown). */
+export async function closeSourcingQueue(): Promise<void> {
+  if (_queueEvents) {
+    await _queueEvents.close();
+    _queueEvents = null;
+  }
+  if (_queue) {
+    await _queue.close();
+    _queue = null;
+  }
 }

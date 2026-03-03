@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -12,12 +12,16 @@ function ensureLogDir() {
 }
 
 @Injectable()
-export class RequestLoggerService {
+export class RequestLoggerService implements OnModuleDestroy {
   private readonly stream: fs.WriteStream;
 
   constructor() {
     ensureLogDir();
     this.stream = fs.createWriteStream(LOG_FILE, { flags: 'a', encoding: 'utf8' });
+  }
+
+  onModuleDestroy() {
+    this.stream.end();
   }
 
   /**

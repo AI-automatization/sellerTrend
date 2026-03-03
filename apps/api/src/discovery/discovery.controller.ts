@@ -85,10 +85,11 @@ export class DiscoveryController {
     @CurrentUser('account_id') accountId: string,
     @Query('category_id') categoryId?: string,
   ) {
-    return this.discoveryService.getLeaderboard(
-      accountId,
-      categoryId ? parseInt(categoryId) : undefined,
-    );
+    const parsed = categoryId ? parseInt(categoryId, 10) : undefined;
+    if (parsed !== undefined && isNaN(parsed)) {
+      throw new BadRequestException('category_id must be a valid number');
+    }
+    return this.discoveryService.getLeaderboard(accountId, parsed);
   }
 
   // ============================================================
@@ -100,10 +101,11 @@ export class DiscoveryController {
     @CurrentUser('account_id') accountId: string,
     @Query('category_id') categoryId?: string,
   ) {
-    return this.nicheService.findNiches(
-      accountId,
-      categoryId ? parseInt(categoryId) : undefined,
-    );
+    const parsed = categoryId ? parseInt(categoryId, 10) : undefined;
+    if (parsed !== undefined && isNaN(parsed)) {
+      throw new BadRequestException('category_id must be a valid number');
+    }
+    return this.nicheService.findNiches(accountId, parsed);
   }
 
   @Get('niches/gaps')
@@ -111,10 +113,11 @@ export class DiscoveryController {
     @CurrentUser('account_id') accountId: string,
     @Query('category_id') categoryId?: string,
   ) {
-    return this.nicheService.findGaps(
-      accountId,
-      categoryId ? parseInt(categoryId) : undefined,
-    );
+    const parsed = categoryId ? parseInt(categoryId, 10) : undefined;
+    if (parsed !== undefined && isNaN(parsed)) {
+      throw new BadRequestException('category_id must be a valid number');
+    }
+    return this.nicheService.findGaps(accountId, parsed);
   }
 
   // ============================================================
@@ -122,9 +125,18 @@ export class DiscoveryController {
   // ============================================================
 
   @Get('seasonal-calendar')
-  async getSeasonalCalendar() {
+  async getSeasonalCalendar(
+    @Query('limit') limitParam?: string,
+  ) {
+    const MAX_SEASONAL_TRENDS = 500;
+    const take = Math.min(
+      limitParam ? parseInt(limitParam, 10) || MAX_SEASONAL_TRENDS : MAX_SEASONAL_TRENDS,
+      MAX_SEASONAL_TRENDS,
+    );
+
     const trends = await this.prisma.seasonalTrend.findMany({
       orderBy: { season_start: 'asc' },
+      take,
     });
 
     return {
@@ -146,7 +158,11 @@ export class DiscoveryController {
     const currentMonth = now.getMonth() + 1; // 1-12
     const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
 
-    const trends = await this.prisma.seasonalTrend.findMany();
+    const MAX_SEASONAL_TRENDS = 500;
+    const trends = await this.prisma.seasonalTrend.findMany({
+      orderBy: { season_start: 'asc' },
+      take: MAX_SEASONAL_TRENDS,
+    });
 
     const upcoming = trends.filter((t) => {
       if (t.season_start <= t.season_end) {

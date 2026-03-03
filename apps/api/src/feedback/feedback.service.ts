@@ -64,39 +64,56 @@ export class FeedbackService {
   /**
    * List all tickets belonging to a user, with message count and last message.
    */
-  async getMyTickets(accountId: string, userId: string) {
-    const tickets = await this.prisma.feedbackTicket.findMany({
-      where: {
-        account_id: accountId,
-        user_id: userId,
-      },
-      orderBy: { updated_at: 'desc' },
-      include: {
-        _count: { select: { messages: true } },
-        messages: {
-          orderBy: { created_at: 'desc' },
-          take: 1,
-        },
-      },
-    });
+  async getMyTickets(accountId: string, userId: string, page = 1, limit = 50) {
+    const MAX_MY_TICKETS = 50;
+    const take = Math.min(limit, MAX_MY_TICKETS);
+    const skip = (page - 1) * take;
 
-    return tickets.map((t) => ({
-      id: t.id,
-      subject: t.subject,
-      type: t.type,
-      priority: t.priority,
-      status: t.status,
-      message_count: t._count.messages,
-      last_message: t.messages[0]
-        ? {
-            content: t.messages[0].content,
-            is_admin: t.messages[0].is_admin,
-            created_at: t.messages[0].created_at,
-          }
-        : null,
-      created_at: t.created_at,
-      updated_at: t.updated_at,
-    }));
+    const where = {
+      account_id: accountId,
+      user_id: userId,
+    };
+
+    const [tickets, total] = await Promise.all([
+      this.prisma.feedbackTicket.findMany({
+        where,
+        orderBy: { updated_at: 'desc' },
+        take,
+        skip,
+        include: {
+          _count: { select: { messages: true } },
+          messages: {
+            orderBy: { created_at: 'desc' },
+            take: 1,
+          },
+        },
+      }),
+      this.prisma.feedbackTicket.count({ where }),
+    ]);
+
+    return {
+      data: tickets.map((t) => ({
+        id: t.id,
+        subject: t.subject,
+        type: t.type,
+        priority: t.priority,
+        status: t.status,
+        message_count: t._count.messages,
+        last_message: t.messages[0]
+          ? {
+              content: t.messages[0].content,
+              is_admin: t.messages[0].is_admin,
+              created_at: t.messages[0].created_at,
+            }
+          : null,
+        created_at: t.created_at,
+        updated_at: t.updated_at,
+      })),
+      total,
+      page,
+      limit: take,
+      pages: Math.ceil(total / take),
+    };
   }
 
   /**
@@ -211,18 +228,21 @@ export class FeedbackService {
     page = 1,
     limit = 20,
   ) {
-    const where: any = {};
+    const MAX_ADMIN_TICKETS = 50;
+    const take = Math.min(limit, MAX_ADMIN_TICKETS);
+
+    const where: { status?: FeedbackStatus; type?: FeedbackType } = {};
     if (status) where.status = status;
     if (type) where.type = type;
 
-    const skip = (page - 1) * limit;
+    const skip = (page - 1) * take;
 
     const [tickets, total] = await Promise.all([
       this.prisma.feedbackTicket.findMany({
         where,
         orderBy: { created_at: 'desc' },
         skip,
-        take: limit,
+        take,
         include: {
           user: { select: { id: true, email: true, role: true } },
           _count: { select: { messages: true } },
@@ -257,8 +277,8 @@ export class FeedbackService {
       })),
       total,
       page,
-      limit,
-      pages: Math.ceil(total / limit),
+      limit: take,
+      pages: Math.ceil(total / take),
     };
   }
 

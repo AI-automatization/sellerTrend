@@ -25,3 +25,11 @@ export async function enqueueImportBatch(data: ImportBatchJobData) {
     removeOnFail: { age: 86400, count: 500 },
   });
 }
+
+/** Close the queue connection (call on app shutdown). */
+export async function closeImportQueue(): Promise<void> {
+  if (queue) {
+    await queue.close();
+    queue = null;
+  }
+}

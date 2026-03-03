@@ -16,6 +16,17 @@ export class TeamService {
     invitedBy: string,
     data: { email: string; role?: string },
   ) {
+    // Prevent inviting users who already belong to a different account
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: data.email },
+    });
+
+    if (existingUser && existingUser.account_id && existingUser.account_id !== accountId) {
+      throw new ConflictException(
+        'This email is already registered with another account. Cannot invite users from other accounts.',
+      );
+    }
+
     // Check if there's already a pending invite for this email in this account
     const existing = await this.prisma.teamInvite.findFirst({
       where: {
@@ -44,11 +55,11 @@ export class TeamService {
       },
     });
 
+    // Token is NOT returned in the response — only sent via email to prevent attackers from accepting invites
     return {
       id: invite.id,
       email: invite.email,
       role: invite.role,
-      token: invite.token,
       expires_at: invite.expires_at,
       created_at: invite.created_at,
     };
@@ -120,17 +131,38 @@ export class TeamService {
       // Prevent hijacking: user already belongs to a different account
       if (existingUser.account_id && existingUser.account_id !== invite.account_id) {
         throw new ConflictException(
-          'This email is already registered under another account. User must leave their current account first.',
+          'This email is already registered with another account. Cannot transfer users between accounts.',
         );
       }
-      // Link existing user to the account (only if unassigned or same account)
-      await this.prisma.user.update({
-        where: { id: existingUser.id },
-        data: {
-          account_id: invite.account_id,
-          role: invite.role,
-        },
-      });
+
+      if (existingUser.account_id === invite.account_id) {
+        // User is already in this account — only update role if invite specifies a different one
+        if (existingUser.role !== invite.role) {
+          await this.prisma.user.update({
+            where: { id: existingUser.id },
+            data: { role: invite.role },
+          });
+          this.logger.log(
+            `Invite accepted: ${invite.email} role updated from ${existingUser.role} to ${invite.role} in account ${invite.account_id}`,
+          );
+        } else {
+          this.logger.log(
+            `Invite accepted: ${invite.email} already in account ${invite.account_id} with role ${existingUser.role} — no changes`,
+          );
+        }
+      } else {
+        // User has no account_id (orphaned user) — assign to the inviting account
+        this.logger.log(
+          `Invite accepted: linking orphaned user ${invite.email} (id=${existingUser.id}) to account ${invite.account_id}`,
+        );
+        await this.prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            account_id: invite.account_id,
+            role: invite.role,
+          },
+        });
+      }
     } else {
       // Create a new user with a random temporary password (bcrypt-hashed)
       const tempPassword = crypto.randomBytes(16).toString('hex');

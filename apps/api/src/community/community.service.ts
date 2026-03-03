@@ -34,24 +34,31 @@ export class CommunityService {
   }
 
   /** List insights, optionally filtered by category, ordered by net votes */
-  async listInsights(category?: string) {
+  async listInsights(category?: string, page = 1, limit = 50) {
+    const MAX_COMMUNITY_INSIGHTS = 50;
+    const take = Math.min(limit, MAX_COMMUNITY_INSIGHTS);
+    const skip = (page - 1) * take;
+
     const where: Prisma.CommunityInsightWhereInput = {};
     if (category) {
       where.category = category;
     }
 
-    const insights = await this.prisma.communityInsight.findMany({
-      where,
-      take: 100,
-      orderBy: { created_at: 'desc' },
-      include: {
-        account: { select: { name: true } },
-      },
-    });
+    const [insights, total] = await Promise.all([
+      this.prisma.communityInsight.findMany({
+        where,
+        take,
+        skip,
+        orderBy: [{ upvotes: 'desc' }, { downvotes: 'asc' }, { created_at: 'desc' }],
+        include: {
+          account: { select: { name: true } },
+        },
+      }),
+      this.prisma.communityInsight.count({ where }),
+    ]);
 
-    // Sort by net votes (upvotes - downvotes) descending
-    return insights
-      .map((i) => ({
+    return {
+      data: insights.map((i) => ({
         id: i.id,
         title: i.title,
         content: i.content,
@@ -61,8 +68,12 @@ export class CommunityService {
         downvotes: i.downvotes,
         net_votes: i.upvotes - i.downvotes,
         created_at: i.created_at,
-      }))
-      .sort((a, b) => b.net_votes - a.net_votes);
+      })),
+      total,
+      page,
+      limit: take,
+      pages: Math.ceil(total / take),
+    };
   }
 
   /**

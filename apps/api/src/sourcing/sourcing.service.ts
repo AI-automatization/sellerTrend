@@ -216,14 +216,17 @@ export class SourcingService {
     query: string,
     account_id: string,
   ) {
-    // Playwright worker orqali real mahsulotlari
-    const results = await enqueueSourcingSearch(query);
+    // Enqueue job — returns immediately with job ID (no longer blocks HTTP thread)
+    const { jobId } = await enqueueSourcingSearch(query);
 
     await this.prisma.externalPriceSearch.create({
-      data: { account_id, query, source: 'PLAYWRIGHT', results: results as any },
+      data: { account_id, query, source: 'PLAYWRIGHT', results: [] },
     });
 
-    return { results };
+    return {
+      message: 'Search job queued. Poll GET /sourcing/jobs/:id for results.',
+      jobId,
+    };
   }
 
   // ─── External Search Job (Full Pipeline) ─────────────────────────────────

@@ -280,6 +280,7 @@ export function createWeeklyScrapeWorker() {
     {
       ...redisConnection,
       concurrency: 1, // Serial — one Chromium at a time
+      lockDuration: 600_000, // 10 min — batch scraping with Playwright can exceed 30s default
     },
   );
 

@@ -63,7 +63,7 @@ export class ExportController {
   }
 
   @Post('products/import/csv')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }))
   async importCsv(
     @CurrentUser('account_id') accountId: string,
     @UploadedFile() file: any,

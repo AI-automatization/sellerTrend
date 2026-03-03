@@ -192,7 +192,11 @@ export function createDiscoveryWorker() {
         throw err;
       }
     },
-    { ...redisConnection, concurrency: 1 }, // 1 concurrent run (Playwright is heavy)
+    {
+      ...redisConnection,
+      concurrency: 1, // 1 concurrent run (Playwright is heavy)
+      lockDuration: 600_000, // 10 min — category scraping + batch REST calls can take minutes
+    },
   );
 
   worker.on('error', (err) => logJobError('discovery-queue', '-', 'worker', err));

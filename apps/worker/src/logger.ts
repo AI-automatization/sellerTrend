@@ -107,3 +107,20 @@ export function logJobInfo(queue: string, jobId: string, jobName: string, messag
     data,
   });
 }
+
+// ─── Process-level logging (no job context) ─────────────────────────────────
+
+export function logProcess(level: 'info' | 'warn' | 'error', message: string, error?: unknown) {
+  const errMsg = error instanceof Error ? error.message : error != null ? String(error) : undefined;
+  const stack = error instanceof Error ? error.stack : undefined;
+  writeEntry({
+    timestamp: new Date().toISOString(),
+    queue: 'process',
+    job_id: '-',
+    job_name: '-',
+    level,
+    message,
+    error: errMsg,
+    stack,
+  });
+}

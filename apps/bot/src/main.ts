@@ -2,19 +2,48 @@ import 'dotenv/config';
 import http from 'http';
 import { Bot, GrammyError, HttpError } from 'grammy';
 import { prisma } from './prisma';
-// T-300 + T-349: Global crash handlers
+
+// ─── Structured logger (bot has no NestJS, so simple helper) ────────────────
+function logBot(level: 'info' | 'warn' | 'error', message: string, error?: unknown) {
+  const entry = {
+    timestamp: new Date().toISOString(),
+    service: 'bot',
+    level,
+    message,
+    ...(error instanceof Error
+      ? { error: error.message, stack: error.stack }
+      : error != null ? { error: String(error) } : {}),
+  };
+  if (level === 'error') {
+    process.stderr.write(JSON.stringify(entry) + '\n');
+  } else {
+    process.stdout.write(JSON.stringify(entry) + '\n');
+  }
+}
+
+// T-349: Global crash handlers — log but do NOT exit.
+// For fatal errors (ENOMEM), trigger graceful shutdown.
+let shutdownFn: ((signal: string) => Promise<void>) | null = null;
+
 process.on('uncaughtException', (err) => {
-  console.error('uncaughtException:', err);
-  // Let the process continue — Railway will restart if truly broken
+  logBot('error', 'uncaughtException', err);
+  const isFatal = err && ('code' in err) && (err as NodeJS.ErrnoException).code === 'ERR_WORKER_OUT_OF_MEMORY'
+    || err?.message?.includes('ENOMEM')
+    || err?.message?.includes('allocation failed');
+  if (isFatal && shutdownFn) {
+    logBot('error', 'Fatal memory error detected, initiating graceful shutdown');
+    shutdownFn('ENOMEM').catch(() => process.exit(1));
+  }
+  // Otherwise let the process continue — Railway will restart if truly broken
 });
 process.on('unhandledRejection', (reason) => {
-  console.error('unhandledRejection:', reason);
+  logBot('error', 'unhandledRejection', reason instanceof Error ? reason : new Error(String(reason)));
   // Do NOT exit — one rejected promise should not kill the bot
 });
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 if (!TOKEN) {
-  console.error('TELEGRAM_BOT_TOKEN env variable is required');
+  logBot('error', 'TELEGRAM_BOT_TOKEN env variable is required');
   process.exit(1);
 }
 
@@ -150,21 +179,20 @@ bot.on('message', async (ctx) => {
 
 bot.catch((err) => {
   const ctx = err.ctx;
-  console.error(`Error while handling update ${ctx.update.update_id}:`);
   const e = err.error;
   if (e instanceof GrammyError) {
-    console.error('Error in request:', e.description);
+    logBot('error', `Update ${ctx.update.update_id} — Grammy error: ${e.description}`, e);
   } else if (e instanceof HttpError) {
-    console.error('Could not contact Telegram:', e);
+    logBot('error', `Update ${ctx.update.update_id} — HTTP error contacting Telegram`, e);
   } else {
-    console.error('Unknown error:', e);
+    logBot('error', `Update ${ctx.update.update_id} — Unknown error`, e);
   }
 });
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 
 async function bootstrap() {
-  console.log('Telegram bot starting...');
+  logBot('info', 'Telegram bot starting...');
 
   // Health check HTTP server (Railway requires an HTTP endpoint)
   const healthPort = parseInt(process.env.PORT || '3002', 10);
@@ -178,20 +206,20 @@ async function bootstrap() {
     }
   });
   healthServer.listen(healthPort, () => {
-    console.log(`Bot health check: http://localhost:${healthPort}/health`);
+    logBot('info', `Bot health check: http://localhost:${healthPort}/health`);
   });
 
   await bot.start({
     onStart: (info) => {
-      console.log(`Bot started: @${info.username}`);
+      logBot('info', `Bot started: @${info.username}`);
     },
   });
 
-  // T-306: Graceful shutdown
+  // T-306 + T-349: Graceful shutdown
   const shutdown = async (signal: string) => {
-    console.log(`[${signal}] Bot graceful shutdown...`);
+    logBot('info', `[${signal}] Bot graceful shutdown...`);
     const timeout = setTimeout(() => {
-      console.error('Bot shutdown timeout (15s), forcing exit');
+      logBot('error', 'Bot shutdown timeout (15s), forcing exit');
       process.exit(1);
     }, 15_000);
     try {
@@ -199,19 +227,22 @@ async function bootstrap() {
       healthServer.close();
       await prisma.$disconnect();
       clearTimeout(timeout);
-      console.log('Bot shutdown complete');
+      logBot('info', 'Bot shutdown complete');
       process.exit(0);
     } catch (err) {
-      console.error('Bot shutdown error:', err);
+      logBot('error', 'Bot shutdown error', err);
       process.exit(1);
     }
   };
+
+  // Wire up shutdownFn for fatal error handler (uncaughtException ENOMEM)
+  shutdownFn = shutdown;
 
   process.on('SIGTERM', () => shutdown('SIGTERM'));
   process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
-bootstrap().catch(console.error);
+bootstrap().catch((err) => logBot('error', 'Bootstrap failed', err));
 
 function escapeHtml(text: string): string {
   return text

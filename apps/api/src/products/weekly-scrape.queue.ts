@@ -28,3 +28,11 @@ export async function enqueueImmediateScrape(productId: string | bigint) {
     },
   );
 }
+
+/** Close the queue connection (call on app shutdown). */
+export async function closeWeeklyScrapeQueue(): Promise<void> {
+  if (queue) {
+    await queue.close();
+    queue = null;
+  }
+}
