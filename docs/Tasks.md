@@ -1,5 +1,8 @@
 # VENTRA — OCHIQ VAZIFALAR
 # Yangilangan: 2026-03-04
+# Developer-specific fayllar:
+#   - Bekzod → docs/Tasks-Bekzod.md
+#   - Sardor → docs/Tasks-Sardor.md
 # Bajarilganlar → docs/Done.md
 
 ---
@@ -10,6 +13,7 @@
 - Fix bo'lgandan keyin `docs/Done.md` ga ko'chiriladi
 - Format: `T-XXX | [KATEGORIYA] | Sarlavha | Vaqt`
 - Kategoriyalar: BACKEND, FRONTEND, DEVOPS, IKKALASI
+- **GIT-BASED TASK LOCKING:** `pending[Bekzod]` / `pending[Sardor]` status ishlatiladi
 
 ---
 
@@ -29,29 +33,6 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 ### E-010 | CONFIG | `PROXY_URL` yo'q — Uzum API block qilsa kerak bo'ladi | 2min
 
 ---
-
-# ═══════════════════════════════════════════════════════════
-# FRONTEND OCHIQ TASKLAR
-# ═══════════════════════════════════════════════════════════
-
-## P0 — KRITIK
-
-(hozircha yo'q)
-
----
-
-## P1 — MUHIM
-
-(hozircha yo'q)
-
----
-
-## P2 — O'RTA
-
-(hozircha yo'q)
-
----
-
 
 # ═══════════════════════════════════════════════════════════
 # DEVOPS OCHIQ TASKLAR
@@ -204,13 +185,6 @@ curl -sI https://ventra.uz/assets/main-abc123.js | grep -i "cf-cache-status"
 # API bypass tekshirish:
 curl -sI https://ventra.uz/api/v1/health | grep -i "cf-cache-status"
 # Kutilgan: cf-cache-status: DYNAMIC (bypass)
-
-# Latency tekshirish:
-node -e "
-async function p(l,u,n=5){const t=[];for(let i=0;i<n;i++){const s=Date.now();await fetch(u);t.push(Date.now()-s)}console.log(l,'min:',Math.min(...t)+'ms','avg:',Math.round(t.reduce((a,b)=>a+b)/t.length)+'ms')}
-p('Static (CDN):', 'https://ventra.uz/assets/main.js');
-p('API (bypass):', 'https://ventra.uz/api/v1/health');
-"
 ```
 
 **Kutilgan natija:**
@@ -308,4 +282,237 @@ TXT    _railway-verify  → railway-verify=railway-verify=822d30ad3e89eb5a8c969c
 
 ---
 
-*Tasks.md | VENTRA Analytics Platform | 2026-03-03*
+# ═══════════════════════════════════════════════════════════
+# DESKTOP AUDIT TASKLAR (T-315..T-328) — Sardor
+# ═══════════════════════════════════════════════════════════
+#
+# Manba: docs/CODE-AUDIT-DESKTOP-LANDING-2026-03-04.md
+
+## P0 — KRITIK (5 ta)
+
+| # | Muammo | Fayl | Vaqt |
+|---|--------|------|------|
+| T-315 | `sandbox: false` → `true` | `window.ts:61` | 15min |
+| T-316 | CSP header yo'q | `window.ts` | 15min |
+| T-317 | Path traversal — `app://` protocol | `window.ts:17-44` | 15min |
+| T-318 | SSRF — API proxy validatsiyasiz | `window.ts:22-29` | 15min |
+| T-319 | Navigation cheklovlari yo'q | `window.ts` | 15min |
+
+## P1 — MUHIM (8 ta)
+
+| # | Muammo | Fayl | Vaqt |
+|---|--------|------|------|
+| T-320 | `(app as any)` → typed state | `window.ts:73`, `tray.ts:41` | 10min |
+| T-321 | ipcRenderer.on memory leak | `preload/index.ts:21-28` | 15min |
+| T-322 | `console.error` → electron-log | `updater.ts:32` | 10min |
+| T-323 | `setInterval` cleanup | `updater.ts:39-41` | 5min |
+| T-324 | `.ico`/`.icns` icon yaratish | `electron-builder.yml` | 15min |
+| T-325 | IPC notification validatsiya | `ipc.ts:5-9` | 10min |
+| T-326 | IPC badge count validatsiya | `ipc.ts:31-36` | 5min |
+| T-327 | Permission request handler | `window.ts` | 10min |
+
+## P2 — O'RTA (batch)
+
+### T-328 | P2 | FRONTEND | Desktop P2 batch (10 ta) | 1h
+Tray i18n, loadURL error, devtools block, package.json metadata, macOS About, env.d.ts
+
+---
+
+# ═══════════════════════════════════════════════════════════
+# LANDING AUDIT TASKLAR (T-329..T-342) — Sardor
+# ═══════════════════════════════════════════════════════════
+
+## P0 — KRITIK (4 ta)
+
+| # | Muammo | Fayl | Vaqt |
+|---|--------|------|------|
+| T-329 | `favicon.svg` yo'q — 404 | `index.html:5` | 10min |
+| T-330 | Railway URL bundle'da ochiq | `App.tsx:15` | 5min |
+| T-331 | nginx CSP header yo'q | `nginx.conf` | 15min |
+| T-332 | Placeholder verification kodlari | `index.html:19-21` | 5min |
+
+## P1 — MUHIM (9 ta)
+
+| # | Muammo | Fayl | Vaqt |
+|---|--------|------|------|
+| T-333 | Dead code — useAnalytics, animations, ZapIcon | 3 fayl | 15min |
+| T-334 | Email form fake success | `EmailCaptureSection.tsx` | 30min |
+| T-335 | localStorage try/catch yo'q | 3 fayl | 10min |
+| T-336 | Testimonials RU tarjima yo'q | `TestimonialsSection.tsx` | 20min |
+| T-337 | OG image build pipeline | `scripts/`, Dockerfile | 15min |
+| T-338 | Mobile menu AnimatePresence | `Navbar.tsx` | 10min |
+| T-339 | Nginx security headers yo'qolishi | `nginx.conf` | 10min |
+| T-340 | FeatureCard unused `index` prop | `FeatureCard.tsx` | 5min |
+| T-341 | Prerender innerHTML XSS guard | `prerender.mjs` | 10min |
+
+## P2 — O'RTA (batch)
+
+### T-342 | P2 | FRONTEND | Landing P2 batch (18 ta) | 2h
+i18n gaps (4), a11y (3), DRY (4), SEO/build (4), misc (3)
+
+---
+
+# ═══════════════════════════════════════════════════════════
+# BACKEND KOD AUDIT (T-343..T-360) — Bekzod
+# ═══════════════════════════════════════════════════════════
+#
+# Manba: docs/CODE-AUDIT-2026-03-04.md | apps/api, apps/worker, apps/bot
+
+## P0 — KRITIK (10 ta)
+
+| # | Muammo | Fayl | Vaqt |
+|---|--------|------|------|
+| T-343 | IDOR — product endpoint'lar account_id filtersiz | `products.controller.ts` | 30min |
+| T-344 | WebSocket — JWT auth yo'q, ixtiyoriy account_id | `product.gateway.ts:28-31` | 1h |
+| T-345 | Team invite — mavjud user hijack | `team.service.ts:119-127` | 30min |
+| T-346 | BigInt() user input validation yo'q — 500 crash | 5 controller | 15min |
+| T-347 | Notification markAsRead global — barcha userlar uchun | `notification.service.ts:81-102` | 30min |
+| T-348 | Race condition batch — 6 ta TOCTOU fix | billing, api-keys, referral, consultation, community, discovery | 2h |
+| T-349 | unhandledRejection → process.exit(1) fix | `worker/main.ts`, `bot/main.ts` | 15min |
+| T-350 | Chromium shared browser pool — OOM fix | 3 scraper | 2h |
+| T-351 | execSync event loop bloklaydi | `admin-monitoring.service.ts:301-306` | 10min |
+| T-352 | Redis shared module — 5 ta alohida connection | 5 service | 2h |
+
+## P1 — MUHIM (6 task, ~38 bug)
+
+| # | Muammo | Bug soni | Vaqt |
+|---|--------|----------|------|
+| T-353 | DTO validation — 15+ endpoint raw @Body() | 15 | 3h |
+| T-354 | `any` type cleanup — 40+ instance | 40 | 2h |
+| T-355 | BullMQ lifecycle — shutdown + cleanup + lockDuration | 7 | 1h |
+| T-356 | Unbounded query fix — 7 ta service | 7 | 2h |
+| T-357 | Worker stability batch — 7 ta fix | 7 | 1.5h |
+| T-358 | API security/cleanup batch — 11 ta fix | 11 | 2h |
+
+## P2 — O'RTA (2 task, ~41 bug)
+
+| # | Muammo | Bug soni | Vaqt |
+|---|--------|----------|------|
+| T-359 | API P2 batch (27 ta) | 27 | 4h |
+| T-360 | Worker+Bot P2 batch (14 ta) | 14 | 2h |
+
+> Batafsil sabab/yechim: docs/Tasks-Bekzod.md
+
+---
+
+# ═══════════════════════════════════════════════════════════
+# WEB APP KOD AUDIT (T-361..T-370) — Sardor
+# ═══════════════════════════════════════════════════════════
+#
+# Manba: docs/CODE-AUDIT-2026-03-04.md | apps/web
+
+## P0 — KRITIK (6 ta)
+
+| # | Muammo | Fayl | Vaqt |
+|---|--------|------|------|
+| T-361 | XSS — `dangerouslySetInnerHTML` | `Layout.tsx:276` | 15min |
+| T-362 | Auth Store token desync — stale role/email | `authStore.ts` + `base.ts` | 30min |
+| T-363 | WebSocket logout'da disconnect qilinmaydi | `useSocket.ts:12-23` | 15min |
+| T-364 | AdminRoute token expiry tekshirmaydi | `App.tsx:42-48` | 10min |
+| T-365 | ProductPage useEffect race condition | `ProductPage.tsx:120-162` | 30min |
+| T-366 | Duplicate TokenPayload types — 2 ta interface | `authStore.ts`, `base.ts` | 10min |
+
+## P1 — MUHIM (3 task, ~28 bug)
+
+| # | Muammo | Bug soni | Vaqt |
+|---|--------|----------|------|
+| T-367 | AdminPage refactor — God Component (30+ useState) | 2 | 2h |
+| T-368 | UX gaps — 404 route, notification, payment, register | 6 | 2h |
+| T-369 | Code quality — dead code, i18n, version, deps | 8 | 1h |
+
+## P2 — O'RTA (1 task, 15 bug)
+
+| # | Muammo | Bug soni | Vaqt |
+|---|--------|----------|------|
+| T-370 | Web P2 batch (15 ta) | 15 | 3h |
+
+> Batafsil sabab/yechim: docs/Tasks-Sardor.md
+
+---
+
+# ═══════════════════════════════════════════════════════════
+# PLATFORMA AUDIT — UX/PIPELINE/ONBOARDING (T-371..T-384)
+# ═══════════════════════════════════════════════════════════
+#
+# Manba: DEEP-PLATFORM-AUDIT-2026-03-04.md + Analysis-Onboarding-Multimarketplace.md
+
+## P0 — KRITIK (3 ta)
+
+| # | Muammo | Mas'ul | Vaqt |
+|---|--------|--------|------|
+| T-371 | Alert delivery pipeline uzilgan — AlertEvent hech kimga yetkazilmaydi | Bekzod | 4h |
+| T-372 | Bot account linking — TelegramLink model + `/connect` command | Bekzod | 4h |
+| T-377 | Demo credentials `demo@ventra.uz` production'da ochiq | Sardor | 5min |
+
+## P1 — MUHIM (4 ta)
+
+| # | Muammo | Mas'ul | Vaqt |
+|---|--------|--------|------|
+| T-373 | Onboarding schema + API (`onboardingCompleted`, `PATCH /onboarding`) | Bekzod | 1.5h |
+| T-374 | Forgot Password API (email token + reset) | Bekzod | 3h |
+| T-375 | Worker monitoring jobs — stock, trend, currency, cleanup, digest (5 cron) | Bekzod | 8h |
+| T-378 | Forgot Password UI | Bekzod | 2h |
+
+## P2 — O'RTA (6 ta)
+
+| # | Muammo | Mas'ul | Vaqt |
+|---|--------|--------|------|
+| T-376 | Platform model — multi-marketplace (kelajak) | Bekzod | 2h |
+| T-379 | Design system cleanup — chart colors, duplicates, toast theme (6 fix) | Sardor | 2h |
+| T-380 | Mobile UX — bottom nav, scroll-to-top, card layout (4 fix) | Sardor | 3h |
+| T-381 | Accessibility — skip-to-content, focus trap, colorblind, keyboard (5 fix) | Sardor | 2h |
+| T-382 | Landing conversion — privacy policy, cookie consent, analytics (4 fix) | Sardor | 4h |
+| T-383 | Landing multi-marketplace section + hero copy + pricing | Bekzod | 3h |
+
+## P3 — KELAJAK (1 ta)
+
+| # | Muammo | Mas'ul | Vaqt |
+|---|--------|--------|------|
+| T-384 | Engagement features — revenue estimator, comparison, streak, badges | Bekzod | 20h+ |
+
+> Batafsil sabab/yechim: docs/Tasks-Bekzod.md (T-371..T-376), docs/Tasks-Sardor.md (T-377..T-384)
+
+---
+
+# LANDING MANUAL TASKLAR
+
+| # | Nima | Vaqt | Holat |
+|---|------|------|-------|
+| M-001 | Dashboard screenshot'lar | 30min | ⬜ |
+| M-002 | Desktop installer build | 20min | ⬜ |
+| M-003 | Testimonial ma'lumotlari | 1h | ⬜ |
+| M-004 | Domain va hosting | 30min | ⬜ |
+
+---
+
+## XULOSA
+
+| Kategoriya | Task | Bug/Fix | Mas'ul |
+|-----------|------|---------|--------|
+| **Backend Kod Audit P0** (T-343..T-352) | 10 | 10 | Bekzod |
+| **Backend Kod Audit P1** (T-353..T-358) | 6 | ~38 | Bekzod |
+| **Backend Kod Audit P2** (T-359..T-360) | 2 | ~41 | Bekzod |
+| **Web Kod Audit P0** (T-361..T-366) | 6 | 6 | Sardor |
+| **Web Kod Audit P1** (T-367..T-369) | 3 | ~28 | Sardor |
+| **Web Kod Audit P2** (T-370) | 1 | 15 | Sardor |
+| **Platforma Audit P0** (T-371,T-372,T-377) | 3 | 3 | Bekzod(2)+Sardor(1) |
+| **Platforma Audit P1** (T-373..T-375,T-378) | 4 | 4 | Bekzod |
+| **Platforma Audit P2** (T-376,T-379..T-383) | 6 | ~24 | Bekzod(2)+Sardor(4) |
+| **Platforma Audit P3** (T-384) | 1 | 6 | Bekzod |
+| Desktop Audit P0 (T-315..T-319) | 5 | 5 | Sardor |
+| Desktop Audit P1 (T-320..T-327) | 8 | 8 | Sardor |
+| Desktop Audit P2 (T-328) | 1 | 10 | Sardor |
+| Landing Audit P0 (T-329..T-332) | 4 | 4 | Sardor |
+| Landing Audit P1 (T-333..T-341) | 9 | 9 | Sardor |
+| Landing Audit P2 (T-342) | 1 | 18 | Sardor |
+| Chrome Extension (T-216..T-233) | 18 | 18 | Sardor |
+| Landing Manual (M-001..M-004) | 4 | 4 | Sardor |
+| ENV manual (E-006, E-008, E-010) | 3 | 3 | Bekzod |
+| DevOps (T-178, T-243, T-245, T-281, T-283) | 5 | 5 | Bekzod |
+| **JAMI task ochiq** | **100** | | |
+| **JAMI bug/fix ochiq** | | **~259** | |
+| **JAMI bajarilgan** | **110+** | | → Done.md |
+
+---
+
+*Tasks.md | VENTRA Analytics Platform | 2026-03-04*
