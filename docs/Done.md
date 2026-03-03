@@ -1,5 +1,5 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
-# Yangilangan: 2026-03-04
+# Yangilangan: 2026-03-03
 
 ---
 
@@ -78,6 +78,40 @@ API client with JWT auto-refresh, chrome.storage token management, badge states.
 
 **Fayllar:** `popup.tsx`, `background/index.ts`, `lib/api.ts`, `lib/storage.ts`, `lib/badge.ts`,
 `components/LoginForm.tsx`, `background/messages/{get-auth-state,login,logout,quick-score}.ts`
+
+---
+
+## Landing i18n + UX fixlar (2026-03-03)
+
+### T-284 | P1 | FRONTEND | Landing — grid pattern light mode fix
+CSS `.grid-pattern` va `.grid-pattern-sm` utility yaratildi, `[data-theme="ventra-light"]` override bilan. HeroSection va StatsSection inline style o'rniga class ishlatadi.
+
+### T-285 | P1 | FRONTEND | Landing — placeholder href="#" linklar olib tashlandi
+Footer dan ishlamaydigan linklar (Browser Extension, About, Blog, Docs, Instagram, YouTube, Privacy, Terms) olib tashlandi. DownloadBanner buttonlari `<button disabled>` ga o'zgartirildi "Tez kunda" tooltip bilan.
+
+### T-286 | P1 | FRONTEND | Landing — APP_URL va EmailCapture fix
+`APP_URL` `import.meta.env.VITE_APP_URL || 'https://web-production-2c10.up.railway.app'` ga o'zgartirildi. EmailCapture placeholder success ko'rsatadi.
+
+### T-287 | P2 | FRONTEND | Landing — Footer social aria-label
+Telegram, Instagram, YouTube buttonlariga `aria-label` qo'shildi.
+
+### T-288 | P2 | FRONTEND | Landing — DashboardPreview MockScreen i18n
+MockScreen ichidagi barcha hardcoded textlar (17 ta kalit) i18n `t()` ga o'tkazildi. UZ + RU tarjimalar qo'shildi.
+
+### T-289 | P2 | FRONTEND | Landing — Testimonials DOM duplication
+`[...TESTIMONIALS, ...TESTIMONIALS]` → `TESTIMONIALS` ga soddlashtirildi. Ortiqcha DOM node'lar olib tashlandi.
+
+### Landing light mode text fix
+~30 ta `text-white` instance 17 faylda `text-base-content` ga o'zgartirildi.
+
+### Landing button border + navbar mobile fix
+DaisyUI v5 btn border fix. Mobile menu orqa fon fix.
+
+### Landing emoji → SVG icon replacement
+Barcha emoji'lar SVG icon'larga almashtirildi. `icons.tsx` da 21 ta Lucide-style icon.
+
+### Landing i18n — PainPoints, Features, Pricing, FAQ, Stats
+Barcha hardcoded UZ textlar i18n `t()` ga o'tkazildi. RU tarjimalar qo'shildi (73 kalit).
 
 ---
 

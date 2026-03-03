@@ -44,6 +44,20 @@
     backdrop-filter: blur(12px);
   }
 
+  .grid-pattern {
+    background-image:
+      linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  .grid-pattern-sm {
+    background-image:
+      linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
   .glow-blue {
     box-shadow: 0 0 40px rgba(46, 91, 255, 0.3);
   }
@@ -103,12 +117,29 @@
   color: #0F172A;
 }
 
+[data-theme="ventra-light"] .grid-pattern {
+  background-image:
+    linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px);
+}
+
+[data-theme="ventra-light"] .grid-pattern-sm {
+  background-image:
+    linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
+}
+
 [data-theme="ventra-light"] .glass-card {
   background: rgba(255, 255, 255, 0.7);
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 /* DaisyUI ventra-dark theme */
+.btn-primary,
+.btn-ghost {
+  border-color: transparent;
+}
+
 [data-theme="ventra-dark"] {
   --color-base-100: #0B0F1A;
   --color-base-200: #111827;

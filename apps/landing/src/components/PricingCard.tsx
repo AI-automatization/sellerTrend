@@ -33,7 +33,7 @@ export function PricingCard({
       className={`relative rounded-2xl p-6 flex flex-col transition-all duration-300 ${
         highlighted
           ? 'gradient-bg text-white shadow-2xl glow-blue scale-105'
-          : 'glass-card hover:border-white/20'
+          : 'glass-card hover:border-base-content/20'
       }`}
     >
       {badge && (
@@ -45,7 +45,7 @@ export function PricingCard({
       )}
 
       <div className="mb-6">
-        <h3 className={`font-display font-700 text-lg mb-1 ${highlighted ? 'text-white' : 'text-white'}`}>
+        <h3 className={`font-display font-700 text-lg mb-1 ${highlighted ? 'text-white' : 'text-base-content'}`}>
           {name}
         </h3>
         <div className="flex items-end gap-1 mt-3">

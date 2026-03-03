@@ -1,27 +1,40 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLang } from '../lib/LangContext';
+import type { TranslationKey } from '../lib/i18n';
 
 interface DashboardPreviewProps {
   appUrl: string;
 }
 
-const SCREENSHOTS = [
-  { label: 'Dashboard — KPI va trend grafiklari', caption: 'Barcha muhim ko\'rsatkichlar bir sahifada', bg: 'from-blue-900/40 to-violet-900/40', preview: 'dashboard' },
-  { label: 'Mahsulot tahlili — Score, AI maslahat', caption: 'Har mahsulot uchun chuqur tahlil va tavsiyalar', bg: 'from-emerald-900/40 to-blue-900/40', preview: 'product' },
-  { label: 'Discovery — Trend mahsulotlar', caption: 'AI topgan eng yaxshi imkoniyatlar', bg: 'from-violet-900/40 to-pink-900/40', preview: 'discovery' },
-  { label: 'Sourcing — Xitoy narxlari taqqoslash', caption: '1688, Taobao dan aniq foyda bilan', bg: 'from-orange-900/40 to-red-900/40', preview: 'sourcing' },
+interface ScreenshotTab {
+  labelKey: TranslationKey;
+  captionKey: TranslationKey;
+  bg: string;
+  preview: string;
+}
+
+const SCREENSHOTS: ScreenshotTab[] = [
+  { labelKey: 'preview.tab1', captionKey: 'preview.tab1.desc', bg: 'from-blue-900/40 to-violet-900/40', preview: 'dashboard' },
+  { labelKey: 'preview.tab2', captionKey: 'preview.tab2.desc', bg: 'from-emerald-900/40 to-blue-900/40', preview: 'product' },
+  { labelKey: 'preview.tab3', captionKey: 'preview.tab3.desc', bg: 'from-violet-900/40 to-pink-900/40', preview: 'discovery' },
+  { labelKey: 'preview.tab4', captionKey: 'preview.tab4.desc', bg: 'from-orange-900/40 to-red-900/40', preview: 'sourcing' },
 ];
 
-function MockScreen({ type, bg }: { type: string; bg: string }) {
+function MockScreen({ type, bg, t }: { type: string; bg: string; t: (key: TranslationKey) => string }) {
   const items: Record<string, React.ReactNode> = {
     dashboard: (
       <div className="h-full flex flex-col gap-2 p-3">
         <div className="grid grid-cols-4 gap-1.5">
-          {['247 mahsulot', '8.4 score', '+32% trend', '14 signal'].map((t, i) => (
+          {[
+            { value: '247', label: t('mock.products') },
+            { value: '8.4', label: 'score' },
+            { value: '+32%', label: t('mock.trend') },
+            { value: '14', label: t('mock.signal') },
+          ].map((kpi, i) => (
             <div key={i} className="bg-white/10 rounded p-1.5 text-center">
-              <div className="text-white text-xs font-600">{t.split(' ')[0]}</div>
-              <div className="text-white/40 text-xs">{t.split(' ').slice(1).join(' ')}</div>
+              <div className="text-white text-xs font-600">{kpi.value}</div>
+              <div className="text-white/40 text-xs">{kpi.label}</div>
             </div>
           ))}
         </div>
@@ -45,7 +58,7 @@ function MockScreen({ type, bg }: { type: string; bg: string }) {
       <div className="h-full flex gap-2 p-3">
         <div className="flex-1 flex flex-col gap-2">
           <div className="bg-white/10 rounded p-2">
-            <div className="text-white/40 text-xs mb-1">Score</div>
+            <div className="text-white/40 text-xs mb-1">{t('mock.score')}</div>
             <div className="text-primary font-700 text-xl">9.2</div>
           </div>
           <div className="flex-1 bg-white/5 rounded flex items-end gap-0.5 px-1 pb-1">
@@ -57,11 +70,11 @@ function MockScreen({ type, bg }: { type: string; bg: string }) {
         </div>
         <div className="w-2/5 flex flex-col gap-2">
           <div className="bg-white/10 rounded p-2">
-            <div className="text-white/40 text-xs">AI Maslahat</div>
-            <div className="text-white/70 text-xs mt-1 leading-relaxed">Trend o'sishda. Narx optimallashtirish tavsiya.</div>
+            <div className="text-white/40 text-xs">{t('mock.ai')}</div>
+            <div className="text-white/70 text-xs mt-1 leading-relaxed">{t('mock.aiText')}</div>
           </div>
           <div className="bg-success/20 rounded p-2 flex-1">
-            <div className="text-success text-xs">+24% haftalik</div>
+            <div className="text-success text-xs">+24% {t('mock.weekly')}</div>
           </div>
         </div>
       </div>
@@ -70,7 +83,7 @@ function MockScreen({ type, bg }: { type: string; bg: string }) {
       <div className="h-full flex flex-col gap-2 p-3">
         <div className="bg-white/5 rounded p-2 flex items-center gap-2">
           <div className="flex-1 h-4 bg-white/10 rounded" />
-          <div className="bg-primary rounded px-2 py-1 text-white text-xs">Qidirish</div>
+          <div className="bg-primary rounded px-2 py-1 text-white text-xs">{t('mock.search')}</div>
         </div>
         {[9.4, 8.9, 8.7, 8.5, 8.2].map((score, i) => (
           <div key={i} className="bg-white/5 rounded p-2 flex items-center gap-2">
@@ -87,7 +100,7 @@ function MockScreen({ type, bg }: { type: string; bg: string }) {
     sourcing: (
       <div className="h-full flex flex-col gap-2 p-3">
         <div className="bg-white/5 rounded p-2">
-          <div className="text-white/40 text-xs mb-2">Narx taqqoslash</div>
+          <div className="text-white/40 text-xs mb-2">{t('mock.priceCompare')}</div>
           <div className="space-y-1.5">
             {[
               { platform: '1688', price: '$2.40', margin: '+340%' },
@@ -103,9 +116,9 @@ function MockScreen({ type, bg }: { type: string; bg: string }) {
           </div>
         </div>
         <div className="flex-1 bg-success/10 rounded p-2">
-          <div className="text-success text-xs font-600">Eng yaxshi variant</div>
+          <div className="text-success text-xs font-600">{t('mock.bestOption')}</div>
           <div className="text-white text-sm font-700 mt-1">1688 — $2.40</div>
-          <div className="text-white/50 text-xs">Cargo + QQS bilan: $3.20</div>
+          <div className="text-white/50 text-xs">{t('mock.withCargo')} $3.20</div>
         </div>
       </div>
     ),
@@ -132,7 +145,7 @@ export function DashboardPreview({ appUrl }: DashboardPreviewProps) {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <h2 className="font-display font-700 text-3xl sm:text-4xl text-white mb-4">
+          <h2 className="font-display font-700 text-3xl sm:text-4xl text-base-content mb-4">
             {t('preview.title1')} <span className="gradient-text">{t('preview.title2')}</span>
           </h2>
           <p className="text-base-content/60">{t('preview.subtitle')}</p>
@@ -143,7 +156,7 @@ export function DashboardPreview({ appUrl }: DashboardPreviewProps) {
           <div className="flex flex-col gap-3">
             {SCREENSHOTS.map((item, i) => (
               <motion.button
-                key={item.label}
+                key={item.labelKey}
                 initial={{ opacity: 0, x: -30 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
@@ -152,14 +165,14 @@ export function DashboardPreview({ appUrl }: DashboardPreviewProps) {
                 className={`text-left p-4 rounded-xl transition-all duration-300 border ${
                   active === i
                     ? 'glass-card border-primary/40 shadow-lg shadow-primary/10'
-                    : 'border-transparent hover:bg-white/5'
+                    : 'border-transparent hover:bg-base-content/5'
                 }`}
               >
-                <p className={`font-600 text-sm ${active === i ? 'text-white' : 'text-base-content/50'}`}>
-                  {item.label}
+                <p className={`font-600 text-sm ${active === i ? 'text-base-content' : 'text-base-content/50'}`}>
+                  {t(item.labelKey)}
                 </p>
                 {active === i && (
-                  <p className="text-xs text-base-content/50 mt-1">{item.caption}</p>
+                  <p className="text-xs text-base-content/50 mt-1">{t(item.captionKey)}</p>
                 )}
               </motion.button>
             ))}
@@ -190,7 +203,7 @@ export function DashboardPreview({ appUrl }: DashboardPreviewProps) {
             </div>
             {/* Content */}
             <div className="aspect-video">
-              <MockScreen type={SCREENSHOTS[active].preview} bg={SCREENSHOTS[active].bg} />
+              <MockScreen type={SCREENSHOTS[active].preview} bg={SCREENSHOTS[active].bg} t={t} />
             </div>
           </motion.div>
         </div>

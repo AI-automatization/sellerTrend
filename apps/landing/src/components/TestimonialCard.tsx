@@ -20,7 +20,7 @@ export function TestimonialCard({ name, shop, avatar, text, rating }: Testimonia
           {avatar}
         </div>
         <div>
-          <p className="font-600 text-sm text-white">{name}</p>
+          <p className="font-600 text-sm text-base-content">{name}</p>
           <p className="text-xs text-base-content/50">{shop}</p>
         </div>
       </div>

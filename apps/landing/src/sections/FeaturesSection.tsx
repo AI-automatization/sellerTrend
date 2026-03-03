@@ -1,19 +1,27 @@
+import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { FeatureCard } from '../components/FeatureCard';
 import { fadeUp, staggerContainer, VIEWPORT } from '../lib/animations';
 import { useLang } from '../lib/LangContext';
+import type { TranslationKey } from '../lib/i18n';
+import {
+  BarChartIcon, SparklesIcon, BellIcon, EyeIcon, GlobeIcon,
+  CpuIcon, CalculatorIcon, MessageIcon, MonitorIcon, PuzzleIcon,
+} from '../components/icons';
 
-const FEATURES = [
-  { icon: '📊', title: 'Real-time Analytics', description: 'Uzum\'dan jonli ma\'lumotlar — narx, stok, sotuv miqdori har hafta yangilanadi.' },
-  { icon: '✨', title: 'Trend Discovery', description: 'AI avtomatik trend mahsulotlarni topadi va Score 1-10 bilan baholaydi.' },
-  { icon: '🔔', title: 'Signal Detection', description: 'Narx tushdi, stok tugayapti, yangi raqib — muhim o\'zgarishlar darhol xabar.' },
-  { icon: '👁️', title: 'Raqib Kuzatuvi', description: 'Raqiblar narxini 24/7 monitoring. Har o\'zgarishda Telegram notification.' },
-  { icon: '🌐', title: 'Sourcing Engine', description: '1688, Taobao, AliExpress dan eng arzon narxni AI bilan topish.' },
-  { icon: '🤖', title: 'AI Tahlili', description: 'Claude AI mahsulotni tahlil qiladi, bozor pozitsiyasini va maslahatlarni beradi.' },
-  { icon: '🧮', title: 'Profit Kalkulyator', description: 'Cargo, bojxona, QQS, FBO/FBS — aniq foyda foizini hisoblash.' },
-  { icon: '💬', title: 'Telegram Bot', description: 'Muhim signallar va yangiliklar to\'g\'ridan-to\'g\'ri Telegram\'ga yetkaziladi.' },
-  { icon: '🖥️', title: 'Desktop Ilova', description: 'Windows va macOS da brauzer ochmasdan ishlash. Tezroq, qularoq.' },
-  { icon: '🧩', title: 'Browser Extension', description: 'Uzum.uz sahifasida 1 klik bilan mahsulot score va tahlilini ko\'rish.' },
+const IC = 'w-6 h-6 text-primary';
+
+const FEATURES: { icon: ReactNode; titleKey: TranslationKey; descKey: TranslationKey }[] = [
+  { icon: <BarChartIcon className={IC} />, titleKey: 'feat.1.title', descKey: 'feat.1.desc' },
+  { icon: <SparklesIcon className={IC} />, titleKey: 'feat.2.title', descKey: 'feat.2.desc' },
+  { icon: <BellIcon className={IC} />, titleKey: 'feat.3.title', descKey: 'feat.3.desc' },
+  { icon: <EyeIcon className={IC} />, titleKey: 'feat.4.title', descKey: 'feat.4.desc' },
+  { icon: <GlobeIcon className={IC} />, titleKey: 'feat.5.title', descKey: 'feat.5.desc' },
+  { icon: <CpuIcon className={IC} />, titleKey: 'feat.6.title', descKey: 'feat.6.desc' },
+  { icon: <CalculatorIcon className={IC} />, titleKey: 'feat.7.title', descKey: 'feat.7.desc' },
+  { icon: <MessageIcon className={IC} />, titleKey: 'feat.8.title', descKey: 'feat.8.desc' },
+  { icon: <MonitorIcon className={IC} />, titleKey: 'feat.9.title', descKey: 'feat.9.desc' },
+  { icon: <PuzzleIcon className={IC} />, titleKey: 'feat.10.title', descKey: 'feat.10.desc' },
 ];
 
 export function FeaturesSection() {
@@ -38,7 +46,7 @@ export function FeaturesSection() {
           <span className="inline-block text-xs font-600 text-primary uppercase tracking-widest mb-3">
             {t('features.tag')}
           </span>
-          <h2 className="font-display font-700 text-3xl sm:text-4xl text-white mb-4">
+          <h2 className="font-display font-700 text-3xl sm:text-4xl text-base-content mb-4">
             {t('features.title1')}{' '}
             <span className="gradient-text">{t('features.title2')}</span>
           </h2>
@@ -55,7 +63,7 @@ export function FeaturesSection() {
           className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"
         >
           {FEATURES.map((feature, i) => (
-            <FeatureCard key={feature.title} {...feature} index={i} />
+            <FeatureCard key={feature.titleKey} icon={feature.icon} title={t(feature.titleKey)} description={t(feature.descKey)} index={i} />
           ))}
         </motion.div>
       </div>

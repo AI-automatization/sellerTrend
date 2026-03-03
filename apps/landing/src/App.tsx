@@ -12,7 +12,7 @@ import { CTASection } from './sections/CTASection';
 import { EmailCaptureSection } from './sections/EmailCaptureSection';
 import { FooterSection } from './sections/FooterSection';
 
-const APP_URL = 'https://app.ventra.uz';
+const APP_URL = import.meta.env.VITE_APP_URL || 'https://web-production-2c10.up.railway.app';
 
 export default function App() {
   return (

@@ -1,4 +1,3 @@
-import { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { TestimonialCard } from '../components/TestimonialCard';
 import { useLang } from '../lib/LangContext';
@@ -35,7 +34,6 @@ const TESTIMONIALS = [
 ];
 
 export function TestimonialsSection() {
-  const scrollRef = useRef<HTMLDivElement>(null);
   const { t } = useLang();
 
   return (
@@ -48,7 +46,7 @@ export function TestimonialsSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <h2 className="font-display font-700 text-3xl sm:text-4xl text-white mb-4">
+          <h2 className="font-display font-700 text-3xl sm:text-4xl text-base-content mb-4">
             {t('test.title1')} <span className="gradient-text">{t('test.title2')}</span>
           </h2>
           <p className="text-base-content/60">{t('test.subtitle')}</p>
@@ -57,21 +55,19 @@ export function TestimonialsSection() {
 
       {/* Scrollable testimonials */}
       <div
-        ref={scrollRef}
         className="flex gap-4 overflow-x-auto pb-4 px-4 sm:px-8 lg:px-16 snap-x snap-mandatory scrollbar-hide"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
-        {/* Duplicate for infinite feel */}
-        {[...TESTIMONIALS, ...TESTIMONIALS].map((t, i) => (
+        {TESTIMONIALS.map((item, i) => (
           <motion.div
-            key={i}
+            key={item.name}
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: (i % TESTIMONIALS.length) * 0.1 }}
+            transition={{ delay: i * 0.1 }}
             className="snap-start flex-shrink-0"
           >
-            <TestimonialCard {...t} />
+            <TestimonialCard {...item} />
           </motion.div>
         ))}
       </div>

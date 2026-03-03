@@ -13,9 +13,9 @@ export function FAQItem({ question, answer }: FAQItemProps) {
     <div className="glass-card rounded-xl overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-5 text-left hover:bg-white/5 transition-colors"
+        className="w-full flex items-center justify-between p-5 text-left hover:bg-base-content/5 transition-colors"
       >
-        <span className="font-600 text-sm text-white pr-4">{question}</span>
+        <span className="font-600 text-sm text-base-content pr-4">{question}</span>
         <motion.span
           animate={{ rotate: open ? 45 : 0 }}
           transition={{ duration: 0.2 }}

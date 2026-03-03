@@ -48,6 +48,7 @@ AliExpress Developer Portal dan key olish va `apps/api/.env` + `apps/worker/.env
 
 ## P2 — O'RTA
 
+(hozircha yo'q)
 
 ---
 

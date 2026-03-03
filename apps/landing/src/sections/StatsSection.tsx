@@ -1,23 +1,27 @@
+import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { useScrollAnimation } from '../hooks/useScrollAnimation';
 import { useCountUp } from '../hooks/useCountUp';
 import { useLang } from '../lib/LangContext';
 import type { TranslationKey } from '../lib/i18n';
+import { UsersIcon, PackageIcon, ActivityIcon, TrendUpIcon } from '../components/icons';
 
-const STATS: { value: number; suffix: string; labelKey: TranslationKey; icon: string }[] = [
-  { value: 1000, suffix: '+', labelKey: 'stats.label1', icon: '👥' },
-  { value: 50000, suffix: '+', labelKey: 'stats.label2', icon: '📦' },
-  { value: 24, suffix: '/7', labelKey: 'stats.label3', icon: '⚡' },
-  { value: 10, suffix: 'x', labelKey: 'stats.label4', icon: '📈' },
+const IC = 'w-7 h-7 text-primary mx-auto';
+
+const STATS: { value: number; suffix: string; labelKey: TranslationKey; icon: ReactNode }[] = [
+  { value: 1000, suffix: '+', labelKey: 'stats.label1', icon: <UsersIcon className={IC} /> },
+  { value: 50000, suffix: '+', labelKey: 'stats.label2', icon: <PackageIcon className={IC} /> },
+  { value: 24, suffix: '/7', labelKey: 'stats.label3', icon: <ActivityIcon className={IC} /> },
+  { value: 10, suffix: 'x', labelKey: 'stats.label4', icon: <TrendUpIcon className={IC} /> },
 ];
 
-function StatCounter({ value, suffix, label, icon, start }: { value: number; suffix: string; label: string; icon: string; start: boolean }) {
+function StatCounter({ value, suffix, label, icon, start }: { value: number; suffix: string; label: string; icon: ReactNode; start: boolean }) {
   const count = useCountUp(value, 2000, start);
 
   return (
     <div className="text-center">
-      <div className="text-3xl mb-3">{icon}</div>
-      <div className="font-display font-800 text-4xl sm:text-5xl text-white mb-2">
+      <div className="mb-3">{icon}</div>
+      <div className="font-display font-800 text-4xl sm:text-5xl text-base-content mb-2">
         {count.toLocaleString()}{suffix}
       </div>
       <p className="text-base-content/60 text-sm">{label}</p>
@@ -32,11 +36,7 @@ export function StatsSection() {
   return (
     <section id="stats" aria-label="Statistika" ref={ref} className="py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       <div className="absolute inset-0 gradient-bg opacity-10" />
-      <div className="absolute inset-0 pointer-events-none"
-           style={{
-             backgroundImage: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)',
-             backgroundSize: '40px 40px',
-           }} />
+      <div className="absolute inset-0 pointer-events-none grid-pattern-sm" />
       <div className="max-w-7xl mx-auto relative">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -45,8 +45,8 @@ export function StatsSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <h2 className="font-display font-700 text-3xl sm:text-4xl text-white mb-4">
-            {t('stats.title1')} <span className="gradient-text">VENTRA</span>
+          <h2 className="font-display font-700 text-3xl sm:text-4xl text-base-content mb-4">
+            {t('stats.title1')}
           </h2>
         </motion.div>
 

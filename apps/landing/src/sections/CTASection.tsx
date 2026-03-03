@@ -26,7 +26,7 @@ export function CTASection({ appUrl }: CTASectionProps) {
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
         >
-          <h2 className="font-display font-800 text-4xl sm:text-5xl lg:text-6xl text-white mb-6 leading-tight">
+          <h2 className="font-display font-800 text-4xl sm:text-5xl lg:text-6xl text-base-content mb-6 leading-tight">
             {t('cta.title1')}{' '}
             <span className="gradient-text">{t('cta.title2')}</span>{' '}
             {t('cta.title3')}

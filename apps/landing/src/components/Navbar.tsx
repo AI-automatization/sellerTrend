@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useLang } from '../lib/LangContext';
 import type { Lang } from '../lib/i18n';
+import { SunIcon, MoonIcon } from './icons';
 
 interface NavbarProps {
   appUrl: string;
@@ -62,7 +63,7 @@ export function Navbar({ appUrl }: NavbarProps) {
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5 }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled
+        scrolled || open
           ? 'bg-base-100/80 backdrop-blur-xl border-b border-base-300 shadow-lg'
           : 'bg-transparent'
       }`}
@@ -106,7 +107,7 @@ export function Navbar({ appUrl }: NavbarProps) {
               aria-label="Tema o'zgartirish"
               className="btn btn-ghost btn-sm btn-circle text-base-content/60 hover:text-base-content"
             >
-              {dark ? '☀️' : '🌙'}
+              {dark ? <SunIcon className="w-4 h-4" /> : <MoonIcon className="w-4 h-4" />}
             </button>
             <a
               href={`${appUrl}/login`}
@@ -135,7 +136,7 @@ export function Navbar({ appUrl }: NavbarProps) {
               aria-label="Tema"
               className="btn btn-ghost btn-sm btn-circle text-base-content/60"
             >
-              {dark ? '☀️' : '🌙'}
+              {dark ? <SunIcon className="w-4 h-4" /> : <MoonIcon className="w-4 h-4" />}
             </button>
             <button
               className="btn btn-ghost btn-sm"

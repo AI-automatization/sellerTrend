@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { useLang } from '../lib/LangContext';
+import { MonitorIcon } from '../components/icons';
 
 interface HeroSectionProps {
   appUrl: string;
@@ -19,11 +20,7 @@ export function HeroSection({ appUrl }: HeroSectionProps) {
         <div className="mesh-blob absolute bottom-1/4 left-1/3 w-64 h-64 rounded-full opacity-10"
              style={{ background: 'radial-gradient(circle, #06B6D4 0%, transparent 70%)', animationDelay: '-3s' }} />
         {/* Grid pattern */}
-        <div className="absolute inset-0 opacity-5"
-             style={{
-               backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-               backgroundSize: '60px 60px',
-             }} />
+        <div className="absolute inset-0 opacity-5 grid-pattern" />
       </div>
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
@@ -37,7 +34,7 @@ export function HeroSection({ appUrl }: HeroSectionProps) {
             </div>
 
             {/* Heading — no animation for SEO crawlability + LCP */}
-            <h1 className="font-display font-800 text-4xl sm:text-5xl lg:text-6xl text-white leading-tight mb-6">
+            <h1 className="font-display font-800 text-4xl sm:text-5xl lg:text-6xl text-base-content leading-tight mb-6">
               {t('hero.title1')}{' '}
               <span className="gradient-text">{t('hero.title2')}</span>
               {' '}{t('hero.title3')}
@@ -63,10 +60,10 @@ export function HeroSection({ appUrl }: HeroSectionProps) {
                   e.preventDefault();
                   document.querySelector('#download')?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="btn btn-outline rounded-full px-8 py-3 text-base font-600 border-white/20 text-white hover:bg-white/10"
+                className="btn btn-outline rounded-full px-8 py-3 text-base font-600 border-base-content/20 text-base-content hover:bg-base-content/10"
                 aria-label="Desktop ilovani yuklab olish"
               >
-                🖥️ {t('hero.cta2')}
+                <MonitorIcon className="w-4 h-4 inline-block" /> {t('hero.cta2')}
               </a>
             </div>
 
