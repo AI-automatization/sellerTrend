@@ -4,6 +4,20 @@
 
 ---
 
+## T-333..T-341 | LANDING P1 | Audit fixes (2026-03-04)
+
+- T-333: `animations.ts` — unused exports olib tashlandi (fadeIn, scaleIn, slideLeft, slideRight)
+- T-334: Email form — inline validation hint, error reset on change, touched state
+- T-335: `LangContext.tsx` + `Navbar.tsx` — localStorage try/catch (Safari private mode)
+- T-336: `TestimonialsSection.tsx` + `i18n.ts` — RU translations for all 4 testimonials
+- T-337: `package.json` build — generate-og-image.mjs vite build dan oldin ishlaydi
+- T-338: `Navbar.tsx` — mobile menu AnimatePresence wrapper (exit animations ishlaydi)
+- T-339: `nginx.conf` — HSTS + X-XSS-Protection:0 security headers
+- T-340: `FeatureCard.tsx` — unused `index: number` prop olib tashlandi
+- T-341: `prerender.mjs` — XSS guard: structural tag check before innerHTML write
+
+---
+
 ## T-329..T-332 | LANDING P0 | Audit fixes (2026-03-03)
 
 - T-329: `favicon.svg` yaratildi — VENTRA V logo, blue→purple gradient

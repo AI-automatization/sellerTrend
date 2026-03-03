@@ -139,24 +139,9 @@
 
 > Manba: CODE-AUDIT-DESKTOP-LANDING-2026-03-04.md
 
-## P0 — KRITIK (4 ta)
+## P0 — KRITIK (4 ta) — HAMMASI BAJARILDI ✅
 
-### T-329 | P0 | FRONTEND | Landing: `favicon.svg` yaratish | 10min | pending[Sardor]
-### T-330 | P0 | FRONTEND | Landing: Railway URL fallback o'chirish | 5min | pending[Sardor]
-### T-331 | P0 | FRONTEND | Landing: nginx CSP header | 15min
-### T-332 | P0 | FRONTEND | Landing: Placeholder verification kodlari o'chirish | 5min
-
-## P1 — MUHIM (9 ta)
-
-### T-333 | P1 | FRONTEND | Landing: Dead code tozalash | 15min
-### T-334 | P1 | FRONTEND | Landing: Email form fix | 30min
-### T-335 | P1 | FRONTEND | Landing: localStorage try/catch | 10min
-### T-336 | P1 | FRONTEND | Landing: Testimonials RU tarjima | 20min
-### T-337 | P1 | FRONTEND | Landing: OG image build pipeline | 15min
-### T-338 | P1 | FRONTEND | Landing: Mobile menu AnimatePresence | 10min
-### T-339 | P1 | FRONTEND | Landing: Nginx security headers fix | 10min
-### T-340 | P1 | FRONTEND | Landing: FeatureCard unused prop | 5min
-### T-341 | P1 | FRONTEND | Landing: Prerender innerHTML XSS guard | 10min
+## P1 — MUHIM (9 ta) — HAMMASI BAJARILDI ✅
 
 > Batafsil sabab/yechim: CODE-AUDIT-DESKTOP-LANDING-2026-03-04.md
 
