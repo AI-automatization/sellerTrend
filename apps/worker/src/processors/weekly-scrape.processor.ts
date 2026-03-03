@@ -93,12 +93,22 @@ async function scrapeAndSaveProduct(
   const lastSnap = await prisma.productSnapshot.findFirst({
     where: { product_id: productId },
     orderBy: { snapshot_at: 'desc' },
-    select: { snapshot_at: true },
+    select: { id: true, snapshot_at: true, weekly_bought: true, weekly_bought_source: true },
   });
 
   if (lastSnap && Date.now() - lastSnap.snapshot_at.getTime() < SNAPSHOT_MIN_GAP_MS) {
-    logJobInfo(QUEUE_NAME, jobId, jobName, `Snapshot dedup: product ${numId}, skip`);
-    // Still update scrape timestamps
+    // Dedup: don't create new snapshot, but UPDATE weekly_bought if scraper found data
+    if (scrapedWb !== null && (lastSnap.weekly_bought == null || lastSnap.weekly_bought_source !== 'scraped')) {
+      await prisma.productSnapshot.update({
+        where: { id: lastSnap.id },
+        data: { weekly_bought: scrapedWb, weekly_bought_source: 'scraped' },
+      });
+      logJobInfo(QUEUE_NAME, jobId, jobName,
+        `Snapshot dedup + wb update: product ${numId}, wb=${scrapedWb} (was ${lastSnap.weekly_bought})`);
+    } else {
+      logJobInfo(QUEUE_NAME, jobId, jobName, `Snapshot dedup: product ${numId}, skip`);
+    }
+
     await prisma.trackedProduct.updateMany({
       where: { product_id: productId },
       data: {
@@ -106,7 +116,7 @@ async function scrapeAndSaveProduct(
         next_scrape_at: getNextScrapeAt(),
       },
     });
-    return { scraped: scrapedWb !== null, weeklyBought };
+    return { scraped: scrapedWb !== null, weeklyBought: scrapedWb ?? weeklyBought };
   }
 
   // 4. Calculate score

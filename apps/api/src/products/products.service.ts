@@ -48,15 +48,20 @@ export class ProductsService {
             : 'flat'
           : null;
 
-      // Prefer stored scraped weekly_bought; fallback to calculated (transitional)
+      // Prefer stored scraped weekly_bought; then any stored non-zero; fallback to calculated
       let weeklyBought: number | null = null;
       const scrapedSnap = snaps.find((s) => (s as any).weekly_bought_source === 'scraped' && s.weekly_bought != null);
       if (scrapedSnap) {
         weeklyBought = scrapedSnap.weekly_bought;
       } else {
-        const currentOrders = Number(latest?.orders_quantity ?? t.product.orders_quantity ?? 0);
-        const currentTime = latest?.snapshot_at?.getTime() ?? Date.now();
-        weeklyBought = calcWeeklyBought(snaps, currentOrders, currentTime);
+        const anyWbSnap = snaps.find((s) => s.weekly_bought != null && s.weekly_bought > 0);
+        if (anyWbSnap) {
+          weeklyBought = anyWbSnap.weekly_bought;
+        } else {
+          const currentOrders = Number(latest?.orders_quantity ?? t.product.orders_quantity ?? 0);
+          const currentTime = latest?.snapshot_at?.getTime() ?? Date.now();
+          weeklyBought = calcWeeklyBought(snaps, currentOrders, currentTime);
+        }
       }
 
       return {
@@ -119,15 +124,21 @@ export class ProductsService {
       }
     }
 
-    // Prefer stored scraped weekly_bought; fallback to calculated (transitional)
+    // Prefer stored scraped weekly_bought; then any stored non-zero; fallback to calculated
     let weeklyBought: number | null = null;
     const scrapedSnap = snaps.find((s) => s.weekly_bought_source === 'scraped' && s.weekly_bought != null);
     if (scrapedSnap) {
       weeklyBought = scrapedSnap.weekly_bought;
     } else {
-      const currentOrders = Number(latest?.orders_quantity ?? product.orders_quantity ?? 0);
-      const currentTime = latest?.snapshot_at?.getTime() ?? Date.now();
-      weeklyBought = calcWeeklyBought(snaps, currentOrders, currentTime);
+      // Use any stored non-zero weekly_bought (e.g. from 'stored_scraped' or 'calculated')
+      const anyWbSnap = snaps.find((s) => s.weekly_bought != null && s.weekly_bought > 0);
+      if (anyWbSnap) {
+        weeklyBought = anyWbSnap.weekly_bought;
+      } else {
+        const currentOrders = Number(latest?.orders_quantity ?? product.orders_quantity ?? 0);
+        const currentTime = latest?.snapshot_at?.getTime() ?? Date.now();
+        weeklyBought = calcWeeklyBought(snaps, currentOrders, currentTime);
+      }
     }
 
     return {
