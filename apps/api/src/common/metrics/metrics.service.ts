@@ -1,7 +1,8 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Inject, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConcurrencyTrackerInterceptor } from '../interceptors/concurrency-tracker.interceptor';
 import Redis from 'ioredis';
+import { REDIS_CLIENT } from '../redis/redis.module';
 
 const MAX_HEAP_MB = parseInt(process.env.MAX_HEAP_MB || '2048', 10);
 const RING_BUFFER_SIZE = 240; // 240 x 15s = 1 hour
@@ -39,22 +40,14 @@ export class MetricsService implements OnModuleInit, OnModuleDestroy {
   private persistInterval: ReturnType<typeof setInterval> | null = null;
   private prevCpuUsage: NodeJS.CpuUsage | null = null;
   private prevCpuTime = 0;
-  private redis: Redis | null = null;
   private lastDbPoolActive = 0;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(REDIS_CLIENT) private readonly redis: Redis,
+  ) {}
 
   onModuleInit() {
-    // Initialize Redis connection (eager connect to avoid blocking on first call)
-    const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379';
-    this.redis = new Redis(redisUrl, {
-      maxRetriesPerRequest: 0,
-      connectTimeout: 3000,
-      enableOfflineQueue: false,
-      lazyConnect: false,
-      retryStrategy: (times: number) => Math.min(times * 50, 2000),
-    });
-
     // Initialize CPU tracking
     this.prevCpuUsage = process.cpuUsage();
     this.prevCpuTime = Date.now();
@@ -79,7 +72,7 @@ export class MetricsService implements OnModuleInit, OnModuleDestroy {
   onModuleDestroy() {
     if (this.collectInterval) clearInterval(this.collectInterval);
     if (this.persistInterval) clearInterval(this.persistInterval);
-    this.redis?.disconnect();
+    // Redis connection is managed by RedisModule — no disconnect here
   }
 
   /** Collect a single snapshot and push to ring buffer */
@@ -168,7 +161,7 @@ export class MetricsService implements OnModuleInit, OnModuleDestroy {
   /** Get queue depths from Redis using pipeline (single round-trip) */
   private async getQueueDepths(): Promise<Record<string, number>> {
     const depths: Record<string, number> = {};
-    if (!this.redis || this.redis.status !== 'ready') return depths;
+    if (this.redis.status !== 'ready') return depths;
 
     try {
       const pipeline = this.redis.pipeline();

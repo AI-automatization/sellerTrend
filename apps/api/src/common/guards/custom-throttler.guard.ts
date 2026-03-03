@@ -1,6 +1,7 @@
-import { Injectable, ExecutionContext } from '@nestjs/common';
+import { Injectable, Inject, ExecutionContext } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import Redis from 'ioredis';
+import { REDIS_CLIENT } from '../redis/redis.module';
 
 /**
  * Global throttler guard — IP-based rate limiting (120 req/min).
@@ -10,7 +11,8 @@ import Redis from 'ioredis';
 @Injectable()
 export class CustomThrottlerGuard extends ThrottlerGuard {
   private readonly whitelistedIps: Set<string>;
-  private rateLimitRedis: Redis | null = null;
+
+  @Inject(REDIS_CLIENT) private readonly rateLimitRedis!: Redis;
 
   constructor(...args: ConstructorParameters<typeof ThrottlerGuard>) {
     super(...args);
@@ -18,20 +20,6 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
     this.whitelistedIps = new Set(
       raw.split(',').map((ip) => ip.trim()).filter(Boolean),
     );
-
-    // Lazy Redis connection for rate limit tracking
-    try {
-      const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379';
-      this.rateLimitRedis = new Redis(redisUrl, {
-        maxRetriesPerRequest: 0,
-        connectTimeout: 3000,
-        enableOfflineQueue: false,
-        lazyConnect: true,
-        retryStrategy: (times: number) => Math.min(times * 50, 2000),
-      });
-    } catch {
-      // Redis unavailable — rate limit tracking will be skipped
-    }
   }
 
   async onModuleInit(): Promise<void> {
@@ -50,20 +38,18 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
       }
 
       // Track rate limit hits in Redis (fire-and-forget)
-      if (this.rateLimitRedis) {
-        try {
-          const req = context.switchToHttp().getRequest();
-          const userId: string =
-            req.user?.id || req.user?.sub || 'anonymous';
-          const today = new Date().toISOString().split('T')[0];
-          const key = `ventra:rate_limit:${userId}:${today}`;
-          this.rateLimitRedis
-            .incr(key)
-            .then(() => this.rateLimitRedis?.expire(key, 86400))
-            .catch(() => {});
-        } catch {
-          // Ignore tracking errors — don't affect rate limit behavior
-        }
+      try {
+        const req = context.switchToHttp().getRequest();
+        const userId: string =
+          req.user?.id || req.user?.sub || 'anonymous';
+        const today = new Date().toISOString().split('T')[0];
+        const key = `ventra:rate_limit:${userId}:${today}`;
+        this.rateLimitRedis
+          .incr(key)
+          .then(() => this.rateLimitRedis.expire(key, 86400))
+          .catch(() => {});
+      } catch {
+        // Ignore tracking errors — don't affect rate limit behavior
       }
 
       throw err;

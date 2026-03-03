@@ -3,6 +3,13 @@ import { redisConnection } from '../redis';
 import { prisma } from '../prisma';
 import { logJobStart, logJobDone, logJobError } from '../logger';
 
+/** Sentinel error used to signal insufficient balance inside a transaction */
+class InsufficientBalanceError extends Error {
+  constructor() {
+    super('Insufficient balance');
+  }
+}
+
 async function chargeAllActiveAccounts() {
   const setting = await prisma.systemSetting.findUnique({
     where: { key: 'daily_fee_default' },
@@ -28,30 +35,45 @@ async function chargeAllActiveAccounts() {
   for (const account of accounts) {
     const fee = account.daily_fee ?? defaultFee;
 
-    if (account.balance >= fee) {
-      await prisma.$transaction([
-        prisma.account.update({
+    try {
+      // Atomic read-check-write to prevent double-charge TOCTOU
+      await prisma.$transaction(async (tx) => {
+        const fresh = await tx.account.findUniqueOrThrow({
+          where: { id: account.id },
+        });
+
+        if (fresh.balance < fee) {
+          await tx.account.update({
+            where: { id: account.id },
+            data: { status: 'PAYMENT_DUE' },
+          });
+          throw new InsufficientBalanceError();
+        }
+
+        await tx.account.update({
           where: { id: account.id },
           data: { balance: { decrement: fee } },
-        }),
-        prisma.transaction.create({
+        });
+
+        await tx.transaction.create({
           data: {
             account_id: account.id,
             type: 'CHARGE',
             amount: fee,
-            balance_before: account.balance,
-            balance_after: account.balance - fee,
+            balance_before: fresh.balance,
+            balance_after: fresh.balance - fee,
             description: `Daily fee charge: ${today}`,
           },
-        }),
-      ]);
+        });
+      }, { isolationLevel: 'Serializable' });
+
       charged++;
-    } else {
-      await prisma.account.update({
-        where: { id: account.id },
-        data: { status: 'PAYMENT_DUE' },
-      });
-      suspended++;
+    } catch (err) {
+      if (err instanceof InsufficientBalanceError) {
+        suspended++;
+      } else {
+        throw err;
+      }
     }
   }
 

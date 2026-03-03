@@ -13,9 +13,10 @@
  */
 
 import { Worker, Job } from 'bullmq';
-import { chromium, BrowserContext } from 'playwright';
+import { BrowserContext } from 'playwright';
 import Anthropic from '@anthropic-ai/sdk';
 import { redisConnection } from '../redis';
+import { browserPool } from '../browser-pool';
 import { prisma } from '../prisma';
 import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
 
@@ -344,28 +345,22 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
     apiSearches.push(serpApiSearch(enQuery, 'alibaba', 'alibaba'));
   }
 
-  // Always run Playwright scrapers
-  const browser = await chromium.launch({
-    headless: true,
-    executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
-    proxy: process.env.PROXY_URL ? { server: process.env.PROXY_URL } : undefined,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-blink-features=AutomationControlled', '--disable-dev-shm-usage'],
+  // Always run Playwright scrapers — use shared browser pool
+  const browser = await browserPool.getBrowser();
+  const context = await browser.newContext({
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    locale: 'en-US',
+    timezoneId: 'America/New_York',
+    viewport: { width: 1366, height: 768 },
+    extraHTTPHeaders: { 'Accept-Language': 'en-US,en;q=0.9' },
+  });
+
+  await context.addInitScript(() => {
+    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+    (window as unknown as Record<string, unknown>).chrome = { runtime: {} };
   });
 
   try {
-    const context = await browser.newContext({
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-      locale: 'en-US',
-      timezoneId: 'America/New_York',
-      viewport: { width: 1366, height: 768 },
-      extraHTTPHeaders: { 'Accept-Language': 'en-US,en;q=0.9' },
-    });
-
-    await context.addInitScript(() => {
-      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-      (window as any).chrome = { runtime: {} };
-    });
-
     // Run all searches in parallel
     const allResults = await Promise.allSettled([
       ...apiSearches,
@@ -384,7 +379,7 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
         continue;
       }
       if (i < apiSearches.length) {
-        serpResults.push(...(result.value as any[]));
+        serpResults.push(...(result.value as Array<{ title: string; price_usd: number; currency: string; url: string; image: string; seller: string | null; external_id: string | null; platform_code: string }>));
       } else {
         playwrightProducts.push(...(result.value as ExternalProduct[]));
       }
@@ -604,7 +599,8 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
 
     return combined;
   } finally {
-    await browser.close();
+    await context.close();
+    await browserPool.release();
   }
 }
 

@@ -1,12 +1,21 @@
 {
-  "dangerouslySkipPermissions": true,
   "permissions": {
     "allow": [
       "Bash(*)",
-      "Edit(*)",
       "Read(*)",
       "Write(*)",
-      "mcp__*"
-    ]
-  }
+      "Edit(*)",
+      "MultiEdit(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "LS(*)",
+      "mcp__plugin_playwright_playwright__browser_navigate"
+    ],
+    "deny": []
+  },
+  "enabledMcpjsonServers": [
+    "playwright",
+    "context7"
+  ],
+  "dangerouslySkipPermissions": true
 }

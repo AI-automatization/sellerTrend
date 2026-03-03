@@ -15,9 +15,9 @@
  *   4. Individual REST calls to /api/v2/product/{id} get orders data.
  */
 
-import { chromium } from 'playwright';
 import { ProxyAgent } from 'undici';
 import { logJobInfo } from '../logger';
+import { browserPool } from '../browser-pool';
 
 const REST_BASE = 'https://api.uzum.uz/api/v2';
 
@@ -74,27 +74,15 @@ export async function scrapeCategoryProductIds(
 ): Promise<{ ids: number[]; screenshotBase64?: string }> {
   logJobInfo('discovery-queue', '-', 'scraper', `Opening ${categoryUrl}`);
 
-  const browser = await chromium.launch({
-    headless: true,
-    executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
-    proxy: process.env.PROXY_URL ? { server: process.env.PROXY_URL } : undefined,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-      '--disable-extensions',
-    ],
+  const browser = await browserPool.getBrowser();
+  const context = await browser.newContext({
+    userAgent:
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    locale: 'ru-RU',
+    extraHTTPHeaders: { 'Accept-Language': 'ru-RU,ru;q=0.9' },
   });
 
   try {
-    const context = await browser.newContext({
-      userAgent:
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      locale: 'ru-RU',
-      extraHTTPHeaders: { 'Accept-Language': 'ru-RU,ru;q=0.9' },
-    });
-
     const page = await context.newPage();
 
     await page.goto(categoryUrl, {
@@ -155,7 +143,8 @@ export async function scrapeCategoryProductIds(
 
     return { ids: [...ids], screenshotBase64 };
   } finally {
-    await browser.close();
+    await context.close();
+    await browserPool.release();
   }
 }
 

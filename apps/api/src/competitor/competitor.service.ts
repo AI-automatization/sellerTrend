@@ -16,6 +16,20 @@ export class CompetitorService {
    * Returns top-10 competitors with price comparison.
    */
   async discoverCompetitorPrices(productId: bigint, accountId: string) {
+    // Verify the product belongs to this account
+    const tracked = await this.prisma.trackedProduct.findUnique({
+      where: {
+        account_id_product_id: {
+          account_id: accountId,
+          product_id: productId,
+        },
+      },
+      select: { id: true },
+    });
+    if (!tracked) {
+      throw new NotFoundException(`Product ${productId} not found`);
+    }
+
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
       include: { skus: { take: 1, orderBy: { min_sell_price: 'asc' } } },

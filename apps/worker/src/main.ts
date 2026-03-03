@@ -10,19 +10,32 @@ import { createWeeklyScrapeWorker } from './processors/weekly-scrape.processor';
 import { scheduleDailyBilling } from './jobs/billing.job';
 import { scheduleCompetitorSnapshots } from './jobs/competitor-snapshot.job';
 import { scheduleWeeklyScrape } from './jobs/weekly-scrape.job';
+import { logProcess } from './logger';
+import { browserPool } from './browser-pool';
 
-// T-300 + T-349: Global crash handlers
+// T-349: Global crash handlers — log but do NOT exit.
+// For truly fatal errors (ENOMEM), trigger graceful shutdown instead of hard exit.
+let shutdownFn: ((signal: string) => Promise<void>) | null = null;
+
 process.on('uncaughtException', (err) => {
-  console.error('uncaughtException:', err);
-  // Let the process continue — Railway will restart if truly broken
+  logProcess('error', 'uncaughtException', err);
+  // ENOMEM or similar fatal → graceful shutdown (Railway will restart)
+  const isFatal = err && ('code' in err) && (err as NodeJS.ErrnoException).code === 'ERR_WORKER_OUT_OF_MEMORY'
+    || err?.message?.includes('ENOMEM')
+    || err?.message?.includes('allocation failed');
+  if (isFatal && shutdownFn) {
+    logProcess('error', 'Fatal memory error detected, initiating graceful shutdown');
+    shutdownFn('ENOMEM').catch(() => process.exit(1));
+  }
+  // Otherwise let the process continue — Railway will restart if truly broken
 });
 process.on('unhandledRejection', (reason) => {
-  console.error('unhandledRejection:', reason);
+  logProcess('error', 'unhandledRejection', reason instanceof Error ? reason : new Error(String(reason)));
   // Do NOT exit — one rejected promise should not kill all 6 workers
 });
 
 async function bootstrap() {
-  console.log('Worker starting...');
+  logProcess('info', 'Worker starting...');
 
   // Start workers (consumers)
   const billingWorker = createBillingWorker();
@@ -37,16 +50,8 @@ async function bootstrap() {
   await scheduleCompetitorSnapshots();
   await scheduleWeeklyScrape();
 
-  console.log('Workers running:');
-  console.log('  - billing-queue');
-  console.log('  - discovery-queue');
-  console.log('  - sourcing-search');
-  console.log('  - competitor-queue');
-  console.log('  - import-batch');
-  console.log('  - weekly-scrape-queue');
-  console.log('Daily billing cron scheduled at 00:00');
-  console.log('Competitor snapshot cron scheduled every 6h');
-  console.log('Weekly scrape cron scheduled every 15 minutes');
+  logProcess('info', 'Workers running: billing-queue, discovery-queue, sourcing-search, competitor-queue, import-batch, weekly-scrape-queue');
+  logProcess('info', 'Crons: billing daily 00:00, competitor every 6h, weekly-scrape every 15min');
 
   // Health check HTTP server
   const healthPort = parseInt(process.env.PORT || process.env.WORKER_HEALTH_PORT || '3001', 10);
@@ -76,14 +81,14 @@ async function bootstrap() {
   });
 
   server.listen(healthPort, () => {
-    console.log(`Worker health check: http://localhost:${healthPort}/health`);
+    logProcess('info', `Worker health check: http://localhost:${healthPort}/health`);
   });
 
-  // Graceful shutdown (SIGTERM + SIGINT)
+  // Graceful shutdown (SIGTERM + SIGINT + fatal errors via shutdownFn)
   const shutdown = async (signal: string) => {
-    console.log(`[${signal}] Worker graceful shutdown...`);
+    logProcess('info', `[${signal}] Worker graceful shutdown...`);
     const timeout = setTimeout(() => {
-      console.error('Worker shutdown timeout (30s), forcing exit');
+      logProcess('error', 'Worker shutdown timeout (30s), forcing exit');
       process.exit(1);
     }, 30_000);
     try {
@@ -96,18 +101,22 @@ async function bootstrap() {
         importWorker.close(),
         weeklyScrapeWorker.close(),
       ]);
+      await browserPool.shutdown();
       await redis.quit();
       clearTimeout(timeout);
-      console.log('Worker shutdown complete');
+      logProcess('info', 'Worker shutdown complete');
       process.exit(0);
     } catch (err) {
-      console.error('Worker shutdown error:', err);
+      logProcess('error', 'Worker shutdown error', err);
       process.exit(1);
     }
   };
+
+  // Wire up shutdownFn for fatal error handler (uncaughtException ENOMEM)
+  shutdownFn = shutdown;
 
   process.on('SIGTERM', () => shutdown('SIGTERM'));
   process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
-bootstrap().catch(console.error);
+bootstrap().catch((err) => logProcess('error', 'Bootstrap failed', err));

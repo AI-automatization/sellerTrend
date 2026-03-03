@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Inject,
   UnauthorizedException,
   ConflictException,
   ForbiddenException,
@@ -11,6 +12,7 @@ import * as crypto from 'crypto';
 import Redis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReferralService } from '../referral/referral.service';
+import { REDIS_CLIENT } from '../common/redis/redis.module';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
@@ -24,24 +26,13 @@ const WINDOW_SECONDS = 15 * 60;  // 15 minute window
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  private readonly redis: Redis;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly referralService: ReferralService,
-  ) {
-    this.redis = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
-      maxRetriesPerRequest: 0,
-      connectTimeout: 3000,
-      enableOfflineQueue: false,
-      lazyConnect: true,
-      retryStrategy: (times: number) => Math.min(times * 50, 2000),
-    });
-    this.redis.connect().catch(() => {
-      this.logger.warn('Redis not available for rate limiting — falling back to no rate limit');
-    });
-  }
+    @Inject(REDIS_CLIENT) private readonly redis: Redis,
+  ) {}
 
   async register(dto: RegisterDto) {
     const existing = await this.prisma.user.findUnique({

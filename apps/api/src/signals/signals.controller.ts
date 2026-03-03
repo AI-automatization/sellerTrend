@@ -59,8 +59,11 @@ export class SignalsController {
 
   /** Feature 27 — Ranking Position Tracker */
   @Get('ranking/:productId')
-  getRanking(@Param('productId', ParseBigIntPipe) productId: bigint) {
-    return this.signalsService.getRankingHistory(productId);
+  getRanking(
+    @Param('productId', ParseBigIntPipe) productId: bigint,
+    @CurrentUser('account_id') accountId: string,
+  ) {
+    return this.signalsService.getRankingHistory(productId, accountId);
   }
 
   /** Feature 28 — Product Launch Checklist */

@@ -1,6 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+/** Sentinel error used to signal insufficient balance inside a transaction */
+class InsufficientBalanceError extends Error {
+  constructor() {
+    super('Insufficient balance');
+  }
+}
+
 @Injectable()
 export class BillingService {
   private readonly logger = new Logger(BillingService.name);
@@ -39,32 +46,47 @@ export class BillingService {
     for (const account of accounts) {
       const fee = account.daily_fee ?? defaultFee;
 
-      if (account.balance >= fee) {
-        await this.prisma.$transaction([
-          this.prisma.account.update({
+      try {
+        // Atomic read-check-write to prevent double-charge TOCTOU
+        await this.prisma.$transaction(async (tx) => {
+          const fresh = await tx.account.findUniqueOrThrow({
+            where: { id: account.id },
+          });
+
+          if (fresh.balance < fee) {
+            await tx.account.update({
+              where: { id: account.id },
+              data: { status: 'PAYMENT_DUE' },
+            });
+            throw new InsufficientBalanceError();
+          }
+
+          await tx.account.update({
             where: { id: account.id },
             data: { balance: { decrement: fee } },
-          }),
-          this.prisma.transaction.create({
+          });
+
+          await tx.transaction.create({
             data: {
               account_id: account.id,
               type: 'CHARGE',
               amount: fee,
-              balance_before: account.balance,
-              balance_after: account.balance - fee,
+              balance_before: fresh.balance,
+              balance_after: fresh.balance - fee,
               description: `Daily fee charge: ${today}`,
             },
-          }),
-        ]);
+          });
+        }, { isolationLevel: 'Serializable' });
+
         this.logger.log(`Charged ${fee} from account ${account.id}`);
         charged++;
-      } else {
-        await this.prisma.account.update({
-          where: { id: account.id },
-          data: { status: 'PAYMENT_DUE' },
-        });
-        this.logger.warn(`Account ${account.id} set to PAYMENT_DUE`);
-        suspended++;
+      } catch (err) {
+        if (err instanceof InsufficientBalanceError) {
+          this.logger.warn(`Account ${account.id} set to PAYMENT_DUE`);
+          suspended++;
+        } else {
+          throw err;
+        }
       }
     }
 
@@ -76,22 +98,24 @@ export class BillingService {
     amount: bigint,
     description?: string,
   ): Promise<void> {
-    const account = await this.prisma.account.findUniqueOrThrow({
-      where: { id: accountId },
-    });
+    // Atomic read-check-write to prevent stale balance in transaction log
+    await this.prisma.$transaction(async (tx) => {
+      const account = await tx.account.findUniqueOrThrow({
+        where: { id: accountId },
+      });
 
-    const newBalance = account.balance + amount;
+      const newBalance = account.balance + amount;
 
-    await this.prisma.$transaction([
-      this.prisma.account.update({
+      await tx.account.update({
         where: { id: accountId },
         data: {
           balance: newBalance,
           // Restore active if payment was due
           ...(account.status === 'PAYMENT_DUE' && { status: 'ACTIVE' }),
         },
-      }),
-      this.prisma.transaction.create({
+      });
+
+      await tx.transaction.create({
         data: {
           account_id: accountId,
           type: 'DEPOSIT',
@@ -100,8 +124,8 @@ export class BillingService {
           balance_after: newBalance,
           description: description ?? 'Manual deposit',
         },
-      }),
-    ]);
+      });
+    }, { isolationLevel: 'Serializable' });
   }
 
   async getAccountBalance(accountId: string) {

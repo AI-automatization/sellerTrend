@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -110,47 +110,54 @@ export class ConsultationService {
 
   /**
    * Book a consultation as a client.
+   * Uses ReadCommitted transaction to prevent double-booking.
    * @param accountId - The account_id of the booking client (maps to DB column `client_id`)
    */
   async book(accountId: string, consultationId: string, scheduledAt: string) {
-    const consultation = await this.prisma.consultation.findUnique({
-      where: { id: consultationId },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      const consultation = await tx.consultation.findUnique({
+        where: { id: consultationId },
+      });
 
-    if (!consultation) throw new NotFoundException('Konsultatsiya topilmadi');
-    if (consultation.status !== 'AVAILABLE') throw new BadRequestException('Bu konsultatsiya band');
-    /** consultant_id is the DB column for the listing owner's account_id */
-    if (consultation.consultant_id === accountId) throw new BadRequestException('O\'zingizga bron qilib bo\'lmaydi');
+      if (!consultation) throw new NotFoundException('Konsultatsiya topilmadi');
+      if (consultation.status !== 'AVAILABLE') throw new ConflictException('Bu konsultatsiya band');
+      /** consultant_id is the DB column for the listing owner's account_id */
+      if (consultation.consultant_id === accountId) throw new BadRequestException('O\'zingizga bron qilib bo\'lmaydi');
 
-    const c = await this.prisma.consultation.update({
-      where: { id: consultationId },
-      data: {
-        client_id: accountId,
-        status: 'BOOKED',
-        scheduled_at: new Date(scheduledAt),
-      },
-    });
-    return { ...c, price_uzs: c.price_uzs.toString() };
+      const c = await tx.consultation.update({
+        where: { id: consultationId },
+        data: {
+          client_id: accountId,
+          status: 'BOOKED',
+          scheduled_at: new Date(scheduledAt),
+        },
+      });
+      return { ...c, price_uzs: c.price_uzs.toString() };
+    }, { isolationLevel: 'ReadCommitted' });
   }
 
   /**
    * Mark a consultation as completed.
+   * Uses ReadCommitted transaction to prevent race on status transition.
    * @param accountId - The account_id of the listing owner (maps to DB column `consultant_id`)
    */
   async complete(accountId: string, consultationId: string) {
-    const consultation = await this.prisma.consultation.findUnique({
-      where: { id: consultationId },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      const consultation = await tx.consultation.findUnique({
+        where: { id: consultationId },
+      });
 
-    if (!consultation) throw new NotFoundException('Konsultatsiya topilmadi');
-    /** consultant_id is the DB column for the listing owner's account_id */
-    if (consultation.consultant_id !== accountId) throw new BadRequestException('Sizning konsultatsiyangiz emas');
+      if (!consultation) throw new NotFoundException('Konsultatsiya topilmadi');
+      /** consultant_id is the DB column for the listing owner's account_id */
+      if (consultation.consultant_id !== accountId) throw new BadRequestException('Sizning konsultatsiyangiz emas');
+      if (consultation.status !== 'BOOKED') throw new ConflictException('Faqat band konsultatsiyani yakunlash mumkin');
 
-    const c = await this.prisma.consultation.update({
-      where: { id: consultationId },
-      data: { status: 'COMPLETED', completed_at: new Date() },
-    });
-    return { ...c, price_uzs: c.price_uzs.toString() };
+      const c = await tx.consultation.update({
+        where: { id: consultationId },
+        data: { status: 'COMPLETED', completed_at: new Date() },
+      });
+      return { ...c, price_uzs: c.price_uzs.toString() };
+    }, { isolationLevel: 'ReadCommitted' });
   }
 
   /**

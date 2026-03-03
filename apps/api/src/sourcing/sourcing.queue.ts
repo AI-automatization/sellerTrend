@@ -1,28 +1,16 @@
 import { Queue, QueueEvents } from 'bullmq';
-
-function getRedisConnection() {
-  const redisUrl = new URL(process.env.REDIS_URL ?? 'redis://localhost:6379');
-  return {
-    connection: {
-      host: redisUrl.hostname,
-      port: parseInt(redisUrl.port || '6379', 10),
-      username: redisUrl.username || undefined,
-      password: redisUrl.password || undefined,
-      maxRetriesPerRequest: null,
-    },
-  };
-}
+import { getBullMQConnection } from '../common/redis/redis.module';
 
 let _queue: Queue | null = null;
 let _queueEvents: QueueEvents | null = null;
 
 function getQueue(): Queue {
-  if (!_queue) _queue = new Queue('sourcing-search', getRedisConnection());
+  if (!_queue) _queue = new Queue('sourcing-search', getBullMQConnection());
   return _queue;
 }
 
 function getQueueEvents(): QueueEvents {
-  if (!_queueEvents) _queueEvents = new QueueEvents('sourcing-search', getRedisConnection());
+  if (!_queueEvents) _queueEvents = new QueueEvents('sourcing-search', getBullMQConnection());
   return _queueEvents;
 }
 

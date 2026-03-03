@@ -1,4 +1,5 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ConflictException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -34,7 +35,7 @@ export class CommunityService {
 
   /** List insights, optionally filtered by category, ordered by net votes */
   async listInsights(category?: string) {
-    const where: any = {};
+    const where: Prisma.CommunityInsightWhereInput = {};
     if (category) {
       where.category = category;
     }
@@ -64,60 +65,74 @@ export class CommunityService {
       .sort((a, b) => b.net_votes - a.net_votes);
   }
 
-  /** Vote on an insight (+1 or -1) — upsert to prevent duplicate votes */
+  /**
+   * Vote on an insight (+1 or -1).
+   * Uses ReadCommitted transaction to atomically check + create/update vote + counter.
+   */
   async vote(accountId: string, insightId: string, vote: number) {
-    const insight = await this.prisma.communityInsight.findUnique({
-      where: { id: insightId },
-    });
-
-    if (!insight) {
-      throw new NotFoundException(`Insight ${insightId} not found`);
-    }
-
     // Normalize vote to +1 or -1
     const normalizedVote = vote > 0 ? 1 : -1;
 
-    // Check for existing vote
-    const existingVote = await this.prisma.insightVote.findUnique({
-      where: {
-        insight_id_account_id: {
-          insight_id: insightId,
-          account_id: accountId,
-        },
-      },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      const insight = await tx.communityInsight.findUnique({
+        where: { id: insightId },
+      });
 
-    if (existingVote) {
-      if (existingVote.vote === normalizedVote) {
-        // Same vote — no change
+      if (!insight) {
+        throw new NotFoundException(`Insight ${insightId} not found`);
+      }
+
+      // Check for existing vote
+      const existingVote = await tx.insightVote.findUnique({
+        where: {
+          insight_id_account_id: {
+            insight_id: insightId,
+            account_id: accountId,
+          },
+        },
+      });
+
+      if (existingVote) {
+        if (existingVote.vote === normalizedVote) {
+          // Same vote — no change
+          return {
+            insight_id: insightId,
+            vote: normalizedVote,
+            message: 'Vote unchanged',
+            upvotes: insight.upvotes,
+            downvotes: insight.downvotes,
+            net_votes: insight.upvotes - insight.downvotes,
+          };
+        }
+
+        // Update existing vote
+        await tx.insightVote.update({
+          where: { id: existingVote.id },
+          data: { vote: normalizedVote },
+        });
+
+        // Swap counters: decrement old direction, increment new
+        const updated = existingVote.vote === 1
+          ? await tx.communityInsight.update({
+              where: { id: insightId },
+              data: { upvotes: { decrement: 1 }, downvotes: { increment: 1 } },
+            })
+          : await tx.communityInsight.update({
+              where: { id: insightId },
+              data: { upvotes: { increment: 1 }, downvotes: { decrement: 1 } },
+            });
+
         return {
           insight_id: insightId,
           vote: normalizedVote,
-          message: 'Vote unchanged',
+          upvotes: updated.upvotes,
+          downvotes: updated.downvotes,
+          net_votes: updated.upvotes - updated.downvotes,
         };
       }
 
-      // Update existing vote
-      await this.prisma.insightVote.update({
-        where: { id: existingVote.id },
-        data: { vote: normalizedVote },
-      });
-
-      // Swap counters: decrement old direction, increment new
-      if (existingVote.vote === 1) {
-        await this.prisma.communityInsight.update({
-          where: { id: insightId },
-          data: { upvotes: { decrement: 1 }, downvotes: { increment: 1 } },
-        });
-      } else {
-        await this.prisma.communityInsight.update({
-          where: { id: insightId },
-          data: { upvotes: { increment: 1 }, downvotes: { decrement: 1 } },
-        });
-      }
-    } else {
       // Create new vote
-      await this.prisma.insightVote.create({
+      await tx.insightVote.create({
         data: {
           insight_id: insightId,
           account_id: accountId,
@@ -125,32 +140,25 @@ export class CommunityService {
         },
       });
 
-      // Update counter
-      if (normalizedVote === 1) {
-        await this.prisma.communityInsight.update({
-          where: { id: insightId },
-          data: { upvotes: { increment: 1 } },
-        });
-      } else {
-        await this.prisma.communityInsight.update({
-          where: { id: insightId },
-          data: { downvotes: { increment: 1 } },
-        });
-      }
-    }
+      // Update counter atomically and return result
+      const updated = normalizedVote === 1
+        ? await tx.communityInsight.update({
+            where: { id: insightId },
+            data: { upvotes: { increment: 1 } },
+          })
+        : await tx.communityInsight.update({
+            where: { id: insightId },
+            data: { downvotes: { increment: 1 } },
+          });
 
-    // Return updated insight
-    const updated = await this.prisma.communityInsight.findUnique({
-      where: { id: insightId },
-    });
-
-    return {
-      insight_id: insightId,
-      vote: normalizedVote,
-      upvotes: updated?.upvotes ?? 0,
-      downvotes: updated?.downvotes ?? 0,
-      net_votes: (updated?.upvotes ?? 0) - (updated?.downvotes ?? 0),
-    };
+      return {
+        insight_id: insightId,
+        vote: normalizedVote,
+        upvotes: updated.upvotes,
+        downvotes: updated.downvotes,
+        net_votes: updated.upvotes - updated.downvotes,
+      };
+    }, { isolationLevel: 'ReadCommitted' });
   }
 
   /** Get distinct categories from insights */

@@ -47,7 +47,7 @@ export class ProductsController {
     @Param('id', ParseBigIntPipe) productId: bigint,
     @CurrentUser('account_id') accountId: string,
   ) {
-    return this.productsService.getProductSnapshots(productId);
+    return this.productsService.getProductSnapshots(productId, accountId);
   }
 
   /** 7-day score forecast with trend direction */
@@ -56,7 +56,7 @@ export class ProductsController {
     @Param('id', ParseBigIntPipe) productId: bigint,
     @CurrentUser('account_id') accountId: string,
   ) {
-    return this.productsService.getForecast(productId);
+    return this.productsService.getForecast(productId, accountId);
   }
 
   /** ML-enhanced ensemble forecast with confidence intervals */
@@ -65,7 +65,7 @@ export class ProductsController {
     @Param('id', ParseBigIntPipe) productId: bigint,
     @CurrentUser('account_id') accountId: string,
   ) {
-    return this.productsService.getAdvancedForecast(productId);
+    return this.productsService.getAdvancedForecast(productId, accountId);
   }
 
   /** Weekly trend: 7-day delta, daily breakdown, seller advice */
@@ -74,15 +74,18 @@ export class ProductsController {
     @Param('id', ParseBigIntPipe) productId: bigint,
     @CurrentUser('account_id') accountId: string,
   ) {
-    return this.productsService.getWeeklyTrend(productId);
+    return this.productsService.getWeeklyTrend(productId, accountId);
   }
 
   /** AI-powered trend analysis */
   @Get(':id/trend-analysis')
   @ActivityAction('PRODUCT_TREND_ANALYSIS')
-  async trendAnalysis(@Param('id', ParseBigIntPipe) productId: bigint) {
-    const forecast = await this.productsService.getAdvancedForecast(productId);
-    const product = await this.productsService.getProductById(productId);
+  async trendAnalysis(
+    @Param('id', ParseBigIntPipe) productId: bigint,
+    @CurrentUser('account_id') accountId: string,
+  ) {
+    const forecast = await this.productsService.getAdvancedForecast(productId, accountId);
+    const product = await this.productsService.getProductById(productId, accountId);
     if (!product) throw new NotFoundException('Product not found');
 
     const analysis = await this.aiService.analyzeTrend({

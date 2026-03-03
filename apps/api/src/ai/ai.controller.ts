@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Param, UseGuards, NotFoundException } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -25,9 +25,29 @@ export class AiController {
     private readonly prisma: PrismaService,
   ) {}
 
+  /** Verify that the given product is tracked by the given account */
+  private async assertProductOwnership(productId: bigint, accountId: string): Promise<void> {
+    const tracked = await this.prisma.trackedProduct.findUnique({
+      where: {
+        account_id_product_id: {
+          account_id: accountId,
+          product_id: productId,
+        },
+      },
+      select: { id: true },
+    });
+    if (!tracked) {
+      throw new NotFoundException('Product not found');
+    }
+  }
+
   /** Get cached AI attributes for a product (30 req/min per account) */
   @Get('attributes/:productId')
-  async getAttributes(@Param('productId', ParseBigIntPipe) productId: bigint) {
+  async getAttributes(
+    @Param('productId', ParseBigIntPipe) productId: bigint,
+    @CurrentUser('account_id') accountId: string,
+  ) {
+    await this.assertProductOwnership(productId, accountId);
     const attr = await this.prisma.productAiAttribute.findUnique({
       where: { product_id: productId },
     });
@@ -42,6 +62,7 @@ export class AiController {
     @Param('productId', ParseBigIntPipe) productId: bigint,
     @CurrentUser('account_id') accountId: string,
   ) {
+    await this.assertProductOwnership(productId, accountId);
     await this.aiService.checkAiQuota(accountId);
     const product = await this.prisma.product.findUniqueOrThrow({
       where: { id: productId },
@@ -52,7 +73,11 @@ export class AiController {
 
   /** Get all AI explanations for a product (30 req/min per account) */
   @Get('explanations/:productId')
-  async getExplanations(@Param('productId', ParseBigIntPipe) productId: bigint) {
+  async getExplanations(
+    @Param('productId', ParseBigIntPipe) productId: bigint,
+    @CurrentUser('account_id') accountId: string,
+  ) {
+    await this.assertProductOwnership(productId, accountId);
     const rows = await this.prisma.productAiExplanation.findMany({
       where: { product_id: productId },
       orderBy: { created_at: 'desc' },

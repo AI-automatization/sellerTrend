@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import Redis from 'ioredis';
+import { REDIS_CLIENT } from '../common/redis/redis.module';
 
 // SUPER_ADMIN account excluded from stats — set via env or fallback to seed value
 const SUPER_ADMIN_ACCOUNT_ID = process.env.SUPER_ADMIN_ACCOUNT_ID ?? 'aaaaaaaa-0000-0000-0000-000000000001';
@@ -16,18 +17,10 @@ const QUEUE_NAMES = [
 
 @Injectable()
 export class AdminStatsService {
-  private readonly redis: Redis;
-
-  constructor(private readonly prisma: PrismaService) {
-    const url = process.env.REDIS_URL ?? 'redis://localhost:6379';
-    this.redis = new Redis(url, {
-      maxRetriesPerRequest: 0,
-      connectTimeout: 3000,
-      enableOfflineQueue: false,
-      lazyConnect: true,
-      retryStrategy: (times: number) => Math.min(times * 50, 2000),
-    });
-  }
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(REDIS_CLIENT) private readonly redis: Redis,
+  ) {}
 
   private async getQueuePending(): Promise<number> {
     try {

@@ -1,25 +1,13 @@
 import { Queue } from 'bullmq';
+import { getBullMQConnection } from '../common/redis/redis.module';
 
 const QUEUE_NAME = 'import-batch';
-
-function getRedisConnection() {
-  const redisUrl = new URL(process.env.REDIS_URL ?? 'redis://localhost:6379');
-  return {
-    connection: {
-      host: redisUrl.hostname,
-      port: parseInt(redisUrl.port || '6379', 10),
-      username: redisUrl.username || undefined,
-      password: redisUrl.password || undefined,
-      maxRetriesPerRequest: null,
-    },
-  };
-}
 
 let queue: Queue | null = null;
 
 function getQueue(): Queue {
   if (!queue) {
-    queue = new Queue(QUEUE_NAME, getRedisConnection());
+    queue = new Queue(QUEUE_NAME, getBullMQConnection());
   }
   return queue;
 }

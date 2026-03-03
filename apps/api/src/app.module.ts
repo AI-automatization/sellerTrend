@@ -15,6 +15,7 @@ import { SourcingModule } from './sourcing/sourcing.module';
 import { CompetitorModule } from './competitor/competitor.module';
 import { CommonModule } from './common/common.module';
 import { MetricsModule } from './common/metrics/metrics.module';
+import { RedisModule } from './common/redis/redis.module';
 import { HealthController } from './common/health.controller';
 // v1.0 MVP modules
 import { ToolsModule } from './tools/tools.module';
@@ -41,6 +42,7 @@ import { NotificationModule } from './notification/notification.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    RedisModule,
     ThrottlerModule.forRoot([
       { name: 'default', ttl: 60000, limit: 120 },
       { name: 'ai', ttl: 60000, limit: 30 },

@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { nanoid } from 'nanoid';
 
@@ -58,33 +58,36 @@ export class ReferralService {
   /**
    * Called during registration when a referral code is provided.
    * Updates the referral record with the new account ID.
+   * Uses Serializable transaction to prevent double-use of referral codes.
    */
   async applyReferralCode(code: string, referredAccountId: string) {
-    const referral = await this.prisma.referral.findUnique({
-      where: { code },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      const referral = await tx.referral.findUnique({
+        where: { code },
+      });
 
-    if (!referral) {
-      throw new BadRequestException('Invalid referral code');
-    }
+      if (!referral) {
+        throw new BadRequestException('Invalid referral code');
+      }
 
-    if (referral.status !== 'PENDING') {
-      throw new BadRequestException('Referral code already used');
-    }
+      if (referral.status !== 'PENDING') {
+        throw new ConflictException('Referral code already used');
+      }
 
-    if (referral.referrer_account_id === referredAccountId) {
-      throw new BadRequestException('Cannot use own referral code');
-    }
+      if (referral.referrer_account_id === referredAccountId) {
+        throw new BadRequestException('Cannot use own referral code');
+      }
 
-    await this.prisma.referral.update({
-      where: { id: referral.id },
-      data: {
-        referred_account_id: referredAccountId,
-        status: 'ACTIVE',
-        credited_at: new Date(),
-      },
-    });
+      await tx.referral.update({
+        where: { id: referral.id },
+        data: {
+          referred_account_id: referredAccountId,
+          status: 'ACTIVE',
+          credited_at: new Date(),
+        },
+      });
 
-    return { reward_days: referral.reward_days };
+      return { reward_days: referral.reward_days };
+    }, { isolationLevel: 'Serializable' });
   }
 }

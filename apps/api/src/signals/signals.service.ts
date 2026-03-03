@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -189,7 +189,21 @@ export class SignalsService {
   }
 
   /** Feature 27 — Ranking Position Tracker */
-  async getRankingHistory(productId: bigint) {
+  async getRankingHistory(productId: bigint, accountId: string) {
+    // Verify the product belongs to this account
+    const tracked = await this.prisma.trackedProduct.findUnique({
+      where: {
+        account_id_product_id: {
+          account_id: accountId,
+          product_id: productId,
+        },
+      },
+      select: { id: true },
+    });
+    if (!tracked) {
+      throw new NotFoundException('Product not found');
+    }
+
     const winners = await this.prisma.categoryWinner.findMany({
       where: { product_id: productId },
       orderBy: { created_at: 'asc' },

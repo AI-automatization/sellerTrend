@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Param, Body, UseGuards, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, UseGuards, NotFoundException, BadRequestException, ParseIntPipe } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { IsUrl } from 'class-validator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -37,17 +37,15 @@ export class UzumController {
   /** Fresh analyze by product ID — fetches from Uzum, saves snapshot, runs AI */
   @Get('product/:id')
   @UseGuards(JwtAuthGuard, BillingGuard)
-  analyzeById(@Param('id') id: string) {
-    return this.uzumService.analyzeProduct(Number(id));
+  analyzeById(@Param('id', ParseIntPipe) id: number) {
+    return this.uzumService.analyzeProduct(id);
   }
 
   /** Quick score for browser extension — lightweight, no billing guard */
   @Get('product/:productId/quick-score')
   @UseGuards(JwtAuthGuard)
   async quickScore(@Param('productId', ParseBigIntPipe) productId: bigint) {
-    const product = await this.productsService.getProductById(
-      productId,
-    );
+    const product = await this.productsService.getProductQuickScore(productId);
     if (!product) {
       throw new NotFoundException('Product not found');
     }
@@ -70,7 +68,7 @@ export class UzumController {
       ids.map(async (id) => {
         if (!/^\d+$/.test(id)) return { product_id: id, found: false };
         try {
-          const product = await this.productsService.getProductById(BigInt(id));
+          const product = await this.productsService.getProductQuickScore(BigInt(id));
           if (!product) return { product_id: id, found: false };
           return {
             product_id: id,

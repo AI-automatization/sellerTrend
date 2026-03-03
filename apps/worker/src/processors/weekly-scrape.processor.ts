@@ -17,7 +17,7 @@ import { redisConnection } from '../redis';
 import { prisma } from '../prisma';
 import { calculateScore, getSupplyPressure, sleep, SNAPSHOT_MIN_GAP_MS } from '@uzum/utils';
 import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
-import { scrapeWeeklyBought, closeBrowser } from './weekly-scraper';
+import { scrapeWeeklyBought } from './weekly-scraper';
 import { fetchUzumProductRaw } from './uzum-scraper';
 
 const QUEUE_NAME = 'weekly-scrape-queue';
@@ -246,9 +246,6 @@ async function processBatch(jobId: string, jobName: string) {
     }
   }
 
-  // Close shared browser after batch
-  await closeBrowser();
-
   return { total: productIds.length, scraped, failed };
 }
 
@@ -277,7 +274,6 @@ export function createWeeklyScrapeWorker() {
         return result;
       } catch (err) {
         logJobError(QUEUE_NAME, job.id ?? '-', job.name, err, Date.now() - start);
-        await closeBrowser(); // Clean up on error
         throw err;
       }
     },

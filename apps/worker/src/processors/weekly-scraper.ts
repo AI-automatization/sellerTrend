@@ -8,45 +8,11 @@
  * Each product gets its own BrowserContext for isolation.
  */
 
-import { chromium, Browser } from 'playwright';
 import { parseWeeklyBoughtBanner } from '@uzum/utils';
 import { logJobInfo } from '../logger';
+import { browserPool } from '../browser-pool';
 
 const QUEUE = 'weekly-scrape-queue';
-
-let sharedBrowser: Browser | null = null;
-
-async function getBrowser(): Promise<Browser> {
-  if (sharedBrowser && sharedBrowser.isConnected()) {
-    return sharedBrowser;
-  }
-
-  sharedBrowser = await chromium.launch({
-    headless: true,
-    executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
-    proxy: process.env.PROXY_URL ? { server: process.env.PROXY_URL } : undefined,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-      '--disable-extensions',
-      '--blink-settings=imagesEnabled=false', // Disable images for speed
-    ],
-  });
-
-  return sharedBrowser;
-}
-
-/** Close shared browser instance — call after batch completes. */
-export async function closeBrowser(): Promise<void> {
-  if (sharedBrowser) {
-    try {
-      await sharedBrowser.close();
-    } catch { /* already closed */ }
-    sharedBrowser = null;
-  }
-}
 
 /**
  * Try to extract weekly_bought from page content using multiple strategies.
@@ -97,7 +63,7 @@ export async function scrapeWeeklyBought(
   jobId = '-',
 ): Promise<number | null> {
   const url = `https://uzum.uz/ru/product/-${productId}`;
-  const browser = await getBrowser();
+  const browser = await browserPool.getBrowser();
   const context = await browser.newContext({
     userAgent:
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -206,5 +172,6 @@ export async function scrapeWeeklyBought(
     return null;
   } finally {
     await context.close();
+    await browserPool.release();
   }
 }

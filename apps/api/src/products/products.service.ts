@@ -1,10 +1,29 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { forecastEnsemble, calcWeeklyBought } from '@uzum/utils';
 
 @Injectable()
 export class ProductsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Verify that the given product is tracked by the given account.
+   * Throws NotFoundException if the product does not belong to the account.
+   */
+  private async assertProductOwnership(productId: bigint, accountId: string): Promise<void> {
+    const tracked = await this.prisma.trackedProduct.findUnique({
+      where: {
+        account_id_product_id: {
+          account_id: accountId,
+          product_id: productId,
+        },
+      },
+      select: { id: true },
+    });
+    if (!tracked) {
+      throw new NotFoundException('Product not found');
+    }
+  }
 
   async getTrackedProducts(accountId: string) {
     const tracked = await this.prisma.trackedProduct.findMany({
@@ -81,7 +100,10 @@ export class ProductsService {
     });
   }
 
-  async getProductById(productId: bigint, accountId?: string) {
+  async getProductById(productId: bigint, accountId: string) {
+    // Verify the product belongs to this account
+    await this.assertProductOwnership(productId, accountId);
+
     // Separate queries to avoid N+1 on ai_explanations (was: 20 nested includes → 20 queries)
     const [product, latestAi] = await Promise.all([
       this.prisma.product.findUnique({
@@ -159,6 +181,62 @@ export class ProductsService {
     };
   }
 
+  /**
+   * Public product lookup — returns minimal score data without account ownership check.
+   * Used by Chrome extension quick-score endpoints only.
+   */
+  async getProductQuickScore(productId: bigint) {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      include: {
+        snapshots: {
+          orderBy: { snapshot_at: 'desc' },
+          take: 5,
+          select: {
+            score: true, weekly_bought: true, weekly_bought_source: true,
+            orders_quantity: true, snapshot_at: true,
+          },
+        },
+        skus: {
+          where: { is_available: true },
+          orderBy: { min_sell_price: 'asc' },
+          take: 1,
+        },
+      },
+    });
+
+    if (!product) return null;
+
+    const latest = product.snapshots[0];
+    const sku = product.skus[0];
+
+    // Prefer stored scraped weekly_bought; then any stored non-zero; fallback to calculated
+    let weeklyBought: number | null = null;
+    const scrapedSnap = product.snapshots.find((s) => s.weekly_bought_source === 'scraped' && s.weekly_bought != null);
+    if (scrapedSnap) {
+      weeklyBought = scrapedSnap.weekly_bought;
+    } else {
+      const anyWbSnap = product.snapshots.find((s) => s.weekly_bought != null && s.weekly_bought > 0);
+      if (anyWbSnap) {
+        weeklyBought = anyWbSnap.weekly_bought;
+      } else {
+        const currentOrders = Number(latest?.orders_quantity ?? product.orders_quantity ?? 0);
+        const currentTime = latest?.snapshot_at?.getTime() ?? Date.now();
+        weeklyBought = calcWeeklyBought(product.snapshots, currentOrders, currentTime);
+      }
+    }
+
+    return {
+      product_id: product.id.toString(),
+      title: product.title,
+      score: latest?.score ? Number(latest.score) : null,
+      weekly_bought: weeklyBought,
+      sell_price: sku?.min_sell_price ? Number(sku.min_sell_price) : null,
+      photo_url: product.photo_url ?? null,
+      last_updated: latest?.snapshot_at ?? product.updated_at,
+    };
+  }
+
   async trackProduct(accountId: string, productId: bigint) {
     const tp = await this.prisma.trackedProduct.upsert({
       where: {
@@ -176,7 +254,9 @@ export class ProductsService {
     return { ...tp, product_id: tp.product_id.toString() };
   }
 
-  async getProductSnapshots(productId: bigint, limit = 30) {
+  async getProductSnapshots(productId: bigint, accountId: string, limit = 30) {
+    await this.assertProductOwnership(productId, accountId);
+
     const rows = await this.prisma.productSnapshot.findMany({
       where: { product_id: productId },
       orderBy: { snapshot_at: 'desc' },
@@ -203,12 +283,14 @@ export class ProductsService {
   /**
    * 7-day score forecast using simple linear regression on snapshot history.
    */
-  async getForecast(productId: bigint): Promise<{
+  async getForecast(productId: bigint, accountId: string): Promise<{
     forecast_7d: number;
     trend: 'up' | 'flat' | 'down';
     slope: number;
     snapshots: Array<{ date: string; score: number }>;
   }> {
+    await this.assertProductOwnership(productId, accountId);
+
     const rows = await this.prisma.productSnapshot.findMany({
       where: { product_id: productId },
       orderBy: { snapshot_at: 'asc' },
@@ -255,7 +337,9 @@ export class ProductsService {
    * ML-enhanced forecast: ensemble of WMA + Holt + Linear with confidence intervals.
    * Returns forecasts for both score and weekly_bought metrics.
    */
-  async getAdvancedForecast(productId: bigint) {
+  async getAdvancedForecast(productId: bigint, accountId: string) {
+    await this.assertProductOwnership(productId, accountId);
+
     const rows = await this.prisma.productSnapshot.findMany({
       where: { product_id: productId },
       orderBy: { snapshot_at: 'asc' },
@@ -331,7 +415,7 @@ export class ProductsService {
    * 7-day weekly trend: orders delta, sales velocity, dynamic seller advice.
    * Calculates actual weekly_bought from ordersAmount delta between snapshots.
    */
-  async getWeeklyTrend(productId: bigint): Promise<{
+  async getWeeklyTrend(productId: bigint, accountId: string): Promise<{
     weekly_sold: number | null;
     prev_weekly_sold: number | null;
     delta: number | null;
@@ -342,6 +426,8 @@ export class ProductsService {
     score_change: number | null;
     last_updated: string | null;
   }> {
+    await this.assertProductOwnership(productId, accountId);
+
     // Get last 14 days of snapshots for comparison
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
     const snapshots = await this.prisma.productSnapshot.findMany({

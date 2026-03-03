@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as crypto from 'crypto';
@@ -77,6 +78,7 @@ export class ApiKeysService {
   /**
    * Validate an API key from X-API-Key header.
    * Returns the account_id if valid, throws otherwise.
+   * Uses an interactive transaction to atomically check + increment daily usage.
    */
   async validateKey(rawKey: string): Promise<{ accountId: string }> {
     const keyHash = crypto
@@ -84,44 +86,43 @@ export class ApiKeysService {
       .update(rawKey)
       .digest('hex');
 
-    const apiKey = await this.prisma.apiKey.findFirst({
-      where: { key_hash: keyHash, is_active: true },
-    });
-
-    if (!apiKey) {
-      throw new ForbiddenException('Invalid API key');
-    }
-
-    // Daily reset check
     const now = new Date();
-    const lastReset = apiKey.last_reset_at;
-    if (
-      lastReset.getUTCDate() !== now.getUTCDate() ||
-      lastReset.getUTCMonth() !== now.getUTCMonth() ||
-      lastReset.getUTCFullYear() !== now.getUTCFullYear()
-    ) {
-      await this.prisma.apiKey.update({
-        where: { id: apiKey.id },
-        data: { requests_today: 0, last_reset_at: now },
+
+    return this.prisma.$transaction(async (tx) => {
+      const apiKey = await tx.apiKey.findFirst({
+        where: { key_hash: keyHash, is_active: true },
       });
-      apiKey.requests_today = 0;
-    }
 
-    if (apiKey.requests_today >= apiKey.daily_limit) {
-      throw new ForbiddenException(
-        `Daily limit reached (${apiKey.daily_limit} requests/day)`,
-      );
-    }
+      if (!apiKey) {
+        throw new ForbiddenException('Invalid API key');
+      }
 
-    // Increment counter
-    await this.prisma.apiKey.update({
-      where: { id: apiKey.id },
-      data: {
-        requests_today: { increment: 1 },
-        last_used_at: now,
-      },
-    });
+      // Daily reset check
+      const lastReset = apiKey.last_reset_at;
+      const needsReset =
+        lastReset.getUTCDate() !== now.getUTCDate() ||
+        lastReset.getUTCMonth() !== now.getUTCMonth() ||
+        lastReset.getUTCFullYear() !== now.getUTCFullYear();
 
-    return { accountId: apiKey.account_id };
+      const currentCount = needsReset ? 0 : apiKey.requests_today;
+
+      if (currentCount >= apiKey.daily_limit) {
+        throw new ForbiddenException(
+          `Daily limit reached (${apiKey.daily_limit} requests/day)`,
+        );
+      }
+
+      // Atomic reset (if needed) + increment in one update
+      await tx.apiKey.update({
+        where: { id: apiKey.id },
+        data: {
+          requests_today: currentCount + 1,
+          last_used_at: now,
+          ...(needsReset && { last_reset_at: now }),
+        },
+      });
+
+      return { accountId: apiKey.account_id };
+    }, { isolationLevel: 'ReadCommitted' });
   }
 }
