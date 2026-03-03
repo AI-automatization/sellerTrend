@@ -4,6 +4,15 @@
 
 ---
 
+## T-329..T-332 | LANDING P0 | Audit fixes (2026-03-03)
+
+- T-329: `favicon.svg` yaratildi — VENTRA V logo, blue→purple gradient
+- T-330: `App.tsx` fallback URL `web-production-2c10.up.railway.app` → `app.ventra.uz`
+- T-331: `nginx.conf` CSP header + Permissions-Policy qo'shildi
+- T-332: `index.html` YANDEX/GOOGLE_VERIFICATION_CODE placeholder'lar olib tashlandi
+
+---
+
 ## T-188, T-189, T-190, T-192, T-202, T-257, T-264, T-266 | FRONTEND | Web app tasks (2026-03-03)
 - **T-188**: `apps/web/public/sw.js` o'chirildi, index.html da SW register yo'q
 - **T-189**: `apps/web/public/manifest.json` o'chirildi, `<link rel="manifest">` o'chirildi
