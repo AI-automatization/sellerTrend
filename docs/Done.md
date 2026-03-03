@@ -1,5 +1,19 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
 # Yangilangan: 2026-03-03
+# Ochiq tasklar → docs/Tasks.md, docs/Tasks-Bekzod.md, docs/Tasks-Sardor.md
+
+---
+
+## T-188, T-189, T-190, T-192, T-202, T-257, T-264, T-266 | FRONTEND | Web app tasks (2026-03-03)
+- **T-188**: `apps/web/public/sw.js` o'chirildi, index.html da SW register yo'q
+- **T-189**: `apps/web/public/manifest.json` o'chirildi, `<link rel="manifest">` o'chirildi
+- **T-190**: `apple-touch-icon.svg`, `icon-maskable.svg` o'chirildi
+- **T-192**: index.html da hech qanday PWA artifact yo'q
+- **T-257**: `ErrorBoundary variant="section"` — DiscoveryPage va ProductPage da per-section qo'llanilgan
+- **T-264**: `AdminRoute` — `SUPER_ADMIN` bo'lmaganlarni `/` ga redirect qiladi (`App.tsx:44`)
+- **T-266**: `ShopsPage` da `emptyState` CTA bor, LeaderboardPage da `noData` state bor
+- **T-202**: ProductPage UX — Sardor tomonidan refactor qilingan
+_Remote commit orqali bajarilgan, Bekzod tomonidan verified 2026-03-03_
 
 ---
 

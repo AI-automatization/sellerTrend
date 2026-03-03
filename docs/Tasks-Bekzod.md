@@ -1,99 +1,31 @@
 # BEKZOD — Ochiq Vazifalar
-# Fayllar: apps/api/, apps/worker/, apps/bot/, apps/web/, packages/*, docker-*, .github/*, prisma
+# Fayllar: apps/api/, apps/worker/, apps/bot/, docker-*, .github/*, prisma
 # Yangilangan: 2026-03-03
 # Bajarilganlar → docs/Done.md
 
 ---
 
-# OCHIQ BACKEND TASKLAR
+# OCHIQ TASKLAR
 
-## P1 — MUHIM
+## ENV (qo'lda)
 
-### T-241 | totalAvailableAmount Prisma schema + saqlash | 30min
-### T-269 | Eski noto'g'ri snapshot data tozalash (weekly_bought > 5000) | 30min
-### T-270 | Duplicate snapshot'larni tozalash (kuniga 1 ta qoldirish) | 15min
-### T-214 | POST /uzum/batch-quick-score endpoint | 1h
-### T-235 | Playwright bilan weekly_bought DOM scraping | 2h
-### T-236 | parseWeeklyBought kengaytirish — "1,2 тыс" formatlar | 30min
-
-## P2 — O'RTA
-
-### T-239 | Per-user rate limiting — AI endpoint ThrottlerGuard | 30min
-### T-150 | naming consultant_id → account_id (migration kerak) | 10min
-
-## P3 — PAST
-
-### T-240 | DTO validatsiya — 5+ endpoint DTO'siz | 30min
-
----
-
-# IKKALASI (Sardor bilan birga)
-
-### T-237 | ProductPage rasmi — Uzum API dan photo olish (Backend qism) | 1h
-### T-260 | Discovery — kategoriya nomi saqlash (Backend qism) | 1h
-### T-261 | Discovery drawer — CategoryWinner schema boyitish | 2h
-
----
-
-# WEB APP (SARDORDAN KO'CHIRILDI — 2026-03-03)
-
-## P1 — MUHIM
-
-### T-202 | FRONTEND | ProductPage overall UX — sotuvchi uchun soddalash | 1h
-Sahifani soddalashtirish, kerak bo'lmagan elementlarni yashirish, asosiy KPI ni yuqoriga chiqarish.
-
-### T-264 | FRONTEND | Admin panel — role USER bo'lsa /admin sahifaga redirect yo'q | 30min
-USER roli bilan /admin ga kirsa, / ga redirect qilish kerak. AuthGuard yoki route guard qo'shish.
-
-## P2 — O'RTA
-
-### T-266 | FRONTEND | Shops, Leaderboard, Sourcing — bo'sh sahifa, CTA yo'q | 30min
-Ma'lumot yo'q bo'lganda bo'sh sahifaga "Hali ma'lumot yo'q, qo'shing" CTA qo'shish.
-
-### T-257 | FRONTEND | Granular ErrorBoundary per section | —
-Har sahifada bitta katta ErrorBoundary o'rniga, har section uchun alohida ErrorBoundary.
-
-## PWA CLEANUP
-
-### T-188 | FRONTEND | Service Worker o'chirish + unregister script | 20min
-`apps/web/public/sw.js` o'chirish + index.html da unregister snippet qo'shish.
-
-### T-189 | FRONTEND | manifest.json va PWA meta taglar o'chirish | 10min
-`apps/web/public/manifest.json` o'chirish + index.html dagi `<link rel="manifest">` olib tashlash.
-
-### T-190 | FRONTEND | PWA-only ikonalar o'chirish | 5min
-`apple-touch-icon.svg`, `icon-maskable.svg` — agar ishlatilmasa o'chirish.
-
-### T-192 | FRONTEND | dist/manifest.json build artifact tozalash | 5min
-Build chiqdi? dist/ da manifest.json qolsa, vite.config.ts dan olib tashlash.
-
----
-
-# QO'LDA QILINADIGAN ISHLAR
-
-## ENV (ochiq)
 | # | Nima | Holat |
 |---|------|-------|
 | E-006 | ALIEXPRESS_APP_KEY + SECRET | ❌ Region ro'yxat xato |
 | E-008 | REDIS_URL parol bilan (dev) | ⬜ |
-| E-009 | SENTRY_DSN (optional) | ⬜ |
 | E-010 | PROXY_URL (kerak bo'lganda) | ⬜ |
 
-## RAILWAY DEPLOY (ochiq)
-| # | Nima | Holat |
-|---|------|-------|
-| T-262 | Railway DB seed (cargo, platforms) | ⬜ P0 |
-| T-263 | SUPER_ADMIN user yaratish | ⬜ P0 |
-| T-177 | pgvector extension | ⬜ |
-| T-178 | Custom domain + SSL | ⬜ |
-| T-179 | Worker memory/CPU limit | ⬜ |
-| T-180 | Monitoring + Uptime alert | ⬜ |
-| T-181 | DB backup tekshirish | ⬜ |
-| T-184 | Staging environment (optional) | ⬜ |
-| T-242 | SERPAPI_API_KEY Railway'ga qo'shish | ⬜ |
-| T-243 | ALIEXPRESS keys Railway'ga | ⬜ |
-| T-244 | SENTRY_DSN Railway'ga | ⬜ |
-| T-245 | PROXY_URL Railway'ga (optional) | ⬜ |
+## DEVOPS
+
+| # | Prioritet | Nima | Holat |
+|---|-----------|------|-------|
+| T-281 | P0 | Cloudflare CDN — static assets 20ms | ⬜ |
+| T-178 | P1 | Custom domain + SSL — web service | ⬜ |
+| T-283 | P1 | Landing custom domain — ventra.uz DNS | ⬜ |
+| T-243 | P2 | ALIEXPRESS keys Railway'ga | ⬜ |
+| T-245 | P2 | PROXY_URL Railway'ga (optional) | ⬜ |
+
+> T-281 batafsil spec: `docs/Tasks.md` DevOps bo'limida
 
 ---
 
@@ -101,16 +33,22 @@ Build chiqdi? dist/ da manifest.json qolsa, vite.config.ts dan olib tashlash.
 
 | Kategoriya | Soni |
 |-----------|------|
-| Backend P0 | 0 |
-| Backend P1 | 6 |
-| Backend P2-P3 | 3 |
-| Ikkalasi | 3 |
-| Web P1 (Sardordan) | 2 |
-| Web P2 (Sardordan) | 2 |
-| PWA cleanup (Sardordan) | 4 |
-| ENV manual | 4 |
-| Railway manual | 12 |
-| **JAMI ochiq** | **40** |
+| ENV manual | 3 |
+| DevOps | 5 |
+| **JAMI ochiq** | **8** |
+
+---
+
+# BAJARILDI → Done.md ga ko'chirilgan (2026-03-03)
+
+**Backend P1 (6 ta):** T-241, T-269, T-270, T-214, T-235 (→T-284), T-236 (→T-283)
+**Backend P2 (2 ta):** T-239, T-150
+**Backend P3 (1 ta):** T-240
+**Ikkalasi (3 ta):** T-237, T-260, T-261
+**Web (Sardordan) (8 ta):** T-202, T-264, T-266, T-257, T-188, T-189, T-190, T-192
+**ENV (1 ta):** E-009
+**Railway (10 ta):** T-262, T-263, T-177, T-179, T-180, T-181, T-184, T-242, T-244
+**Stability Sprint (16 ta):** T-299..T-314
 
 ---
 *Tasks-Bekzod.md | VENTRA | 2026-03-03*
