@@ -3,6 +3,38 @@
 
 ---
 
+## T-299..T-314 | SPRINT | BACKEND+DEVOPS | Stability & 1500 User Scaling (2026-03-03)
+
+**Sprint:** 16 task, 3 faza, ~25 fayl, commit `97d2360`
+**Natija:** Production deploy muvaffaqiyatli, API sog'lom (200 OK, uptime 30+ min)
+
+### Phase 1 — P0 (DARHOL)
+- **T-301**: Worker + Bot PrismaClient `ensurePoolParams()` — pool_timeout=10, statement_timeout=15000, connection_limit=10/5
+- **T-300**: `uncaughtException`/`unhandledRejection` handlers — API, Worker, Bot main.ts (crash log Railway da ko'rinadi)
+
+### Phase 2 — P1 (Recovery + Scaling)
+- **T-299**: Redis `retryStrategy: (times) => Math.min(times*50, 2000)` — 4 ta client (auth, admin-stats, metrics, throttler)
+- **T-302**: NestJS `keepAliveTimeout=65s`, `headersTimeout=66s` — 502 Bad Gateway fix
+- **T-304+T-309**: BullMQ retry (attempts:3, exponential 5s) + cleanup (removeOnComplete/Fail) — 7 queue fayl
+- **T-305**: BullMQ worker `.on('error/failed/stalled')` event listeners — 6 processor
+- **T-306**: Bot graceful shutdown — SIGTERM/SIGINT → `bot.stop()` + `prisma.$disconnect()`
+- **T-307**: `railway.toml` — `sleepApplication = false`
+- **Scaling**: PgBouncer 500/50/10/10, PostgreSQL max_connections=200, Redis 512mb noeviction, API connection_limit=30, capacity dbPoolSize=50
+
+### Phase 3 — P2 (Hardening)
+- **T-308**: `fetchWithTimeout()` AbortController 15s — uzum.client.ts + uzum-scraper.ts
+- **T-310**: Redis maxmemory 512mb + noeviction (docker-compose.prod.yml)
+- **T-311**: Docker healthcheck `start_period` + worker/bot healthcheck
+- **T-312**: Sourcing quick timeout 60s → 90s
+- **T-313**: nginx `keepalive_timeout 65s`
+- **T-314**: CPU capacity estimator (`max_by_cpu`) + CPU alerts (150% warning, 200% critical)
+
+**Fayllar (25):** worker/prisma.ts, bot/prisma.ts, 3x main.ts, auth.service.ts, admin-stats.service.ts, metrics.service.ts, custom-throttler.guard.ts, 4x queue.ts, 3x job.ts, 6x processor.ts, uzum.client.ts, uzum-scraper.ts, docker-compose.prod.yml, prisma.service.ts, capacity-estimator.ts, admin-monitoring.service.ts, nginx.conf.template, railway.toml
+
+**T-303 (Frontend Axios timeout)** — ochiq qoldi (Sardor/Frontend task)
+
+---
+
 ## T-212..T-215 | P0 | FRONTEND | Chrome Extension Faza 2 — CSUI Overlay + Track (2026-03-03)
 
 **T-212: Product Page CSUI — Score Overlay**
