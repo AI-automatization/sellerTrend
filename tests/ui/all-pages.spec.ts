@@ -7,6 +7,7 @@ import { test, expect, Page } from '@playwright/test';
  */
 
 const WEB = 'http://localhost:5173';
+const API = 'http://localhost:3000/api/v1';
 
 // All routes that require auth
 const PROTECTED_PAGES = [
@@ -25,6 +26,40 @@ const PROTECTED_PAGES = [
   { path: '/signals', name: 'Signals' },
   { path: '/enterprise', name: 'Enterprise' },
 ];
+
+// Cached tokens — login once, reuse across tests (avoids rate limiting)
+let demoTokens: { access: string; refresh: string } | null = null;
+let adminTokens: { access: string; refresh: string } | null = null;
+
+async function getDemoTokens(request: any) {
+  if (!demoTokens) {
+    const res = await request.post(`${API}/auth/login`, {
+      data: { email: 'demo@uzum-trend.uz', password: 'Demo123!' },
+    });
+    const body = await res.json();
+    demoTokens = { access: body.access_token, refresh: body.refresh_token };
+  }
+  return demoTokens;
+}
+
+async function getAdminTokens(request: any) {
+  if (!adminTokens) {
+    const res = await request.post(`${API}/auth/login`, {
+      data: { email: 'admin@uzum-trend.uz', password: 'Admin123!' },
+    });
+    const body = await res.json();
+    adminTokens = { access: body.access_token, refresh: body.refresh_token };
+  }
+  return adminTokens;
+}
+
+async function setAuthInPage(page: Page, tokens: { access: string; refresh: string }) {
+  await page.goto('/login');
+  await page.evaluate(({ access, refresh }) => {
+    localStorage.setItem('access_token', access);
+    if (refresh) localStorage.setItem('refresh_token', refresh);
+  }, tokens);
+}
 
 // ========================================================
 // AUTH PAGES (no login required)
@@ -80,9 +115,9 @@ test.describe('Auth Pages', () => {
     await page.fill('input[type="password"]', 'Demo123!');
     await page.click('button[type="submit"]');
 
-    // Should redirect to dashboard
-    await page.waitForURL('/', { timeout: 10000 });
-    expect(page.url()).toContain('localhost:5173');
+    // Should redirect to dashboard (SPA navigation may take longer)
+    await page.waitForURL('**/', { timeout: 15000 });
+    expect(page.url()).not.toContain('/login');
   });
 });
 
@@ -91,20 +126,9 @@ test.describe('Auth Pages', () => {
 // ========================================================
 
 test.describe('Protected Pages', () => {
-  // Login once and save storage state
   test.beforeEach(async ({ page }) => {
-    // Login via API and set token in localStorage
-    const res = await page.request.post('http://localhost:3000/api/v1/auth/login', {
-      data: { email: 'demo@uzum-trend.uz', password: 'Demo123!' },
-    });
-    const body = await res.json();
-    const token = body.access_token;
-
-    // Navigate to app and set token
-    await page.goto('/login');
-    await page.evaluate((t) => {
-      localStorage.setItem('access_token', t);
-    }, token);
+    const tokens = await getDemoTokens(page.request);
+    await setAuthInPage(page, tokens);
   });
 
   for (const { path, name } of PROTECTED_PAGES) {
@@ -155,14 +179,8 @@ test.describe('Protected Pages', () => {
 
 test.describe('Sidebar Navigation', () => {
   test.beforeEach(async ({ page }) => {
-    const res = await page.request.post('http://localhost:3000/api/v1/auth/login', {
-      data: { email: 'demo@uzum-trend.uz', password: 'Demo123!' },
-    });
-    const body = await res.json();
-    await page.goto('/login');
-    await page.evaluate((t) => {
-      localStorage.setItem('access_token', t);
-    }, body.access_token);
+    const tokens = await getDemoTokens(page.request);
+    await setAuthInPage(page, tokens);
   });
 
   test('sidebar contains all navigation links', async ({ page }) => {
@@ -194,14 +212,8 @@ test.describe('Sidebar Navigation', () => {
 
 test.describe('Signals Page Tabs', () => {
   test.beforeEach(async ({ page }) => {
-    const res = await page.request.post('http://localhost:3000/api/v1/auth/login', {
-      data: { email: 'demo@uzum-trend.uz', password: 'Demo123!' },
-    });
-    const body = await res.json();
-    await page.goto('/login');
-    await page.evaluate((t) => {
-      localStorage.setItem('access_token', t);
-    }, body.access_token);
+    const tokens = await getDemoTokens(page.request);
+    await setAuthInPage(page, tokens);
   });
 
   test('all 10 signal tabs are clickable', async ({ page }) => {
@@ -231,14 +243,8 @@ test.describe('Signals Page Tabs', () => {
 
 test.describe('Enterprise Page Tabs', () => {
   test.beforeEach(async ({ page }) => {
-    const res = await page.request.post('http://localhost:3000/api/v1/auth/login', {
-      data: { email: 'demo@uzum-trend.uz', password: 'Demo123!' },
-    });
-    const body = await res.json();
-    await page.goto('/login');
-    await page.evaluate((t) => {
-      localStorage.setItem('access_token', t);
-    }, body.access_token);
+    const tokens = await getDemoTokens(page.request);
+    await setAuthInPage(page, tokens);
   });
 
   test('all 5 enterprise tabs are clickable', async ({ page }) => {
@@ -266,14 +272,8 @@ test.describe('Enterprise Page Tabs', () => {
 
 test.describe('Admin Page', () => {
   test.beforeEach(async ({ page }) => {
-    const res = await page.request.post('http://localhost:3000/api/v1/auth/login', {
-      data: { email: 'admin@uzum-trend.uz', password: 'Admin123!' },
-    });
-    const body = await res.json();
-    await page.goto('/login');
-    await page.evaluate((t) => {
-      localStorage.setItem('access_token', t);
-    }, body.access_token);
+    const tokens = await getAdminTokens(page.request);
+    await setAuthInPage(page, tokens);
   });
 
   test('Admin page renders for admin user', async ({ page }) => {

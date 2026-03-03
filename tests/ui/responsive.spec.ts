@@ -10,16 +10,18 @@ import { test, expect, Page } from '@playwright/test';
  * 3. Auth flow works
  */
 
-const API = '/api/v1';
+const API_BASE = 'http://localhost:3000/api/v1';
 let adminToken = '';
 
-// Helper: login
+// Helper: login — always hit backend directly, cache token to avoid rate limiting
 async function loginAdmin(request: any): Promise<string> {
-  const res = await request.post(`${API}/auth/login`, {
+  if (adminToken) return adminToken;
+  const res = await request.post(`${API_BASE}/auth/login`, {
     data: { email: 'admin@uzum-trend.uz', password: 'Admin123!' },
   });
   const body = await res.json();
-  return body.access_token || '';
+  adminToken = body.access_token || '';
+  return adminToken;
 }
 
 function auth(token: string) {
@@ -32,21 +34,21 @@ function auth(token: string) {
 
 test.describe('F08 — Public Leaderboard', () => {
   test('GET /leaderboard/public returns array', async ({ request }) => {
-    const res = await request.get(`${API}/leaderboard/public`);
+    const res = await request.get(`${API_BASE}/leaderboard/public`);
     expect(res.ok()).toBe(true);
     const body = await res.json();
     expect(Array.isArray(body)).toBe(true);
   });
 
   test('GET /leaderboard/public/categories returns array', async ({ request }) => {
-    const res = await request.get(`${API}/leaderboard/public/categories`);
+    const res = await request.get(`${API_BASE}/leaderboard/public/categories`);
     expect(res.ok()).toBe(true);
     const body = await res.json();
     expect(Array.isArray(body)).toBe(true);
   });
 
   test('leaderboard accessible without auth', async ({ request }) => {
-    const res = await request.get(`${API}/leaderboard/public`, {
+    const res = await request.get(`${API_BASE}/leaderboard/public`, {
       headers: {}, // no auth
     });
     expect(res.ok()).toBe(true);
@@ -63,7 +65,7 @@ test.describe('F09 — Profit Calculator', () => {
   });
 
   test('POST /tools/profit-calculator returns valid result', async ({ request }) => {
-    const res = await request.post(`${API}/tools/profit-calculator`, {
+    const res = await request.post(`${API_BASE}/tools/profit-calculator`, {
       headers: auth(adminToken),
       data: {
         sell_price_uzs: 150000,
@@ -86,7 +88,7 @@ test.describe('F09 — Profit Calculator', () => {
   });
 
   test('profit calculator rejects invalid data', async ({ request }) => {
-    const res = await request.post(`${API}/tools/profit-calculator`, {
+    const res = await request.post(`${API_BASE}/tools/profit-calculator`, {
       headers: auth(adminToken),
       data: { sell_price_uzs: -100, quantity: 0 },
     });
@@ -94,7 +96,7 @@ test.describe('F09 — Profit Calculator', () => {
   });
 
   test('profit calculator requires auth', async ({ request }) => {
-    const res = await request.post(`${API}/tools/profit-calculator`, {
+    const res = await request.post(`${API_BASE}/tools/profit-calculator`, {
       data: { sell_price_uzs: 100000, unit_cost_usd: 5, usd_to_uzs: 12800, uzum_commission_pct: 10, quantity: 10 },
     });
     expect(res.status()).toBe(401);
@@ -111,7 +113,7 @@ test.describe('F02 — Seasonal Calendar', () => {
   });
 
   test('GET /discovery/seasonal-calendar returns events', async ({ request }) => {
-    const res = await request.get(`${API}/discovery/seasonal-calendar`, {
+    const res = await request.get(`${API_BASE}/discovery/seasonal-calendar`, {
       headers: auth(adminToken),
     });
     expect(res.ok()).toBe(true);
@@ -127,7 +129,7 @@ test.describe('F02 — Seasonal Calendar', () => {
   });
 
   test('GET /discovery/seasonal-calendar/upcoming returns events', async ({ request }) => {
-    const res = await request.get(`${API}/discovery/seasonal-calendar/upcoming`, {
+    const res = await request.get(`${API_BASE}/discovery/seasonal-calendar/upcoming`, {
       headers: auth(adminToken),
     });
     expect(res.ok()).toBe(true);
@@ -148,7 +150,7 @@ test.describe('F04 — Niche Finder', () => {
   });
 
   test('GET /discovery/niches returns niches object', async ({ request }) => {
-    const res = await request.get(`${API}/discovery/niches`, {
+    const res = await request.get(`${API_BASE}/discovery/niches`, {
       headers: auth(adminToken),
     });
     expect(res.ok()).toBe(true);
@@ -159,7 +161,7 @@ test.describe('F04 — Niche Finder', () => {
   });
 
   test('GET /discovery/niches/gaps returns gaps object', async ({ request }) => {
-    const res = await request.get(`${API}/discovery/niches/gaps`, {
+    const res = await request.get(`${API_BASE}/discovery/niches/gaps`, {
       headers: auth(adminToken),
     });
     expect(res.ok()).toBe(true);
@@ -179,7 +181,7 @@ test.describe('F03 — Shop Intelligence', () => {
   });
 
   test('GET /shops/:shopId returns shop data or 404', async ({ request }) => {
-    const res = await request.get(`${API}/shops/1`, {
+    const res = await request.get(`${API_BASE}/shops/1`, {
       headers: auth(adminToken),
     });
     // may return 404 if no shop data — both are valid
@@ -192,7 +194,7 @@ test.describe('F03 — Shop Intelligence', () => {
   });
 
   test('GET /shops/:shopId/products returns array', async ({ request }) => {
-    const res = await request.get(`${API}/shops/1/products`, {
+    const res = await request.get(`${API_BASE}/shops/1/products`, {
       headers: auth(adminToken),
     });
     expect([200, 404]).toContain(res.status());
@@ -203,7 +205,7 @@ test.describe('F03 — Shop Intelligence', () => {
   });
 
   test('shops endpoints require auth', async ({ request }) => {
-    const res = await request.get(`${API}/shops/1`);
+    const res = await request.get(`${API_BASE}/shops/1`);
     expect(res.status()).toBe(401);
   });
 });
@@ -218,7 +220,7 @@ test.describe('F06 — Referral System', () => {
   });
 
   test('POST /referrals/generate-code creates code', async ({ request }) => {
-    const res = await request.post(`${API}/referrals/generate-code`, {
+    const res = await request.post(`${API_BASE}/referrals/generate-code`, {
       headers: auth(adminToken),
     });
     expect(res.ok()).toBe(true);
@@ -228,7 +230,7 @@ test.describe('F06 — Referral System', () => {
   });
 
   test('GET /referrals/stats returns stats', async ({ request }) => {
-    const res = await request.get(`${API}/referrals/stats`, {
+    const res = await request.get(`${API_BASE}/referrals/stats`, {
       headers: auth(adminToken),
     });
     expect(res.ok()).toBe(true);
@@ -251,7 +253,7 @@ test.describe('F07 — API Keys', () => {
   });
 
   test('POST /api-keys creates key', async ({ request }) => {
-    const res = await request.post(`${API}/api-keys`, {
+    const res = await request.post(`${API_BASE}/api-keys`, {
       headers: auth(adminToken),
       data: { name: 'Test Key Playwright' },
     });
@@ -264,7 +266,7 @@ test.describe('F07 — API Keys', () => {
   });
 
   test('GET /api-keys lists keys', async ({ request }) => {
-    const res = await request.get(`${API}/api-keys`, {
+    const res = await request.get(`${API_BASE}/api-keys`, {
       headers: auth(adminToken),
     });
     expect(res.ok()).toBe(true);
@@ -278,7 +280,7 @@ test.describe('F07 — API Keys', () => {
 
   test('DELETE /api-keys/:id removes key', async ({ request }) => {
     if (!createdKeyId) return;
-    const res = await request.delete(`${API}/api-keys/${createdKeyId}`, {
+    const res = await request.delete(`${API_BASE}/api-keys/${createdKeyId}`, {
       headers: auth(adminToken),
     });
     expect(res.ok()).toBe(true);
@@ -295,7 +297,7 @@ test.describe('F05 — CSV/Excel Export', () => {
   });
 
   test('GET /products/export/csv returns CSV', async ({ request }) => {
-    const res = await request.get(`${API}/products/export/csv`, {
+    const res = await request.get(`${API_BASE}/products/export/csv`, {
       headers: auth(adminToken),
     });
     expect(res.ok()).toBe(true);
@@ -304,7 +306,7 @@ test.describe('F05 — CSV/Excel Export', () => {
   });
 
   test('export requires auth', async ({ request }) => {
-    const res = await request.get(`${API}/products/export/csv`);
+    const res = await request.get(`${API_BASE}/products/export/csv`);
     expect(res.status()).toBe(401);
   });
 });
@@ -319,7 +321,7 @@ test.describe('F10 — Quick Score', () => {
   });
 
   test('GET /uzum/product/:id/quick-score responds', async ({ request }) => {
-    const res = await request.get(`${API}/uzum/product/12345/quick-score`, {
+    const res = await request.get(`${API_BASE}/uzum/product/12345/quick-score`, {
       headers: auth(adminToken),
     });
     // May 404 if product doesn't exist, but shouldn't 500
@@ -333,7 +335,7 @@ test.describe('F10 — Quick Score', () => {
 
 test.describe('Health', () => {
   test('GET /health returns ok', async ({ request }) => {
-    const res = await request.get(`${API}/health`);
+    const res = await request.get(`${API_BASE}/health`);
     expect(res.ok()).toBe(true);
     const body = await res.json();
     expect(body.status).toBe('ok');
@@ -351,7 +353,7 @@ test.describe('Performance', () => {
 
   test('public leaderboard responds under 2s', async ({ request }) => {
     const start = Date.now();
-    const res = await request.get(`${API}/leaderboard/public`);
+    const res = await request.get(`${API_BASE}/leaderboard/public`);
     const elapsed = Date.now() - start;
     expect(res.ok()).toBe(true);
     expect(elapsed).toBeLessThan(2000);
@@ -359,7 +361,7 @@ test.describe('Performance', () => {
 
   test('seasonal calendar responds under 1s', async ({ request }) => {
     const start = Date.now();
-    const res = await request.get(`${API}/discovery/seasonal-calendar`, {
+    const res = await request.get(`${API_BASE}/discovery/seasonal-calendar`, {
       headers: auth(adminToken),
     });
     const elapsed = Date.now() - start;
@@ -369,7 +371,7 @@ test.describe('Performance', () => {
 
   test('profit calculator responds under 500ms', async ({ request }) => {
     const start = Date.now();
-    const res = await request.post(`${API}/tools/profit-calculator`, {
+    const res = await request.post(`${API_BASE}/tools/profit-calculator`, {
       headers: auth(adminToken),
       data: {
         sell_price_uzs: 100000, unit_cost_usd: 5, usd_to_uzs: 12800,

@@ -1,20 +1,12 @@
 {
+  "dangerouslySkipPermissions": true,
   "permissions": {
     "allow": [
       "Bash(*)",
+      "Edit(*)",
       "Read(*)",
       "Write(*)",
-      "Edit(*)",
-      "MultiEdit(*)",
-      "Glob(*)",
-      "Grep(*)",
-      "LS(*)"
-    ],
-    "deny": []
-  },
-  "dangerouslySkipPermissions": true,
-  "enabledMcpjsonServers": [
-    "playwright",
-    "context7"
-  ]
+      "mcp__*"
+    ]
+  }
 }
