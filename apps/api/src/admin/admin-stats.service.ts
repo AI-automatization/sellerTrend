@@ -25,7 +25,7 @@ export class AdminStatsService {
       connectTimeout: 3000,
       enableOfflineQueue: false,
       lazyConnect: true,
-      retryStrategy: () => null,
+      retryStrategy: (times: number) => Math.min(times * 50, 2000),
     });
   }
 

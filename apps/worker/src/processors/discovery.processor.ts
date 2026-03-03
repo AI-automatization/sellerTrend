@@ -171,7 +171,7 @@ async function processDiscovery(data: CategoryDiscoveryJobData, jobId: string, j
 }
 
 export function createDiscoveryWorker() {
-  return new Worker<CategoryDiscoveryJobData>(
+  const worker = new Worker<CategoryDiscoveryJobData>(
     'discovery-queue',
     async (job: Job<CategoryDiscoveryJobData>) => {
       const start = Date.now();
@@ -194,4 +194,10 @@ export function createDiscoveryWorker() {
     },
     { ...redisConnection, concurrency: 1 }, // 1 concurrent run (Playwright is heavy)
   );
+
+  worker.on('error', (err) => logJobError('discovery-queue', '-', 'worker', err));
+  worker.on('failed', (job, err) => logJobError('discovery-queue', job?.id ?? '-', job?.name ?? '-', err));
+  worker.on('stalled', (jobId) => console.error(`[discovery-queue] stalled: ${jobId}`));
+
+  return worker;
 }

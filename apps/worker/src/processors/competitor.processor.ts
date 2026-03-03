@@ -116,7 +116,7 @@ async function processCompetitorSnapshots(jobId: string, jobName: string) {
 }
 
 export function createCompetitorWorker() {
-  return new Worker(
+  const worker = new Worker(
     'competitor-queue',
     async (job: Job) => {
       const start = Date.now();
@@ -132,4 +132,10 @@ export function createCompetitorWorker() {
     },
     { ...redisConnection, concurrency: 1 },
   );
+
+  worker.on('error', (err) => logJobError('competitor-queue', '-', 'worker', err));
+  worker.on('failed', (job, err) => logJobError('competitor-queue', job?.id ?? '-', job?.name ?? '-', err));
+  worker.on('stalled', (jobId) => console.error(`[competitor-queue] stalled: ${jobId}`));
+
+  return worker;
 }

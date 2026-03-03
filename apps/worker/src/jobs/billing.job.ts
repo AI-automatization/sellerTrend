@@ -1,7 +1,15 @@
 import { Queue } from 'bullmq';
 import { redisConnection } from '../redis';
 
-export const billingQueue = new Queue('billing-queue', redisConnection);
+export const billingQueue = new Queue('billing-queue', {
+  ...redisConnection,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 5000 },
+    removeOnComplete: { age: 3600, count: 1000 },
+    removeOnFail: { age: 86400, count: 500 },
+  },
+});
 
 /**
  * Schedule daily billing cron at 00:00 server time

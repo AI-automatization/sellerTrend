@@ -2,6 +2,16 @@ import 'dotenv/config';
 import http from 'http';
 import { Bot, GrammyError, HttpError } from 'grammy';
 import { prisma } from './prisma';
+// T-300: Global crash handlers
+process.on('uncaughtException', (err) => {
+  console.error('uncaughtException:', err);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('unhandledRejection:', reason);
+  process.exit(1);
+});
+
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 if (!TOKEN) {
   console.error('TELEGRAM_BOT_TOKEN env variable is required');
@@ -176,6 +186,29 @@ async function bootstrap() {
       console.log(`Bot started: @${info.username}`);
     },
   });
+
+  // T-306: Graceful shutdown
+  const shutdown = async (signal: string) => {
+    console.log(`[${signal}] Bot graceful shutdown...`);
+    const timeout = setTimeout(() => {
+      console.error('Bot shutdown timeout (15s), forcing exit');
+      process.exit(1);
+    }, 15_000);
+    try {
+      bot.stop();
+      healthServer.close();
+      await prisma.$disconnect();
+      clearTimeout(timeout);
+      console.log('Bot shutdown complete');
+      process.exit(0);
+    } catch (err) {
+      console.error('Bot shutdown error:', err);
+      process.exit(1);
+    }
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
 bootstrap().catch(console.error);

@@ -1,7 +1,15 @@
 import { Queue } from 'bullmq';
 import { redisConnection } from '../redis';
 
-export const weeklyScrapeQueue = new Queue('weekly-scrape-queue', redisConnection);
+export const weeklyScrapeQueue = new Queue('weekly-scrape-queue', {
+  ...redisConnection,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 5000 },
+    removeOnComplete: { age: 3600, count: 1000 },
+    removeOnFail: { age: 86400, count: 500 },
+  },
+});
 
 /**
  * Schedule weekly scrape batch job every 15 minutes.

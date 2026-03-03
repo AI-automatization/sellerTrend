@@ -261,6 +261,7 @@ export class AdminMonitoringService {
           max_by_memory: 0,
           max_by_db: 0,
           max_by_event_loop: 0,
+          max_by_cpu: 0,
           memory_per_user_mb: 0,
           heap_used_pct: 0,
         },

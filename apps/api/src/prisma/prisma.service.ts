@@ -32,6 +32,9 @@ function ensurePoolParams(envUrl?: string): string {
   if (!url.includes('statement_timeout')) {
     url = `${url}&statement_timeout=15000`;
   }
+  if (!url.includes('connection_limit')) {
+    url = `${url}&connection_limit=30`;
+  }
   return url;
 }
 

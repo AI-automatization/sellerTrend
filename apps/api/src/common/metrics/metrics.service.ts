@@ -52,7 +52,7 @@ export class MetricsService implements OnModuleInit, OnModuleDestroy {
       connectTimeout: 3000,
       enableOfflineQueue: false,
       lazyConnect: false,
-      retryStrategy: () => null,
+      retryStrategy: (times: number) => Math.min(times * 50, 2000),
     });
 
     // Initialize CPU tracking
@@ -247,6 +247,25 @@ export class MetricsService implements OnModuleInit, OnModuleDestroy {
         `Event loop lag ${snapshot.event_loop_lag_ms}ms (threshold: 200ms)`,
         snapshot.event_loop_lag_ms,
         200,
+      );
+    }
+
+    // T-314: CPU alerts
+    if (snapshot.cpu_pct > 200) {
+      await this.createAlert(
+        'critical',
+        'CPU_CRITICAL',
+        `CPU usage at ${snapshot.cpu_pct.toFixed(1)}% (threshold: 200%)`,
+        snapshot.cpu_pct,
+        200,
+      );
+    } else if (snapshot.cpu_pct > 150) {
+      await this.createAlert(
+        'warning',
+        'CPU_WARNING',
+        `CPU usage at ${snapshot.cpu_pct.toFixed(1)}% (threshold: 150%)`,
+        snapshot.cpu_pct,
+        150,
       );
     }
   }

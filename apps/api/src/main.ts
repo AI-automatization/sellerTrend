@@ -11,6 +11,16 @@ import { initSentry } from './common/sentry';
 
 const logger = new Logger('Bootstrap');
 
+// T-300: Global crash handlers — log and exit cleanly
+process.on('uncaughtException', (err) => {
+  logger.error(`uncaughtException: ${err.message}`, err.stack);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  logger.error(`unhandledRejection: ${reason}`);
+  process.exit(1);
+});
+
 const SWAGGER_HTML = `<!DOCTYPE html>
 <html>
   <head>
@@ -101,6 +111,12 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port, '::');
+
+  // T-302: keepAliveTimeout must exceed proxy/LB timeout (nginx default 60s)
+  const server = app.getHttpServer();
+  server.keepAliveTimeout = 65_000;
+  server.headersTimeout = 66_000;
+
   logger.log(`API running on http://localhost:${port} (dual-stack IPv4+IPv6)`);
   logger.log(`Swagger docs: http://localhost:${port}/api/docs`);
 

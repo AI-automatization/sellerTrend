@@ -23,6 +23,21 @@ const HTML_HEADERS = {
   Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
 };
 
+/** Fetch with AbortController timeout (default 15s) */
+async function fetchWithTimeout(
+  url: string,
+  opts: RequestInit & { dispatcher?: unknown } = {},
+  timeoutMs = 15_000,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...opts, signal: controller.signal } as any);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 @Injectable()
 export class UzumClient {
   private readonly logger = new Logger(UzumClient.name);
@@ -83,7 +98,7 @@ export class UzumClient {
         `${REST_BASE}/main/search/product` +
         `?text=${encodeURIComponent(keyword)}&size=3&sort=ORDER_COUNT_DESC&showAdultContent=HIDE`;
 
-      const res = await fetch(searchUrl, { headers: HEADERS, dispatcher: proxyDispatcher } as any);
+      const res = await fetchWithTimeout(searchUrl, { headers: HEADERS, dispatcher: proxyDispatcher } as any);
       if (!res.ok) return null;
 
       const data = (await res.json()) as any;
@@ -97,7 +112,7 @@ export class UzumClient {
 
       const detail = await this.fetchProductDetail(Number(productId));
       // detail.category comes from the raw data — need to re-fetch raw
-      const rawRes = await fetch(`${REST_BASE}/product/${productId}`, { headers: HEADERS, dispatcher: proxyDispatcher } as any);
+      const rawRes = await fetchWithTimeout(`${REST_BASE}/product/${productId}`, { headers: HEADERS, dispatcher: proxyDispatcher } as any);
       if (!rawRes.ok) return null;
 
       const raw = (await rawRes.json()) as any;
@@ -181,7 +196,7 @@ export class UzumClient {
 
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
-        const response = await fetch(url, { headers: HEADERS, dispatcher: proxyDispatcher } as any);
+        const response = await fetchWithTimeout(url, { headers: HEADERS, dispatcher: proxyDispatcher } as any);
 
         if (response.status === 429) {
           this.logger.warn(`Rate limited (429), waiting 5s...`);
@@ -215,7 +230,7 @@ export class UzumClient {
 
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
-        const response = await fetch(url, { headers: HEADERS, dispatcher: proxyDispatcher } as any);
+        const response = await fetchWithTimeout(url, { headers: HEADERS, dispatcher: proxyDispatcher } as any);
 
         if (response.status === 429) {
           await sleep(5000);

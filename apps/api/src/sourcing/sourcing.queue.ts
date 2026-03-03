@@ -54,11 +54,16 @@ export async function enqueueSourcingSearch(
   const job = await getQueue().add(
     'search',
     { query } satisfies SourcingSearchJobData,
-    { attempts: 1, removeOnComplete: 50, removeOnFail: 20 },
+    {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 5000 },
+      removeOnComplete: { age: 3600, count: 1000 },
+      removeOnFail: { age: 86400, count: 500 },
+    },
   );
 
   try {
-    const result = await job.waitUntilFinished(getQueueEvents(), 60_000);
+    const result = await job.waitUntilFinished(getQueueEvents(), 90_000);
     return Array.isArray(result) ? result : [];
   } catch {
     return [];
@@ -73,9 +78,9 @@ export async function enqueueSourcingJob(
   data: SourcingSearchJobData,
 ): Promise<void> {
   await getQueue().add('full-search', data, {
-    attempts: 2,
-    backoff: { type: 'fixed', delay: 5000 },
-    removeOnComplete: 100,
-    removeOnFail: 50,
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 5000 },
+    removeOnComplete: { age: 3600, count: 1000 },
+    removeOnFail: { age: 86400, count: 500 },
   });
 }

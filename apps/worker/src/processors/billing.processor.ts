@@ -59,7 +59,7 @@ async function chargeAllActiveAccounts() {
 }
 
 export function createBillingWorker() {
-  return new Worker(
+  const worker = new Worker(
     'billing-queue',
     async (job: Job) => {
       const start = Date.now();
@@ -75,4 +75,10 @@ export function createBillingWorker() {
     },
     { ...redisConnection, concurrency: 1 },
   );
+
+  worker.on('error', (err) => logJobError('billing-queue', '-', 'worker', err));
+  worker.on('failed', (job, err) => logJobError('billing-queue', job?.id ?? '-', job?.name ?? '-', err));
+  worker.on('stalled', (jobId) => console.error(`[billing-queue] stalled: ${jobId}`));
+
+  return worker;
 }

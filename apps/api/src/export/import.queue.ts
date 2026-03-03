@@ -31,8 +31,9 @@ export interface ImportBatchJobData {
 
 export async function enqueueImportBatch(data: ImportBatchJobData) {
   await getQueue().add('import-batch', data, {
-    attempts: 1,
-    removeOnComplete: 100,
-    removeOnFail: 50,
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 5000 },
+    removeOnComplete: { age: 3600, count: 1000 },
+    removeOnFail: { age: 86400, count: 500 },
   });
 }

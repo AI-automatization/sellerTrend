@@ -611,7 +611,7 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
 // ─── Worker ──────────────────────────────────────────────────────────────────
 
 export function createSourcingWorker() {
-  return new Worker<SourcingSearchJobData>(
+  const worker = new Worker<SourcingSearchJobData>(
     'sourcing-search',
     async (job: Job<SourcingSearchJobData>) => {
       const { query } = job.data;
@@ -636,4 +636,10 @@ export function createSourcingWorker() {
     },
     { ...redisConnection, concurrency: 1 },
   );
+
+  worker.on('error', (err) => logJobError('sourcing-search', '-', 'worker', err));
+  worker.on('failed', (job, err) => logJobError('sourcing-search', job?.id ?? '-', job?.name ?? '-', err));
+  worker.on('stalled', (jobId) => console.error(`[sourcing-search] stalled: ${jobId}`));
+
+  return worker;
 }

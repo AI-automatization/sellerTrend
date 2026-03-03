@@ -36,7 +36,7 @@ export class AuthService {
       connectTimeout: 3000,
       enableOfflineQueue: false,
       lazyConnect: true,
-      retryStrategy: () => null,
+      retryStrategy: (times: number) => Math.min(times * 50, 2000),
     });
     this.redis.connect().catch(() => {
       this.logger.warn('Redis not available for rate limiting — falling back to no rate limit');

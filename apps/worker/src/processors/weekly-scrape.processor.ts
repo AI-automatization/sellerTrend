@@ -250,7 +250,7 @@ async function processSingle(productId: string, jobId: string, jobName: string) 
 }
 
 export function createWeeklyScrapeWorker() {
-  return new Worker(
+  const worker = new Worker(
     QUEUE_NAME,
     async (job: Job<WeeklyScrapeJobData>) => {
       const start = Date.now();
@@ -276,4 +276,10 @@ export function createWeeklyScrapeWorker() {
       concurrency: 1, // Serial — one Chromium at a time
     },
   );
+
+  worker.on('error', (err) => logJobError(QUEUE_NAME, '-', 'worker', err));
+  worker.on('failed', (job, err) => logJobError(QUEUE_NAME, job?.id ?? '-', job?.name ?? '-', err));
+  worker.on('stalled', (jobId) => console.error(`[${QUEUE_NAME}] stalled: ${jobId}`));
+
+  return worker;
 }

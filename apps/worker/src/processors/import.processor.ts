@@ -171,7 +171,7 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
 }
 
 export function createImportWorker() {
-  return new Worker(
+  const worker = new Worker(
     'import-batch',
     async (job: Job<ImportBatchJobData>) => {
       const { accountId, urls } = job.data;
@@ -207,4 +207,10 @@ export function createImportWorker() {
     },
     { ...redisConnection, concurrency: 1 },
   );
+
+  worker.on('error', (err) => logJobError('import-batch', '-', 'worker', err));
+  worker.on('failed', (job, err) => logJobError('import-batch', job?.id ?? '-', job?.name ?? '-', err));
+  worker.on('stalled', (jobId) => console.error(`[import-batch] stalled: ${jobId}`));
+
+  return worker;
 }

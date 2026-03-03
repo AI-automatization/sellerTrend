@@ -4,6 +4,9 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
+    # T-313: Match NestJS keepAliveTimeout (65s)
+    keepalive_timeout 65s;
+
     # DNS resolver — injected at container start from /etc/resolv.conf (works on Railway + Docker)
     resolver ${NGINX_RESOLVER} valid=10s;
 

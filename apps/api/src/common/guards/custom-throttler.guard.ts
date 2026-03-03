@@ -27,7 +27,7 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
         connectTimeout: 3000,
         enableOfflineQueue: false,
         lazyConnect: true,
-        retryStrategy: () => null,
+        retryStrategy: (times: number) => Math.min(times * 50, 2000),
       });
     } catch {
       // Redis unavailable — rate limit tracking will be skipped

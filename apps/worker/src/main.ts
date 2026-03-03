@@ -11,6 +11,16 @@ import { scheduleDailyBilling } from './jobs/billing.job';
 import { scheduleCompetitorSnapshots } from './jobs/competitor-snapshot.job';
 import { scheduleWeeklyScrape } from './jobs/weekly-scrape.job';
 
+// T-300: Global crash handlers
+process.on('uncaughtException', (err) => {
+  console.error('uncaughtException:', err);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('unhandledRejection:', reason);
+  process.exit(1);
+});
+
 async function bootstrap() {
   console.log('Worker starting...');
 

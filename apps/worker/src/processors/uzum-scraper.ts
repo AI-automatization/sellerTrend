@@ -24,6 +24,22 @@ const REST_BASE = 'https://api.uzum.uz/api/v2';
 const proxyDispatcher = process.env.PROXY_URL
   ? new ProxyAgent(process.env.PROXY_URL)
   : undefined;
+
+/** Fetch with AbortController timeout (default 15s) */
+async function fetchWithTimeout(
+  url: string,
+  opts: RequestInit & { dispatcher?: unknown } = {},
+  timeoutMs = 15_000,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...opts, signal: controller.signal } as any);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 const HEADERS: Record<string, string> = {
   'User-Agent':
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -174,7 +190,7 @@ export async function fetchUzumProductRaw(
   productId: number,
 ): Promise<UzumRawProduct | null> {
   try {
-    const res = await fetch(`${REST_BASE}/product/${productId}`, {
+    const res = await fetchWithTimeout(`${REST_BASE}/product/${productId}`, {
       headers: HEADERS,
       dispatcher: proxyDispatcher,
     } as any);

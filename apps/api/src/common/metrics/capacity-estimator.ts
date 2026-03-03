@@ -9,6 +9,7 @@ export interface CapacityEstimate {
     max_by_memory: number;
     max_by_db: number;
     max_by_event_loop: number;
+    max_by_cpu: number;
     memory_per_user_mb: number;
     heap_used_pct: number;
   };
@@ -22,7 +23,7 @@ export function estimateCapacity(
   snapshot: MetricsSnapshot,
   activeSessions: number,
   maxHeapMb: number,
-  dbPoolSize = 20,
+  dbPoolSize = 50,
 ): CapacityEstimate {
   const recommendations: string[] = [];
 
@@ -52,7 +53,21 @@ export function estimateCapacity(
     );
   }
 
-  const estimatedMax = Math.min(maxByMemory, maxByDb, maxByEventLoop);
+  // CPU-based estimate
+  let maxByCpu = 999;
+  if (snapshot.cpu_pct > 200) {
+    maxByCpu = Math.max(1, Math.floor(effectiveSessions * (100 / snapshot.cpu_pct)));
+    recommendations.push(
+      `CPU at ${snapshot.cpu_pct.toFixed(0)}% — critical, scale up or reduce load`,
+    );
+  } else if (snapshot.cpu_pct > 150) {
+    maxByCpu = Math.floor(effectiveSessions * (150 / snapshot.cpu_pct));
+    recommendations.push(
+      `CPU at ${snapshot.cpu_pct.toFixed(0)}% — high, consider scaling`,
+    );
+  }
+
+  const estimatedMax = Math.min(maxByMemory, maxByDb, maxByEventLoop, maxByCpu);
 
   // Determine bottleneck
   let bottleneck = 'none';
@@ -68,6 +83,8 @@ export function estimateCapacity(
     recommendations.push(
       'Database connection pool is the limiting factor — consider PgBouncer or increasing pool size',
     );
+  } else if (estimatedMax === maxByCpu) {
+    bottleneck = 'cpu';
   } else if (estimatedMax === maxByEventLoop) {
     bottleneck = 'event_loop';
   }
@@ -92,6 +109,7 @@ export function estimateCapacity(
       max_by_memory: Math.max(1, maxByMemory),
       max_by_db: maxByDb,
       max_by_event_loop: maxByEventLoop,
+      max_by_cpu: maxByCpu,
       memory_per_user_mb: Math.round(memoryPerUser * 100) / 100,
       heap_used_pct: Math.round(heapUsedPct * 100) / 100,
     },
