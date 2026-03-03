@@ -111,6 +111,10 @@ const translations = {
     'test.title1': 'Sotuvchilar',
     'test.title2': 'nima deydi',
     'test.subtitle': 'Haqiqiy foydalanuvchilar, haqiqiy natijalar',
+    'test.1.text': 'VENTRA dan keyin trend mahsulotlarni 5 daqiqada topyapman. Oylik sotuvim 3 barobarga oshdi. Raqiblarni kuzatish funksiyasi ayniqsa foydali!',
+    'test.2.text': 'Sourcing engine ajoyib — 1688 dan narxlarni to\'g\'ridan VENTRA orqali ko\'ryapman. Cargo bilan hisoblash ham bor. Vaqtimni juda tejayapman.',
+    'test.3.text': 'Score tizimi juda to\'g\'ri ishlaydi. 9+ score mahsulotlarga sarmoya qildim — hammasi yaxshi ketdi. Telegram bot ham kechiktirmaydi.',
+    'test.4.text': 'Avval Excel da qo\'lda hisoblardim. Endi VENTRA avtomatik bajaradi. Desktop ilova ham juda qulay — brauzer ochmasdan ishlayapman.',
 
     // FAQ
     'faq.title1': 'Tez-tez so\'raladigan',
@@ -302,6 +306,10 @@ const translations = {
     'test.title1': 'Что говорят',
     'test.title2': 'продавцы',
     'test.subtitle': 'Реальные пользователи, реальные результаты',
+    'test.1.text': 'После VENTRA нахожу трендовые товары за 5 минут. Ежемесячные продажи выросли в 3 раза. Функция мониторинга конкурентов особенно полезна!',
+    'test.2.text': 'Sourcing engine отличный — вижу цены с 1688 прямо через VENTRA. Есть расчёт с доставкой. Экономлю очень много времени.',
+    'test.3.text': 'Система Score работает очень точно. Вложился в товары со Score 9+ — всё пошло хорошо. Telegram бот тоже не запаздывает.',
+    'test.4.text': 'Раньше считал вручную в Excel. Теперь VENTRA делает всё автоматически. Desktop приложение тоже очень удобное — работаю без браузера.',
 
     // FAQ
     'faq.title1': 'Часто задаваемые',

@@ -101,6 +101,12 @@ async function prerender() {
       process.exit(1);
     }
 
+    // XSS guard — ensure rendered content cannot break document structure
+    if (rootInnerHtml.includes('</html>') || rootInnerHtml.includes('</body>') || rootInnerHtml.includes('</head>')) {
+      console.error('[prerender] Rendered HTML contains suspicious structural tags, aborting.');
+      process.exit(1);
+    }
+
     // Read the original dist/index.html and replace the empty root div
     let html = readFileSync(INDEX_PATH, 'utf-8');
 

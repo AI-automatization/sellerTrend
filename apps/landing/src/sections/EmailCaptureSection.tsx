@@ -18,15 +18,26 @@ export function EmailCaptureSection() {
   const { track } = useAnalytics();
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [touched, setTouched] = useState(false);
+
+  const isValidEmail = EMAIL_RE.test(email);
+  const showInvalidHint = touched && email.length > 0 && !isValidEmail;
+
+  function handleEmailChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setEmail(e.target.value);
+    if (status === 'error') setStatus('idle');
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!EMAIL_RE.test(email)) return;
+    setTouched(true);
+    if (!isValidEmail) return;
     setStatus('loading');
     try {
       await subscribeEmail(email);
       setStatus('success');
       setEmail('');
+      setTouched(false);
       track('Email Subscribe');
     } catch {
       setStatus('error');
@@ -66,11 +77,14 @@ export function EmailCaptureSection() {
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={handleEmailChange}
+                  onBlur={() => setTouched(true)}
                   placeholder={t('email.placeholder')}
                   required
-                  className="input input-bordered flex-1 rounded-full bg-base-200 border-base-300
-                             focus:border-primary text-base-content placeholder:text-base-content/30"
+                  aria-invalid={showInvalidHint}
+                  className={`input input-bordered flex-1 rounded-full bg-base-200 border-base-300
+                             focus:border-primary text-base-content placeholder:text-base-content/30
+                             ${showInvalidHint ? 'border-error focus:border-error' : ''}`}
                   disabled={status === 'loading'}
                 />
                 <button
@@ -85,7 +99,10 @@ export function EmailCaptureSection() {
                 </button>
               </div>
 
-              {status === 'error' && (
+              {showInvalidHint && (
+                <p className="text-error text-xs mt-3">To'g'ri email kiriting / Введите корректный email</p>
+              )}
+              {status === 'error' && !showInvalidHint && (
                 <p className="text-error text-xs mt-3">{t('email.error')}</p>
               )}
 

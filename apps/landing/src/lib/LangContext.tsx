@@ -15,13 +15,17 @@ const LangContext = createContext<LangContextValue | null>(null);
 
 export function LangProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(() => {
-    const stored = localStorage.getItem(LANG_KEY);
-    return (stored === 'ru' ? 'ru' : 'uz') as Lang;
+    try {
+      const stored = localStorage.getItem(LANG_KEY);
+      return (stored === 'ru' ? 'ru' : 'uz') as Lang;
+    } catch {
+      return 'uz';
+    }
   });
 
   const setLang = useCallback((l: Lang) => {
     setLangState(l);
-    localStorage.setItem(LANG_KEY, l);
+    try { localStorage.setItem(LANG_KEY, l); } catch { /* Safari private mode */ }
   }, []);
 
   const translate = useCallback(

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useLang } from '../lib/LangContext';
 import type { Lang } from '../lib/i18n';
 import { SunIcon, MoonIcon } from './icons';
@@ -12,8 +12,10 @@ const THEME_KEY = 'ventra-landing-theme';
 
 function useTheme() {
   const [dark, setDark] = useState(() => {
-    const stored = localStorage.getItem(THEME_KEY);
-    if (stored) return stored === 'dark';
+    try {
+      const stored = localStorage.getItem(THEME_KEY);
+      if (stored) return stored === 'dark';
+    } catch { /* Safari private mode */ }
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
@@ -22,7 +24,7 @@ function useTheme() {
     setDark(next);
     const theme = next ? 'ventra-dark' : 'ventra-light';
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem(THEME_KEY, next ? 'dark' : 'light');
+    try { localStorage.setItem(THEME_KEY, next ? 'dark' : 'light'); } catch { /* Safari private mode */ }
   }
 
   return { dark, toggle };
@@ -155,32 +157,34 @@ export function Navbar({ appUrl }: NavbarProps) {
         </div>
 
         {/* Mobile menu */}
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-base-300 py-4 space-y-3"
-          >
-            {NAV_LINKS.map((link) => (
-              <button
-                key={link.href}
-                onClick={() => handleNavClick(link.href)}
-                className="block w-full text-left text-sm text-base-content/70 hover:text-base-content py-2 transition-colors cursor-pointer"
-              >
-                {link.label}
-              </button>
-            ))}
-            <div className="flex gap-3 pt-2">
-              <a href={`${appUrl}/login`} className="btn btn-ghost btn-sm flex-1">
-                {t('nav.login')}
-              </a>
-              <a href={`${appUrl}/register`} className="btn btn-primary btn-sm flex-1">
-                {t('nav.dashboard')}
-              </a>
-            </div>
-          </motion.div>
-        )}
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden border-t border-base-300 py-4 space-y-3"
+            >
+              {NAV_LINKS.map((link) => (
+                <button
+                  key={link.href}
+                  onClick={() => handleNavClick(link.href)}
+                  className="block w-full text-left text-sm text-base-content/70 hover:text-base-content py-2 transition-colors cursor-pointer"
+                >
+                  {link.label}
+                </button>
+              ))}
+              <div className="flex gap-3 pt-2">
+                <a href={`${appUrl}/login`} className="btn btn-ghost btn-sm flex-1">
+                  {t('nav.login')}
+                </a>
+                <a href={`${appUrl}/register`} className="btn btn-primary btn-sm flex-1">
+                  {t('nav.dashboard')}
+                </a>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </motion.header>
   );
