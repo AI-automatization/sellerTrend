@@ -135,21 +135,6 @@
 
 ---
 
-# LANDING AUDIT — T-329..T-342
-
-> Manba: CODE-AUDIT-DESKTOP-LANDING-2026-03-04.md
-
-## P0 — KRITIK (4 ta) — HAMMASI BAJARILDI ✅
-
-## P1 — MUHIM (9 ta) — HAMMASI BAJARILDI ✅
-
-> Batafsil sabab/yechim: CODE-AUDIT-DESKTOP-LANDING-2026-03-04.md
-
-## P2 — O'RTA (batch) — BAJARILDI ✅
-
-### T-342 | P2 | FRONTEND | Landing P2 batch | DONE
-
----
 
 # PLATFORMA AUDIT — UX/DESIGN/ONBOARDING (T-377..T-384)
 
@@ -231,13 +216,10 @@
 | Desktop P0 (T-315..T-319) | 5 |
 | Desktop P1 (T-320..T-327) | 8 |
 | Desktop P2 (T-328) | 10 |
-| Landing P0 (T-329..T-332) | 4 |
-| Landing P1 (T-333..T-341) | 9 |
-| Landing P2 (T-342) | 18 |
 | Chrome Extension (T-216..T-233) | 18 |
 | Landing Manual (M-001..M-004) | 4 |
-| **JAMI task ochiq** | **41** |
-| **JAMI bug/fix ochiq** | **~125** |
+| **JAMI task ochiq** | **~28** |
+| **JAMI bug/fix ochiq** | **~90** |
 
 ---
 
@@ -246,6 +228,7 @@
 **Extension Phase 1-2 (8 ta):** T-208..T-215
 **Desktop (1 ta):** T-234
 **Landing Dev (24 ta):** L-001..L-024
+**Landing Audit (14 ta):** T-329..T-342
 **Web App (8 ta):** T-202, T-264, T-266, T-257, T-188..T-192
 **i18n Audit (9 ta):** T-271..T-279
 **Sprint Frontend (8 ta):** T-237b, T-260, T-261, T-257, T-206, T-284..T-289
