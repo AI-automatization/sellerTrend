@@ -17,6 +17,21 @@ _Remote commit orqali bajarilgan, Bekzod tomonidan verified 2026-03-03_
 
 ---
 
+## L-020 | LANDING | Plausible Analytics + useAnalytics wiring (2026-03-03)
+
+- `index.html`: Plausible script `ventra.uz` domain bilan yoqildi (tagged-events)
+- `HeroSection`: Register + Download CTA click tracking
+- `CTASection`: Register CTA click tracking
+- `EmailCaptureSection`: Email subscribe success tracking
+
+## L-022..L-024 | LANDING | i18n + Docker + CI/CD (allaqachon bajarilgan, arxivlash)
+
+- L-022: i18n (uz/ru) — T-276..T-279 + T-284..T-289 da bajarildi
+- L-023: Dockerfile + nginx.conf — `apps/landing/` da mavjud
+- L-024: CI/CD — `.github/workflows/ci.yml` va `docker-compose.prod.yml` da mavjud
+
+---
+
 ## T-234 | DESKTOP | Login fix — VITE_API_URL (2026-03-03)
 
 - `electron.vite.config.ts`: `envDir: resolve(__dirname, '.')` — renderer endi `apps/desktop/.env` dan `VITE_API_URL` oladi

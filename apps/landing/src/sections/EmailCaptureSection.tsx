@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { fadeUp, VIEWPORT } from '../lib/animations';
 import { useLang } from '../lib/LangContext';
+import { useAnalytics } from '../hooks/useAnalytics';
 import { MailIcon } from '../components/icons';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -14,6 +15,7 @@ async function subscribeEmail(_email: string): Promise<void> {
 
 export function EmailCaptureSection() {
   const { t } = useLang();
+  const { track } = useAnalytics();
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
@@ -25,6 +27,7 @@ export function EmailCaptureSection() {
       await subscribeEmail(email);
       setStatus('success');
       setEmail('');
+      track('Email Subscribe');
     } catch {
       setStatus('error');
     }

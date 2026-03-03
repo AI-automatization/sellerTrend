@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { useLang } from '../lib/LangContext';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 interface CTASectionProps {
   appUrl: string;
@@ -7,6 +8,7 @@ interface CTASectionProps {
 
 export function CTASection({ appUrl }: CTASectionProps) {
   const { t } = useLang();
+  const { track } = useAnalytics();
 
   return (
     <section id="cta" aria-label="Boshlash" className="py-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
@@ -38,6 +40,7 @@ export function CTASection({ appUrl }: CTASectionProps) {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <a
               href={`${appUrl}/register`}
+              onClick={() => track('Register Click', { location: 'cta' })}
               className="btn btn-primary btn-lg rounded-full px-10 glow-btn font-600 text-base"
             >
               {t('cta.btn')}

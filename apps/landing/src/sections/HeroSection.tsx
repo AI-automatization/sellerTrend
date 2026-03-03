@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { useLang } from '../lib/LangContext';
+import { useAnalytics } from '../hooks/useAnalytics';
 import { MonitorIcon } from '../components/icons';
 
 interface HeroSectionProps {
@@ -8,6 +9,7 @@ interface HeroSectionProps {
 
 export function HeroSection({ appUrl }: HeroSectionProps) {
   const { t } = useLang();
+  const { track } = useAnalytics();
 
   return (
     <section id="hero" aria-label="Bosh sahifa" className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
@@ -49,6 +51,7 @@ export function HeroSection({ appUrl }: HeroSectionProps) {
             <div className="flex flex-wrap gap-3 mb-8">
               <a
                 href={`${appUrl}/register`}
+                onClick={() => track('Register Click', { location: 'hero' })}
                 className="btn btn-primary rounded-full px-8 py-3 text-base font-600 glow-btn"
                 aria-label="Bepul ro'yxatdan o'tish"
               >
@@ -58,6 +61,7 @@ export function HeroSection({ appUrl }: HeroSectionProps) {
                 href="#download"
                 onClick={(e) => {
                   e.preventDefault();
+                  track('Download Click', { location: 'hero' });
                   document.querySelector('#download')?.scrollIntoView({ behavior: 'smooth' });
                 }}
                 className="btn btn-outline rounded-full px-8 py-3 text-base font-600 border-base-content/20 text-base-content hover:bg-base-content/10"
