@@ -182,6 +182,7 @@ const translations = {
     'download.version': 'v1.0.0 · 85 MB · Windows 10+ / macOS 12+',
     'download.win': 'Windows yuklab olish',
     'download.mac': 'macOS',
+    'download.soon': 'Tez kunda',
 
     // Footer
     'footer.desc': 'Uzum.uz sotuvchilari uchun premium AI analytics platforma.',
@@ -377,6 +378,7 @@ const translations = {
     'download.version': 'v1.0.0 · 85 MB · Windows 10+ / macOS 12+',
     'download.win': 'Скачать для Windows',
     'download.mac': 'macOS',
+    'download.soon': 'Скоро',
 
     // Footer
     'footer.desc': 'Премиум AI аналитика платформа для продавцов Uzum.uz.',

@@ -144,6 +144,8 @@ export function Navbar({ appUrl }: NavbarProps) {
               className="btn btn-ghost btn-sm"
               onClick={() => setOpen(!open)}
               aria-label="Menyu"
+              aria-expanded={open}
+              aria-controls="mobile-menu"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {open ? (
@@ -160,6 +162,7 @@ export function Navbar({ appUrl }: NavbarProps) {
         <AnimatePresence>
           {open && (
             <motion.div
+              id="mobile-menu"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}

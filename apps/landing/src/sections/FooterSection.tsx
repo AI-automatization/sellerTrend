@@ -93,6 +93,14 @@ export function FooterSection() {
           <p className="text-xs text-base-content/40">
             {t('footer.copyright')}
           </p>
+          <div className="flex gap-4">
+            <a href="/privacy" className="text-xs text-base-content/40 hover:text-base-content/60 transition-colors">
+              {t('footer.privacy')}
+            </a>
+            <a href="/terms" className="text-xs text-base-content/40 hover:text-base-content/60 transition-colors">
+              {t('footer.terms')}
+            </a>
+          </div>
         </div>
       </div>
     </footer>

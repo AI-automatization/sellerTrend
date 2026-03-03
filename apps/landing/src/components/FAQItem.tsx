@@ -13,6 +13,7 @@ export function FAQItem({ question, answer }: FAQItemProps) {
     <div className="glass-card rounded-xl overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
+        aria-expanded={open}
         className="w-full flex items-center justify-between p-5 text-left hover:bg-base-content/5 transition-colors"
       >
         <span className="font-600 text-sm text-base-content pr-4">{question}</span>

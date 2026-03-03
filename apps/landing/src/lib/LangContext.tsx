@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { t } from './i18n';
 import type { Lang, TranslationKey } from './i18n';
@@ -22,6 +22,11 @@ export function LangProvider({ children }: { children: ReactNode }) {
       return 'uz';
     }
   });
+
+  // Sync html[lang] attribute for screen readers
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
 
   const setLang = useCallback((l: Lang) => {
     setLangState(l);

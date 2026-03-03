@@ -10,15 +10,17 @@ export function DownloadBanner() {
   const { t } = useLang();
 
   useEffect(() => {
-    const dismissed = localStorage.getItem(COOKIE_KEY);
-    if (!dismissed) {
-      const timer = setTimeout(() => setVisible(true), 3000);
-      return () => clearTimeout(timer);
-    }
+    try {
+      const dismissed = localStorage.getItem(COOKIE_KEY);
+      if (!dismissed) {
+        const timer = setTimeout(() => setVisible(true), 3000);
+        return () => clearTimeout(timer);
+      }
+    } catch { /* Safari private mode */ }
   }, []);
 
   function dismiss() {
-    localStorage.setItem(COOKIE_KEY, '1');
+    try { localStorage.setItem(COOKIE_KEY, '1'); } catch { /* Safari private mode */ }
     setVisible(false);
   }
 
@@ -47,14 +49,14 @@ export function DownloadBanner() {
                   <button
                     className="btn btn-primary btn-xs rounded-full opacity-60 cursor-not-allowed"
                     disabled
-                    title="Tez kunda"
+                    title={t('download.soon')}
                   >
                     {t('download.win')}
                   </button>
                   <button
                     className="btn btn-outline btn-xs rounded-full opacity-60 cursor-not-allowed"
                     disabled
-                    title="Tez kunda"
+                    title={t('download.soon')}
                   >
                     {t('download.mac')}
                   </button>

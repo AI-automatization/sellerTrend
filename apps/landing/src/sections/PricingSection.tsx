@@ -75,6 +75,8 @@ export function PricingSection({ appUrl }: PricingSectionProps) {
           <div className="inline-flex items-center gap-3 glass-card rounded-full px-4 py-2">
             <span className={`text-sm ${!yearly ? 'text-base-content' : 'text-base-content/50'}`}>{t('pricing.monthly')}</span>
             <button
+              role="switch"
+              aria-checked={yearly}
               onClick={() => setYearly(!yearly)}
               className={`relative w-12 h-6 rounded-full transition-colors ${yearly ? 'bg-primary' : 'bg-base-300'}`}
             >

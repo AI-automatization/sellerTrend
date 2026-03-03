@@ -199,16 +199,18 @@
     <!-- L-018: Theme detection before render (no flash) -->
     <script>
       (function() {
-        var stored = localStorage.getItem('ventra-landing-theme');
-        if (stored === 'light') {
-          document.documentElement.setAttribute('data-theme', 'ventra-light');
-        } else if (!stored) {
-          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          if (!prefersDark) {
+        try {
+          var stored = localStorage.getItem('ventra-landing-theme');
+          if (stored === 'light') {
             document.documentElement.setAttribute('data-theme', 'ventra-light');
-            localStorage.setItem('ventra-landing-theme', 'light');
+          } else if (!stored) {
+            var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (!prefersDark) {
+              document.documentElement.setAttribute('data-theme', 'ventra-light');
+              localStorage.setItem('ventra-landing-theme', 'light');
+            }
           }
-        }
+        } catch (e) { /* Safari private mode */ }
       })();
     </script>
   </head>
