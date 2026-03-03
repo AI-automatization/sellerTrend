@@ -1,6 +1,6 @@
 # BEKZOD — Ochiq Vazifalar
-# Fayllar: apps/api/, apps/worker/, apps/bot/, packages/*, docker-*, .github/*, prisma
-# Yangilangan: 2026-02-28
+# Fayllar: apps/api/, apps/worker/, apps/bot/, apps/web/, packages/*, docker-*, .github/*, prisma
+# Yangilangan: 2026-03-03
 # Bajarilganlar → docs/Done.md
 
 ---
@@ -15,6 +15,7 @@
 ### T-214 | POST /uzum/batch-quick-score endpoint | 1h
 ### T-235 | Playwright bilan weekly_bought DOM scraping | 2h
 ### T-236 | parseWeeklyBought kengaytirish — "1,2 тыс" formatlar | 30min
+
 ## P2 — O'RTA
 
 ### T-239 | Per-user rate limiting — AI endpoint ThrottlerGuard | 30min
@@ -31,6 +32,40 @@
 ### T-237 | ProductPage rasmi — Uzum API dan photo olish (Backend qism) | 1h
 ### T-260 | Discovery — kategoriya nomi saqlash (Backend qism) | 1h
 ### T-261 | Discovery drawer — CategoryWinner schema boyitish | 2h
+
+---
+
+# WEB APP (SARDORDAN KO'CHIRILDI — 2026-03-03)
+
+## P1 — MUHIM
+
+### T-202 | FRONTEND | ProductPage overall UX — sotuvchi uchun soddalash | 1h
+Sahifani soddalashtirish, kerak bo'lmagan elementlarni yashirish, asosiy KPI ni yuqoriga chiqarish.
+
+### T-264 | FRONTEND | Admin panel — role USER bo'lsa /admin sahifaga redirect yo'q | 30min
+USER roli bilan /admin ga kirsa, / ga redirect qilish kerak. AuthGuard yoki route guard qo'shish.
+
+## P2 — O'RTA
+
+### T-266 | FRONTEND | Shops, Leaderboard, Sourcing — bo'sh sahifa, CTA yo'q | 30min
+Ma'lumot yo'q bo'lganda bo'sh sahifaga "Hali ma'lumot yo'q, qo'shing" CTA qo'shish.
+
+### T-257 | FRONTEND | Granular ErrorBoundary per section | —
+Har sahifada bitta katta ErrorBoundary o'rniga, har section uchun alohida ErrorBoundary.
+
+## PWA CLEANUP
+
+### T-188 | FRONTEND | Service Worker o'chirish + unregister script | 20min
+`apps/web/public/sw.js` o'chirish + index.html da unregister snippet qo'shish.
+
+### T-189 | FRONTEND | manifest.json va PWA meta taglar o'chirish | 10min
+`apps/web/public/manifest.json` o'chirish + index.html dagi `<link rel="manifest">` olib tashlash.
+
+### T-190 | FRONTEND | PWA-only ikonalar o'chirish | 5min
+`apple-touch-icon.svg`, `icon-maskable.svg` — agar ishlatilmasa o'chirish.
+
+### T-192 | FRONTEND | dist/manifest.json build artifact tozalash | 5min
+Build chiqdi? dist/ da manifest.json qolsa, vite.config.ts dan olib tashlash.
 
 ---
 
@@ -67,12 +102,15 @@
 | Kategoriya | Soni |
 |-----------|------|
 | Backend P0 | 0 |
-| Backend P1 | 8 |
+| Backend P1 | 6 |
 | Backend P2-P3 | 3 |
 | Ikkalasi | 3 |
+| Web P1 (Sardordan) | 2 |
+| Web P2 (Sardordan) | 2 |
+| PWA cleanup (Sardordan) | 4 |
 | ENV manual | 4 |
 | Railway manual | 12 |
-| **JAMI ochiq** | **32** |
+| **JAMI ochiq** | **40** |
 
 ---
-*Tasks-Bekzod.md | VENTRA | 2026-02-28*
+*Tasks-Bekzod.md | VENTRA | 2026-03-03*

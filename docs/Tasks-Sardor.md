@@ -1,25 +1,15 @@
 # SARDOR — Ochiq Vazifalar
-# Fayllar: apps/web/, apps/desktop/, apps/extension/, apps/landing/
-# Yangilangan: 2026-02-28
+# Fayllar: apps/desktop/, apps/extension/, apps/landing/
+# Yangilangan: 2026-03-03
 # Bajarilganlar → docs/Done.md
 
 ---
 
-# WEB APP — OCHIQ TASKLAR
+# WEB APP — KO'CHIRILDI → Tasks-Bekzod.md (2026-03-03)
 
-## P1 — MUHIM
+~~T-202, T-264, T-266, T-257, T-188..T-192~~ → Bekzod zimmasiga o'tdi.
 
-### T-202 | ProductPage overall UX — sotuvchi uchun soddalash | 1h
-### T-264 | Admin panel — role USER bo'lsa /admin sahifaga redirect yo'q | 30min
-
-## P2 — O'RTA
-
-### T-266 | Shops, Leaderboard, Sourcing — bo'sh sahifa, CTA yo'q | 30min
-### T-257 | Granular ErrorBoundary per section | —
-
-## i18n AUDIT
-
-✅ T-271..T-279 — Barchasi bajarildi (Done.md ga ko'chirildi)
+**Web app 95% tayyor** — Sardor asosiy ish: Chrome Extension va Landing.
 
 ---
 
@@ -38,15 +28,6 @@
 # DESKTOP APP
 
 ✅ T-234 — Done (2026-03-03)
-
----
-
-# PWA O'CHIRISH — OCHIQ
-
-### T-188 | Service Worker o'chirish + unregister script | 20min
-### T-189 | manifest.json va PWA meta taglar o'chirish | 10min
-### T-190 | PWA-only ikonalar o'chirish | 5min
-### T-192 | dist/manifest.json build artifact tozalash | 5min
 
 ---
 
@@ -91,16 +72,14 @@ Batafsil spec: `docs/Tasks.md` Chrome Extension bo'limida.
 
 | Kategoriya | Soni |
 |-----------|------|
-| Web ochiq (P1-P2) | 4 |
+| Web app (Bekzodga o'tdi) | ~~8~~ **0** |
 | i18n audit | ~~9~~ **0 ✅** |
 | Bekzod dependent | 5 |
 | Desktop | ~~1~~ **0 ✅** |
-| PWA cleanup | 4 |
+| PWA cleanup | ~~4~~ **0 ✅** (Bekzodga o'tdi, bajarildi) |
 | Chrome Extension | 26 |
 | Landing | 28 |
-| **JAMI ochiq** | **67** |
-
-**Web app 95% tayyor** — asosiy ish Chrome Extension va Landing.
+| **JAMI ochiq** | **59** |
 
 ---
-*Tasks-Sardor.md | VENTRA | 2026-02-28*
+*Tasks-Sardor.md | VENTRA | 2026-03-03*
