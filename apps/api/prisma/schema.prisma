@@ -47,6 +47,7 @@ model Account {
   notifications          Notification[]
   feedback_tickets       FeedbackTicket[]
   user_activities        UserActivity[]
+  telegram_links         TelegramLink[]
 
   @@map("accounts")
 }
@@ -158,12 +159,16 @@ model Product {
   sku_group_id      BigInt?
   shop_id           BigInt?
   title             String                      @db.Text
+  title_uz          String?                     @db.Text           // Key 1: uzbekcha nom
   category_id       BigInt?
+  category_path     Json?                                          // Key 2: [{id,title}] root→leaf
+  badges            Json?                                          // Key 3: [{type?,label?,backgroundColor?,textColor?}]
   rating            Decimal?                    @db.Decimal(3, 2)
   feedback_quantity Int?                        @default(0)
   orders_quantity   BigInt?                     @default(0)
   total_available_amount BigInt?
-  photo_url         String?                     @db.Text
+  photo_url         String?                     @db.Text           // Key 13: asosiy rasm
+  photo_urls        String[]                                       // Key 14: barcha rasmlar
   is_active         Boolean                     @default(true)
   // embedding      Unsupported("vector(1536)")? — pgvector enabled via SeedService (T-177)
   created_at        DateTime                    @default(now()) @db.Timestamptz
@@ -221,13 +226,17 @@ model ProductSnapshot {
 }
 
 model SkuSnapshot {
-  id               String   @id @default(uuid())
-  sku_id           BigInt
-  sell_price       BigInt?
-  full_price       BigInt?
-  discount_percent Int?
-  stock_type       String?  @db.VarChar(10)
-  snapshot_at      DateTime @default(now()) @db.Timestamptz
+  id                  String   @id @default(uuid())
+  sku_id              BigInt
+  sell_price          BigInt?
+  full_price          BigInt?
+  discount_percent    Int?
+  discount_badge      String?  @db.VarChar(100)  // Key 8: "-15%" kabi string badge
+  charge_price        BigInt?                     // Key 9: oylik muddatli to'lov (so'm)
+  charge_quantity     Int?                        // Key 10: asosiy variant oylari (12)
+  charge_quantity_alt Int?                        // Key 11: qo'shimcha variant oylari (24)
+  stock_type          String?  @db.VarChar(10)
+  snapshot_at         DateTime @default(now()) @db.Timestamptz
 
   sku Sku @relation(fields: [sku_id], references: [id], onDelete: Cascade)
 
@@ -328,15 +337,17 @@ enum AlertType {
 }
 
 model AlertEvent {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   rule_id      String
   product_id   BigInt
-  message      String?  @db.Text
-  triggered_at DateTime @default(now()) @db.Timestamptz
+  message      String?   @db.Text
+  delivered_at DateTime? @db.Timestamptz
+  triggered_at DateTime  @default(now()) @db.Timestamptz
 
   rule    AlertRule @relation(fields: [rule_id], references: [id], onDelete: Cascade)
   product Product   @relation(fields: [product_id], references: [id], onDelete: Cascade)
 
+  @@index([delivered_at])
   @@map("alert_events")
 }
 
@@ -622,6 +633,24 @@ model ApiKey {
 
   @@index([account_id])
   @@map("api_keys")
+}
+
+// ============================================================
+// TELEGRAM LINKING
+// ============================================================
+
+model TelegramLink {
+  id         String   @id @default(uuid())
+  account_id String
+  chat_id    String   @unique @db.VarChar(50)
+  username   String?  @db.VarChar(100)
+  linked_at  DateTime @default(now()) @db.Timestamptz
+  is_active  Boolean  @default(true)
+
+  account Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
+
+  @@index([account_id])
+  @@map("telegram_links")
 }
 
 // ============================================================

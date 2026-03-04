@@ -6,9 +6,11 @@ import { createSourcingWorker } from './processors/sourcing.processor';
 import { createCompetitorWorker } from './processors/competitor.processor';
 import { createImportWorker } from './processors/import.processor';
 import { createWeeklyScrapeWorker } from './processors/weekly-scrape.processor';
+import { createAlertDeliveryWorker } from './processors/alert-delivery.processor';
 import { scheduleDailyBilling } from './jobs/billing.job';
 import { scheduleCompetitorSnapshots } from './jobs/competitor-snapshot.job';
 import { scheduleWeeklyScrape } from './jobs/weekly-scrape.job';
+import { scheduleAlertDelivery } from './jobs/alert-delivery.job';
 import { logProcess } from './logger';
 import { browserPool } from './browser-pool';
 import { prisma } from './prisma';
@@ -45,14 +47,16 @@ async function bootstrap() {
   const competitorWorker = createCompetitorWorker();
   const importWorker = createImportWorker();
   const weeklyScrapeWorker = createWeeklyScrapeWorker();
+  const alertDeliveryWorker = createAlertDeliveryWorker();
 
   // Schedule cron jobs
   await scheduleDailyBilling();
   await scheduleCompetitorSnapshots();
   await scheduleWeeklyScrape();
+  await scheduleAlertDelivery();
 
-  logProcess('info', 'Workers running: billing-queue, discovery-queue, sourcing-search, competitor-queue, import-batch, weekly-scrape-queue');
-  logProcess('info', 'Crons: billing daily 00:00, competitor every 6h, weekly-scrape every 15min');
+  logProcess('info', 'Workers running: billing-queue, discovery-queue, sourcing-search, competitor-queue, import-batch, weekly-scrape-queue, alert-delivery-queue');
+  logProcess('info', 'Crons: billing daily 00:00, competitor every 6h, weekly-scrape every 15min, alert-delivery every 5min');
 
   // Health check HTTP server — reuse shared Redis from redis.ts
   const healthPort = parseInt(process.env.PORT || process.env.WORKER_HEALTH_PORT || '3001', 10);
@@ -71,7 +75,7 @@ async function bootstrap() {
       res.end(JSON.stringify({
         status,
         redis: redisOk ? 'ok' : 'unreachable',
-        workers: 6,
+        workers: 7,
         timestamp: new Date().toISOString(),
       }));
     } else {
@@ -100,6 +104,7 @@ async function bootstrap() {
         competitorWorker.close(),
         importWorker.close(),
         weeklyScrapeWorker.close(),
+        alertDeliveryWorker.close(),
       ]);
       await browserPool.shutdown();
       await redis.quit();

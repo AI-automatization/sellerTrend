@@ -2,6 +2,48 @@ import 'dotenv/config';
 import http from 'http';
 import { Bot, GrammyError, HttpError } from 'grammy';
 import { prisma } from './prisma';
+import { parseUzumProductId } from '@uzum/utils';
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+/** Format BigInt UZS amount: 1_500_000 → "1 500 000" */
+function formatUzs(amount: bigint | number): string {
+  return Number(amount).toLocaleString('ru-RU');
+}
+
+/** Check if chat is linked to a VENTRA account. Returns accountId or null. */
+async function requireLink(chatId: number): Promise<{ accountId: string } | null> {
+  const link = await prisma.telegramLink.findFirst({
+    where: { chat_id: String(chatId), is_active: true },
+  });
+  if (!link) return null;
+  return { accountId: link.account_id };
+}
+
+/** Parse product ID from Uzum URL or raw number string */
+function parseProductInput(input: string): bigint | null {
+  // Try raw number first
+  const trimmed = input.trim();
+  if (/^\d+$/.test(trimmed)) {
+    return BigInt(trimmed);
+  }
+  // Try URL parsing
+  const parsed = parseUzumProductId(trimmed);
+  if (parsed !== null) {
+    return BigInt(parsed);
+  }
+  return null;
+}
+
+const DEFAULT_DAILY_FEE = 50_000n;
+const MAX_TRACKED_DISPLAY = 10;
 
 // ─── Structured logger (bot has no NestJS, so simple helper) ────────────────
 function logBot(level: 'info' | 'warn' | 'error', message: string, error?: unknown) {
@@ -52,19 +94,319 @@ const bot = new Bot(TOKEN);
 // ─── Commands ────────────────────────────────────────────────────────────────
 
 bot.command('start', async (ctx) => {
-  const chatId = ctx.chat.id;
+  const linked = await requireLink(ctx.chat.id);
+  const linkStatus = linked
+    ? `\n\nAkkount ulangan. /myproducts va /balance ishlatishingiz mumkin.`
+    : `\n\nAkkountingizni ulash uchun /connect buyrug'ini yuboring.`;
+
   await ctx.reply(
-    `👋 <b>VENTRA Analytics Bot</b>\n\n` +
+    `<b>VENTRA Analytics Bot</b>\n\n` +
     `Men sizga Uzum marketplace trenduvoiy mahsulotlar haqida xabar beraman.\n\n` +
-    `📋 <b>Buyruqlar:</b>\n` +
+    `<b>Buyruqlar:</b>\n` +
+    `/connect — Akkountni ulash (API key prefix)\n` +
+    `/myproducts — Kuzatilayotgan mahsulotlar\n` +
+    `/balance — Balans va qolgan kunlar\n` +
+    `/product — Mahsulot ma'lumoti (URL yoki ID)\n` +
     `/subscribe — Xabarnomaga ulaning\n` +
     `/unsubscribe — Obunani bekor qiling\n` +
     `/status — Hozirgi holat\n` +
     `/top — So'nggi top mahsulotlar\n` +
-    `/help — Yordam`,
+    `/help — Yordam` +
+    linkStatus,
     { parse_mode: 'HTML' },
   );
 });
+
+// ─── /connect [API_KEY_PREFIX] — Link Telegram → VENTRA account ─────────────
+
+bot.command('connect', async (ctx) => {
+  const chatId = ctx.chat.id;
+  const text = ctx.message?.text ?? '';
+  const parts = text.split(/\s+/);
+  const prefix = parts[1]?.trim();
+
+  if (!prefix || prefix.length < 4) {
+    await ctx.reply(
+      `<b>Akkountni ulash</b>\n\n` +
+      `API key prefixingizni yuboring:\n` +
+      `<code>/connect vntr_abc1</code>\n\n` +
+      `API key prefix — dashboardda Settings &gt; API Keys sahifasida ko'rinadi.\n` +
+      `Kamida 4 belgi kerak.`,
+      { parse_mode: 'HTML' },
+    );
+    return;
+  }
+
+  // Check if already linked
+  const existingLink = await prisma.telegramLink.findFirst({
+    where: { chat_id: String(chatId), is_active: true },
+  });
+  if (existingLink) {
+    await ctx.reply(
+      `Siz allaqachon ulangansiz.\n\n` +
+      `Qayta ulash uchun avval /disconnect qiling.`,
+      { parse_mode: 'HTML' },
+    );
+    return;
+  }
+
+  // Look up ApiKey by prefix
+  const apiKey = await prisma.apiKey.findFirst({
+    where: {
+      key_prefix: { startsWith: prefix },
+      is_active: true,
+    },
+    include: { account: { select: { id: true, name: true } } },
+  });
+
+  if (!apiKey) {
+    await ctx.reply(
+      `API key topilmadi yoki faol emas.\n\n` +
+      `Prefix to'g'riligini tekshiring va qaytadan urinib ko'ring.`,
+    );
+    return;
+  }
+
+  // Create TelegramLink
+  const username = ctx.from?.username ?? null;
+  await prisma.telegramLink.create({
+    data: {
+      account_id: apiKey.account_id,
+      chat_id: String(chatId),
+      username,
+    },
+  });
+
+  logBot('info', `TelegramLink created: chat=${chatId} → account=${apiKey.account_id}`);
+
+  await ctx.reply(
+    `<b>Muvaffaqiyatli ulandi!</b>\n\n` +
+    `Akkount: <b>${escapeHtml(apiKey.account.name)}</b>\n\n` +
+    `Endi /myproducts, /balance, /product buyruqlarini ishlatishingiz mumkin.`,
+    { parse_mode: 'HTML' },
+  );
+});
+
+// ─── /disconnect — Unlink Telegram from VENTRA account ──────────────────────
+
+bot.command('disconnect', async (ctx) => {
+  const chatId = ctx.chat.id;
+
+  const link = await prisma.telegramLink.findFirst({
+    where: { chat_id: String(chatId), is_active: true },
+  });
+
+  if (!link) {
+    await ctx.reply('Siz hali hech qanday akkountga ulanmagansiz.');
+    return;
+  }
+
+  await prisma.telegramLink.update({
+    where: { id: link.id },
+    data: { is_active: false },
+  });
+
+  logBot('info', `TelegramLink deactivated: chat=${chatId}`);
+  await ctx.reply('Akkount uzildi. Qayta ulash uchun /connect ishlatishingiz mumkin.');
+});
+
+// ─── /myproducts — Show tracked products ────────────────────────────────────
+
+bot.command('myproducts', async (ctx) => {
+  const linked = await requireLink(ctx.chat.id);
+  if (!linked) {
+    await ctx.reply('Avval akkountingizni ulang: /connect [API_KEY_PREFIX]');
+    return;
+  }
+
+  const tracked = await prisma.trackedProduct.findMany({
+    where: { account_id: linked.accountId, is_active: true },
+    take: MAX_TRACKED_DISPLAY,
+    orderBy: { created_at: 'desc' },
+    include: {
+      product: {
+        select: {
+          id: true,
+          title: true,
+          total_available_amount: true,
+          snapshots: {
+            select: { score: true, weekly_bought: true },
+            orderBy: { snapshot_at: 'desc' },
+            take: 1,
+          },
+        },
+      },
+    },
+  });
+
+  if (tracked.length === 0) {
+    await ctx.reply(
+      'Hozircha kuzatilayotgan mahsulot yo\'q.\n\n' +
+      'Dashboardda mahsulot qo\'shing va bu yerda ko\'ring.',
+    );
+    return;
+  }
+
+  const totalCount = await prisma.trackedProduct.count({
+    where: { account_id: linked.accountId, is_active: true },
+  });
+
+  const lines = tracked.map((tp, i) => {
+    const p = tp.product;
+    const snap = p.snapshots[0];
+    const score = snap?.score != null ? Number(snap.score).toFixed(2) : '--';
+    const wb = snap?.weekly_bought != null ? snap.weekly_bought.toLocaleString() : '--';
+    const stock = p.total_available_amount != null ? p.total_available_amount.toString() : '--';
+    return (
+      `${i + 1}. <b>${escapeHtml(p.title)}</b>\n` +
+      `   Score: <code>${score}</code> | Haftalik: ${wb} | Stok: ${stock}`
+    );
+  });
+
+  const footer = totalCount > MAX_TRACKED_DISPLAY
+    ? `\n\n<i>...va yana ${totalCount - MAX_TRACKED_DISPLAY} ta mahsulot (dashboardda ko'ring)</i>`
+    : '';
+
+  await ctx.reply(
+    `<b>Kuzatilayotgan mahsulotlar (${totalCount})</b>\n\n` +
+    lines.join('\n\n') +
+    footer,
+    { parse_mode: 'HTML' },
+  );
+});
+
+// ─── /balance — Show account balance + estimated days ───────────────────────
+
+bot.command('balance', async (ctx) => {
+  const linked = await requireLink(ctx.chat.id);
+  if (!linked) {
+    await ctx.reply('Avval akkountingizni ulang: /connect [API_KEY_PREFIX]');
+    return;
+  }
+
+  const account = await prisma.account.findUnique({
+    where: { id: linked.accountId },
+    select: { name: true, balance: true, daily_fee: true, status: true },
+  });
+
+  if (!account) {
+    await ctx.reply('Akkount topilmadi. /connect orqali qayta ulaning.');
+    return;
+  }
+
+  const dailyFee = account.daily_fee ?? DEFAULT_DAILY_FEE;
+  const balance = account.balance;
+  const remainingDays = dailyFee > 0n
+    ? Math.floor(Number(balance) / Number(dailyFee))
+    : 0;
+
+  const statusEmoji = account.status === 'ACTIVE' ? 'Faol'
+    : account.status === 'PAYMENT_DUE' ? 'To\'lov kutilmoqda'
+    : 'To\'xtatilgan';
+
+  await ctx.reply(
+    `<b>Akkount: ${escapeHtml(account.name)}</b>\n\n` +
+    `Balans: <code>${formatUzs(balance)}</code> UZS\n` +
+    `Kunlik to'lov: <code>${formatUzs(dailyFee)}</code> UZS\n` +
+    `Qolgan kunlar: <b>${remainingDays}</b> kun\n` +
+    `Holat: ${statusEmoji}`,
+    { parse_mode: 'HTML' },
+  );
+});
+
+// ─── /product [URL or ID] — Quick product info ─────────────────────────────
+
+bot.command('product', async (ctx) => {
+  const linked = await requireLink(ctx.chat.id);
+  if (!linked) {
+    await ctx.reply('Avval akkountingizni ulang: /connect [API_KEY_PREFIX]');
+    return;
+  }
+
+  const text = ctx.message?.text ?? '';
+  const parts = text.split(/\s+/);
+  const input = parts.slice(1).join(' ').trim();
+
+  if (!input) {
+    await ctx.reply(
+      `<b>Mahsulot ma'lumotlari</b>\n\n` +
+      `Foydalanish:\n` +
+      `<code>/product 155927</code>\n` +
+      `<code>/product https://uzum.uz/ru/product/mahsulot-155927</code>`,
+      { parse_mode: 'HTML' },
+    );
+    return;
+  }
+
+  const productId = parseProductInput(input);
+  if (productId === null) {
+    await ctx.reply('Mahsulot ID yoki URL ni to\'g\'ri kiriting.');
+    return;
+  }
+
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    select: {
+      id: true,
+      title: true,
+      category_id: true,
+      rating: true,
+      orders_quantity: true,
+      total_available_amount: true,
+      is_active: true,
+      skus: {
+        select: { min_sell_price: true },
+        where: { is_available: true },
+        take: 1,
+        orderBy: { min_sell_price: 'asc' },
+      },
+      snapshots: {
+        select: { score: true, weekly_bought: true, snapshot_at: true },
+        orderBy: { snapshot_at: 'desc' },
+        take: 1,
+      },
+    },
+  });
+
+  if (!product) {
+    await ctx.reply(`Mahsulot topilmadi (ID: ${productId.toString()}).`);
+    return;
+  }
+
+  const snap = product.snapshots[0];
+  const score = snap?.score != null ? Number(snap.score).toFixed(2) : '--';
+  const wb = snap?.weekly_bought != null ? snap.weekly_bought.toLocaleString() : '--';
+  const stock = product.total_available_amount != null
+    ? product.total_available_amount.toString()
+    : '--';
+  const price = product.skus[0]?.min_sell_price != null
+    ? formatUzs(product.skus[0].min_sell_price)
+    : '--';
+  const rating = product.rating != null ? Number(product.rating).toFixed(2) : '--';
+  const orders = product.orders_quantity != null
+    ? product.orders_quantity.toString()
+    : '--';
+  const snapshotDate = snap?.snapshot_at
+    ? new Date(snap.snapshot_at).toLocaleDateString('uz-UZ')
+    : '--';
+
+  await ctx.reply(
+    `<b>${escapeHtml(product.title)}</b>\n` +
+    `ID: <code>${product.id.toString()}</code>\n\n` +
+    `Score: <code>${score}</code>\n` +
+    `Haftalik sotilgan: ${wb}\n` +
+    `Narx: ${price} UZS\n` +
+    `Stok: ${stock}\n` +
+    `Reyting: ${rating}\n` +
+    `Jami buyurtmalar: ${orders}\n` +
+    `Holat: ${product.is_active ? 'Faol' : 'Nofaol'}\n` +
+    `So'nggi snapshot: ${snapshotDate}\n\n` +
+    `<a href="https://uzum.uz/ru/product/-${product.id.toString()}">Uzum'da ko'rish</a>`,
+    { parse_mode: 'HTML' },
+  );
+});
+
+// ─── Existing commands ───────────────────────────────────────────────────────
 
 bot.command('subscribe', async (ctx) => {
   const chatId = String(ctx.chat.id);
@@ -78,7 +420,7 @@ bot.command('subscribe', async (ctx) => {
   });
 
   await ctx.reply(
-    `✅ <b>Obuna faollashtirildi!</b>\n\n` +
+    `<b>Obuna faollashtirildi!</b>\n\n` +
     `Yangi trending mahsulotlar topilganda sizga xabar keladi.\n` +
     `Chat ID: <code>${chatId}</code>`,
     { parse_mode: 'HTML' },
@@ -95,7 +437,7 @@ bot.command('unsubscribe', async (ctx) => {
     create: { key, value: 'inactive' },
   });
 
-  await ctx.reply('❌ Obuna bekor qilindi.');
+  await ctx.reply('Obuna bekor qilindi.');
 });
 
 bot.command('status', async (ctx) => {
@@ -105,16 +447,22 @@ bot.command('status', async (ctx) => {
   const setting = await prisma.systemSetting.findUnique({ where: { key } });
   const isActive = setting?.value === 'active';
 
+  const linked = await requireLink(ctx.chat.id);
+  const linkLine = linked
+    ? '\nAkkount: ulangan'
+    : '\nAkkount: ulanmagan (/connect)';
+
   await ctx.reply(
-    isActive
-      ? `✅ Obuna <b>faol</b>. Xabarlar keladi.`
-      : `❌ Obuna <b>faol emas</b>. /subscribe buyrug'ini yuboring.`,
+    (isActive
+      ? `Obuna <b>faol</b>. Xabarlar keladi.`
+      : `Obuna <b>faol emas</b>. /subscribe buyrug'ini yuboring.`) +
+    linkLine,
     { parse_mode: 'HTML' },
   );
 });
 
 bot.command('top', async (ctx) => {
-  await ctx.reply('<i>⏳ So\'nggi discovery natijalari yuklanmoqda...</i>', {
+  await ctx.reply('<i>So\'nggi discovery natijalari yuklanmoqda...</i>', {
     parse_mode: 'HTML',
   });
 
@@ -131,26 +479,26 @@ bot.command('top', async (ctx) => {
   });
 
   if (!latestRun || latestRun.winners.length === 0) {
-    await ctx.reply('📭 Hali hech qanday discovery natijasi yo\'q.\n\nWebsiteda yangi skanerlash boshlang.');
+    await ctx.reply('Hali hech qanday discovery natijasi yo\'q.\n\nWebsiteda yangi skanerlash boshlang.');
     return;
   }
 
   const lines = latestRun.winners.map((w) => {
-    const score = w.score != null ? Number(w.score).toFixed(2) : '—';
-    const activity = w.weekly_bought != null ? w.weekly_bought.toLocaleString() : '—';
+    const score = w.score != null ? Number(w.score).toFixed(2) : '--';
+    const activity = w.weekly_bought != null ? w.weekly_bought.toLocaleString() : '--';
     return (
       `${w.rank}. <b>${escapeHtml(w.product.title)}</b>\n` +
-      `   📊 Score: <code>${score}</code>  🔥 ${activity}`
+      `   Score: <code>${score}</code>  Haftalik: ${activity}`
     );
   });
 
   const finishedAt = latestRun.finished_at
     ? new Date(latestRun.finished_at).toLocaleString('uz-UZ')
-    : '—';
+    : '--';
 
   await ctx.reply(
-    `🏆 <b>Kategoriya #${latestRun.category_id} — Top ${latestRun.winners.length}</b>\n` +
-    `📅 ${finishedAt}\n\n` +
+    `<b>Kategoriya #${latestRun.category_id} — Top ${latestRun.winners.length}</b>\n` +
+    `${finishedAt}\n\n` +
     lines.join('\n\n'),
     { parse_mode: 'HTML' },
   );
@@ -158,12 +506,20 @@ bot.command('top', async (ctx) => {
 
 bot.command('help', async (ctx) => {
   await ctx.reply(
-    `📖 <b>Yordam</b>\n\n` +
+    `<b>Yordam — VENTRA Analytics Bot</b>\n\n` +
+    `<b>Akkount:</b>\n` +
+    `/connect [prefix] — API key prefix orqali akkountni ulash\n` +
+    `/disconnect — Akkountni uzish\n\n` +
+    `<b>Shaxsiy ma'lumotlar:</b>\n` +
+    `/myproducts — Kuzatilayotgan mahsulotlar ro'yxati\n` +
+    `/balance — Balans va qolgan kunlar\n` +
+    `/product [URL/ID] — Mahsulot tafsilotlari\n\n` +
+    `<b>Umumiy:</b>\n` +
     `/subscribe — Kunlik trend xabarnomasiga ulaning\n` +
     `/unsubscribe — Obunani bekor qiling\n` +
     `/status — Obuna holatingiz\n` +
     `/top — So'nggi top trending mahsulotlar\n\n` +
-    `🌐 Dashboard: https://your-domain.uz`,
+    `Dashboard: ventra.uz`,
     { parse_mode: 'HTML' },
   );
 });
@@ -243,10 +599,3 @@ async function bootstrap() {
 }
 
 bootstrap().catch((err) => logBot('error', 'Bootstrap failed', err));
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}

@@ -400,7 +400,7 @@ export class UzumService {
       data: rules.map((r) => ({
         rule_id: r.id,
         product_id: productId,
-        message: `Score spike detected: ${currentScore.toFixed(2)} (avg ${avg.toFixed(2)})`,
+        message: `Score ${avg.toFixed(1)} → ${currentScore.toFixed(1)} (+${((currentScore - avg) / (avg || 1) * 100).toFixed(0)}%)`,
       })),
     });
   }
