@@ -4,6 +4,25 @@
 
 ---
 
+## T-373, T-374 | PLATFORMA P1 | Onboarding + Forgot Password (2026-03-04)
+
+**T-373 — Onboarding schema + API:**
+- Account model: `onboarding_completed`, `onboarding_step`, `selected_marketplaces`
+- `GET /auth/me` — user info + account + onboarding state
+- `PATCH /auth/onboarding` — update step/completed/marketplaces
+- `UpdateOnboardingDto` with class-validator
+
+**T-374 — Forgot Password API:**
+- `PasswordReset` model (token_hash, expires_at, used_at)
+- `POST /auth/forgot-password` — rate limited 3/hour, generic response (no user enumeration)
+- `POST /auth/reset-password` — token validation, bcrypt hash, session revocation
+- Telegram notification via TelegramLink (if bot token set)
+- Constants: 15min expiry, 3 resets/hour
+
+**Tekshiruv:** API tsc --noEmit — 0 error ✅
+
+---
+
 ## T-371, T-372 | PLATFORMA P0 | Alert delivery + Bot account linking (2026-03-04)
 
 **T-372 — Bot account linking:**

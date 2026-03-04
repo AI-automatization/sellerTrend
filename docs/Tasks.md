@@ -400,8 +400,6 @@ Tray i18n, loadURL error, devtools block, package.json metadata, macOS About, en
 
 | # | Muammo | Mas'ul | Vaqt |
 |---|--------|--------|------|
-| T-373 | Onboarding schema + API (`onboardingCompleted`, `PATCH /onboarding`) | Bekzod | 1.5h |
-| T-374 | Forgot Password API (email token + reset) | Bekzod | 3h |
 | T-375 | Worker monitoring jobs — stock, trend, currency, cleanup, digest (5 cron) | Bekzod | 8h |
 | T-378 | Forgot Password UI | Bekzod | 2h |
 
