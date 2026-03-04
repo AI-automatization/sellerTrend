@@ -9,11 +9,57 @@
 
 ## QOIDALAR
 
+### Umumiy
 - Yangi bug/error/task topilganda shu faylga qo'shiladi
 - Fix bo'lgandan keyin `docs/Done.md` ga ko'chiriladi
-- Format: `T-XXX | [KATEGORIYA] | Sarlavha | Vaqt`
 - Kategoriyalar: BACKEND, FRONTEND, DEVOPS, IKKALASI
 - **GIT-BASED TASK LOCKING:** `pending[Bekzod]` / `pending[Sardor]` status ishlatiladi
+
+### Task formati (MAJBURIY)
+
+Har bir task quyidagi 3 qismdan iborat bo'lishi **SHART**:
+
+**1. Sarlavha qatori:**
+```
+### T-XXX | P(0-3) | KATEGORIYA | Qisqa sarlavha | Vaqt
+```
+
+**2. Kelib chiqishi (Manba):**
+Task qayerdan paydo bo'lgani — 1 qator yoziladi:
+- `Manba: kod audit (fayl:qator)` — audit paytida topilgan bug
+- `Manba: production bug (sana, error log)` — live da uchragan xato
+- `Manba: ChatGPT/Claude tahlil (sana)` — AI audit natijasi
+- `Manba: foydalanuvchi so'rovi / feature request` — user feedback
+- `Manba: code review PR #N` — PR review da topilgan
+- `Manba: dependency update / security advisory` — lib yangilanishi
+
+**3. Muammo + Yechim:**
+- **Muammo:** Nima buzilgan / nima etishmaydi — aniq tavsif
+- **Yechim:** Qanday tuzatiladi — fayl nomlari, qaysi qator, qanday o'zgarish
+- **Fayllar:** O'zgartiriladigan fayllar ro'yxati
+
+**Namuna:**
+```
+### T-999 | P1 | BACKEND | WebSocket disconnect on logout | 30min
+
+Manba: kod audit (useSocket.ts:12-23, 2026-03-04)
+
+**Muammo:** Logout paytida WebSocket connection yopilmaydi — server'da
+stale connection qoladi, memory leak hosil bo'ladi.
+
+**Yechim:** `authStore.logout()` ichida `socket.disconnect()` chaqirish.
+`useSocket.ts:23` da cleanup function qo'shish.
+
+**Fayllar:** `apps/web/src/hooks/useSocket.ts`, `apps/web/src/store/authStore.ts`
+```
+
+### Task lifecycle
+```
+1. Topildi    → Tasks.md ga yoziladi (yuqoridagi format)
+2. Olinadi    → pending[Bekzod/Sardor] status + git push
+3. Ishlanadi  → branch ochib ishlash
+4. Tugadi     → Tasks.md dan o'chiriladi, Done.md ga ko'chiriladi
+```
 
 ---
 
@@ -423,6 +469,161 @@ Tray i18n, loadURL error, devtools block, package.json metadata, macOS About, en
 
 ---
 
+# ═══════════════════════════════════════════════════════════
+# DATA INTEGRITY & SCRAPING RELIABILITY (T-385..T-390) — Bekzod
+# ═══════════════════════════════════════════════════════════
+#
+# Manba: ChatGPT audit + Claude Code fact-check (2026-03-04)
+
+## P1 — MUHIM
+
+### T-385 | P1 | BACKEND | Scrape lock — `scrape_lock_until` yoki Redis SETNX | 1h
+
+**Muammo:** `concurrency=1` bitta worker ichida parallel'likni bloklaydi, lekin:
+- Worker restart → "at least once" delivery → bir product ikki marta scrape
+- Import SINGLE job + cron BATCH job — ikkalasi bitta queue'da, lekin retry/backoff overlap mumkin
+- Kelajakda 2+ worker qo'shilsa — darrov race condition
+- Dedup (5min) snapshot dublikatni to'xtatadi, lekin **Playwright resurs isrofi** (browser ochiladi, API uriladi)
+
+**Yechim (2 variant, birini tanlash):**
+
+**A) DB-based lock (sodda):**
+- `tracked_products` ga `scrape_lock_until DateTime?` column qo'shish
+- Scrape boshida: `UPDATE tracked_products SET scrape_lock_until = NOW() + 10min WHERE product_id = X AND (scrape_lock_until IS NULL OR scrape_lock_until < NOW())`
+- Agar `affectedRows = 0` → boshqa process allaqachon scrape qilmoqda → SKIP
+- Scrape tugagach: `scrape_lock_until = NULL`
+
+**B) Redis SETNX lock (tezroq):**
+- `SETNX scrape:lock:{productId} 1 EX 600` (10 min TTL)
+- Agar key mavjud → SKIP
+- Scrape tugagach: `DEL scrape:lock:{productId}`
+
+**Fayllar:** `weekly-scrape.processor.ts`, `tracked_products` schema (variant A)
+
+---
+
+### T-386 | P1 | BACKEND | Snapshot dedup — DB constraint (5 min bucket) | 1h
+
+**Muammo:** Snapshot dedup hozir **3 joyda code-level** (uzum.service, import.processor, weekly-scrape.processor).
+Agar birontasida bug bo'lsa, parallel start bo'lsa, yoki clock drift bo'lsa — duplicate snapshot tushadi.
+Snapshot = analytics yuragi. Data integrity DB darajasida himoyalanishi **shart**.
+
+**Yechim:**
+1. `product_snapshots` ga `snapshot_bucket` generated column qo'shish:
+   ```sql
+   ALTER TABLE product_snapshots
+   ADD COLUMN snapshot_bucket timestamptz
+   GENERATED ALWAYS AS (date_trunc('hour', snapshot_at) + (EXTRACT(minute FROM snapshot_at)::int / 5) * interval '5 minutes') STORED;
+   ```
+2. Unique constraint: `@@unique([product_id, snapshot_bucket])`
+3. Code-level dedup **saqlanadi** (DB constraint = fallback safety net)
+
+**Fayllar:** `schema.prisma`, migration SQL
+
+---
+
+### T-387 | P1 | BACKEND | `weekly_bought_raw_text` + `confidence` saqlash | 1h
+
+**Muammo:**
+- Railway log retention = **7 kun**. Parsing bug 2 hafta oldin paydo bo'lsa — debug imkonsiz
+- Hozir faqat `weekly_bought` (son) va `weekly_bought_source` saqlanadi
+- Qaysi strategiya topgani, banner matni nima bo'lgani — yo'qoladi
+- Banner format o'zgarsa (A/B test, locale, UI update) — "silent wrong numbers"
+
+**Yechim:**
+1. `product_snapshots` ga 2 ta column qo'shish:
+   - `weekly_bought_raw_text Text?` — banner matni ("115 человек купили на этой неделе")
+   - `weekly_bought_confidence Decimal(3,2)?` — ishonchlilik (0.00–1.00)
+2. Confidence qiymatlari:
+   - SSR regex (Strategy 1) → 1.00
+   - HTML regex (Strategy 1b) → 0.95
+   - DOM TreeWalker (Strategy 2) → 0.90
+   - Badge img parent (Strategy 3) → 0.70
+   - Calculated delta (7d) → 0.50
+   - Calculated delta (1-3d) → 0.30
+   - stored_scraped → oldingi confidence saqlanadi
+3. `scrapeWeeklyBought()` → `{ value: number|null, rawText: string|null, confidence: number }` qaytaradi
+
+**Fayllar:** `schema.prisma`, `weekly-scraper.ts`, `weekly-scrape.processor.ts`, `import.processor.ts`, `uzum.service.ts`
+
+---
+
+### T-388 | P1 | BACKEND | `score_version` field — formula o'zgarishini kuzatish | 30min
+
+**Muammo:** Scoring formula o'zgarsa (vaznlar, logarifm parametrlari), tarixiy snapshot'lardagi score'lar
+**qaysi versiya** bilan hisoblanganini bilish imkonsiz. Tahlil va ML algoritmlari noto'g'ri ishlaydi.
+
+**Yechim:**
+1. `packages/utils/src/index.ts` ga `SCORE_VERSION = 2` constant (hozirgi formula = v2)
+2. `product_snapshots` ga `score_version Int @default(2)` column
+3. `calculateScore()` natijasini saqlashda `score_version` ham yoziladi
+4. Formula o'zgarganda: version++ va eskilarini qayta hisoblash mumkin
+
+**Fayllar:** `packages/utils/src/index.ts`, `schema.prisma`, `weekly-scrape.processor.ts`, `import.processor.ts`, `uzum.service.ts`
+
+---
+
+## P2 — O'RTA
+
+### T-389 | P2 | BACKEND | Snapshot retention + downsample strategiya | 2h
+
+**Muammo:** Har product uchun har kuni 1+ snapshot. 1000 product × 365 kun = **365K row/yil**.
+Kattalashtirsa (10K product) — **3.6M row/yil**. Query'lar sekinlashadi, disk to'ladi.
+
+**Yechim:**
+1. Cron job (haftalik): 30+ kunlik snapshotlarni **kunlik aggregate** ga aylantiriladi:
+   - Avg score, max weekly_bought, avg rating, max orders_quantity
+   - `product_snapshot_daily` yangi jadval yoki mavjud snapshotlarni aggregate
+2. 90+ kunlik → **haftalik aggregate**
+3. Raw snapshotlar 30 kundan keyin o'chiriladi (aggregate saqlanadi)
+4. Index: `(product_id, snapshot_at DESC)` — allaqachon bor
+
+**Fayllar:** yangi cron job, `schema.prisma` (aggregate jadval), `products.service.ts` (query adaptation)
+
+---
+
+### T-390 | P2 | DEVOPS | Docs ↔ Schema auto-sync | 1h
+
+**Muammo:** `schema.prisma` (1116 qator, 49 jadval) va docs mustaqil yashaydi.
+Schema o'zgaradi — docs eskiradi — audit noto'g'ri xulosa chiqaradi (ChatGPT case).
+
+**Yechim:**
+1. Script: `scripts/generate-db-docs.ts` — Prisma schema'dan avtomatik:
+   - Jadval ro'yxati + column'lar + typelar + munosabatlar
+   - Mermaid ER diagram
+   - `docs/DATABASE.md` ga yoziladi
+2. CI check: `schema.prisma` o'zgarganda — `DATABASE.md` yangilanishi **majburiy**
+3. Pre-commit hook yoki GitHub Action
+
+**Fayllar:** `scripts/generate-db-docs.ts` (yangi), `.github/workflows/ci.yml`, `docs/DATABASE.md` (yangi)
+
+---
+
+### T-391 | P1 | BACKEND | Active sessions bug — expired sessions "active" ko'rinadi | 1.5h
+
+**Muammo (3 ta bug):**
+
+1. **Session leak** — `admin-stats.service.ts:282` da `userSession.count({ revoked_at: null })` query **`expires_at` ni tekshirmaydi**. User logout qilmasa, expired session'lar ham "active" deb sanab ketadi. Vaqt o'tgan sari active_sessions soni cheksiz o'sadi.
+
+2. **1 soatlik window noto'g'ri** — `logged_in_at >= 1h ago` faqat oxirgi 1 soatda **login** qilganlarni ko'rsatadi. Token refresh qilganda `logged_in_at` yangilanmaydi — 2+ soat oldin login qilib, hali active ishlayotgan user "active" deb ko'rinmaydi.
+
+3. **Session cleanup yo'q** — Expired + revoke qilinmagan session'lar DB da to'planib boradi. Cleanup cron yo'q.
+
+**Ta'sir:** Admin dashboard "Active Users" soni **noto'g'ri** — haqiqiy aktiv userlardan ko'p yoki kam ko'rsatadi.
+
+**Yechim:**
+1. Active session query'larni tuzatish — `expires_at > NOW()` AND `revoked_at IS NULL` shart qo'shish:
+   - `admin-stats.service.ts:282` — `getRealtimeStats()`
+   - `admin-monitoring.service.ts:270,298` — capacity/health queries
+2. Token refresh da `logged_in_at` yangilash — `auth.service.ts:refresh()` da session `logged_in_at = new Date()` qo'shish
+3. Expired session cleanup cron — worker job (kunlik, 03:30 UTC):
+   - `DELETE FROM user_sessions WHERE expires_at < NOW() - interval '7 days'`
+   - Yoki soft: `revoked_at = NOW()` set qilish
+
+**Fayllar:** `admin-stats.service.ts`, `admin-monitoring.service.ts`, `auth.service.ts`, `worker/` (cleanup cron)
+
+---
+
 # LANDING MANUAL TASKLAR
 
 | # | Nima | Vaqt | Holat |
@@ -456,7 +657,10 @@ Tray i18n, loadURL error, devtools block, package.json metadata, macOS About, en
 | Landing Manual (M-001..M-004) | 4 | 4 | Sardor |
 | ENV manual (E-006, E-008, E-010) | 3 | 3 | Bekzod |
 | DevOps (T-178, T-243, T-245, T-281, T-283) | 5 | 5 | Bekzod |
-| **JAMI task ochiq** | **72** | | |
+| **Data Integrity P1** (T-385..T-388) | 4 | 4 | Bekzod |
+| **Data Integrity P2** (T-389..T-390) | 2 | 2 | Bekzod |
+| **Session Bug** (T-391) | 1 | 3 | Bekzod |
+| **JAMI task ochiq** | **78** | | |
 | **JAMI bajarilgan** | **~138** | | → Done.md |
 
 ---
