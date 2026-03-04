@@ -149,6 +149,12 @@ export async function scrapeCategoryProductIds(
 }
 
 /** Raw Uzum product data — superset of fields needed by all processors. */
+interface UzumRawCategoryNode {
+  id: number;
+  title: string;
+  parent?: UzumRawCategoryNode | null;
+}
+
 export interface UzumRawProduct {
   id: number;
   title: string;
@@ -158,7 +164,13 @@ export interface UzumRawProduct {
   rOrdersAmount?: number;
   totalAvailableAmount: number;
   reviewsAmount: number;
-  category?: { id: number; title?: string };
+  category?: UzumRawCategoryNode;
+  badges?: Array<{ type?: string; label?: string; backgroundColor?: string; textColor?: string }>;
+  photos?: Array<{
+    photoKey: string;
+    photo: Record<string, { high: string; low: string }>;
+    color: string | null;
+  }>;
   seller?: { id: number; title?: string; name?: string; rating?: number; orders?: number; ordersCount?: number };
   shop?: { id: number; title?: string; name?: string; rating?: number; orders?: number; ordersCount?: number };
   skuList: Array<{
@@ -166,6 +178,13 @@ export interface UzumRawProduct {
     purchasePrice: number;
     fullPrice: number;
     availableAmount: number;
+    discountBadge?: string | null;
+    productOptionDtos?: Array<{
+      type: string;
+      active: boolean;
+      paymentPerMonth: number;
+      period: number;
+    }>;
     stock: { type: string };
   }>;
 }

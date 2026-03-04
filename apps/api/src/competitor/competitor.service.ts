@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { UzumClient } from '../uzum/uzum.client';
+import { UzumClient, UzumSearchProduct } from '../uzum/uzum.client';
 
 @Injectable()
 export class CompetitorService {
@@ -53,9 +53,9 @@ export class CompetitorService {
       : null;
 
     const competitors = categoryProducts
-      .filter((p: any) => Number(p.productId ?? p.id) !== Number(productId))
+      .filter((p: UzumSearchProduct) => Number(p.productId ?? p.id) !== Number(productId))
       .slice(0, 10)
-      .map((p: any) => {
+      .map((p: UzumSearchProduct) => {
         const id = p.productId ?? p.id;
         const sellPrice = p.minSellPrice ?? p.sellPrice ?? null;
         const title = p.title ?? '';

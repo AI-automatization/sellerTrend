@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import * as path from 'path';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   readLogFile,
@@ -141,7 +142,7 @@ export class AdminLogService {
 
   /** Export — Revenue CSV data */
   async getExportRevenueData(from?: Date, to?: Date) {
-    const where: any = { type: 'CHARGE' };
+    const where: Prisma.TransactionWhereInput = { type: 'CHARGE' };
     if (from || to) {
       where.created_at = {};
       if (from) where.created_at.gte = from;
@@ -170,7 +171,7 @@ export class AdminLogService {
 
   /** Export — Activity CSV data */
   async getExportActivityData(from?: Date, to?: Date) {
-    const where: any = {};
+    const where: Prisma.UserActivityWhereInput = {};
     if (from || to) {
       where.created_at = {};
       if (from) where.created_at.gte = from;

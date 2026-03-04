@@ -28,7 +28,7 @@ export class GlobalLoggerInterceptor implements NestInterceptor {
     this.writer = new RotatingFileWriter(logDir, 'api');
   }
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const req = context.switchToHttp().getRequest();
     const res = context.switchToHttp().getResponse();
     const start = Date.now();

@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -14,8 +15,8 @@ export class ReportsService {
       title: string;
       description?: string;
       report_type: string;
-      filters?: any;
-      columns?: any;
+      filters?: Record<string, unknown>;
+      columns?: Record<string, unknown>;
       schedule?: string;
     },
   ) {
@@ -25,8 +26,8 @@ export class ReportsService {
         title: data.title,
         description: data.description ?? null,
         report_type: data.report_type,
-        filters: data.filters ?? {},
-        columns: data.columns ?? [],
+        filters: (data.filters ?? {}) as Prisma.InputJsonValue,
+        columns: (data.columns ?? {}) as Prisma.InputJsonValue,
         schedule: data.schedule ?? null,
       },
     });

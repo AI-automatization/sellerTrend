@@ -20,12 +20,13 @@ export class AiThrottlerGuard extends ThrottlerGuard {
     this.throttlers = this.throttlers.filter((t) => t.name === 'ai');
   }
 
-  protected async getTracker(req: Record<string, any>): Promise<string> {
+  protected async getTracker(req: Record<string, unknown>): Promise<string> {
     // JWT auth guard populates req.user with { id, account_id, ... }
-    const accountId = req.user?.account_id as string | undefined;
+    const user = req.user as Record<string, unknown> | undefined;
+    const accountId = user?.account_id as string | undefined;
     if (accountId) return `ai_account_${accountId}`;
     // Fallback to user id if account_id is missing
-    const userId = req.user?.id as string | undefined;
+    const userId = user?.id as string | undefined;
     if (userId) return `ai_user_${userId}`;
     // Last resort: IP (should not happen on authenticated AI endpoints)
     return `ai_ip_${(req.ip as string) || 'unknown'}`;

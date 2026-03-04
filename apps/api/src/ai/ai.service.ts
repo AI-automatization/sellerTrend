@@ -1,5 +1,6 @@
 import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
 import Anthropic from '@anthropic-ai/sdk';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 // Haiku pricing per 1M tokens (USD)
@@ -122,7 +123,7 @@ export class AiService {
     model: string | null;
     type: string | null;
     color: string | null;
-    raw_json: any;
+    raw_json: unknown;
   } | null> {
     // Check cache first
     const cached = await this.prisma.productAiAttribute.findUnique({
@@ -158,9 +159,9 @@ export class AiService {
       let text = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
       // Strip markdown code fences (```json ... ```)
       text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
-      let parsed: any = {};
+      let parsed: Record<string, unknown> = {};
       try {
-        parsed = JSON.parse(text);
+        parsed = JSON.parse(text) as Record<string, unknown>;
       } catch {
         this.logger.warn(`AI parse failed for product ${productId}: ${text}`);
         return null;
@@ -169,19 +170,19 @@ export class AiService {
       const attrs = await this.prisma.productAiAttribute.upsert({
         where: { product_id: productId },
         update: {
-          brand: parsed.brand ?? null,
-          model: parsed.model ?? null,
-          type: parsed.type ?? null,
-          color: parsed.color ?? null,
-          raw_json: parsed,
+          brand: typeof parsed.brand === 'string' ? parsed.brand : null,
+          model: typeof parsed.model === 'string' ? parsed.model : null,
+          type: typeof parsed.type === 'string' ? parsed.type : null,
+          color: typeof parsed.color === 'string' ? parsed.color : null,
+          raw_json: parsed as Prisma.InputJsonValue,
         },
         create: {
           product_id: productId,
-          brand: parsed.brand ?? null,
-          model: parsed.model ?? null,
-          type: parsed.type ?? null,
-          color: parsed.color ?? null,
-          raw_json: parsed,
+          brand: typeof parsed.brand === 'string' ? parsed.brand : null,
+          model: typeof parsed.model === 'string' ? parsed.model : null,
+          type: typeof parsed.type === 'string' ? parsed.type : null,
+          color: typeof parsed.color === 'string' ? parsed.color : null,
+          raw_json: parsed as Prisma.InputJsonValue,
         },
       });
 
@@ -593,12 +594,12 @@ export class AiService {
       try {
         const parsed = JSON.parse(text);
         if (!Array.isArray(parsed)) return fallback;
-        return parsed.map((item: any) => ({
+        return parsed.map((item: Record<string, unknown>) => ({
           index: typeof item.index === 'number' ? item.index : 0,
           match_score: typeof item.match_score === 'number'
             ? Math.min(1, Math.max(0, item.match_score))
             : 0.5,
-          note: item.note || '',
+          note: typeof item.note === 'string' ? item.note : '',
         }));
       } catch {
         this.logger.warn(`AI scoring parse failed: ${text.slice(0, 100)}`);

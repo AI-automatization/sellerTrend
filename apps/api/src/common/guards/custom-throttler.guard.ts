@@ -58,9 +58,10 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
     }
   }
 
-  protected async getTracker(req: Record<string, any>): Promise<string> {
+  protected async getTracker(req: Record<string, unknown>): Promise<string> {
     // JWT auth guard populates req.user with { id, account_id, ... }
-    if (req.user?.id) return `user_${req.user.id}`;
+    const user = req.user as Record<string, unknown> | undefined;
+    if (user?.id) return `user_${user.id}`;
     return this.extractClientIp(req);
   }
 

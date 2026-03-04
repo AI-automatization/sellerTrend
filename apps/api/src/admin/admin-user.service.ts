@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
-import { UserRole } from '@prisma/client';
+import { UserRole, Prisma } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -179,7 +179,7 @@ export class AdminUserService {
     page = 1,
     limit = 20,
   ) {
-    const where: any = { user_id: userId };
+    const where: Prisma.UserActivityWhereInput = { user_id: userId };
     if (action) where.action = action;
     if (from || to) {
       where.created_at = {};

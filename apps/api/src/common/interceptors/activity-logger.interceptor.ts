@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Observable, tap } from 'rxjs';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ACTIVITY_ACTION_KEY } from '../decorators/activity-action.decorator';
 
@@ -19,7 +20,7 @@ export class ActivityLoggerInterceptor implements NestInterceptor {
     private readonly reflector: Reflector,
   ) {}
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const action = this.reflector.get<string>(
       ACTIVITY_ACTION_KEY,
       context.getHandler(),
@@ -43,7 +44,7 @@ export class ActivityLoggerInterceptor implements NestInterceptor {
     const userAgent = req.headers['user-agent'] || null;
 
     // Build details from body + params
-    const details: Record<string, any> = {};
+    const details: Record<string, unknown> = {};
     if (req.params && Object.keys(req.params).length > 0) {
       details.params = req.params;
     }
@@ -64,7 +65,7 @@ export class ActivityLoggerInterceptor implements NestInterceptor {
               user_id: userId,
               account_id: accountId,
               action,
-              details: Object.keys(details).length > 0 ? details : undefined,
+              details: Object.keys(details).length > 0 ? (details as Prisma.InputJsonValue) : undefined,
               ip,
               user_agent: userAgent,
             },

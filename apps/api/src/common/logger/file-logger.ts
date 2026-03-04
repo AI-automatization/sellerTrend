@@ -17,7 +17,7 @@ export interface LogEntry {
   user_agent: string;
   ua_type: 'browser' | 'mobile' | 'bot' | 'api-key' | 'unknown';
   content_length: number | null;
-  request_body: Record<string, any> | null;
+  request_body: Record<string, unknown> | null;
   is_slow: boolean;
   error: string | null;
   stack: string | null;
@@ -37,23 +37,23 @@ export interface LogFilter {
 const SENSITIVE_KEYS = /password|token|secret|api_key|authorization|apikey|access_token|refresh_token|credential/i;
 const MAX_BODY_SIZE = 2048;
 
-export function sanitizeBody(body: any): Record<string, any> | null {
+export function sanitizeBody(body: unknown): Record<string, unknown> | null {
   if (!body || typeof body !== 'object') return null;
   try {
     const raw = JSON.stringify(body);
     if (raw.length > MAX_BODY_SIZE) {
       return { _truncated: true, _size: raw.length };
     }
-    return sanitizeObj(body);
+    return sanitizeObj(body) as Record<string, unknown>;
   } catch {
     return null;
   }
 }
 
-function sanitizeObj(obj: any): any {
+function sanitizeObj(obj: unknown): unknown {
   if (Array.isArray(obj)) return obj.map(sanitizeObj);
   if (obj && typeof obj === 'object') {
-    const result: Record<string, any> = {};
+    const result: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(obj)) {
       if (SENSITIVE_KEYS.test(key)) {
         result[key] = '[REDACTED]';
@@ -94,7 +94,7 @@ export class RotatingFileWriter {
     }
   }
 
-  write(entry: Record<string, any>) {
+  write(entry: LogEntry) {
     const today = new Date().toISOString().split('T')[0];
     if (today !== this.currentDate || !this.stream) {
       this.rotate(today);

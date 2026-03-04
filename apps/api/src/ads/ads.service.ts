@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { AdCampaignStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -95,9 +96,9 @@ export class AdsService {
       throw new NotFoundException(`Campaign ${campaignId} not found`);
     }
 
-    const updateData: any = {};
+    const updateData: Prisma.AdCampaignUpdateInput = {};
     if (data.name !== undefined) updateData.name = data.name;
-    if (data.status !== undefined) updateData.status = data.status;
+    if (data.status !== undefined) updateData.status = data.status as AdCampaignStatus;
     if (data.spent_uzs !== undefined) updateData.spent_uzs = BigInt(data.spent_uzs);
     if (data.impressions !== undefined) updateData.impressions = data.impressions;
     if (data.clicks !== undefined) updateData.clicks = data.clicks;

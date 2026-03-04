@@ -2,6 +2,107 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ProxyAgent } from 'undici';
 import { parseUzumCategoryId, sleep } from '@uzum/utils';
 
+/** Minimal Uzum SKU shape returned from REST API */
+interface UzumSku {
+  id?: number;
+  fullPrice?: number;
+  purchasePrice?: number;
+  availableAmount?: number;
+  stock?: { type?: string };
+}
+
+/** Minimal Uzum seller shape */
+interface UzumSeller {
+  id?: number;
+  title?: string;
+  rating?: number;
+  orders?: number;
+}
+
+/** Minimal Uzum photo shape */
+interface UzumPhoto {
+  photo?: {
+    '800'?: { high?: string };
+    '240'?: { high?: string };
+  };
+  original?: string | { high?: string };
+}
+
+/** Minimal Uzum category shape (tree) */
+interface UzumCategory {
+  id?: number;
+  title?: string;
+  parent?: UzumCategory;
+}
+
+/** Minimal Uzum product detail (payload.data) */
+interface UzumProductData {
+  id?: number;
+  title?: string;
+  rating?: number;
+  reviewsAmount?: number;
+  ordersAmount?: number;
+  rOrdersAmount?: number | null;
+  totalAvailableAmount?: number;
+  skuList?: UzumSku[];
+  seller?: UzumSeller;
+  photos?: UzumPhoto[];
+  gallery?: Array<{ url?: string }>;
+  category?: UzumCategory;
+}
+
+/** Top-level Uzum REST API response shape */
+interface UzumApiResponse {
+  payload?: {
+    data?: UzumProductData;
+    products?: UzumSearchProduct[];
+  };
+  products?: UzumSearchProduct[];
+  data?: {
+    products?: UzumSearchProduct[];
+    total?: number;
+  };
+  total?: number;
+}
+
+/** Minimal product item returned in search/listing results */
+export interface UzumSearchProduct {
+  id?: number;
+  productId?: number;
+  title?: string;
+  minSellPrice?: number;
+  sellPrice?: number;
+  rating?: number;
+  ordersQuantity?: number;
+  ordersAmount?: number;
+}
+
+/** Normalized product shape returned by fetchProductDetail */
+export interface UzumNormalizedProduct {
+  id: number;
+  title: string;
+  rating: number;
+  feedbackQuantity: number;
+  ordersQuantity: number;
+  rOrdersAmount: number | null;
+  totalAvailableAmount: number;
+  photoUrl: string | null;
+  skuList: Array<{
+    id: number;
+    sellPrice: number;
+    fullPrice: number;
+    discountPercent: number;
+    availableAmount: number;
+    stockType: string;
+  }>;
+  shop: {
+    id: number;
+    title: string;
+    rating: number;
+    ordersQuantity: number;
+  } | null;
+}
+
 const REST_BASE = 'https://api.uzum.uz/api/v2';
 
 const proxyDispatcher = process.env.PROXY_URL
@@ -32,7 +133,8 @@ async function fetchWithTimeout(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { ...opts, signal: controller.signal } as any);
+    // dispatcher is a node-fetch/undici extension not in standard RequestInit
+    return await fetch(url, { ...opts, signal: controller.signal } as RequestInit);
   } finally {
     clearTimeout(timer);
   }
@@ -98,24 +200,24 @@ export class UzumClient {
         `${REST_BASE}/main/search/product` +
         `?text=${encodeURIComponent(keyword)}&size=3&sort=ORDER_COUNT_DESC&showAdultContent=HIDE`;
 
-      const res = await fetchWithTimeout(searchUrl, { headers: HEADERS, dispatcher: proxyDispatcher } as any);
+      const res = await fetchWithTimeout(searchUrl, { headers: HEADERS, dispatcher: proxyDispatcher } as RequestInit);
       if (!res.ok) return null;
 
-      const data = (await res.json()) as any;
-      const payload = data?.payload ?? data;
-      const products: any[] = payload?.products ?? payload?.data?.products ?? [];
+      const data = (await res.json()) as UzumApiResponse;
+      const products: UzumSearchProduct[] =
+        data?.payload?.products ?? data?.products ?? data?.data?.products ?? [];
       if (products.length === 0) return null;
 
       // Fetch full product detail for first result to get category tree
-      const productId = products[0]?.id;
+      const productId = products[0]?.id ?? products[0]?.productId;
       if (!productId) return null;
 
-      const detail = await this.fetchProductDetail(Number(productId));
+      await this.fetchProductDetail(Number(productId));
       // detail.category comes from the raw data — need to re-fetch raw
-      const rawRes = await fetchWithTimeout(`${REST_BASE}/product/${productId}`, { headers: HEADERS, dispatcher: proxyDispatcher } as any);
+      const rawRes = await fetchWithTimeout(`${REST_BASE}/product/${productId}`, { headers: HEADERS, dispatcher: proxyDispatcher } as RequestInit);
       if (!rawRes.ok) return null;
 
-      const raw = (await rawRes.json()) as any;
+      const raw = (await rawRes.json()) as UzumApiResponse;
       const cat = raw?.payload?.data?.category;
       if (!cat) return null;
 
@@ -136,14 +238,14 @@ export class UzumClient {
   }
 
   /** Walk category tree (leaf → root) and return id of category matching the slug */
-  private findCategoryBySlug(cat: any, slug: string): number | null {
+  private findCategoryBySlug(cat: UzumCategory | undefined | null, slug: string): number | null {
     if (!cat) return null;
     // Normalize: category title → slug-like string
     const normalize = (s: string) =>
       s.toLowerCase().replace(/[^a-z0-9а-яёа-яёіїє]+/gi, '-').replace(/-+/g, '-');
 
     const slugClean = slug.replace(/--\d+$/, '').toLowerCase();
-    let current = cat;
+    let current: UzumCategory | undefined = cat;
     while (current) {
       const titleSlug = normalize(current.title ?? '');
       if (titleSlug === slugClean || slugClean.includes(titleSlug.slice(0, 6))) {
@@ -161,21 +263,21 @@ export class UzumClient {
   async fetchCategoryProducts(
     categoryId: number,
     size = 48,
-  ): Promise<any[]> {
+  ): Promise<UzumSearchProduct[]> {
     const url =
       `${REST_BASE}/main/search/product` +
       `?categoryId=${categoryId}&size=${size}&page=0&sort=ORDER_COUNT_DESC&showAdultContent=HIDE`;
 
     try {
-      const response = await fetch(url, { headers: HEADERS, dispatcher: proxyDispatcher } as any);
+      const response = await fetch(url, { headers: HEADERS, dispatcher: proxyDispatcher } as RequestInit);
       if (!response.ok) {
         this.logger.warn(`fetchCategoryProducts HTTP ${response.status}`);
         return [];
       }
 
-      const data = (await response.json()) as any;
-      const payload = data?.payload ?? data;
-      const products = payload?.products ?? payload?.data?.products ?? [];
+      const data = (await response.json()) as UzumApiResponse;
+      const products: UzumSearchProduct[] =
+        data?.payload?.products ?? data?.products ?? data?.data?.products ?? [];
       return products;
     } catch (err: unknown) {
       this.logger.error(`fetchCategoryProducts failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -190,13 +292,13 @@ export class UzumClient {
     categoryId: number,
     page: number = 0,
     retries = 3,
-  ): Promise<{ items: any[]; total: number }> {
-    const offset = page * 48;
+  ): Promise<{ items: UzumSearchProduct[]; total: number }> {
+    const _offset = page * 48;
     const url = `${REST_BASE}/category/${categoryId}/products?size=48&page=${page}&sort=ORDER_COUNT_DESC`;
 
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
-        const response = await fetchWithTimeout(url, { headers: HEADERS, dispatcher: proxyDispatcher } as any);
+        const response = await fetchWithTimeout(url, { headers: HEADERS, dispatcher: proxyDispatcher } as RequestInit);
 
         if (response.status === 429) {
           this.logger.warn(`Rate limited (429), waiting 5s...`);
@@ -206,10 +308,10 @@ export class UzumClient {
 
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-        const data = (await response.json()) as any;
-        const payload = data?.payload ?? data;
-        const items = payload?.data?.products ?? payload?.products ?? [];
-        const total = payload?.data?.total ?? payload?.total ?? 0;
+        const data = (await response.json()) as UzumApiResponse;
+        const items: UzumSearchProduct[] =
+          data?.payload?.products ?? data?.data?.products ?? data?.products ?? [];
+        const total: number = data?.data?.total ?? data?.total ?? 0;
 
         return { items, total };
       } catch (err) {
@@ -225,12 +327,12 @@ export class UzumClient {
    * Fetch product detail via REST API.
    * Returns data normalized to match the old GraphQL shape used by uzum.service.ts
    */
-  async fetchProductDetail(productId: number, retries = 3): Promise<any | null> {
+  async fetchProductDetail(productId: number, retries = 3): Promise<UzumNormalizedProduct | null> {
     const url = `${REST_BASE}/product/${productId}`;
 
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
-        const response = await fetchWithTimeout(url, { headers: HEADERS, dispatcher: proxyDispatcher } as any);
+        const response = await fetchWithTimeout(url, { headers: HEADERS, dispatcher: proxyDispatcher } as RequestInit);
 
         if (response.status === 429) {
           await sleep(5000);
@@ -239,17 +341,17 @@ export class UzumClient {
 
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-        const data = (await response.json()) as any;
+        const data = (await response.json()) as UzumApiResponse;
         const d = data?.payload?.data ?? null;
         if (!d) return null;
 
         // Normalize REST fields → service-expected shape
-        const skuList = (d.skuList ?? []).map((sku: any) => {
+        const skuList = (d.skuList ?? []).map((sku: UzumSku) => {
           const full = sku.fullPrice ?? 0;
           const sell = sku.purchasePrice ?? full;
           const discountPercent = full > 0 ? Math.round(((full - sell) / full) * 100) : 0;
           return {
-            id: sku.id,
+            id: sku.id ?? 0,
             sellPrice: sell,
             fullPrice: full,
             discountPercent,
@@ -261,25 +363,29 @@ export class UzumClient {
         const seller = d.seller ?? null;
         const shop = seller
           ? {
-              id: seller.id,
-              title: seller.title,
+              id: seller.id ?? 0,
+              title: seller.title ?? '',
               rating: seller.rating ?? 0,
               ordersQuantity: seller.orders ?? 0,
             }
           : null;
 
         // Extract first photo URL from photos array
+        const firstPhoto = d.photos?.[0];
+        const originalField = firstPhoto?.original;
+        const originalUrl = typeof originalField === 'string'
+          ? originalField
+          : originalField?.high ?? null;
         const photoUrl: string | null =
-          d.photos?.[0]?.photo?.['800']?.high ??
-          d.photos?.[0]?.photo?.['240']?.high ??
-          d.photos?.[0]?.original?.high ??
-          d.photos?.[0]?.original ??
+          firstPhoto?.photo?.['800']?.high ??
+          firstPhoto?.photo?.['240']?.high ??
+          originalUrl ??
           d.gallery?.[0]?.url ??
           null;
 
         return {
-          id: d.id,
-          title: d.title,
+          id: d.id ?? 0,
+          title: d.title ?? '',
           rating: d.rating ?? 0,
           feedbackQuantity: d.reviewsAmount ?? 0,
           ordersQuantity: d.ordersAmount ?? 0,

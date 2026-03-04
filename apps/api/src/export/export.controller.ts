@@ -18,6 +18,14 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ExportService } from './export.service';
 import { enqueueImportBatch } from './import.queue';
 
+/** Minimal shape of a Multer uploaded file (avoids @types/multer dependency) */
+interface UploadedCsvFile {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+  size: number;
+}
+
 @ApiTags('export')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, BillingGuard)
@@ -66,7 +74,7 @@ export class ExportController {
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }))
   async importCsv(
     @CurrentUser('account_id') accountId: string,
-    @UploadedFile() file: any,
+    @UploadedFile() file: UploadedCsvFile,
   ) {
     if (!file) throw new BadRequestException('CSV file required');
 

@@ -1,5 +1,34 @@
 import { Injectable, Logger } from '@nestjs/common';
 
+/** Minimal shape of a SerpAPI search result item — fields vary by engine */
+interface SerpApiResultItem {
+  title?: string;
+  name?: string;
+  price?: string | number | { raw?: string; value?: number };
+  extracted_price?: number;
+  offer_price?: string;
+  link?: string;
+  product_link?: string;
+  url?: string;
+  thumbnail?: string;
+  image?: string;
+  source?: string;
+  seller?: string;
+  shop_name?: string;
+  rating?: string | number;
+  min_order?: string | number;
+  product_id?: string | number;
+  id?: string | number;
+  asin?: string;
+}
+
+/** Minimal shape of the SerpAPI JSON response */
+interface SerpApiResponse {
+  organic_results?: SerpApiResultItem[];
+  shopping_results?: SerpApiResultItem[];
+  products_results?: SerpApiResultItem[];
+}
+
 export interface SerpApiProduct {
   title: string;
   price_usd: number;
@@ -60,9 +89,9 @@ export class SerpApiClient {
         this.logger.error(`SerpAPI google_shopping HTTP ${res.status}`);
         return [];
       }
-      const data = await res.json() as any;
+      const data = await res.json() as SerpApiResponse;
       const results = data.shopping_results ?? [];
-      return results.slice(0, 10).map((item: any) => ({
+      return results.slice(0, 10).map((item) => ({
         title: item.title ?? '',
         price_usd: this.parsePrice(item.extracted_price ?? item.price),
         price_local: null,
@@ -70,11 +99,11 @@ export class SerpApiClient {
         url: item.link ?? item.product_link ?? '',
         image_url: item.thumbnail ?? null,
         seller_name: item.source ?? null,
-        seller_rating: item.rating ? parseFloat(item.rating) : null,
+        seller_rating: item.rating ? parseFloat(String(item.rating)) : null,
         min_order_qty: null,
-        external_id: item.product_id ?? null,
+        external_id: item.product_id ? String(item.product_id) : null,
         platform_code: 'google_shopping',
-      })).filter((p: SerpApiProduct) => p.title && p.price_usd > 0);
+      } satisfies SerpApiProduct)).filter((p) => p.title && p.price_usd > 0);
     } catch (err: unknown) {
       this.logger.error(`SerpAPI google_shopping error: ${err instanceof Error ? err.message : String(err)}`);
       return [];
@@ -92,21 +121,27 @@ export class SerpApiClient {
       });
       const res = await fetch(`https://serpapi.com/search.json?${params}`);
       if (!res.ok) return [];
-      const data = await res.json() as any;
+      const data = await res.json() as SerpApiResponse;
       const results = data.organic_results ?? [];
-      return results.slice(0, 8).map((item: any) => ({
-        title: item.title ?? '',
-        price_usd: this.parsePrice(item.price?.raw ?? item.price?.value ?? item.price),
-        price_local: this.parsePrice(item.price?.raw ?? item.price?.value ?? item.price),
-        currency: 'EUR',
-        url: item.link ?? '',
-        image_url: item.thumbnail ?? null,
-        seller_name: 'Amazon.de',
-        seller_rating: item.rating ? parseFloat(String(item.rating)) : null,
-        min_order_qty: null,
-        external_id: item.asin ?? null,
-        platform_code: 'amazon_de',
-      })).filter((p: SerpApiProduct) => p.title && p.price_usd > 0);
+      return results.slice(0, 8).map((item) => {
+        const priceField = item.price;
+        const priceRaw = typeof priceField === 'object' && priceField !== null
+          ? (priceField.raw ?? priceField.value)
+          : priceField;
+        return {
+          title: item.title ?? '',
+          price_usd: this.parsePrice(priceRaw),
+          price_local: this.parsePrice(priceRaw),
+          currency: 'EUR',
+          url: item.link ?? '',
+          image_url: item.thumbnail ?? null,
+          seller_name: 'Amazon.de',
+          seller_rating: item.rating ? parseFloat(String(item.rating)) : null,
+          min_order_qty: null,
+          external_id: item.asin ?? null,
+          platform_code: 'amazon_de',
+        } satisfies SerpApiProduct;
+      }).filter((p) => p.title && p.price_usd > 0);
     } catch (err: unknown) {
       this.logger.error(`SerpAPI amazon_de error: ${err instanceof Error ? err.message : String(err)}`);
       return [];
@@ -131,13 +166,13 @@ export class SerpApiClient {
         this.logger.error(`SerpAPI ${engine} HTTP ${res.status}`);
         return [];
       }
-      const data = await res.json() as any;
+      const data = await res.json() as SerpApiResponse;
       const results =
         data.organic_results ??
         data.shopping_results ??
         data.products_results ??
         [];
-      return results.slice(0, 10).map((item: any) => {
+      return results.slice(0, 10).map((item) => {
         const price = item.price ?? item.extracted_price ?? item.offer_price ?? '';
         return {
           title: item.title ?? item.name ?? '',
@@ -149,17 +184,17 @@ export class SerpApiClient {
           seller_name: item.source ?? item.seller ?? item.shop_name ?? null,
           seller_rating: item.rating ? parseFloat(String(item.rating)) : null,
           min_order_qty: item.min_order ? parseInt(String(item.min_order)) : null,
-          external_id: item.product_id ?? item.id ?? null,
+          external_id: item.product_id != null ? String(item.product_id) : (item.id != null ? String(item.id) : null),
           platform_code: platformCode,
-        };
-      }).filter((p: SerpApiProduct) => p.title && p.price_usd > 0);
+        } satisfies SerpApiProduct;
+      }).filter((p) => p.title && p.price_usd > 0);
     } catch (err: unknown) {
       this.logger.error(`SerpAPI ${engine} error: ${err instanceof Error ? err.message : String(err)}`);
       return [];
     }
   }
 
-  private parsePrice(price: any): number {
+  private parsePrice(price: unknown): number {
     if (typeof price === 'number') return price;
     if (typeof price === 'string') {
       const cleaned = price.replace(/[^0-9.]/g, '');

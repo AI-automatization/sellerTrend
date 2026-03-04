@@ -71,7 +71,7 @@ export class SourcingService {
     try {
       const res = await fetch('https://cbu.uz/arkhiv-kursov-valyut/json/');
       if (!res.ok) throw new Error('CBU API unavailable');
-      const data = await res.json() as any[];
+      const data = await res.json() as Array<{ Ccy: string; Rate: string }>;
 
       const wanted = ['USD', 'CNY', 'EUR'];
       const result: Record<string, number> = {};

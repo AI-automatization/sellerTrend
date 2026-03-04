@@ -1,6 +1,31 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as crypto from 'crypto';
 
+/** Minimal shape of an AliExpress affiliate API product item */
+interface AliExpressProductItem {
+  product_title?: string;
+  target_sale_price?: string;
+  target_original_price?: string;
+  product_detail_url?: string;
+  promotion_link?: string;
+  product_main_image_url?: string;
+  evaluate_rate?: string;
+  product_id?: string | number;
+}
+
+/** Minimal shape of the AliExpress affiliate API JSON response */
+interface AliExpressApiResponse {
+  aliexpress_affiliate_product_query_response?: {
+    resp_result?: {
+      result?: {
+        products?: {
+          product?: AliExpressProductItem[];
+        };
+      };
+    };
+  };
+}
+
 export interface AliExpressProduct {
   title: string;
   price_usd: number;
@@ -73,11 +98,11 @@ export class AliExpressClient {
         return [];
       }
 
-      const data = await res.json() as any;
+      const data = await res.json() as AliExpressApiResponse;
       const products =
         data?.aliexpress_affiliate_product_query_response?.resp_result?.result?.products?.product ?? [];
 
-      return products.slice(0, 10).map((item: any) => ({
+      return products.slice(0, 10).map((item) => ({
         title: item.product_title ?? '',
         price_usd: parseFloat(item.target_sale_price ?? '0'),
         price_local: parseFloat(item.target_original_price ?? '0'),
@@ -89,7 +114,7 @@ export class AliExpressClient {
         min_order_qty: 1,
         external_id: item.product_id ? String(item.product_id) : null,
         platform_code: 'aliexpress' as const,
-      })).filter((p: AliExpressProduct) => p.title && p.price_usd > 0);
+      } satisfies AliExpressProduct)).filter((p) => p.title && p.price_usd > 0);
     } catch (err: unknown) {
       this.logger.error(`AliExpress search error: ${err instanceof Error ? err.message : String(err)}`);
       return [];

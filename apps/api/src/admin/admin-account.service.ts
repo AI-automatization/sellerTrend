@@ -56,7 +56,7 @@ export class AdminAccountService {
     return {
       id: account.id,
       name: account.name,
-      phone: (account as any).phone ?? null,
+      phone: account.phone ?? null,
       status: account.status,
       balance: account.balance.toString(),
       daily_fee: account.daily_fee?.toString() ?? null,

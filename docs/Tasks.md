@@ -642,18 +642,18 @@ Schema o'zgaradi — docs eskiradi — audit noto'g'ri xulosa chiqaradi (ChatGPT
 | ~~Backend Kod Audit P0~~ (T-343..T-352) | ~~10~~ ✅ | ~~10~~ | Bekzod |
 | ~~Backend Kod Audit P1~~ (T-354) | ~~1~~ ✅ | ~~40~~ | Bekzod |
 | **Backend Kod Audit P2** (T-359..T-360) | 2 | ~41 | Bekzod |
-| **Web Kod Audit P0** (T-361..T-366) | 6 | 6 | Sardor |
-| **Web Kod Audit P1** (T-367..T-369) | 3 | ~28 | Sardor |
-| **Web Kod Audit P2** (T-370) | 1 | 15 | Sardor |
-| **Platforma Audit P0** (~~T-371,T-372~~,T-377) | 1 | 1 | Sardor(1) |
-| **Platforma Audit P1** (T-373..T-375,T-378) | 4 | 4 | Bekzod |
-| **Platforma Audit P2** (T-376,T-380..T-383) | **5** | ~18 | Bekzod(2)+Sardor(3) |
+| **Web Kod Audit P0** (T-361..T-366) | 6 | 6 | **Bekzod** |
+| **Web Kod Audit P1** (T-367..T-369) | 3 | ~14 | **Bekzod** |
+| **Web Kod Audit P2** (T-370) | 1 | 15 | **Bekzod** |
+| **Platforma Audit P0** (T-377) | 1 | 1 | **Bekzod** |
+| ~~**Platforma Audit P1**~~ (~~T-373,T-374~~,T-375,T-378) | 2 | 2 | Bekzod |
+| **Platforma Audit P2** (T-376,T-380,T-381,T-382,T-383) | 5 | ~18 | Bekzod(4)+Sardor(1) |
 | **Platforma Audit P3** (T-384) | 1 | 6 | Bekzod |
 | Desktop Audit P0 (T-315..T-319) | 5 | 5 | Sardor |
 | Desktop Audit P1 (T-320..T-327) | 8 | 8 | Sardor |
 | Desktop Audit P2 (T-328) | 1 | 10 | Sardor |
 | ~~Landing Audit~~ (T-329..T-342) | ~~14~~ ✅ | ~~31~~ | Sardor |
-| Chrome Extension (T-216..T-233) | 18 | 18 | Sardor |
+| Chrome Extension (T-216..T-233) | 18 | 18 | **Bekzod** |
 | Landing Manual (M-001..M-004) | 4 | 4 | Sardor |
 | ENV manual (E-006, E-008, E-010) | 3 | 3 | Bekzod |
 | DevOps (T-178, T-243, T-245, T-281, T-283) | 5 | 5 | Bekzod |

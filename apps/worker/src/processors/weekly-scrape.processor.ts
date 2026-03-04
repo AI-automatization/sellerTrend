@@ -133,17 +133,48 @@ async function scrapeAndSaveProduct(
     supply_pressure: supplyPressure,
   });
 
-  // 5. Atomic: update product + create snapshot + update scrape timestamps
+  // 5. Extract new fields from raw detail
   const title = detail.localizableTitle?.ru || detail.title;
+  const titleUz: string | null = detail.localizableTitle?.uz ?? null;
   const totalAvailable = detail.totalAvailableAmount != null
     ? BigInt(detail.totalAvailableAmount)
     : null;
 
+  // Category path: root → leaf (nested parent chain)
+  const categoryPath: Array<{ id: number; title: string }> = [];
+  {
+    let node: { id: number; title: string; parent?: { id: number; title: string; parent?: unknown } | null } | null | undefined = detail.category;
+    while (node) {
+      categoryPath.unshift({ id: node.id, title: node.title });
+      node = (node as { parent?: typeof node }).parent ?? null;
+    }
+  }
+
+  // Photos: extract high-res URLs in priority order
+  const photoSizes = ['720', '800', '540', '480', '240'];
+  const photoUrls: string[] = (detail.photos ?? []).map((p) => {
+    for (const s of photoSizes) {
+      const url = p.photo?.[s]?.high;
+      if (url) return url;
+    }
+    const first = Object.values(p.photo ?? {})[0];
+    return first?.high ?? null;
+  }).filter((u): u is string => u !== null);
+  const mainPhotoUrl = photoUrls[0] ?? null;
+
+  const badges = detail.badges ?? [];
+
+  // 6. Atomic: update product + upsert SKUs + create snapshots + update scrape timestamps
   await prisma.$transaction(async (tx) => {
     await tx.product.update({
       where: { id: productId },
       data: {
         title,
+        title_uz: titleUz,
+        category_path: categoryPath.length > 0 ? categoryPath : undefined,
+        badges: badges.length > 0 ? badges : undefined,
+        photo_url: mainPhotoUrl ?? undefined,
+        photo_urls: photoUrls,
         rating: detail.rating ?? null,
         feedback_quantity: detail.reviewsAmount ?? 0,
         orders_quantity: BigInt(currentOrders),
@@ -151,11 +182,13 @@ async function scrapeAndSaveProduct(
       },
     });
 
-    // Upsert SKUs
+    // Upsert SKUs + create SkuSnapshot
     for (const sku of skuList) {
       const skuStockType = sku.stock?.type === 'FBO' ? 'FBO' : 'FBS';
+      const skuId = BigInt(sku.id);
+
       await tx.sku.upsert({
-        where: { id: BigInt(sku.id) },
+        where: { id: skuId },
         update: {
           min_sell_price: BigInt(sku.purchasePrice ?? 0),
           min_full_price: BigInt(sku.fullPrice ?? 0),
@@ -163,12 +196,37 @@ async function scrapeAndSaveProduct(
           is_available: sku.availableAmount > 0,
         },
         create: {
-          id: BigInt(sku.id),
+          id: skuId,
           product_id: productId,
           min_sell_price: BigInt(sku.purchasePrice ?? 0),
           min_full_price: BigInt(sku.fullPrice ?? 0),
           stock_type: skuStockType,
           is_available: sku.availableAmount > 0,
+        },
+      });
+
+      // Installment options for this SKU
+      const installOpts = (sku.productOptionDtos ?? []).filter(
+        (o) => o.type === 'UZUM_INSTALLMENT' && o.active,
+      );
+      const inst0 = installOpts[0] ?? null;
+      const inst1 = installOpts[1] ?? null;
+      const discountPct =
+        sku.fullPrice && sku.purchasePrice && sku.fullPrice > sku.purchasePrice
+          ? Math.round((1 - sku.purchasePrice / sku.fullPrice) * 100)
+          : null;
+
+      await tx.skuSnapshot.create({
+        data: {
+          sku_id: skuId,
+          sell_price: sku.purchasePrice ? BigInt(sku.purchasePrice) : null,
+          full_price: sku.fullPrice ? BigInt(sku.fullPrice) : null,
+          discount_percent: discountPct,
+          discount_badge: sku.discountBadge ?? null,
+          charge_price: inst0?.paymentPerMonth ? BigInt(inst0.paymentPerMonth) : null,
+          charge_quantity: inst0?.period ?? null,
+          charge_quantity_alt: inst1?.period ?? null,
+          stock_type: skuStockType,
         },
       });
     }

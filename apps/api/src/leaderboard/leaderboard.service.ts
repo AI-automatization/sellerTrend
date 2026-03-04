@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 interface CachedData {
-  data: any;
+  data: unknown;
   expiry: number;
 }
 
@@ -73,7 +73,7 @@ export class LeaderboardService {
       byCategory.get(catId)!.push(s);
     }
 
-    const result: any[] = [];
+    const result: Array<{ category_id: string; top: Array<{ rank: number; product_id: string; title: string; score: number; weekly_bought: number | null }> }> = [];
     for (const [catId, items] of byCategory.entries()) {
       result.push({
         category_id: catId,
@@ -101,7 +101,7 @@ export class LeaderboardService {
     return entry.data;
   }
 
-  private setCache(key: string, data: any) {
+  private setCache(key: string, data: unknown) {
     this.cache.set(key, { data, expiry: Date.now() + this.TTL });
   }
 }

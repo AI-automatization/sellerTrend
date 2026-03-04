@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { FeedbackStatus } from '@prisma/client';
+import { FeedbackStatus, FeedbackType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -13,9 +13,9 @@ export class AdminFeedbackService {
     page = 1,
     limit = 20,
   ) {
-    const where: any = {};
-    if (status) where.status = status;
-    if (type) where.type = type;
+    const where: Prisma.FeedbackTicketWhereInput = {};
+    if (status) where.status = status as FeedbackStatus;
+    if (type) where.type = type as FeedbackType;
 
     const [tickets, total] = await Promise.all([
       this.prisma.feedbackTicket.findMany({

@@ -1,4 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import Redis from 'ioredis';
 import { REDIS_CLIENT } from '../common/redis/redis.module';
@@ -578,7 +579,7 @@ export class AdminStatsService {
     const since = new Date();
     since.setDate(since.getDate() - (opts.period ?? 7));
 
-    const where: any = { created_at: { gte: since } };
+    const where: Prisma.SystemErrorWhereInput = { created_at: { gte: since } };
     if (opts.endpoint) where.endpoint = { contains: opts.endpoint };
     if (opts.status_gte) where.status = { gte: opts.status_gte };
     if (opts.account_id) where.account_id = opts.account_id;

@@ -257,7 +257,7 @@ export class SignalsService {
     };
   }
 
-  async saveChecklist(accountId: string, data: { product_id?: string; title?: string; items?: any[] }) {
+  async saveChecklist(accountId: string, data: { product_id?: string; title?: string; items?: Array<{ text: string; checked: boolean }> }) {
     const title = data.title || 'Yangi mahsulot chiqarish';
     const items = data.items ?? [];
     const productId = data.product_id ? BigInt(data.product_id) : null;
@@ -345,7 +345,7 @@ export class SignalsService {
     });
     if (!test) return null;
 
-    const updateData: any = {};
+    const updateData: Prisma.PriceTestUpdateInput = {};
     if (data.status === 'RUNNING') {
       updateData.status = 'RUNNING';
       updateData.start_date = new Date();

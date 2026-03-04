@@ -1,4 +1,5 @@
 import { NestFactory, HttpAdapterHost } from '@nestjs/core';
+import type { Express, Request, Response } from 'express';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
@@ -99,9 +100,9 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
 
   // Register BEFORE app.listen() so these routes take priority over NestJS router
-  const expressApp = app.getHttpAdapter().getInstance() as any;
-  expressApp.get('/api-json', (_req: any, res: any) => res.json(document));
-  expressApp.get('/api/docs', (_req: any, res: any) => {
+  const expressApp = app.getHttpAdapter().getInstance() as Express;
+  expressApp.get('/api-json', (_req: Request, res: Response) => res.json(document));
+  expressApp.get('/api/docs', (_req: Request, res: Response) => {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(SWAGGER_HTML);
   });

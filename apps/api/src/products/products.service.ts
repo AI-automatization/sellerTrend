@@ -69,7 +69,7 @@ export class ProductsService {
 
       // Prefer stored scraped weekly_bought; then any stored non-zero; fallback to calculated
       let weeklyBought: number | null = null;
-      const scrapedSnap = snaps.find((s) => (s as any).weekly_bought_source === 'scraped' && s.weekly_bought != null);
+      const scrapedSnap = snaps.find((s) => s.weekly_bought_source === 'scraped' && s.weekly_bought != null);
       if (scrapedSnap) {
         weeklyBought = scrapedSnap.weekly_bought;
       } else {
@@ -94,6 +94,7 @@ export class ProductsService {
         trend,
         weekly_bought: weeklyBought,
         sell_price: sku?.min_sell_price ? Number(sku.min_sell_price) : null,
+        total_available_amount: t.product.total_available_amount?.toString() ?? null,
         photo_url: t.product.photo_url ?? null,
         tracked_since: t.created_at,
       };

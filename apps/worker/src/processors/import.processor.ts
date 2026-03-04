@@ -51,40 +51,54 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
       detail.localizableTitle?.ru ||
       detail.title ||
       `Product ${productId}`;
+    const titleUz: string | null = detail.localizableTitle?.uz ?? null;
     const pid = BigInt(productId);
     const totalAvailable = detail.totalAvailableAmount != null
       ? BigInt(detail.totalAvailableAmount)
       : null;
 
+    // Category path: root → leaf (nested parent chain)
+    const categoryPath: Array<{ id: number; title: string }> = [];
+    {
+      let node: { id: number; title: string; parent?: unknown } | null | undefined = detail.category;
+      while (node) {
+        categoryPath.unshift({ id: node.id, title: (node as { title: string }).title });
+        node = (node as { parent?: typeof node }).parent ?? null;
+      }
+    }
+
+    // Photos: extract high-res URLs
+    const photoSizes = ['720', '800', '540', '480', '240'];
+    const photoUrls: string[] = (detail.photos ?? []).map((p) => {
+      for (const s of photoSizes) {
+        const url = p.photo?.[s]?.high;
+        if (url) return url;
+      }
+      const first = Object.values(p.photo ?? {})[0];
+      return first?.high ?? null;
+    }).filter((u): u is string => u !== null);
+    const mainPhotoUrl = photoUrls[0] ?? null;
+
+    const badges = detail.badges ?? [];
+    const productData = {
+      title,
+      title_uz: titleUz,
+      category_path: categoryPath.length > 0 ? categoryPath : undefined,
+      badges: badges.length > 0 ? badges : undefined,
+      photo_url: mainPhotoUrl ?? undefined,
+      photo_urls: photoUrls,
+      rating: detail.rating ?? null,
+      feedback_quantity: detail.reviewsAmount ?? 0,
+      orders_quantity: detail.ordersAmount ? BigInt(detail.ordersAmount) : BigInt(0),
+      total_available_amount: totalAvailable,
+      shop_id: shopId,
+      category_id: detail.category?.id ? BigInt(detail.category.id) : null,
+    };
+
     await prisma.product.upsert({
       where: { id: pid },
-      update: {
-        title,
-        rating: detail.rating ?? null,
-        feedback_quantity: detail.reviewsAmount ?? 0,
-        orders_quantity: detail.ordersAmount
-          ? BigInt(detail.ordersAmount)
-          : BigInt(0),
-        total_available_amount: totalAvailable,
-        shop_id: shopId,
-        category_id: detail.category?.id
-          ? BigInt(detail.category.id)
-          : null,
-      },
-      create: {
-        id: pid,
-        title,
-        rating: detail.rating ?? null,
-        feedback_quantity: detail.reviewsAmount ?? 0,
-        orders_quantity: detail.ordersAmount
-          ? BigInt(detail.ordersAmount)
-          : BigInt(0),
-        total_available_amount: totalAvailable,
-        shop_id: shopId,
-        category_id: detail.category?.id
-          ? BigInt(detail.category.id)
-          : null,
-      },
+      update: productData,
+      create: { id: pid, ...productData },
     });
 
     // Centralized weekly_bought: prefer stored scraped, fallback to calculated (T-207)
