@@ -20,6 +20,9 @@ model Account {
   balance    BigInt        @default(0)
   daily_fee  BigInt?       // NULL = global default ishlatiladi
   ai_monthly_limit_usd Decimal? @db.Decimal(10, 2) // NULL = unlimited, e.g. 5.00
+  onboarding_completed Boolean  @default(false)
+  onboarding_step      Int      @default(0)
+  selected_marketplaces String[] @default(["uzum"])
   created_at DateTime      @default(now()) @db.Timestamptz
 
   users              User[]
@@ -73,6 +76,7 @@ model User {
   sessions     UserSession[]
   feedback_tickets  FeedbackTicket[]
   feedback_messages FeedbackMessage[]
+  password_resets   PasswordReset[]
 
   @@index([account_id])
   @@map("users")
@@ -919,6 +923,21 @@ model UserSession {
   @@index([user_id, logged_in_at])
   @@index([refresh_token_hash])
   @@map("user_sessions")
+}
+
+model PasswordReset {
+  id         String    @id @default(uuid())
+  user_id    String
+  token_hash String    @db.VarChar(64)
+  expires_at DateTime  @db.Timestamptz
+  used_at    DateTime? @db.Timestamptz
+  created_at DateTime  @default(now()) @db.Timestamptz
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([token_hash])
+  @@index([user_id])
+  @@map("password_resets")
 }
 
 // ============================================================

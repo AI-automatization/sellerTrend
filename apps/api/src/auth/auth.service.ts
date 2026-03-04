@@ -18,6 +18,8 @@ import { LoginDto } from './dto/login.dto';
 
 const ACCESS_TOKEN_TTL = '15m';
 const REFRESH_TOKEN_DAYS = 30;
+const RESET_TOKEN_EXPIRY_MINUTES = 15;
+const MAX_RESETS_PER_HOUR = 3;
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_SECONDS = 15 * 60; // 15 minutes
@@ -170,6 +172,180 @@ export class AuthService {
       data: { role: 'SUPER_ADMIN' },
     });
     return { ok: true, message: `${email} promoted to SUPER_ADMIN` };
+  }
+
+  async forgotPassword(email: string): Promise<{ ok: boolean; message: string }> {
+    const genericResponse = { ok: true, message: 'If the email exists, a reset link has been sent.' };
+
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return genericResponse;
+    }
+
+    // Rate limit: max resets per hour per user
+    const recentResets = await this.prisma.passwordReset.count({
+      where: {
+        user_id: user.id,
+        created_at: { gte: new Date(Date.now() - 3600_000) },
+      },
+    });
+    if (recentResets >= MAX_RESETS_PER_HOUR) {
+      return genericResponse;
+    }
+
+    // Generate token — store only hash
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MINUTES * 60 * 1000);
+
+    await this.prisma.passwordReset.create({
+      data: {
+        user_id: user.id,
+        token_hash: tokenHash,
+        expires_at: expiresAt,
+      },
+    });
+
+    this.logger.log(`Password reset token for ${email}: ${token} (expires in ${RESET_TOKEN_EXPIRY_MINUTES} min)`);
+    await this.sendResetNotification(user.id, email, token);
+
+    return genericResponse;
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<{ ok: boolean; message: string }> {
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    const resetRecord = await this.prisma.passwordReset.findFirst({
+      where: {
+        token_hash: tokenHash,
+        used_at: null,
+        expires_at: { gte: new Date() },
+      },
+      include: { user: true },
+    });
+
+    if (!resetRecord) {
+      throw new UnauthorizedException('Invalid or expired reset token');
+    }
+
+    const password_hash = await bcrypt.hash(newPassword, 12);
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: resetRecord.user_id },
+        data: { password_hash },
+      }),
+      this.prisma.passwordReset.update({
+        where: { id: resetRecord.id },
+        data: { used_at: new Date() },
+      }),
+      this.prisma.userSession.updateMany({
+        where: { user_id: resetRecord.user_id, revoked_at: null },
+        data: { revoked_at: new Date() },
+      }),
+    ]);
+
+    this.logger.log(`Password reset successful for user ${resetRecord.user.email}`);
+    return { ok: true, message: 'Password has been reset. Please login with your new password.' };
+  }
+
+  private async sendResetNotification(userId: string, email: string, token: string): Promise<void> {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    if (!botToken) return;
+
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { account_id: true },
+      });
+      if (!user) return;
+
+      const rows = await this.prisma.$queryRawUnsafe<Array<{ chat_id: string }>>(
+        `SELECT chat_id FROM telegram_links WHERE account_id = $1 AND is_active = true LIMIT 1`,
+        user.account_id,
+      );
+      if (!rows || rows.length === 0) return;
+
+      const chatId = rows[0].chat_id;
+      const resetUrl = `${process.env.FRONTEND_URL || 'https://app.ventra.uz'}/reset-password?token=${token}`;
+      const message = [
+        '<b>Parol tiklash</b>',
+        '',
+        `${email} uchun parol tiklash so'raldi.`,
+        '',
+        `<a href="${resetUrl}">Parolni tiklash</a>`,
+        '',
+        `Link ${RESET_TOKEN_EXPIRY_MINUTES} daqiqa amal qiladi.`,
+      ].join('\n');
+
+      await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'HTML' }),
+      });
+    } catch {
+      // Telegram send failed or table doesn't exist — non-critical
+    }
+  }
+
+  async getMe(jwtUser: { id: string; account_id: string }) {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: jwtUser.id },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        is_active: true,
+        created_at: true,
+        account: {
+          select: {
+            id: true,
+            name: true,
+            status: true,
+            balance: true,
+            daily_fee: true,
+            onboarding_completed: true,
+            onboarding_step: true,
+            selected_marketplaces: true,
+            created_at: true,
+          },
+        },
+      },
+    });
+
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      is_active: user.is_active,
+      created_at: user.created_at,
+      account: {
+        ...user.account,
+        balance: user.account.balance.toString(),
+        daily_fee: user.account.daily_fee?.toString() ?? null,
+      },
+    };
+  }
+
+  async updateOnboarding(
+    accountId: string,
+    dto: { step?: number; completed?: boolean; marketplaces?: string[] },
+  ) {
+    const data: Record<string, unknown> = {};
+    if (dto.step !== undefined) data.onboarding_step = dto.step;
+    if (dto.completed !== undefined) data.onboarding_completed = dto.completed;
+    if (dto.marketplaces !== undefined) data.selected_marketplaces = dto.marketplaces;
+
+    const account = await this.prisma.account.update({
+      where: { id: accountId },
+      data,
+      select: {
+        onboarding_completed: true,
+        onboarding_step: true,
+        selected_marketplaces: true,
+      },
+    });
+
+    return account;
   }
 
   private signAccessToken(userId: string, accountId: string, role: string, email?: string): string {
