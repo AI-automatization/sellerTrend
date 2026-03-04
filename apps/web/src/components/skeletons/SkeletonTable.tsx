@@ -1,12 +1,12 @@
 export function SkeletonTable({ rows = 5, cols = 4 }: { rows?: number; cols?: number }) {
   return (
-    <div className="overflow-x-auto animate-pulse">
+    <div className="overflow-x-auto">
       <table className="table">
         <thead>
           <tr>
             {Array.from({ length: cols }).map((_, i) => (
               <th key={i}>
-                <div className="h-3 bg-base-300/60 rounded w-20" />
+                <div className="skeleton h-3 w-20" />
               </th>
             ))}
           </tr>
@@ -16,7 +16,7 @@ export function SkeletonTable({ rows = 5, cols = 4 }: { rows?: number; cols?: nu
             <tr key={r}>
               {Array.from({ length: cols }).map((_, c) => (
                 <td key={c}>
-                  <div className="h-3 bg-base-300/40 rounded w-16" />
+                  <div className="skeleton h-3 w-16" />
                 </td>
               ))}
             </tr>

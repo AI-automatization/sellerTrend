@@ -2,10 +2,9 @@ import {
   AreaChart, Area, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
-import { StatCard } from './AdminComponents';
+import { StatCard } from './StatCard';
+import { CHART_COLORS, glassTooltip, AXIS_TICK_11, GRID_STROKE, CHART_ANIMATION_MS } from '../../utils/chartTokens';
 import type { TopUser, PopularProduct, PopularCategory, RevenueStats, GrowthStats, CategoryTrend, HeatmapEntry } from './adminTypes';
-
-const CHART_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#8b5cf6', '#14b8a6'];
 
 interface Props {
   topUsers: TopUser[];
@@ -53,7 +52,6 @@ export function AdminAnalyticsTab({ topUsers, popularProducts, popularCategories
   })();
 
   const noData = <div className="flex items-center justify-center h-full text-base-content/30 text-sm">Ma'lumot yo'q</div>;
-  const tooltipStyle = { borderRadius: 12, fontSize: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' };
 
   return (
     <div className="space-y-5">
@@ -75,11 +73,11 @@ export function AdminAnalyticsTab({ topUsers, popularProducts, popularCategories
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={revenueData}>
                   <defs><linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#6366f1" stopOpacity={0.3} /><stop offset="100%" stopColor="#6366f1" stopOpacity={0} /></linearGradient></defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.7 0 0 / 0.1)" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="oklch(0.6 0 0 / 0.5)" />
-                  <YAxis tick={{ fontSize: 11 }} stroke="oklch(0.6 0 0 / 0.5)" tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
-                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v.toLocaleString()} so'm`, 'Daromad']} />
-                  <Area type="monotone" dataKey="daromad" stroke="#6366f1" strokeWidth={2} fill="url(#revenueGrad)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
+                  <XAxis dataKey="date" tick={AXIS_TICK_11} tickLine={false} axisLine={false} />
+                  <YAxis tick={AXIS_TICK_11} tickLine={false} axisLine={false} tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+                  <Tooltip {...glassTooltip} formatter={(v: number) => [`${v.toLocaleString()} so'm`, 'Daromad']} />
+                  <Area type="monotone" dataKey="daromad" stroke="#6366f1" strokeWidth={2} fill="url(#revenueGrad)" animationDuration={CHART_ANIMATION_MS} />
                 </AreaChart>
               </ResponsiveContainer>
             ) : noData}
@@ -94,11 +92,11 @@ export function AdminAnalyticsTab({ topUsers, popularProducts, popularCategories
             {growthData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={growthData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.7 0 0 / 0.1)" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="oklch(0.6 0 0 / 0.5)" />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} stroke="oklch(0.6 0 0 / 0.5)" />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="yangi" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
+                  <XAxis dataKey="date" tick={AXIS_TICK_11} tickLine={false} axisLine={false} />
+                  <YAxis allowDecimals={false} tick={AXIS_TICK_11} tickLine={false} axisLine={false} />
+                  <Tooltip {...glassTooltip} />
+                  <Bar dataKey="yangi" fill="#22c55e" radius={[4, 4, 0, 0]} animationDuration={CHART_ANIMATION_MS} />
                 </BarChart>
               </ResponsiveContainer>
             ) : noData}
@@ -113,13 +111,13 @@ export function AdminAnalyticsTab({ topUsers, popularProducts, popularCategories
             {userActivityData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={userActivityData} layout="vertical" margin={{ left: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.7 0 0 / 0.1)" />
-                  <XAxis type="number" tick={{ fontSize: 11 }} stroke="oklch(0.6 0 0 / 0.5)" />
-                  <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11 }} stroke="oklch(0.6 0 0 / 0.5)" />
-                  <Tooltip contentStyle={tooltipStyle} /><Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="faollik" fill="#6366f1" radius={[0, 4, 4, 0]} name="Faollik" />
-                  <Bar dataKey="tracked" fill="#22c55e" radius={[0, 4, 4, 0]} name="Tracked" />
-                  <Bar dataKey="discovery" fill="#f59e0b" radius={[0, 4, 4, 0]} name="Discovery" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
+                  <XAxis type="number" tick={AXIS_TICK_11} tickLine={false} axisLine={false} />
+                  <YAxis dataKey="name" type="category" width={80} tick={AXIS_TICK_11} tickLine={false} axisLine={false} />
+                  <Tooltip {...glassTooltip} /><Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="faollik" fill="#6366f1" radius={[0, 4, 4, 0]} name="Faollik" animationDuration={CHART_ANIMATION_MS} />
+                  <Bar dataKey="tracked" fill="#22c55e" radius={[0, 4, 4, 0]} name="Tracked" animationDuration={CHART_ANIMATION_MS} />
+                  <Bar dataKey="discovery" fill="#f59e0b" radius={[0, 4, 4, 0]} name="Discovery" animationDuration={CHART_ANIMATION_MS} />
                 </BarChart>
               </ResponsiveContainer>
             ) : noData}
@@ -132,10 +130,10 @@ export function AdminAnalyticsTab({ topUsers, popularProducts, popularCategories
               <>
                 <ResponsiveContainer width="100%" height={200}>
                   <PieChart>
-                    <Pie data={scorePieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
+                    <Pie data={scorePieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value" animationDuration={CHART_ANIMATION_MS}>
                       {scorePieData.map((entry, idx) => <Cell key={idx} fill={entry.fill} />)}
                     </Pie>
-                    <Tooltip contentStyle={tooltipStyle} />
+                    <Tooltip {...glassTooltip} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-1">
@@ -159,11 +157,11 @@ export function AdminAnalyticsTab({ topUsers, popularProducts, popularCategories
             {trendLineData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trendLineData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.7 0 0 / 0.1)" />
-                  <XAxis dataKey="hafta" tick={{ fontSize: 11 }} stroke="oklch(0.6 0 0 / 0.5)" />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} stroke="oklch(0.6 0 0 / 0.5)" />
-                  <Tooltip contentStyle={tooltipStyle} /><Legend wrapperStyle={{ fontSize: 11 }} />
-                  {trendCategoryIds.map((id, i) => <Line key={id} type="monotone" dataKey={id} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={2} dot={{ r: 3 }} />)}
+                  <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
+                  <XAxis dataKey="hafta" tick={AXIS_TICK_11} tickLine={false} axisLine={false} />
+                  <YAxis allowDecimals={false} tick={AXIS_TICK_11} tickLine={false} axisLine={false} />
+                  <Tooltip {...glassTooltip} /><Legend wrapperStyle={{ fontSize: 11 }} />
+                  {trendCategoryIds.map((id, i) => <Line key={id} type="monotone" dataKey={id} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={2} dot={{ r: 3 }} animationDuration={CHART_ANIMATION_MS} />)}
                 </LineChart>
               </ResponsiveContainer>
             ) : noData}
@@ -175,11 +173,11 @@ export function AdminAnalyticsTab({ topUsers, popularProducts, popularCategories
             {heatmapData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={heatmapData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.7 0 0 / 0.1)" />
-                  <XAxis dataKey="category" tick={{ fontSize: 10 }} stroke="oklch(0.6 0 0 / 0.5)" />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} stroke="oklch(0.6 0 0 / 0.5)" />
-                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number, name: string) => name === 'score' ? [v.toFixed(2), 'Avg Score'] : [v, 'Mahsulotlar']} />
-                  <Bar dataKey="mahsulotlar" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
+                  <XAxis dataKey="category" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
+                  <YAxis allowDecimals={false} tick={AXIS_TICK_11} tickLine={false} axisLine={false} />
+                  <Tooltip {...glassTooltip} formatter={(v: number, name: string) => name === 'score' ? [v.toFixed(2), 'Avg Score'] : [v, 'Mahsulotlar']} />
+                  <Bar dataKey="mahsulotlar" fill="#6366f1" radius={[4, 4, 0, 0]} animationDuration={CHART_ANIMATION_MS} />
                 </BarChart>
               </ResponsiveContainer>
             ) : noData}

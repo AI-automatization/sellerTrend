@@ -8,6 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import { CHART_ANIMATION_MS } from '../utils/chartTokens';
 
 interface ChartPoint {
   date: string;
@@ -78,6 +79,7 @@ export function ScoreChart({ data }: { data: ChartPoint[] }) {
           strokeWidth={2}
           dot={dailyData.length <= 10}
           activeDot={{ r: 4, fill: '#a78bfa' }}
+          animationDuration={CHART_ANIMATION_MS}
         />
       </LineChart>
     </ResponsiveContainer>

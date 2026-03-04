@@ -6,62 +6,9 @@
 
 ---
 
-# KOD AUDIT — P0 KRITIK (T-343..T-352)
+# KOD AUDIT — P1 MUHIM (T-353, T-354, T-357)
 
-> Manba: CODE-AUDIT-2026-03-04.md | API + Worker + Bot | 15 ta P0 bug
-
-### T-343 | P0 | BACKEND | IDOR — product endpoint'lar account_id filtersiz | 30min
-**Sabab:** `products.controller.ts` — snapshot, forecast, ml-forecast, weekly-trend endpoint'lari faqat `JwtAuthGuard` bor, lekin `account_id` bo'yicha filtrlamaydi. Har qanday auth user boshqa userning product datasi ni ID orqali ko'ra oladi.
-**Yechim:** Barcha endpoint `where` ga `account_id: req.user.account_id` qo'shish. Service methodlarda ham `accountId` parametr majburiy.
-
-### T-344 | P0 | BACKEND | WebSocket — JWT auth yo'q, ixtiyoriy account_id | 1h
-**Sabab:** `product.gateway.ts:28-31` — `handleConnection` query string'dan `account_id` o'qiydi, JWT tekshirmaydi. Hujumchi ixtiyoriy account_id yuborib boshqa user signallarini olishi mumkin.
-**Yechim:** `handleConnection` da `Authorization` header yoki query `token` dan JWT verify qilish. `account_id` ni faqat token'dan olish.
-
-### T-345 | P0 | BACKEND | Team invite — mavjud user hijack | 30min
-**Sabab:** `team.service.ts:119-127` — `acceptInvite` mavjud email bilan chaqirilsa, user boshqa `account_id` va `role` ga siljitiriladi. Hujumchi invite yuborib userlarni o'g'irlashi mumkin.
-**Yechim:** Mavjud userlarni boshqa accountga siljitirishni taqiqlash. `if (existingUser.account_id !== invite.account_id) throw new ConflictException()`.
-
-### T-346 | P0 | BACKEND | BigInt() user input validation yo'q — 500 crash | 15min
-**Sabab:** `shops.controller.ts:16`, `competitor.controller.ts:34,57,75,104`, `signals.controller.ts:62` — `BigInt("abc")` → unhandled `SyntaxError` → 500.
-**Yechim:** Custom `BigIntPipe` yaratish yoki `ParseIntPipe` ishlatish. Barcha BigInt qabul qiladigan param'larga qo'shish.
-
-### T-347 | P0 | BACKEND | Notification markAsRead global — barcha userlar uchun | 30min
-**Sabab:** `notification.service.ts:81-102` — Broadcast notification (`account_id IS NULL`) uchun `is_read` flag notificationning o'zida. Bitta user o'qisa HAMMASI uchun o'qilgan.
-**Yechim:** `notification_reads` join table yaratish (notification_id + account_id + read_at). Per-user tracking.
-
-### T-348 | P0 | BACKEND | Race condition batch — 6 ta TOCTOU fix | 2h
-**Sabab:** "o'qi → tekshir → yoz" pattern transaksiyasiz. Concurrent so'rovlar ikkalasi ham eski holatni o'qiydi.
-**6 ta joy:**
-1. **Billing double-charge** (`billing.service.ts` + `billing.processor.ts`) — Balance read+deduct alohida query
-2. **API Key daily limit bypass** (`api-keys.service.ts`) — used_today check+increment alohida
-3. **Referral code double-use** (`referral.service.ts`) — is_used check+update alohida
-4. **Consultation double-booking** (`consultation.service.ts:115-134`) — status check+update alohida
-5. **Community vote drift** (`community.service.ts:68-153`) — vote check+create+counter alohida
-6. **Discovery run duplicate** (`discovery.service.ts`) — active run check+create alohida
-**Yechim:** Har birida `prisma.$transaction()` + `isolationLevel: 'Serializable'` yoki atomic SQL: `UPDATE ... WHERE condition RETURNING *`.
-
-### T-349 | P0 | BACKEND | unhandledRejection → process.exit(1) fix | 15min
-**Sabab:** `worker/main.ts:19-22`, `bot/main.ts:11` — Bitta uncaught rejection barcha 6 worker'ni o'ldiradi. Graceful shutdown chaqirilmaydi, Playwright browser zombie qoladi.
-**Yechim:** `process.exit(1)` o'rniga graceful `shutdown()` chaqirish: browser close, queue pause, prisma disconnect. Yoki faqat log qilib davom ettirish.
-
-### T-350 | P0 | BACKEND | Chromium shared browser pool — OOM fix | 2h
-**Sabab:** 3 ta scraper (`sourcing.processor.ts:348`, `uzum-scraper.ts:77`, `weekly-scraper.ts:20`) har biri alohida Chromium launch qiladi. 2 concurrent = 600-1200MB = OOM (2GB Railway).
-**Yechim:** Singleton `BrowserPool` class yaratish — `getBrowser()` bitta instance qaytaradi. Queue concurrency=1 (scraping sequential). `lockDuration: 600_000` (10 min).
-
-### T-351 | P0 | BACKEND | execSync event loop bloklaydi | 10min
-**Sabab:** `admin-monitoring.service.ts:301-306` — `execSync('git rev-parse --short HEAD')` blocking I/O. Container'da git yo'q bo'lsa hang.
-**Yechim:** `process.env.RAILWAY_GIT_COMMIT_SHA || 'unknown'` ishlatish. `execSync` o'chirish.
-
-### T-352 | P0 | BACKEND | Redis shared module — 5 ta alohida connection | 2h
-**Sabab:** `auth.service.ts`, `custom-throttler.guard.ts`, `admin-stats.service.ts`, `metrics.service.ts`, `sourcing.queue.ts` — har biri alohida Redis instance. Railway Redis 20 connection limit. Shutdown'da tozalanmaydi.
-**Yechim:** `RedisModule` yaratish — shared `IORedis` instance export. BullMQ `sharedConnection: true`. `OnModuleDestroy` da `redis.quit()`.
-
----
-
-# KOD AUDIT — P1 MUHIM (T-353..T-358)
-
-> 38 ta bug batched into 6 task
+> 3 task qoldi (T-355, T-356, T-358 → Done.md)
 
 ### T-353 | P1 | BACKEND | DTO validation — 15+ endpoint raw @Body() | 3h
 **Sabab:** `ads`, `consultation`, `tools`, `reports`, `watchlist`, `community`, `signals`, `notification` controller'lar DTO'siz. `@Body()` raw JSON qabul qiladi — injection xavfi.
@@ -70,24 +17,6 @@
 ### T-354 | P1 | BACKEND | `any` type cleanup — 40+ instance | 2h
 **Sabab:** `serpapi.client`, `leaderboard`, `reports`, `community`, `file-logger`, `export.controller` — strict TS buzilgan.
 **Yechim:** Har `any` → typed interface yoki `unknown` + type guard.
-
-### T-355 | P1 | BACKEND | BullMQ lifecycle — shutdown + cleanup + lockDuration | 1h
-**Sabab:**
-- 4 ta Queue (`weekly-scrape`, `import`, `sourcing`, `discovery`) shutdown'da `close()` chaqirilmaydi
-- `discovery.job.ts`, `import.job.ts` — `removeOnComplete` yo'q → Redis memory to'ladi
-- Playwright processor'lar `lockDuration` 30s default → stall
-**Yechim:** `OnModuleDestroy` da barcha queue.close(). `removeOnComplete: { age: 86400 }`. Playwright queue'larga `lockDuration: 600_000`.
-
-### T-356 | P1 | BACKEND | Unbounded query fix — 7 ta service | 2h
-**Sabab:** Pagination/limit yo'q — barcha ma'lumot memory'ga yuklanadi:
-- `getSeasonalCalendar` — unbounded (discovery.controller.ts:125-179)
-- `reports.service.ts:187-211` — ALL active products
-- `reports.service.ts:214-271` — ALL products+snapshots
-- `shops.service.ts:9-26` — ALL shop products
-- `shops.service.ts:114-155` — ALL shop snapshots
-- `community.service.ts:42-64` — 100 fetch + memory sort
-- `feedback.controller.ts:107-109` — admin tickets unbounded
-**Yechim:** Har biriga `take: 100-500` + cursor pagination. SQL aggregation where possible.
 
 ### T-357 | P1 | BACKEND | Worker stability batch — 7 ta fix | 1.5h
 **Sabab va yechim:**
@@ -98,20 +27,6 @@
 5. **Competitor N+1** (`competitor.processor.ts:13`) — unbounded findMany → `take` + `include`
 6. **Logger stream error** (`worker/logger.ts:32-41`) — `.on('error')` handler yo'q → qo'shish
 7. **Worker health Redis** (`worker/main.ts:54`) — alohida connection → shared instance
-
-### T-358 | P1 | BACKEND | API security/cleanup batch — 11 ta fix | 2h
-**Sabab va yechim:**
-1. **Sourcing 90s blocking** (`sourcing.queue.ts:66`) — `waitUntilFinished(90_000)` HTTP thread'ni bloklaydi → fire-and-forget + polling
-2. **Admin controller God Object** (`admin.controller.ts` 727 qator) — 40+ endpoint → 4-5 sub-controller'ga ajratish
-3. **CSV import limitsiz** (`export.controller.ts:66-89`) — fayl hajmi limitlangan emas → `@UseInterceptors(FileInterceptor({ limits: { fileSize: 5MB } }))`
-4. **Leaderboard public auth** (`leaderboard.controller.ts`) — product data ochiq → `@UseGuards(OptionalJwtGuard)` + data filtering
-5. **Watchlist rate limit** (`watchlist.controller.ts:50-53`) — yo'q → `@Throttle(10, 60)`
-6. **File logger close** (`request-logger.service.ts`) — `OnModuleDestroy` yo'q → implement
-7. **Sentry eval** (`sentry.ts:10`) — `Function()` constructor = eval → `import()` dynamic
-8. **Discovery BigInt/parseInt** (`discovery.controller.ts:91,106`, `niche.service.ts:17,98`) — NaN crash → validation pipe
-9. **Throttler silent true** (`custom-throttler.guard.ts`) — error'da `true` qaytaradi → `throw`
-10. **API key guard** (`api-key.guard.ts`) — `req.user.id` set etmaydi → fix
-11. **Team invite token ochiq** (`team.service.ts:48`) — API response'da token qaytariladi → olib tashlash
 
 ---
 
@@ -238,8 +153,7 @@ Bot domain placeholder, /top numeric ID, bot rate limiting, escapeHtml duplicate
 
 | Kategoriya | Soni |
 |-----------|------|
-| **Kod Audit P0** (T-343..T-352) | **10** |
-| **Kod Audit P1** (T-353..T-358) | **6 task, ~38 bug** |
+| **Kod Audit P1** (T-353, T-354, T-357) | **3 task** |
 | **Kod Audit P2** (T-359..T-360) | **2 task, ~41 bug** |
 | **Platforma Audit P0** (T-371..T-372) | **2** |
 | **Platforma Audit P1** (T-373..T-375, T-378) | **4** |
@@ -247,13 +161,15 @@ Bot domain placeholder, /top numeric ID, bot rate limiting, escapeHtml duplicate
 | **Platforma Audit P3** (T-384) | **1** |
 | ENV manual | 3 |
 | DevOps | 5 |
-| **JAMI task ochiq** | **35** |
-| **JAMI bug ochiq** | **~108** |
+| **JAMI task ochiq** | **22** |
 
 ---
 
 # BAJARILDI → Done.md ga ko'chirilgan
 
+**Backend Audit P0 (10 ta):** T-343, T-344, T-345, T-346, T-347, T-348, T-349, T-350, T-351, T-352
+**Backend Audit P1 (3 ta):** T-355, T-356, T-358
+**Design System (1 ta):** T-379
 **Backend P1 (6 ta):** T-241, T-269, T-270, T-214, T-235 (→T-284), T-236 (→T-283)
 **Backend P2 (2 ta):** T-239, T-150
 **Backend P3 (1 ta):** T-240

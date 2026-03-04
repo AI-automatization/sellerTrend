@@ -3,7 +3,7 @@ import { competitorApi } from '../api/client';
 import type { CompetitorProduct, DiscoveredCompetitor, CompetitorPricePoint } from '../api/competitor';
 import { getErrorMessage } from '../utils/getErrorMessage';
 import { logError, toastError } from '../utils/handleError';
-import { glassTooltip } from '../utils/formatters';
+import { glassTooltip, CHART_ANIMATION_MS } from '../utils/formatters';
 import { useI18n } from '../i18n/I18nContext';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -190,7 +190,7 @@ export function CompetitorSection({ productId, productPrice }: Props) {
                     <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
                     <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
                     <Tooltip {...glassTooltip} formatter={(v: number) => [`${v.toLocaleString()} ${t('common.som')}`, t('competitor.col.price')]} />
-                    <Line type="monotone" dataKey="price" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
+                    <Line type="monotone" dataKey="price" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} animationDuration={CHART_ANIMATION_MS} />
                   </LineChart>
                 </ResponsiveContainer>
               ) : (

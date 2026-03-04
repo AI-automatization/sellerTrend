@@ -319,36 +319,8 @@ Tray i18n, loadURL error, devtools block, package.json metadata, macOS About, en
 ---
 
 # ═══════════════════════════════════════════════════════════
-# LANDING AUDIT TASKLAR (T-329..T-342) — Sardor
+# LANDING AUDIT (T-329..T-342) — ✅ HAMMASI DONE → Done.md
 # ═══════════════════════════════════════════════════════════
-
-## P0 — KRITIK (4 ta)
-
-| # | Muammo | Fayl | Vaqt |
-|---|--------|------|------|
-| T-329 | `favicon.svg` yo'q — 404 | `index.html:5` | 10min |
-| T-330 | Railway URL bundle'da ochiq | `App.tsx:15` | 5min |
-| T-331 | nginx CSP header yo'q | `nginx.conf` | 15min |
-| T-332 | Placeholder verification kodlari | `index.html:19-21` | 5min |
-
-## P1 — MUHIM (9 ta)
-
-| # | Muammo | Fayl | Vaqt |
-|---|--------|------|------|
-| T-333 | Dead code — useAnalytics, animations, ZapIcon | 3 fayl | 15min |
-| T-334 | Email form fake success | `EmailCaptureSection.tsx` | 30min |
-| T-335 | localStorage try/catch yo'q | 3 fayl | 10min |
-| T-336 | Testimonials RU tarjima yo'q | `TestimonialsSection.tsx` | 20min |
-| T-337 | OG image build pipeline | `scripts/`, Dockerfile | 15min |
-| T-338 | Mobile menu AnimatePresence | `Navbar.tsx` | 10min |
-| T-339 | Nginx security headers yo'qolishi | `nginx.conf` | 10min |
-| T-340 | FeatureCard unused `index` prop | `FeatureCard.tsx` | 5min |
-| T-341 | Prerender innerHTML XSS guard | `prerender.mjs` | 10min |
-
-## P2 — O'RTA (batch)
-
-### T-342 | P2 | FRONTEND | Landing P2 batch (18 ta) | 2h
-i18n gaps (4), a11y (3), DRY (4), SEO/build (4), misc (3)
 
 ---
 
@@ -446,7 +418,6 @@ i18n gaps (4), a11y (3), DRY (4), SEO/build (4), misc (3)
 | # | Muammo | Mas'ul | Vaqt |
 |---|--------|--------|------|
 | T-376 | Platform model — multi-marketplace (kelajak) | Bekzod | 2h |
-| T-379 | Design system cleanup — chart colors, duplicates, toast theme (6 fix) | Sardor | 2h |
 | T-380 | Mobile UX — bottom nav, scroll-to-top, card layout (4 fix) | Sardor | 3h |
 | T-381 | Accessibility — skip-to-content, focus trap, colorblind, keyboard (5 fix) | Sardor | 2h |
 | T-382 | Landing conversion — privacy policy, cookie consent, analytics (4 fix) | Sardor | 4h |
@@ -477,29 +448,26 @@ i18n gaps (4), a11y (3), DRY (4), SEO/build (4), misc (3)
 
 | Kategoriya | Task | Bug/Fix | Mas'ul |
 |-----------|------|---------|--------|
-| **Backend Kod Audit P0** (T-343..T-352) | ~~10~~ ✅ | ~~10~~ | Bekzod |
-| **Backend Kod Audit P1** (T-353..T-358) | ~~6~~ 3 qoldi | ~17 qoldi | Bekzod |
+| ~~Backend Kod Audit P0~~ (T-343..T-352) | ~~10~~ ✅ | ~~10~~ | Bekzod |
+| **Backend Kod Audit P1** (T-353,T-354,T-357) | **3 qoldi** | ~17 | Bekzod |
 | **Backend Kod Audit P2** (T-359..T-360) | 2 | ~41 | Bekzod |
 | **Web Kod Audit P0** (T-361..T-366) | 6 | 6 | Sardor |
 | **Web Kod Audit P1** (T-367..T-369) | 3 | ~28 | Sardor |
 | **Web Kod Audit P2** (T-370) | 1 | 15 | Sardor |
 | **Platforma Audit P0** (T-371,T-372,T-377) | 3 | 3 | Bekzod(2)+Sardor(1) |
 | **Platforma Audit P1** (T-373..T-375,T-378) | 4 | 4 | Bekzod |
-| **Platforma Audit P2** (T-376,T-379..T-383) | 6 | ~24 | Bekzod(2)+Sardor(4) |
+| **Platforma Audit P2** (T-376,T-380..T-383) | **5** | ~18 | Bekzod(2)+Sardor(3) |
 | **Platforma Audit P3** (T-384) | 1 | 6 | Bekzod |
 | Desktop Audit P0 (T-315..T-319) | 5 | 5 | Sardor |
 | Desktop Audit P1 (T-320..T-327) | 8 | 8 | Sardor |
 | Desktop Audit P2 (T-328) | 1 | 10 | Sardor |
-| Landing Audit P0 (T-329..T-332) | 4 | 4 | Sardor |
-| Landing Audit P1 (T-333..T-341) | 9 | 9 | Sardor |
-| Landing Audit P2 (T-342) | 1 | 18 | Sardor |
+| ~~Landing Audit~~ (T-329..T-342) | ~~14~~ ✅ | ~~31~~ | Sardor |
 | Chrome Extension (T-216..T-233) | 18 | 18 | Sardor |
 | Landing Manual (M-001..M-004) | 4 | 4 | Sardor |
 | ENV manual (E-006, E-008, E-010) | 3 | 3 | Bekzod |
 | DevOps (T-178, T-243, T-245, T-281, T-283) | 5 | 5 | Bekzod |
-| **JAMI task ochiq** | **100** | | |
-| **JAMI bug/fix ochiq** | | **~259** | |
-| **JAMI bajarilgan** | **110+** | | → Done.md |
+| **JAMI task ochiq** | **72** | | |
+| **JAMI bajarilgan** | **~138** | | → Done.md |
 
 ---
 

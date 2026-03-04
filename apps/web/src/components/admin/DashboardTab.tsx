@@ -1,6 +1,7 @@
 // ─── DashboardTab ────────────────────────────────────────────────────────────
 
 import { StatCard } from './StatCard';
+import type { RevenueStats, GrowthStats } from './adminTypes';
 
 export interface DashboardTabProps {
   accounts: { length: number };
@@ -10,8 +11,8 @@ export interface DashboardTabProps {
   activeUsers: number;
   totalBalance: number;
   overview: Record<string, unknown> | null;
-  revenue: Record<string, unknown> | null;
-  growth: Record<string, unknown> | null;
+  revenue: RevenueStats | null;
+  growth: GrowthStats | null;
   realtime: Record<string, unknown> | null;
 }
 

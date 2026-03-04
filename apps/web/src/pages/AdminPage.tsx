@@ -6,6 +6,8 @@ import { getErrorMessage } from '../utils/getErrorMessage';
 import { logError } from '../utils/handleError';
 import {
   type Tab, type Account, type User, type AuditEvent, type Role,
+  type TopUser, type PopularProduct, type PopularCategory,
+  type RevenueStats, type GrowthStats, type CategoryTrend, type HeatmapEntry,
   VALID_TABS, TAB_TITLES, ROLE_META,
   RoleBadge, StatusBadge,
   CreateAccountModal, DepositModal, ChangePasswordModal, AccountDrawer,
@@ -38,12 +40,12 @@ export function AdminPage() {
 
   // Stats
   const [overview, setOverview] = useState<Record<string, unknown> | null>(null);
-  const [revenue, setRevenue] = useState<Record<string, unknown> | null>(null);
-  const [growth, setGrowth] = useState<Record<string, unknown> | null>(null);
-  const [popularProducts, setPopularProducts] = useState<Record<string, unknown>[]>([]);
-  const [popularCategories, setPopularCategories] = useState<Record<string, unknown>[]>([]);
+  const [revenue, setRevenue] = useState<RevenueStats | null>(null);
+  const [growth, setGrowth] = useState<GrowthStats | null>(null);
+  const [popularProducts, setPopularProducts] = useState<PopularProduct[]>([]);
+  const [popularCategories, setPopularCategories] = useState<PopularCategory[]>([]);
   const [realtime, setRealtime] = useState<Record<string, unknown> | null>(null);
-  const [topUsers, setTopUsers] = useState<Record<string, unknown>[]>([]);
+  const [topUsers, setTopUsers] = useState<TopUser[]>([]);
   const [health, setHealth] = useState<Record<string, unknown> | null>(null);
   const [feedbackTickets, setFeedbackTickets] = useState<Record<string, unknown>[]>([]);
   const [feedbackStats, setFeedbackStats] = useState<Record<string, unknown> | null>(null);
@@ -84,8 +86,8 @@ export function AdminPage() {
   const [errorsPage, setErrorsPage] = useState(1);
 
   // Analytics charts data
-  const [categoryTrends, setCategoryTrends] = useState<Record<string, unknown>[]>([]);
-  const [productHeatmap, setProductHeatmap] = useState<Record<string, unknown>[]>([]);
+  const [categoryTrends, setCategoryTrends] = useState<CategoryTrend[]>([]);
+  const [productHeatmap, setProductHeatmap] = useState<HeatmapEntry[]>([]);
 
   async function load() {
     setLoading(true);

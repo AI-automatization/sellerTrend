@@ -1,6 +1,7 @@
 // ─── Admin Components — Barrel Export ────────────────────────────────────────
 
 export * from './types';
+export type { TopUser, PopularProduct, PopularCategory, RevenueStats, GrowthStats, CategoryTrend, HeatmapEntry } from './adminTypes';
 export { StatCard } from './StatCard';
 export { Modal } from './Modal';
 export { RoleBadge } from './RoleBadge';
@@ -11,7 +12,7 @@ export { ChangePasswordModal } from './ChangePasswordModal';
 export { AccountDrawer } from './AccountDrawer';
 export { DashboardTab } from './DashboardTab';
 export { AccountsTab } from './AccountsTab';
-export { AnalyticsTab } from './AnalyticsTab';
+export { AdminAnalyticsTab as AnalyticsTab } from './AdminAnalyticsTab';
 export { SystemTab } from './SystemTab';
 export { FeedbackTab } from './FeedbackTab';
 export { NotificationsTab } from './NotificationsTab';

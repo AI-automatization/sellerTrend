@@ -9,6 +9,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 import type { CompetitorProduct } from '../../api/competitor';
+import { glassTooltip, AXIS_TICK, CHART_COLORS, CHART_ANIMATION_MS } from '../../utils/chartTokens';
 
 interface Props {
   ourProduct: { title: string; sell_price: string | null };
@@ -48,40 +49,35 @@ export function PriceComparisonChart({ ourProduct, competitors }: Props) {
         <BarChart data={data} margin={{ top: 4, right: 8, left: -10, bottom: 48 }}>
           <XAxis
             dataKey="name"
-            tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.4)' }}
+            tick={AXIS_TICK}
             tickLine={false}
             axisLine={false}
             angle={-30}
             textAnchor="end"
           />
           <YAxis
-            tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.4)' }}
+            tick={AXIS_TICK}
             tickLine={false}
             axisLine={false}
             tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`}
           />
           <Tooltip
-            contentStyle={{
-              background: '#1d232a',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 8,
-              fontSize: 12,
-            }}
+            {...glassTooltip}
             formatter={(v: number) => [`${v.toLocaleString()} so'm`, 'Narx']}
           />
           <ReferenceLine
             y={ourPrice}
-            stroke="#570df8"
+            stroke={CHART_COLORS[0]}
             strokeDasharray="4 2"
             strokeOpacity={0.4}
           />
-          <Bar dataKey="price" radius={[4, 4, 0, 0]}>
+          <Bar dataKey="price" radius={[4, 4, 0, 0]} animationDuration={CHART_ANIMATION_MS}>
             {data.map((entry, i) => (
               <Cell
                 key={i}
                 fill={
                   entry.isOurs
-                    ? '#570df8'
+                    ? CHART_COLORS[0]
                     : entry.price < ourPrice
                     ? '#ef4444'
                     : '#22c55e'

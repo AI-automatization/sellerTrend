@@ -16,15 +16,8 @@ export function StatusBadge({ status }: { status: Account['status'] }) {
   return <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold border ${map[status]}`}>{labels[status]}</span>;
 }
 
-export function StatCard({ label, value, sub, color }: { label: string; value: string | number; sub?: string; color?: string }) {
-  return (
-    <div className="bg-base-200 rounded-xl p-4 border border-base-300/50">
-      <p className="text-xs text-base-content/50">{label}</p>
-      <p className={`text-2xl font-bold mt-1 ${color || 'text-base-content'}`}>{typeof value === 'number' ? value.toLocaleString() : value}</p>
-      {sub && <p className="text-xs text-base-content/40 mt-0.5">{sub}</p>}
-    </div>
-  );
-}
+// StatCard is defined in ./StatCard.tsx — re-exported here for backwards compat
+export { StatCard } from './StatCard';
 
 export function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
   return (

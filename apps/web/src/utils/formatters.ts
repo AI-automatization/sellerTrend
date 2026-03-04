@@ -1,6 +1,9 @@
 // ─── Shared Formatters & Chart Config ────────────────────────────────────────
 // Extracted from ProductPage, SourcingPage, CompetitorSection to avoid duplication.
 
+// Re-export chart tokens so existing imports keep working
+export { scoreColor, glassTooltip, CHART_COLORS, SCORE_COLORS, AXIS_TICK, GRID_STROKE, CHART_ANIMATION_MS } from './chartTokens';
+
 export function fmt(n: number, digits = 0) {
   return n.toLocaleString('ru-RU', {
     minimumFractionDigits: digits,
@@ -15,24 +18,3 @@ export function fmtUSD(n: number) {
 export function fmtUZS(n: number) {
   return fmt(Math.round(n)) + ' so\'m';
 }
-
-export function scoreColor(score: number | null | undefined) {
-  if (score == null) return '#4b5563';
-  if (score >= 6) return '#22c55e';
-  if (score >= 4) return '#f59e0b';
-  if (score >= 2) return '#6b7280';
-  return '#ef4444';
-}
-
-/** Recharts glass-morphism tooltip config */
-export const glassTooltip = {
-  contentStyle: {
-    background: 'var(--chart-tooltip-bg)',
-    backdropFilter: 'blur(8px)',
-    border: '1px solid var(--chart-tooltip-border)',
-    borderRadius: 12,
-    fontSize: 12,
-    color: 'var(--chart-tooltip-text)',
-  },
-  labelStyle: { color: 'var(--chart-tick)' },
-};

@@ -3,6 +3,7 @@ import {
 } from 'recharts';
 import { useI18n } from '../../i18n/I18nContext';
 import { GlassTooltip, FadeIn } from './index';
+import { CHART_ANIMATION_MS } from '../../utils/chartTokens';
 
 interface Props {
   activityData: { name: string; sales: number }[];
@@ -39,7 +40,7 @@ export function ActivityChart({ activityData, totalWeekly }: Props) {
               <Tooltip content={<GlassTooltip fmt={(v: number) => v.toLocaleString() + ' ' + t('dashboard.perWeek')} />} />
               <Area type="monotone" dataKey="sales" stroke="#22c55e" strokeWidth={2} fill="url(#salesGrad)"
                 dot={{ r: 3, fill: '#22c55e', strokeWidth: 2, stroke: 'var(--color-base-100)' }}
-                activeDot={{ r: 5 }} animationDuration={800} />
+                activeDot={{ r: 5 }} animationDuration={CHART_ANIMATION_MS} />
             </AreaChart>
           </ResponsiveContainer>
         </div>

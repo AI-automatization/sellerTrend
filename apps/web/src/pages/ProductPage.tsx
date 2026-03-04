@@ -29,7 +29,7 @@ import {
 } from '../components/product';
 import type { ExternalItem } from '../components/product';
 import type { AnalyzeResult, WeeklyTrend, Forecast, Snapshot, MlForecast, TrendAnalysis } from '../api/types';
-import { glassTooltip } from '../utils/formatters';
+import { glassTooltip, CHART_ANIMATION_MS } from '../utils/formatters';
 
 function extractSearchQuery(title: string): string {
   const stopWords = new Set([
@@ -431,7 +431,7 @@ export function ProductPage() {
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
                   <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
                   <Tooltip {...glassTooltip} />
-                  <Area type="monotone" dataKey="score" stroke="#a78bfa" strokeWidth={2} fill="url(#scoreGrad)" dot={false} />
+                  <Area type="monotone" dataKey="score" stroke="#a78bfa" strokeWidth={2} fill="url(#scoreGrad)" dot={false} animationDuration={CHART_ANIMATION_MS} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -517,7 +517,7 @@ export function ProductPage() {
                     labelFormatter={(v) => new Date(v).toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' })}
                     formatter={(value: number) => [`${value} ta`, 'Kunlik sotuv']}
                   />
-                  <Bar dataKey="daily_sold" radius={[4, 4, 0, 0]} name="Kunlik sotuv">
+                  <Bar dataKey="daily_sold" radius={[4, 4, 0, 0]} name="Kunlik sotuv" animationDuration={CHART_ANIMATION_MS}>
                     {weeklyTrend.daily_breakdown.map((_entry, i) => (
                       <Cell key={i} fill={
                         i === weeklyTrend.daily_breakdown.length - 1 ? '#a78bfa' : '#34d399'
@@ -642,10 +642,10 @@ export function ProductPage() {
                       <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
                       <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
                       <Tooltip {...glassTooltip} />
-                      <Area type="monotone" dataKey="score" stroke="#a78bfa" strokeWidth={2} fill="none" dot={false} />
-                      <Area type="monotone" dataKey="upper" stroke="none" fill="url(#confGrad)" dot={false} />
-                      <Area type="monotone" dataKey="lower" stroke="none" fill="none" dot={false} />
-                      <Area type="monotone" dataKey="predicted" stroke="#6366f1" strokeWidth={2} strokeDasharray="5 5" fill="none" dot={{ r: 3, fill: '#6366f1' }} />
+                      <Area type="monotone" dataKey="score" stroke="#a78bfa" strokeWidth={2} fill="none" dot={false} animationDuration={CHART_ANIMATION_MS} />
+                      <Area type="monotone" dataKey="upper" stroke="none" fill="url(#confGrad)" dot={false} animationDuration={CHART_ANIMATION_MS} />
+                      <Area type="monotone" dataKey="lower" stroke="none" fill="none" dot={false} animationDuration={CHART_ANIMATION_MS} />
+                      <Area type="monotone" dataKey="predicted" stroke="#6366f1" strokeWidth={2} strokeDasharray="5 5" fill="none" dot={{ r: 3, fill: '#6366f1' }} animationDuration={CHART_ANIMATION_MS} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -706,7 +706,7 @@ export function ProductPage() {
                     <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
                     <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
                     <Tooltip {...glassTooltip} formatter={(value: number) => [`${value.toLocaleString()} dona/hafta`, 'Sotuv']} />
-                    <Bar dataKey="orders" fill="#34d399" radius={[4, 4, 0, 0]} name="Haftalik sotuv" />
+                    <Bar dataKey="orders" fill="#34d399" radius={[4, 4, 0, 0]} name="Haftalik sotuv" animationDuration={CHART_ANIMATION_MS} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

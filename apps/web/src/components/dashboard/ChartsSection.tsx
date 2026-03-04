@@ -6,6 +6,7 @@ import type { TrackedProduct } from '../../api/types';
 import { scoreColor } from '../../utils/formatters';
 import { useI18n } from '../../i18n/I18nContext';
 import { GlassTooltip, FadeIn } from './index';
+import { CHART_ANIMATION_MS } from '../../utils/chartTokens';
 
 interface DashboardStats {
   avgScore: number;
@@ -49,7 +50,7 @@ export function ChartsSection({ scoreChartData, trendPieData, stats, products }:
                   <XAxis type="number" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} domain={[0, 10]} />
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} width={130} />
                   <Tooltip content={<GlassTooltip fmt={(v: number) => v.toFixed(2) + ' / 10'} />} cursor={{ fill: 'var(--chart-cursor)' }} />
-                  <Bar dataKey="score" radius={[0, 6, 6, 0]} barSize={16} animationDuration={800}>
+                  <Bar dataKey="score" radius={[0, 6, 6, 0]} barSize={16} animationDuration={CHART_ANIMATION_MS}>
                     {scoreChartData.map((entry) => (
                       <Cell key={entry.id} fill={scoreColor(entry.score)} fillOpacity={0.8} />
                     ))}
@@ -76,7 +77,7 @@ export function ChartsSection({ scoreChartData, trendPieData, stats, products }:
                   <ResponsiveContainer width="100%" height={170}>
                     <PieChart>
                       <Pie data={trendPieData} cx="50%" cy="50%" innerRadius={50} outerRadius={70}
-                        paddingAngle={3} dataKey="value" strokeWidth={0} animationDuration={800}>
+                        paddingAngle={3} dataKey="value" strokeWidth={0} animationDuration={CHART_ANIMATION_MS}>
                         {trendPieData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                       </Pie>
                       <Tooltip content={<GlassTooltip />} />
