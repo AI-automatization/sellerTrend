@@ -9,6 +9,8 @@ import { ActivityAction } from '../common/decorators/activity-action.decorator';
 import { ParseBigIntPipe } from '../common/pipes/parse-bigint.pipe';
 import { SignalsService } from './signals.service';
 import { CreatePriceTestDto } from './dto/create-price-test.dto';
+import { SaveChecklistDto } from './dto/save-checklist.dto';
+import { UpdatePriceTestDto } from './dto/update-price-test.dto';
 
 @ApiTags('signals')
 @ApiBearerAuth()
@@ -79,7 +81,7 @@ export class SignalsController {
   @ActivityAction('SIGNAL_CHECKLIST_SAVE')
   saveChecklist(
     @CurrentUser('account_id') accountId: string,
-    @Body() body: { product_id?: string; title: string; items: any[] },
+    @Body() body: SaveChecklistDto,
   ) {
     return this.signalsService.saveChecklist(accountId, body);
   }
@@ -103,7 +105,7 @@ export class SignalsController {
   updatePriceTest(
     @CurrentUser('account_id') accountId: string,
     @Param('id') testId: string,
-    @Body() body: { status?: string; original_sales?: number; test_sales?: number; conclusion?: string },
+    @Body() body: UpdatePriceTestDto,
   ) {
     return this.signalsService.updatePriceTest(accountId, testId, body);
   }

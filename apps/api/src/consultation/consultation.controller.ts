@@ -4,6 +4,9 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ConsultationService } from './consultation.service';
+import { CreateConsultationDto } from './dto/create-consultation.dto';
+import { BookConsultationDto } from './dto/book-consultation.dto';
+import { RateConsultationDto } from './dto/rate-consultation.dto';
 
 @ApiTags('consultations')
 @ApiBearerAuth()
@@ -35,13 +38,7 @@ export class ConsultationController {
   @Post()
   create(
     @CurrentUser('account_id') accountId: string,
-    @Body() dto: {
-      title: string;
-      description?: string;
-      category: string;
-      price_uzs: number;
-      duration_min?: number;
-    },
+    @Body() dto: CreateConsultationDto,
   ) {
     return this.consultationService.createListing(accountId, dto);
   }
@@ -50,7 +47,7 @@ export class ConsultationController {
   book(
     @CurrentUser('account_id') accountId: string,
     @Param('id') id: string,
-    @Body() dto: { scheduled_at: string },
+    @Body() dto: BookConsultationDto,
   ) {
     return this.consultationService.book(accountId, id, dto.scheduled_at);
   }
@@ -67,7 +64,7 @@ export class ConsultationController {
   rate(
     @CurrentUser('account_id') accountId: string,
     @Param('id') id: string,
-    @Body() dto: { rating: number; review?: string },
+    @Body() dto: RateConsultationDto,
   ) {
     return this.consultationService.rate(accountId, id, dto.rating, dto.review);
   }

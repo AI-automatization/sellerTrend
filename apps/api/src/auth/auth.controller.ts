@@ -5,6 +5,7 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
+import { BootstrapAdminDto } from './dto/bootstrap-admin.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -40,7 +41,7 @@ export class AuthController {
   /** One-time bootstrap: promote first user to SUPER_ADMIN (no-op if SUPER_ADMIN already exists) */
   @Post('bootstrap-admin')
   @HttpCode(200)
-  bootstrapAdmin(@Body() body: { email: string; secret: string; force?: boolean }) {
+  bootstrapAdmin(@Body() body: BootstrapAdminDto) {
     return this.authService.bootstrapAdmin(body.email, body.secret, body.force);
   }
 }

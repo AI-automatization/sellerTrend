@@ -7,6 +7,9 @@ import { ActivityAction } from '../common/decorators/activity-action.decorator';
 import { AiService } from '../ai/ai.service';
 import { ToolsService } from './tools.service';
 import { ProfitCalculatorDto } from './dto/profit-calculator.dto';
+import { PriceElasticityDto } from './dto/price-elasticity.dto';
+import { GenerateDescriptionDto } from './dto/generate-description.dto';
+import { AnalyzeSentimentDto } from './dto/analyze-sentiment.dto';
 
 @ApiTags('tools')
 @ApiBearerAuth()
@@ -26,19 +29,14 @@ export class ToolsController {
 
   @Post('price-elasticity')
   @ActivityAction('TOOL_PRICE_ELASTICITY')
-  priceElasticity(@Body() dto: { price_old: number; price_new: number; qty_old: number; qty_new: number }) {
+  priceElasticity(@Body() dto: PriceElasticityDto) {
     return this.toolsService.calculateElasticity(dto);
   }
 
   @Post('generate-description')
   @ActivityAction('TOOL_AI_DESCRIPTION')
   async generateDescription(
-    @Body() dto: {
-      title: string;
-      attributes?: Record<string, string | null>;
-      category?: string;
-      keywords?: string[];
-    },
+    @Body() dto: GenerateDescriptionDto,
     @CurrentUser('account_id') accountId: string,
   ) {
     await this.aiService.checkAiQuota(accountId);
@@ -48,7 +46,7 @@ export class ToolsController {
   @Post('analyze-sentiment')
   @ActivityAction('TOOL_AI_SENTIMENT')
   async analyzeSentiment(
-    @Body() dto: { productTitle: string; reviews: string[] },
+    @Body() dto: AnalyzeSentimentDto,
     @CurrentUser('account_id') accountId: string,
   ) {
     await this.aiService.checkAiQuota(accountId);

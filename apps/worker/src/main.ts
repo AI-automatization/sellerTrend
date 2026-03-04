@@ -1,6 +1,5 @@
 import 'dotenv/config';
 import http from 'http';
-import Redis from 'ioredis';
 import { createBillingWorker } from './processors/billing.processor';
 import { createDiscoveryWorker } from './processors/discovery.processor';
 import { createSourcingWorker } from './processors/sourcing.processor';
@@ -12,6 +11,8 @@ import { scheduleCompetitorSnapshots } from './jobs/competitor-snapshot.job';
 import { scheduleWeeklyScrape } from './jobs/weekly-scrape.job';
 import { logProcess } from './logger';
 import { browserPool } from './browser-pool';
+import { prisma } from './prisma';
+import { getHealthRedis } from './redis';
 
 // T-349: Global crash handlers — log but do NOT exit.
 // For truly fatal errors (ENOMEM), trigger graceful shutdown instead of hard exit.
@@ -53,10 +54,9 @@ async function bootstrap() {
   logProcess('info', 'Workers running: billing-queue, discovery-queue, sourcing-search, competitor-queue, import-batch, weekly-scrape-queue');
   logProcess('info', 'Crons: billing daily 00:00, competitor every 6h, weekly-scrape every 15min');
 
-  // Health check HTTP server
+  // Health check HTTP server — reuse shared Redis from redis.ts
   const healthPort = parseInt(process.env.PORT || process.env.WORKER_HEALTH_PORT || '3001', 10);
-  const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379';
-  const redis = new Redis(redisUrl, { maxRetriesPerRequest: 1, connectTimeout: 3000, lazyConnect: true });
+  const redis = getHealthRedis();
 
   const server = http.createServer(async (req, res) => {
     if (req.url === '/health' && req.method === 'GET') {
@@ -103,6 +103,7 @@ async function bootstrap() {
       ]);
       await browserPool.shutdown();
       await redis.quit();
+      await prisma.$disconnect();
       clearTimeout(timeout);
       logProcess('info', 'Worker shutdown complete');
       process.exit(0);

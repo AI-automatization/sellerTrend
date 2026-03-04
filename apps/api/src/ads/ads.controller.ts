@@ -13,6 +13,8 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AdsService } from './ads.service';
+import { CreateCampaignDto } from './dto/create-campaign.dto';
+import { UpdateCampaignDto } from './dto/update-campaign.dto';
 
 @ApiTags('ads')
 @ApiBearerAuth()
@@ -25,14 +27,7 @@ export class AdsController {
   @Post('campaigns')
   createCampaign(
     @CurrentUser('account_id') accountId: string,
-    @Body() body: {
-      name: string;
-      product_id?: string;
-      platform?: string;
-      budget_uzs?: number;
-      start_date?: string;
-      end_date?: string;
-    },
+    @Body() body: CreateCampaignDto,
   ) {
     return this.adsService.createCampaign(accountId, body);
   }
@@ -48,18 +43,7 @@ export class AdsController {
   updateCampaign(
     @CurrentUser('account_id') accountId: string,
     @Param('id') campaignId: string,
-    @Body() body: {
-      name?: string;
-      status?: string;
-      spent_uzs?: number;
-      impressions?: number;
-      clicks?: number;
-      conversions?: number;
-      revenue_uzs?: number;
-      budget_uzs?: number;
-      start_date?: string;
-      end_date?: string;
-    },
+    @Body() body: UpdateCampaignDto,
   ) {
     return this.adsService.updateCampaign(accountId, campaignId, body);
   }

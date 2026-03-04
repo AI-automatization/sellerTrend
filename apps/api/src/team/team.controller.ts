@@ -12,6 +12,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { TeamService } from './team.service';
+import { InviteMemberDto } from './dto/invite-member.dto';
 
 @ApiTags('team')
 @ApiBearerAuth()
@@ -25,7 +26,7 @@ export class TeamController {
   inviteMember(
     @CurrentUser('account_id') accountId: string,
     @CurrentUser('id') userId: string,
-    @Body() body: { email: string; role?: string },
+    @Body() body: InviteMemberDto,
   ) {
     return this.teamService.inviteMember(accountId, userId, body);
   }

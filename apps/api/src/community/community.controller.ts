@@ -12,6 +12,8 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { CommunityService } from './community.service';
+import { CreateInsightDto } from './dto/create-insight.dto';
+import { VoteInsightDto } from './dto/vote-insight.dto';
 
 @ApiTags('community')
 @ApiBearerAuth()
@@ -24,7 +26,7 @@ export class CommunityController {
   @Post('insights')
   createInsight(
     @CurrentUser('account_id') accountId: string,
-    @Body() body: { title: string; content: string; category: string },
+    @Body() body: CreateInsightDto,
   ) {
     return this.communityService.createInsight(accountId, body);
   }
@@ -48,7 +50,7 @@ export class CommunityController {
   vote(
     @CurrentUser('account_id') accountId: string,
     @Param('id') insightId: string,
-    @Body() body: { vote: number },
+    @Body() body: VoteInsightDto,
   ) {
     return this.communityService.vote(accountId, insightId, body.vote);
   }

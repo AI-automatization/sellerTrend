@@ -18,8 +18,10 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ActivityLoggerInterceptor } from '../common/interceptors/activity-logger.interceptor';
 import { ActivityAction } from '../common/decorators/activity-action.decorator';
 import { FeedbackService } from './feedback.service';
-import { FeedbackType, FeedbackPriority, FeedbackStatus } from '@prisma/client';
+import { FeedbackType, FeedbackStatus } from '@prisma/client';
 import { CreateTicketDto } from './dto/create-ticket.dto';
+import { SendMessageDto } from './dto/send-message.dto';
+import { UpdateTicketStatusDto } from './dto/update-ticket-status.dto';
 
 @ApiTags('feedback')
 @ApiBearerAuth()
@@ -84,7 +86,7 @@ export class FeedbackController {
   @ActivityAction('FEEDBACK_MESSAGE')
   sendMessage(
     @Param('id') ticketId: string,
-    @Body() body: { content: string },
+    @Body() body: SendMessageDto,
     @CurrentUser('id') userId: string,
     @CurrentUser('role') role: string,
   ) {
@@ -132,7 +134,7 @@ export class FeedbackController {
   @ActivityAction('FEEDBACK_STATUS_UPDATE')
   updateTicketStatus(
     @Param('id') ticketId: string,
-    @Body() body: { status: FeedbackStatus },
+    @Body() body: UpdateTicketStatusDto,
   ) {
     return this.feedbackService.updateTicketStatus(ticketId, body.status);
   }
@@ -144,7 +146,7 @@ export class FeedbackController {
   @ActivityAction('FEEDBACK_ADMIN_MESSAGE')
   adminSendMessage(
     @Param('id') ticketId: string,
-    @Body() body: { content: string },
+    @Body() body: SendMessageDto,
     @CurrentUser('id') userId: string,
   ) {
     return this.feedbackService.sendMessage(ticketId, userId, body.content, true);

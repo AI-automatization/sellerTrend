@@ -7,11 +7,14 @@ import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
 const BATCH_SIZE = 5;
 const BATCH_DELAY_MS = 500;
 const PRICE_DROP_THRESHOLD_PCT = 10;
+const MAX_TRACKINGS = 100;
 
 async function processCompetitorSnapshots(jobId: string, jobName: string) {
-  // 1. Get all active trackings
+  // 1. Get active trackings with related product info (bounded query)
   const trackings = await prisma.competitorTracking.findMany({
     where: { is_active: true },
+    take: MAX_TRACKINGS,
+    include: { product: { select: { id: true, title: true } } },
   });
 
   if (trackings.length === 0) {

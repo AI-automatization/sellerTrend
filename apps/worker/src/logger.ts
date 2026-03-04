@@ -36,6 +36,9 @@ function ensureStream() {
     currentDate = today;
     const filePath = path.join(getLogDir(), `worker-${today}.log`);
     stream = fs.createWriteStream(filePath, { flags: 'a' });
+    stream.on('error', (err: Error) => {
+      console.error('Logger stream error:', err.message);
+    });
   }
   return stream!;
 }

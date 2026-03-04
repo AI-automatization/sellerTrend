@@ -24,6 +24,23 @@ import { AdminStatsService } from './admin-stats.service';
 import { AdminFeedbackService } from './admin-feedback.service';
 import { AdminLogService } from './admin-log.service';
 import { AdminMonitoringService } from './admin-monitoring.service';
+import {
+  SetAccountFeeDto,
+  DepositDto,
+  SetGlobalFeeDto,
+  CreateAccountDto,
+  UpdateAccountStatusDto,
+  UpdateAccountPhoneDto,
+  BulkAccountActionDto,
+} from './dto/account.dto';
+import { CreateUserDto, ChangePasswordDto, UpdateRoleDto } from './dto/user.dto';
+import {
+  AdminUpdateFeedbackStatusDto,
+  AdminSendFeedbackMessageDto,
+  AdminSendNotificationDto,
+  CreateNotificationTemplateDto,
+} from './dto/feedback.dto';
+import { CaptureBaselineDto } from './dto/monitoring.dto';
 
 @ApiTags('admin')
 @ApiBearerAuth()
@@ -66,7 +83,7 @@ export class AdminController {
   @Patch('accounts/:id/fee')
   setFee(
     @Param('id') id: string,
-    @Body() body: { fee: number | null },
+    @Body() body: SetAccountFeeDto,
     @CurrentUser('id') adminUserId: string,
   ) {
     return this.accountService.setAccountDailyFee(id, body.fee, adminUserId);
@@ -76,7 +93,7 @@ export class AdminController {
   @Post('accounts/:id/deposit')
   deposit(
     @Param('id') id: string,
-    @Body() body: { amount: number; description?: string },
+    @Body() body: DepositDto,
     @CurrentUser('id') adminUserId: string,
   ) {
     return this.accountService.depositToAccount(
@@ -96,7 +113,7 @@ export class AdminController {
   /** Update global daily fee */
   @Put('global-fee')
   setGlobalFee(
-    @Body() body: { fee: number },
+    @Body() body: SetGlobalFeeDto,
     @CurrentUser('id') adminUserId: string,
   ) {
     return this.accountService.setGlobalFee(body.fee, adminUserId);
@@ -105,7 +122,7 @@ export class AdminController {
   /** Create new account + first user */
   @Post('accounts')
   createAccount(
-    @Body() body: { company_name: string; email: string; password: string; role: string },
+    @Body() body: CreateAccountDto,
     @CurrentUser('id') adminUserId: string,
   ) {
     return this.accountService.createAccount(
@@ -121,7 +138,7 @@ export class AdminController {
   @Patch('accounts/:id/status')
   updateAccountStatus(
     @Param('id') accountId: string,
-    @Body() body: { status: string },
+    @Body() body: UpdateAccountStatusDto,
     @CurrentUser('id') adminUserId: string,
   ) {
     return this.accountService.updateAccountStatus(accountId, body.status, adminUserId);
@@ -131,7 +148,7 @@ export class AdminController {
   @Patch('accounts/:id/phone')
   updateAccountPhone(
     @Param('id') accountId: string,
-    @Body() body: { phone: string | null },
+    @Body() body: UpdateAccountPhoneDto,
     @CurrentUser('id') adminUserId: string,
   ) {
     return this.accountService.updateAccountPhone(accountId, body.phone, adminUserId);
@@ -140,12 +157,7 @@ export class AdminController {
   /** E2 — Bulk Account Action */
   @Post('accounts/bulk')
   bulkAction(
-    @Body() body: {
-      account_ids: string[];
-      action: 'DEPOSIT' | 'SUSPEND' | 'ACTIVATE' | 'SET_FEE';
-      amount?: number;
-      fee?: number;
-    },
+    @Body() body: BulkAccountActionDto,
     @CurrentUser('id') adminUserId: string,
   ) {
     return this.accountService.bulkAccountAction(
@@ -173,7 +185,7 @@ export class AdminController {
   @Post('accounts/:id/users')
   createUser(
     @Param('id') accountId: string,
-    @Body() body: { email: string; password: string; role: string },
+    @Body() body: CreateUserDto,
     @CurrentUser('id') adminUserId: string,
   ) {
     return this.userService.createUser(
@@ -227,7 +239,7 @@ export class AdminController {
   @Patch('users/:id/password')
   changePassword(
     @Param('id') userId: string,
-    @Body() body: { password: string },
+    @Body() body: ChangePasswordDto,
     @CurrentUser('id') adminUserId: string,
   ) {
     return this.userService.changeUserPassword(userId, body.password, adminUserId);
@@ -237,7 +249,7 @@ export class AdminController {
   @Patch('users/:id/role')
   updateRole(
     @Param('id') userId: string,
-    @Body() body: { role: string },
+    @Body() body: UpdateRoleDto,
     @CurrentUser('id') adminUserId: string,
   ) {
     return this.userService.updateUserRole(userId, body.role, adminUserId);
@@ -436,7 +448,7 @@ export class AdminController {
   @Patch('feedback/:id/status')
   updateFeedbackStatus(
     @Param('id') ticketId: string,
-    @Body() body: { status: string },
+    @Body() body: AdminUpdateFeedbackStatusDto,
     @CurrentUser('id') adminUserId: string,
   ) {
     return this.feedbackService.updateFeedbackStatus(ticketId, body.status, adminUserId);
@@ -446,7 +458,7 @@ export class AdminController {
   @Post('feedback/:id/messages')
   sendFeedbackMessage(
     @Param('id') ticketId: string,
-    @Body() body: { content: string },
+    @Body() body: AdminSendFeedbackMessageDto,
     @CurrentUser('id') adminUserId: string,
   ) {
     return this.feedbackService.sendFeedbackMessage(ticketId, adminUserId, body.content, true);
@@ -459,7 +471,7 @@ export class AdminController {
   /** E3 — Send Notification */
   @Post('notifications')
   sendNotification(
-    @Body() body: { message: string; type: string; target: 'all' | string[] },
+    @Body() body: AdminSendNotificationDto,
     @CurrentUser('id') adminUserId: string,
   ) {
     return this.feedbackService.sendNotification(body.message, body.type, body.target, adminUserId);
@@ -468,7 +480,7 @@ export class AdminController {
   /** Send notification (advanced — template or custom, targeted or broadcast) */
   @Post('notifications/send')
   sendNotificationAdvanced(
-    @Body() body: { message: string; type: string; target: 'all' | string[] },
+    @Body() body: AdminSendNotificationDto,
     @CurrentUser('id') adminUserId: string,
   ) {
     return this.feedbackService.sendNotificationAdvanced({
@@ -488,7 +500,7 @@ export class AdminController {
   /** Create notification template */
   @Post('notification-templates')
   createNotificationTemplate(
-    @Body() body: { name: string; message: string; type: string },
+    @Body() body: CreateNotificationTemplateDto,
     @CurrentUser('id') adminUserId: string,
   ) {
     return this.feedbackService.createNotificationTemplate(body.name, body.message, body.type, adminUserId);
@@ -616,7 +628,7 @@ export class AdminController {
 
   /** M5 — Capture Capacity Baseline */
   @Post('monitoring/baseline')
-  captureBaseline(@Body() body: { label: string }) {
+  captureBaseline(@Body() body: CaptureBaselineDto) {
     return this.monitoringService.captureBaseline(body.label);
   }
 
@@ -646,7 +658,7 @@ export class AdminController {
 
     for (const row of data) {
       csvRows.push(headers.map((h) => {
-        const val = (row as any)[h];
+        const val = (row as Record<string, unknown>)[h];
         const str = String(val ?? '');
         // Escape commas and quotes
         return str.includes(',') || str.includes('"')

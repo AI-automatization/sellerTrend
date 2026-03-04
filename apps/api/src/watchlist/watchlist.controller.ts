@@ -13,6 +13,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { WatchlistService } from './watchlist.service';
+import { CreateWatchlistDto } from './dto/create-watchlist.dto';
 
 @ApiTags('watchlists')
 @ApiBearerAuth()
@@ -26,7 +27,7 @@ export class WatchlistController {
   @UseGuards(JwtAuthGuard, BillingGuard)
   createWatchlist(
     @CurrentUser('account_id') accountId: string,
-    @Body() body: { name: string; description?: string; product_ids: string[] },
+    @Body() body: CreateWatchlistDto,
   ) {
     return this.watchlistService.createWatchlist(accountId, body);
   }

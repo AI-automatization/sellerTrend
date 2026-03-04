@@ -14,6 +14,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { NotificationService } from './notification.service';
+import { SendNotificationDto } from './dto/send-notification.dto';
 
 @ApiTags('notifications')
 @ApiBearerAuth()
@@ -47,12 +48,7 @@ export class NotificationController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN')
   sendNotification(
-    @Body()
-    body: {
-      message: string;
-      type: string;
-      target: 'all' | string[];
-    },
+    @Body() body: SendNotificationDto,
     @CurrentUser('id') adminId: string,
   ) {
     return this.notificationService.sendNotification(

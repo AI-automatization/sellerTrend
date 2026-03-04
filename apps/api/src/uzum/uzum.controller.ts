@@ -8,6 +8,7 @@ import { ParseBigIntPipe } from '../common/pipes/parse-bigint.pipe';
 import { UzumService } from './uzum.service';
 import { ProductsService } from '../products/products.service';
 import { RequestLoggerService } from '../common/request-logger.service';
+import { BatchQuickScoreDto } from './dto/batch-quick-score.dto';
 
 class AnalyzeUrlDto {
   @IsUrl()
@@ -61,7 +62,7 @@ export class UzumController {
   /** Batch quick-score — up to 50 products at once, DB-only (no Uzum API calls) */
   @Post('batch-quick-score')
   @UseGuards(JwtAuthGuard)
-  async batchQuickScore(@Body() body: { product_ids: string[] }) {
+  async batchQuickScore(@Body() body: BatchQuickScoreDto) {
     const MAX_BATCH_SIZE = 50;
     const ids = (body.product_ids || []).slice(0, MAX_BATCH_SIZE);
     const results = await Promise.all(

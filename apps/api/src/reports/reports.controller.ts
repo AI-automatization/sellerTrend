@@ -13,6 +13,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ReportsService } from './reports.service';
+import { CreateReportDto } from './dto/create-report.dto';
 
 @ApiTags('reports')
 @ApiBearerAuth()
@@ -25,14 +26,7 @@ export class ReportsController {
   @Post()
   createReport(
     @CurrentUser('account_id') accountId: string,
-    @Body() body: {
-      title: string;
-      description?: string;
-      report_type: string;
-      filters?: any;
-      columns?: any;
-      schedule?: string;
-    },
+    @Body() body: CreateReportDto,
   ) {
     return this.reportsService.createReport(accountId, body);
   }

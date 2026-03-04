@@ -1,7 +1,7 @@
 import { Worker, Job } from 'bullmq';
 import { redisConnection } from '../redis';
 import { prisma } from '../prisma';
-import { logJobStart, logJobDone, logJobError } from '../logger';
+import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
 
 /** Sentinel error used to signal insufficient balance inside a transaction */
 class InsufficientBalanceError extends Error {
@@ -10,12 +10,25 @@ class InsufficientBalanceError extends Error {
   }
 }
 
-async function chargeAllActiveAccounts() {
+async function chargeAllActiveAccounts(jobId: string) {
   const setting = await prisma.systemSetting.findUnique({
     where: { key: 'daily_fee_default' },
   });
   const defaultFee = BigInt(setting?.value ?? '50000');
   const today = new Date().toISOString().split('T')[0];
+
+  // Idempotency check: skip if today's billing was already processed
+  const alreadyCharged = await prisma.transaction.findFirst({
+    where: {
+      type: 'CHARGE',
+      description: `Daily fee charge: ${today}`,
+    },
+  });
+
+  if (alreadyCharged) {
+    logJobInfo('billing-queue', jobId, 'charge', `Daily billing already processed for ${today}, skipping (idempotency)`);
+    return { charged: 0, suspended: 0, total: 0, skipped: true };
+  }
 
   // Exclude SUPER_ADMIN accounts from daily charges
   const adminAccountIds = (
@@ -77,7 +90,7 @@ async function chargeAllActiveAccounts() {
     }
   }
 
-  return { charged, suspended, total: accounts.length };
+  return { charged, suspended, total: accounts.length, skipped: false };
 }
 
 export function createBillingWorker() {
@@ -87,7 +100,7 @@ export function createBillingWorker() {
       const start = Date.now();
       logJobStart('billing-queue', job.id ?? '-', job.name);
       try {
-        const result = await chargeAllActiveAccounts();
+        const result = await chargeAllActiveAccounts(job.id ?? '-');
         logJobDone('billing-queue', job.id ?? '-', job.name, Date.now() - start, result);
         return result;
       } catch (err) {
