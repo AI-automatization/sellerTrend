@@ -334,15 +334,13 @@ Tray i18n, loadURL error, devtools block, package.json metadata, macOS About, en
 
 > T-343..T-352 → Done.md
 
-## P1 — MUHIM (3 task qoldi)
+## P1 — MUHIM (1 task qoldi)
 
 | # | Muammo | Bug soni | Vaqt |
 |---|--------|----------|------|
-| T-353 | DTO validation — 15+ endpoint raw @Body() | 15 | 3h |
 | T-354 | `any` type cleanup — 40+ instance | 40 | 2h |
-| T-357 | Worker stability batch — 7 ta fix | 7 | 1.5h |
 
-> T-355, T-356, T-358 → Done.md (2026-03-04, b187672)
+> T-353, T-355, T-356, T-357, T-358 → Done.md (2026-03-04)
 
 ## P2 — O'RTA (2 task, ~41 bug)
 
@@ -449,7 +447,7 @@ Tray i18n, loadURL error, devtools block, package.json metadata, macOS About, en
 | Kategoriya | Task | Bug/Fix | Mas'ul |
 |-----------|------|---------|--------|
 | ~~Backend Kod Audit P0~~ (T-343..T-352) | ~~10~~ ✅ | ~~10~~ | Bekzod |
-| **Backend Kod Audit P1** (T-353,T-354,T-357) | **3 qoldi** | ~17 | Bekzod |
+| **Backend Kod Audit P1** (T-354) | **1 qoldi** | ~40 | Bekzod |
 | **Backend Kod Audit P2** (T-359..T-360) | 2 | ~41 | Bekzod |
 | **Web Kod Audit P0** (T-361..T-366) | 6 | 6 | Sardor |
 | **Web Kod Audit P1** (T-367..T-369) | 3 | ~28 | Sardor |

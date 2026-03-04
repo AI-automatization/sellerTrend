@@ -4,6 +4,13 @@
 
 ---
 
+## T-353, T-357 | BACKEND P1 | DTO validation + worker stability (2026-03-04)
+
+- T-353: 22 DTO classes with class-validator for 36 raw @Body() endpoints (13 controllers)
+- T-357: 7 worker fixes — billing idempotency, prisma disconnect, Redis TLS, competitor N+1, logger error handler, shared health Redis
+
+---
+
 ## T-379 | FRONTEND P2 | Design system cleanup — chart tokens & duplicates (2026-03-04)
 
 **8 fix bajarildi:**
