@@ -4,6 +4,39 @@
 
 ---
 
+## T-371, T-372 | PLATFORMA P0 | Alert delivery + Bot account linking (2026-03-04)
+
+**T-372 — Bot account linking:**
+- `TelegramLink` model (chatId ↔ accountId), Prisma schema + generate
+- Bot commands: `/connect [key_prefix]`, `/disconnect`, `/myproducts`, `/balance`, `/product [URL|ID]`
+- `requireLink()` helper, `formatUzs()`, `parseProductInput()` — shared utilities
+- Updated `/start`, `/status`, `/help` to show new commands
+
+**T-371 — Alert delivery pipeline:**
+- `alert-delivery.processor.ts` — BullMQ worker, queries undelivered AlertEvents (delivered_at IS NULL)
+- Creates in-app `Notification` per account + sends Telegram via Bot API (if TelegramLink exists)
+- `alert-delivery.job.ts` — */5 * * * * cron (every 5 minutes)
+- `AlertEvent.delivered_at` field + index added to schema
+- Worker: 7th worker registered, shutdown graceful, health check workers=7
+- `uzum.service.ts` — improved SCORE_SPIKE alert message format
+
+**Tekshiruv:** API + Worker + Bot tsc --noEmit — 0 error ✅
+
+---
+
+## T-354 | BACKEND P1 | `any` type cleanup — 40+ instances replaced (2026-03-04)
+
+**25 ta fayl o'zgartirildi, 0 `any` qoldi:**
+
+- **GROUP 1 — Prisma WhereInput:** `admin-log.service.ts`, `admin-stats.service.ts`, `admin-feedback.service.ts`, `admin-user.service.ts` → `Prisma.XxxWhereInput`
+- **GROUP 2 — Record<string,unknown>:** `ai-throttler.guard.ts`, `custom-throttler.guard.ts`, `activity-logger.interceptor.ts`, `global-logger.interceptor.ts`, `file-logger.ts`, `reports.service.ts`
+- **GROUP 3 — Observable<unknown>:** `activity-logger.interceptor.ts`, `global-logger.interceptor.ts`
+- **GROUP 4 — External API interfaces:** `serpapi.client.ts` (`SerpApiResponse`, `SerpApiResultItem`), `aliexpress.client.ts` (`AliExpressApiResponse`), `uzum.client.ts` (`UzumSku`, `UzumSeller`, `UzumPhoto`, `UzumCategory`, `UzumProductData`, `UzumApiResponse`, `UzumSearchProduct`, `UzumNormalizedProduct`), `sourcing.service.ts`
+- **GROUP 5 — Other:** `ai.service.ts` (Prisma JSON), `admin-account.service.ts`, `competitor.service.ts`, `leaderboard.service.ts`, `error-tracker.filter.ts`, `export.controller.ts`, `products.service.ts`, `uzum.service.ts`, `main.ts`, `ads.service.ts`, `signals.service.ts`
+- **Tekshiruv:** `tsc --noEmit` — 0 error ✅, `grep any` — 0 qoldi ✅
+
+---
+
 ## T-353, T-357 | BACKEND P1 | DTO validation + worker stability (2026-03-04)
 
 - T-353: 22 DTO classes with class-validator for 36 raw @Body() endpoints (13 controllers)

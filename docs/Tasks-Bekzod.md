@@ -169,6 +169,7 @@ Bot domain placeholder, /top numeric ID, bot rate limiting, escapeHtml duplicate
 
 **Backend Audit P0 (10 ta):** T-343, T-344, T-345, T-346, T-347, T-348, T-349, T-350, T-351, T-352
 **Backend Audit P1 (3 ta):** T-355, T-356, T-358
+**Platforma Audit P0 (2 ta):** T-371, T-372
 **Design System (1 ta):** T-379
 **Backend P1 (6 ta):** T-241, T-269, T-270, T-214, T-235 (→T-284), T-236 (→T-283)
 **Backend P2 (2 ta):** T-239, T-150
