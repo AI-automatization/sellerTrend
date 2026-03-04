@@ -25,7 +25,7 @@ export class UzumService {
   /**
    * URL Analyze: URL → upsert product/shop/sku → snapshot → score
    */
-  async analyzeUrl(url: string): Promise<any> {
+  async analyzeUrl(url: string): Promise<unknown> {
     const productId = parseUzumProductId(url);
     if (!productId) {
       throw new BadRequestException('Invalid Uzum URL. Expected: https://uzum.uz/product/12345');
@@ -34,7 +34,7 @@ export class UzumService {
     return this.analyzeProduct(productId);
   }
 
-  async analyzeProduct(productId: number): Promise<any> {
+  async analyzeProduct(productId: number): Promise<unknown> {
     // 1. Fetch product detail
     const detail = await this.uzumClient.fetchProductDetail(productId);
     if (!detail) {
@@ -122,7 +122,7 @@ export class UzumService {
     let weeklyBought: number | null = null;
     let wbSource = 'calculated';
 
-    const lastScraped = recentSnapshots.find((s) => s.weekly_bought != null && (s as any).weekly_bought_source === 'scraped');
+    const lastScraped = recentSnapshots.find((s) => s.weekly_bought != null && s.weekly_bought_source === 'scraped');
     if (lastScraped) {
       weeklyBought = lastScraped.weekly_bought;
       wbSource = 'stored_scraped';

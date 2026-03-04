@@ -133,6 +133,7 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
           weekly_bought: weeklyBought,
           weekly_bought_source: wbSource,
           rating: detail.rating ?? null,
+          feedback_quantity: detail.reviewsAmount ?? 0,
           score,
         },
       });
