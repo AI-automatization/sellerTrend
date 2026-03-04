@@ -1,6 +1,5 @@
 const SENTRY_DSN = process.env.SENTRY_DSN;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let SentryLib: Record<string, unknown> | null = null;
 
 export async function initSentry() {
