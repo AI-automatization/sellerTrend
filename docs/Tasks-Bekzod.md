@@ -1,36 +1,20 @@
 # BEKZOD — Ochiq Vazifalar
-# Fayllar: apps/api/, apps/worker/, apps/bot/, packages/*, docker-*, .github/*, prisma
+# Fayllar: apps/api/, apps/worker/, apps/bot/, apps/web/, apps/extension/, packages/*, prisma
 # Yangilangan: 2026-03-04
 # Bajarilganlar → docs/Done.md
 # Audit manba: CODE-AUDIT + DEEP-PLATFORM-AUDIT + Analysis-Onboarding
 
 ---
 
-# KOD AUDIT — P1 MUHIM (T-353, T-354, T-357)
-
-> 3 task qoldi (T-355, T-356, T-358 → Done.md)
-
-### T-353 | P1 | BACKEND | DTO validation — 15+ endpoint raw @Body() | 3h
-**Sabab:** `ads`, `consultation`, `tools`, `reports`, `watchlist`, `community`, `signals`, `notification` controller'lar DTO'siz. `@Body()` raw JSON qabul qiladi — injection xavfi.
-**Yechim:** Har modul uchun DTO yaratish (class-validator). 8 ta controller, ~15 endpoint.
+# BACKEND KOD AUDIT — P1 MUHIM
 
 ### T-354 | P1 | BACKEND | `any` type cleanup — 40+ instance | 2h
 **Sabab:** `serpapi.client`, `leaderboard`, `reports`, `community`, `file-logger`, `export.controller` — strict TS buzilgan.
 **Yechim:** Har `any` → typed interface yoki `unknown` + type guard.
 
-### T-357 | P1 | BACKEND | Worker stability batch — 7 ta fix | 1.5h
-**Sabab va yechim:**
-1. **Billing idempotency** (`billing.processor.ts`) — retry da double charge → idempotency key
-2. **Worker prisma disconnect** (`worker/main.ts:83-107`) — shutdown'da `$disconnect()` yo'q → qo'shish
-3. **Bot prisma disconnect** (`bot/main.ts:6-12`) — crash handler'da yo'q → qo'shish
-4. **Redis TLS** (`worker/redis.ts`) — `rediss://` handle emas → URL parse + tls option
-5. **Competitor N+1** (`competitor.processor.ts:13`) — unbounded findMany → `take` + `include`
-6. **Logger stream error** (`worker/logger.ts:32-41`) — `.on('error')` handler yo'q → qo'shish
-7. **Worker health Redis** (`worker/main.ts:54`) — alohida connection → shared instance
-
 ---
 
-# KOD AUDIT — P2 O'RTA (T-359..T-360)
+# BACKEND KOD AUDIT — P2 O'RTA
 
 ### T-359 | P2 | BACKEND | API P2 batch (27 ta) | 4h
 > Batafsil ro'yxat: CODE-AUDIT-2026-03-04.md → P2-API-01..P2-API-27
@@ -42,94 +26,144 @@ Bot domain placeholder, /top numeric ID, bot rate limiting, escapeHtml duplicate
 
 ---
 
-# PLATFORMA AUDIT — UX/PIPELINE/ONBOARDING (T-371..T-376)
+# WEB APP AUDIT — P0 KRITIK (T-361..T-366)
 
-> Manba: DEEP-PLATFORM-AUDIT-2026-03-04.md + Analysis-Onboarding-Multimarketplace.md
+> Manba: CODE-AUDIT-2026-03-04.md | apps/web/ | 6 ta P0 bug
 
-### T-371 | P0 | BACKEND | Alert delivery pipeline — uzilgan, hech kimga yetkazilmaydi | 4h
-**Sabab:** `sendDiscoveryAlert()` (`apps/bot/src/alerts.ts`) funksiyasi mavjud, lekin **hech qachon chaqirilmaydi**. Worker AlertEvent yaratadi (DB ga yozadi), lekin alert hech kimga yetkazilmaydi — na Telegram, na in-app notification.
-**Ta'sir:** Platformaning eng kuchli feature'lari (signal detection, stock cliff, flash sales) foydasiz — user bilmaydi.
-**Yechim:**
-1. Alert delivery worker job yaratish (5 min cron) — AlertEvent'larni o'qib, Telegram + in-app notification yuborish
-2. `sendDiscoveryAlert()` ni discovery processor'ga wire qilish
-3. Own-product price alert trigger qo'shish — narx o'zgarganda alert yaratish
-4. T-372 (bot account linking) bilan birga ishlaydi
+### T-361 | P0 | FRONTEND | XSS — `dangerouslySetInnerHTML` olib tashlash | 15min
+**Sabab:** `Layout.tsx:276` — `dangerouslySetInnerHTML={{ __html: t('payment.overdueDesc').replace('{balance}', '<strong>...')}}`. `balance` API'dan keladi. MITM hujumida XSS vektor.
+**Yechim:** JSX interpolation: `<span>{t('payment.overdueDesc1')}<strong>{balance}</strong>{t('payment.overdueDesc2')}</span>`. `dangerouslySetInnerHTML` to'liq o'chirish.
 
-### T-372 | P0 | BACKEND | Bot account linking — TelegramLink model + commands | 4h
-**Sabab:** Telegram chatId → VENTRA accountId bog'lanishi **yo'q**. Bot faqat 6 ta generic command bor (`/start`, `/subscribe`, `/status`, `/top`, `/help`, `/unsubscribe`). `/top` global — har kim bir xil top 10 ko'radi. Shaxsiy ma'lumot yuborib bo'lmaydi.
-**Ta'sir:** Bot 2/10 ball — deyarli foydasiz.
-**Yechim:**
-1. `TelegramLink` model yaratish (chatId ↔ accountId)
-2. `/connect [API_KEY]` command — account linking
-3. `/myproducts` — tracked products ro'yxati
-4. `/balance` — qoldiq + kunlar
-5. `/product [URL]` — tez tahlil (URL paste → score qaytarish)
+### T-362 | P0 | FRONTEND | Auth Store token desync — stale role/email | 30min
+**Sabab:** `authStore.ts` + `base.ts` — Token refresh interceptor faqat `localStorage` ni yangilaydi, Zustand store'ni emas. `payload.role`, `payload.email` stale qoladi.
+**Yechim:** Refresh interceptor'da `useAuthStore.getState().setTokens(newAccess, newRefresh)` chaqirish.
 
-### T-373 | P1 | BACKEND | Onboarding schema + API endpoint | 1.5h
-**Sabab:** Account modelida `onboardingCompleted` flag yo'q — user onboarding'dan o'tganmi bilish imkonsiz. Frontend (T-368 #5) Welcome Modal yaratishi kerak, lekin backend tomonida tracking yo'q.
-**Yechim:**
-1. Schema migration:
-   - `Account.onboardingCompleted Boolean @default(false)`
-   - `Account.onboardingStep Int @default(0)`
-   - `Account.selectedMarketplaces String[] @default(["uzum"])`
-2. `GET /api/v1/auth/me` response'ga `onboardingCompleted` qo'shish
-3. `PATCH /api/v1/onboarding` endpoint — `{ step, completed, marketplaces }`
+### T-363 | P0 | FRONTEND | WebSocket logout'da disconnect qilinmaydi | 15min
+**Sabab:** `useSocket.ts:12-23` — Module-level `sharedSocket` logout'dan keyin ham eski `account_id` bilan ishlaydi.
+**Yechim:** Logout flow'da `sharedSocket.disconnect()` + `sharedSocket = null`. `useSocket` da re-connect logic.
 
-### T-374 | P1 | BACKEND | Forgot Password — API endpoint | 3h
-**Sabab:** Parol tiklash imkonsiz — "Forgot Password" yo'q. User parol unutsa accountga qayta kira olmaydi.
-**Yechim:**
-1. `POST /api/v1/auth/forgot-password` — email ga reset token yuborish
-2. `POST /api/v1/auth/reset-password` — token + yangi parol
-3. Token expiry (15 min), rate limiting (3 req/hour per email)
-4. Email template (NestJS Mailer yoki Telegram fallback)
+### T-364 | P0 | FRONTEND | AdminRoute token expiry tekshirmaydi | 10min
+**Sabab:** `App.tsx:42-48` — `AdminRoute` faqat `role` tekshiradi, `isTokenValid()` yo'q.
+**Yechim:** `if (!isTokenValid() || role !== 'SUPER_ADMIN') return <Navigate to="/login" />`
 
-### T-375 | P1 | BACKEND | Worker monitoring jobs — 5 ta yangi cron | 8h
-**Sabab:** 14 ta ML algoritmdan 5 tasi (`detectStockCliff`, `detectFlashSales`, `detectEarlySignals`, `predictDeadStock`, `planReplenishment`) faqat API'da on-demand ishlaydi. **Avtomatik worker job yo'q** — alert yaratilmaydi.
-**Yechim:**
-1. **Morning digest** (07:00 cron) — per-account top products, alerts, balance → Bot (T-372 kerak)
-2. **Stock monitoring** — `detectStockCliff()` cron (har 6 soat)
-3. **Trend detection** — `detectEarlySignals()` + `detectFlashSales()` cron (har 6 soat)
-4. **Currency rate update** — CBU.uz dan avtomatik (hozir `DEFAULT_USD_RATE` hardcoded 12800)
-5. **Data cleanup** — eski snapshot'lar (90+ kun), expired session'lar, stale job'lar
+### T-365 | P0 | FRONTEND | ProductPage useEffect race condition | 30min
+**Sabab:** `ProductPage.tsx:120,131,146,162` — 4 ta `useEffect` turli dep array bilan. Stale result + yangi product kombinatsiyasi.
+**Yechim:** `AbortController` + sequential flow yoki bitta `useProductData(id)` hook.
 
-### T-376 | P2 | BACKEND | Platform model — multi-marketplace (kelajak) | 2h
-**Sabab:** Hozir faqat Uzum.uz. Wildberries, Yandex Market kelajakda qo'shiladi. Platform abstraksiyasi yo'q.
-**Yechim:**
-1. `Platform` model yaratish (`slug`, `name`, `isActive`, `comingSoon`, `logoUrl`)
-2. Seed: `uzum` (isActive: true), `wildberries`, `yandex_market`, `ozon` (comingSoon: true)
-3. `GET /api/v1/platforms` — public endpoint
-4. `Account.selectedMarketplaces` bilan bog'lash
-
-### T-378 | P1 | FRONTEND | Forgot Password UI | 2h
-**Sabab:** Login sahifada "Parolni unutdingiz?" link yo'q. User parol unutsa dead end.
-**Yechim:**
-1. LoginPage'da "Parolni unutdingiz?" link qo'shish
-2. ForgotPasswordPage yaratish — email input → API call
-3. ResetPasswordPage yaratish — token + yangi parol
-4. T-374 (Forgot Password API) bilan birga ishlaydi
-
-### T-383 | P2 | FRONTEND | Landing multi-marketplace section | 3h
-**Sabab:** Hozir landing faqat "Uzum.uz sotuvchilar uchun". Multi-marketplace strategy ko'rsatish kerak.
-**Yechim:**
-1. **MarketplacesSection** — HeroSection dan keyin: platform logolar `[Uzum ✓] [Wildberries — tez kunda] [Yandex — tez kunda]`
-2. **Hero copy update** — "Markaziy Osiyo marketplace'lari uchun yagona analytics platforma"
-3. **Pricing tiers** — marketplace tiers bilan yangilash (hozircha "tez kunda" badge)
-4. T-376 (Platform model) tayyor bo'lgach dinamik qilish
-
-### T-384 | P3 | IKKALASI | Engagement features — kelajak | 20h+
-**Sabab:** User retention va "addictive analytics" uchun zarur feature'lar:
-1. **Revenue estimator** — narx × sotuv tezligi = taxminiy daromad (API + Web)
-2. **Product comparison** — 2-3 mahsulotni yonma-yon taqqoslash (Web)
-3. **Login streak** — "5 kun ketma-ket kirdingiz!" (API + Web)
-4. **Achievement badges** — "Birinchi mahsulot", "10 ta analyzed" (API + Web)
-5. **"What's new" changelog** — yangi feature'lar haqida (Web)
-6. **Weekly email digest** — "Top product -15% tushdi" (Worker + API)
+### T-366 | P0 | FRONTEND | Duplicate TokenPayload types | 10min
+**Sabab:** `authStore.ts:3-9` `TokenPayload` + `base.ts:121-128` `JwtTokenPayload` — sync'siz.
+**Yechim:** Bitta `TokenPayload` + `decodePayload` → `utils/auth.ts`. Ikkalasi import.
 
 ---
 
-# MAVJUD TASKLAR (o'zgarishsiz)
+# WEB APP AUDIT — P1 MUHIM (T-367..T-369)
 
-## ENV (qo'lda)
+### T-367 | P1 | FRONTEND | AdminPage refactor — God Component | 2h
+1. **30+ useState** (`AdminPage.tsx:24-88`) — tab state hook/context ga
+2. **`Record<string, unknown>` de facto `any`** (`AdminPage.tsx:40-88`) — typed interface
+
+### T-368 | P1 | FRONTEND | UX gaps — 6 ta user-facing bug | 2h
+1. **404 route yo'q** (`App.tsx`) → `<Route path="*" element={<NotFoundPage />} />`
+2. **Notification count faqat mount'da** (`Layout.tsx:130-135`) → WebSocket/polling
+3. **Payment "To'ldirish" onClick yo'q** (`DashboardPage.tsx:143`) → to'lov flow
+4. **Parol confirmation yo'q** (`RegisterPage.tsx:148-157`) → confirm + strength indicator
+5. **Bo'sh Dashboard onboarding** (`DashboardPage.tsx:80-90`) → Welcome modal (T-373 tayyor)
+6. **`useDashboardData` xatoni yutadi** (`useDashboardData.ts:17`) → `.catch(logError)` + UI error
+
+### T-369 | P1 | FRONTEND | Code quality — 8 ta fix | 1h
+1. **PublicLeaderboardPage dead code** → route qo'shish yoki o'chirish
+2. **ErrorBoundary hardcoded Uzbek** (`ErrorBoundary.tsx:44-78`) → `t()` i18n
+3. **Versiya "v5.1" eskirgan** (`LoginPage.tsx:77`, `RegisterPage.tsx:78`) → `APP_VERSION` const
+4. **`branding.ts` dead code** (`config/branding.ts`) → o'chirish
+5. **`isSuperAdmin` deps yo'q** (`Layout.tsx:118`) → useEffect dep array
+6. **Date format 4 xil** → `utils/formatDate.ts` helper
+7. **Notification layout** → stale state fix
+8. **`useScoreRefresh` stale closure** (`useSocket.ts:49-57`) → `useRef` pattern
+
+---
+
+# WEB APP AUDIT — P2 O'RTA
+
+### T-370 | P2 | FRONTEND | Web P2 batch (15 ta) | 3h
+> CODE-AUDIT-2026-03-04.md → P2-WEB-01..P2-WEB-15
+1. Recharts lazy import (~200KB) — `React.lazy()`
+2. Consultation tab stale data — tab switch da refetch
+3. Object URL memory leak — `URL.revokeObjectURL()` cleanup
+4. Booking modal — Escape key + focus trap
+5. Accessibility — aria-label/roles (Layout, DiscoveryPage, SourcingPage)
+6. API key delete confirmation modal
+7. Date format centralize — `utils/formatDate.ts`
+8. Payment overlay dead end — to'lov flow
+9. SourcingPage redundant ternary
+10. `DEFAULT_USD_RATE` hardcoded → API dan olish
+11. Duplicate CompetitorSection files → bitta
+12. `(window as any).Telegram` → type declaration
+13. `as any` in AnalyzePage → typed
+14. SharedWatchlistPage/TelegramMiniApp i18n
+15. `useScoreRefresh` stale closure → ref pattern
+
+---
+
+# CHROME EXTENSION — 18 TASK (T-216..T-233)
+
+> Phase 1 (T-208..T-211) va Phase 2 (T-212..T-215) ✅ DONE → Done.md
+> apps/extension/ — Bekzod zonasi (CLAUDE.md)
+
+| Faza | Tasklar | Vaqt | Holat |
+|------|---------|------|-------|
+| 3. Popup Dashboard (P1) | T-216 | ~1.5h | ⬜ |
+| 4. Category + Advanced (P1) | T-217..T-219 | ~5h | ⬜ |
+| 5. Competitor + Narx (P2) | T-220..T-222 | ~4.5h | ⬜ |
+| 6. AI + Hotkeys (P2) | T-223..T-224 | ~2.5h | ⬜ |
+| 7. i18n + Testing (P2) | T-225..T-227 | ~4.5h | ⬜ |
+| 8. Build + Publish (P1) | T-228..T-229 | ~3h | ⬜ |
+| 9. Security + Polish (P1) | T-230..T-233 | ~3.5h | ⬜ |
+
+---
+
+# PLATFORMA AUDIT — UX/PIPELINE/ONBOARDING
+
+### T-376 | P2 | BACKEND | Platform model — multi-marketplace (kelajak) | 2h
+**Yechim:**
+1. `Platform` model (`slug`, `name`, `isActive`, `comingSoon`, `logoUrl`)
+2. Seed: `uzum` (active), `wildberries`, `yandex_market`, `ozon` (comingSoon)
+3. `GET /api/v1/platforms` public endpoint
+4. `Account.selectedMarketplaces` bilan bog'lash
+
+### T-377 | P0 | FRONTEND | Demo credentials production'da — o'chirish | 5min
+**Sabab:** `LoginPage.tsx:167` — `demo@ventra.uz / Demo123!` hardcoded.
+**Yechim:** Demo creds o'chirish. `NODE_ENV === 'development'` da ko'rsatish mumkin.
+
+### T-378 | P1 | FRONTEND | Forgot Password UI | 2h
+1. LoginPage'da "Parolni unutdingiz?" link
+2. ForgotPasswordPage — email input → API call
+3. ResetPasswordPage — token + yangi parol
+4. T-374 (API) bilan birga ishlaydi
+
+### T-380 | P2 | FRONTEND | Mobile UX — 4 ta fix | 3h
+1. Bottom navigation bar yo'q → 5 ta asosiy sahifa bottom nav
+2. ProductPage "scroll to top" yo'q → floating button
+3. Table → card layout mobile'da
+4. Payment overlay `backdrop-blur` → fallback
+
+### T-381 | P2 | FRONTEND | Accessibility batch — 5 ta fix | 2h
+1. Skip-to-content link
+2. Modal focus trap
+3. Color-only information → colorblind uchun icon/text
+4. Table `scope` attribute
+5. Keyboard shortcuts Ctrl+K
+
+### T-384 | P3 | IKKALASI | Engagement features — kelajak | 20h+
+1. Revenue estimator (API + Web)
+2. Product comparison (Web)
+3. Login streak (API + Web)
+4. Achievement badges (API + Web)
+5. "What's new" changelog (Web)
+6. Weekly email digest (Worker + API)
+
+---
+
+# ENV (qo'lda)
 
 | # | Nima | Holat |
 |---|------|-------|
@@ -137,7 +171,7 @@ Bot domain placeholder, /top numeric ID, bot rate limiting, escapeHtml duplicate
 | E-008 | REDIS_URL parol bilan (dev) | ⬜ |
 | E-010 | PROXY_URL (kerak bo'lganda) | ⬜ |
 
-## DEVOPS
+# DEVOPS
 
 | # | Prioritet | Nima | Holat |
 |---|-----------|------|-------|
@@ -153,33 +187,37 @@ Bot domain placeholder, /top numeric ID, bot rate limiting, escapeHtml duplicate
 
 | Kategoriya | Soni |
 |-----------|------|
-| **Kod Audit P1** (T-353, T-354, T-357) | **3 task** |
-| **Kod Audit P2** (T-359..T-360) | **2 task, ~41 bug** |
-| **Platforma Audit P0** (T-371..T-372) | **2** |
-| **Platforma Audit P1** (T-373..T-375, T-378) | **4** |
-| **Platforma Audit P2** (T-376, T-383) | **2** |
-| **Platforma Audit P3** (T-384) | **1** |
+| **Backend Audit P1** (T-354) | **1 task** |
+| **Backend Audit P2** (T-359..T-360) | **2 task, ~41 bug** |
+| **Web Audit P0** (T-361..T-366) | **6 task** |
+| **Web Audit P1** (T-367..T-369) | **3 task, ~14 bug** |
+| **Web Audit P2** (T-370) | **1 task, 15 bug** |
+| **Chrome Extension** (T-216..T-233) | **18 task** |
+| **Platforma P0** (T-377) | **1** |
+| **Platforma P1** (T-378) | **1** |
+| **Platforma P2** (T-376, T-380, T-381) | **3** |
+| **Platforma P3** (T-384) | **1** |
 | ENV manual | 3 |
 | DevOps | 5 |
-| **JAMI task ochiq** | **22** |
+| **JAMI task ochiq** | **~45** |
 
 ---
 
 # BAJARILDI → Done.md ga ko'chirilgan
 
-**Backend Audit P0 (10 ta):** T-343, T-344, T-345, T-346, T-347, T-348, T-349, T-350, T-351, T-352
-**Backend Audit P1 (3 ta):** T-355, T-356, T-358
+**Backend Audit P0 (10 ta):** T-343..T-352
+**Backend Audit P1 (5 ta):** T-353, T-355, T-356, T-357, T-358
 **Platforma Audit P0 (2 ta):** T-371, T-372
-**Platforma Audit P1 (2 ta):** T-373, T-374
+**Platforma Audit P1 (3 ta):** T-373, T-374, T-375
 **Design System (1 ta):** T-379
-**Backend P1 (6 ta):** T-241, T-269, T-270, T-214, T-235 (→T-284), T-236 (→T-283)
+**Backend P1 (6 ta):** T-241, T-269, T-270, T-214, T-235, T-236
 **Backend P2 (2 ta):** T-239, T-150
 **Backend P3 (1 ta):** T-240
 **Ikkalasi (3 ta):** T-237, T-260, T-261
-**Web (Sardordan) (8 ta):** T-202, T-264, T-266, T-257, T-188, T-189, T-190, T-192
+**Web (8 ta):** T-202, T-264, T-266, T-257, T-188, T-189, T-190, T-192
 **ENV (1 ta):** E-009
 **Railway (10 ta):** T-262, T-263, T-177, T-179, T-180, T-181, T-184, T-242, T-244
 **Stability Sprint (16 ta):** T-299..T-314
 
 ---
-*Tasks-Bekzod.md | VENTRA | 2026-03-04*
+*Tasks-Bekzod.md | VENTRA | 2026-03-04 (zone tuzatish: web/extension Bekzodga)*

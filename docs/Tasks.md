@@ -446,7 +446,7 @@ Tray i18n, loadURL error, devtools block, package.json metadata, macOS About, en
 
 | # | Muammo | Mas'ul | Vaqt |
 |---|--------|--------|------|
-| T-375 | Worker monitoring jobs — stock, trend, currency, cleanup, digest (5 cron) | Bekzod | 8h |
+~~| T-375 | Worker monitoring jobs — stock, trend, currency, cleanup, digest (5 cron) | Bekzod | 8h |~~
 | T-378 | Forgot Password UI | Bekzod | 2h |
 
 ## P2 — O'RTA (6 ta)

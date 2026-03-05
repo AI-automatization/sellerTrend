@@ -4,6 +4,19 @@
 
 ---
 
+## T-375 | PLATFORMA P1 | Worker monitoring crons — 5 avtomatik job (2026-03-05)
+
+**Qo'shilgan 4 yangi processor + job pair:**
+
+- **monitoring.processor.ts + monitoring.job.ts** — `detectStockCliff`, `detectEarlySignals`, `detectFlashSales` har 6 soatda. Har account uchun AlertEvent yaratadi (mavjud AlertRule bo'lsa). Cron: `0 */6 * * *`
+- **morning-digest.processor.ts + morning-digest.job.ts** — Har kuni 07:00 UTC (12:00 Toshkent). TelegramLink bo'lgan foydalanuvchilarga: balans, top 5 mahsulot, kutayotgan alertlar. Cron: `0 7 * * *`
+- **currency-update.processor.ts + currency-update.job.ts** — CBU.uz dan USD/CNY/EUR kurslarini DB ga saqlaydi. Fallback mavjud. Cron: `30 0 * * *`
+- **data-cleanup.processor.ts + data-cleanup.job.ts** — 90+ kunlik Snapshot, muddati o'tgan Session/PasswordReset/Invite, 30+ kunlik stale ExternalSearchJob. Cron: `0 2 * * *`
+
+**main.ts:** Workers 7→11, 4 yangi cron. TS check: 0 xato.
+
+---
+
 ## T-373, T-374 | PLATFORMA P1 | Onboarding + Forgot Password (2026-03-04)
 
 **T-373 — Onboarding schema + API:**
