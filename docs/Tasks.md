@@ -336,13 +336,13 @@ TXT    _railway-verify  → railway-verify=railway-verify=822d30ad3e89eb5a8c969c
 
 ## P0 — KRITIK (5 ta)
 
-| # | Muammo | Fayl | Vaqt |
-|---|--------|------|------|
-| T-315 | `sandbox: false` → `true` | `window.ts:61` | 15min |
-| T-316 | CSP header yo'q | `window.ts` | 15min |
-| T-317 | Path traversal — `app://` protocol | `window.ts:17-44` | 15min |
-| T-318 | SSRF — API proxy validatsiyasiz | `window.ts:22-29` | 15min |
-| T-319 | Navigation cheklovlari yo'q | `window.ts` | 15min |
+| # | Muammo | Fayl | Vaqt | Status |
+|---|--------|------|------|--------|
+| T-315 | `sandbox: false` → `true` | `window.ts:61` | 15min | pending[Sardor] |
+| T-316 | CSP header yo'q | `window.ts` | 15min | pending[Sardor] |
+| T-317 | Path traversal — `app://` protocol | `window.ts:17-44` | 15min | pending[Sardor] |
+| T-318 | SSRF — API proxy validatsiyasiz | `window.ts:22-29` | 15min | pending[Sardor] |
+| T-319 | Navigation cheklovlari yo'q | `window.ts` | 15min | pending[Sardor] |
 
 ## P1 — MUHIM (8 ta)
 
