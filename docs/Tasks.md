@@ -344,7 +344,7 @@ TXT    _railway-verify  → railway-verify=railway-verify=822d30ad3e89eb5a8c969c
 
 ## P2 — O'RTA (batch)
 
-### T-328 | P2 | FRONTEND | Desktop P2 batch (10 ta) | 1h
+### T-328 | P2 | FRONTEND | Desktop P2 batch (10 ta) | 1h | pending[Sardor]
 Tray i18n, loadURL error, devtools block, package.json metadata, macOS About, env.d.ts
 
 ---
