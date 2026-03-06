@@ -405,7 +405,7 @@ Tray i18n, loadURL error, devtools block, package.json metadata, macOS About, en
 
 | # | Muammo | Fayl | Vaqt |
 |---|--------|------|------|
-| T-361 | XSS — `dangerouslySetInnerHTML` | `Layout.tsx:276` | 15min |
+| ~~T-361~~ | ~~XSS — `dangerouslySetInnerHTML`~~ | → T-392 ga birlashtirildi | — |
 | T-362 | Auth Store token desync — stale role/email | `authStore.ts` + `base.ts` | 30min |
 | T-363 | WebSocket logout'da disconnect qilinmaydi | `useSocket.ts:12-23` | 15min |
 | T-364 | AdminRoute token expiry tekshirmaydi | `App.tsx:42-48` | 10min |
@@ -626,36 +626,21 @@ Schema o'zgaradi — docs eskiradi — audit noto'g'ri xulosa chiqaradi (ChatGPT
 
 ## P0 — KRITIK
 
-### T-392 | P0 | IKKALASI | Billing model — FREE plan (yangi user PAYMENT_DUE ko'rmasin) | 6h
+### ~~T-392 P0~~ ✅ DONE (2026-03-06, 80dc8c3) → Done.md
+### T-392 P1-P2 | IKKALASI | Billing model — frontend + admin stats + monthly cron | ~10h
 
-Manba: Onboarding-scenario.md tahlili (2026-03-06) — hozir yangi user balance=0, daily_fee=50000 → birinchi logindan PAYMENT_DUE
-
-**Muammo:** Yangi ro'yxatdan o'tgan user birinchi kirganidayoq "Pul to'lang" banneri ko'radi. Hech narsa ko'rmay ketib qoladi.
-
-**Yechim:**
-- `schema.prisma`: `plan String @default("FREE")`, `plan_expires_at DateTime?`, `analyses_used Int @default(0)`
-- `auth.service.ts`: register'da `plan: 'FREE'` set, `balance` = 0 (o'zgarmaydi)
-- `billing.guard.ts`: `PAYMENT_DUE` check saqlanadi + yangi `PlanGuard` class qo'shiladi (plan feature check)
-- `uzum.controller.ts`: FREE plan uchun `analyses_used++` + limit 10 check
-- `billing.processor.ts` (worker): daily cron → monthly cron (`0 3 1 * *`) + `0 4 1 * *` (analyses_used reset)
-- Frontend: `PaymentDueBanner` matnini yangilash, `plan` field'ni useAccount hook'ga qo'shish
-
-**Fayllar:** `schema.prisma`, `auth/auth.service.ts`, `billing/billing.guard.ts`, `billing/billing.service.ts`, `uzum/uzum.controller.ts`, `apps/worker/src/processors/billing.processor.ts`, `apps/web/src/hooks/useAccount.ts`, `apps/web/src/components/PaymentDueBanner.tsx`
+**Qolgan ishlar:**
+- P1: Worker daily cron → monthly subscription renewal (`0 3 1 * *`)
+- P1: `admin-stats.service.ts`: churn, MRR, plan_distribution yangi formulalar
+- P1: `admin-account.service.ts`: setPlan() metod, plan fieldlar response'da
+- P2: Frontend `PaymentDueBanner` → `PlanExpiredBanner`
+- P2: `PlanGuard` component (locked feature overlay)
+- P2: `BillingPage`: plan selection + upgrade flow
+- P2: `AdminAnalyticsTab`: conversion funnel, plan distribution chart
 
 ---
 
-### T-393 | P0 | FRONTEND | Dashboard Empty State — "Aqlli bo'sh sahifa" | 2h
-
-Manba: Onboarding-scenario.md (2026-03-06) — hozir faqat "Portfolio bo'sh" deydi
-
-**Muammo:** Yangi user dashboard'ga kirganda bo'sh sahifa va "Portfolio is empty" matni ko'radi. Keyingi qadam noma'lum.
-
-**Yechim:** `tracked_products.length === 0` bo'lganda to'liq boshqa layout ko'rsatish:
-- Xush kelibsiz xabari + progress checklist (Registratsiya ✅ → Tahlil ⬜ → Track ⬜ → Bot ⬜)
-- "Birinchi tahlilni boshlash" CTA tugmasi
-- TOP mahsulotlar (layered: DB → hardcode fallback)
-
-**Fayllar:** `apps/web/src/pages/DashboardPage.tsx`, yangi `apps/web/src/components/dashboard/EmptyState.tsx`
+### ~~T-393~~ ✅ DONE (2026-03-06, 8c34df9) → Done.md
 
 ---
 

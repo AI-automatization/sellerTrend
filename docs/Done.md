@@ -4,6 +4,31 @@
 
 ---
 
+## T-392 P0 | IKKALASI | Billing model — FREE plan (2026-03-06)
+
+Yangi user register bo'lganda PAYMENT_DUE ko'rmasligi uchun FREE plan tizimi qo'shildi.
+- Schema: `plan`, `plan_expires_at`, `analyses_used`, `plan_renewed_at` fieldlar; `SUBSCRIPTION`, `PLAN_CHANGE` enum
+- `PlanGuard` + `@RequiresPlan()` decorator (FREE < PRO < MAX < COMPANY hierarchy)
+- `BillingGuard`: FREE plan 10/oy tahlil limiti, PAYMENT_DUE check skip
+- `billing.service` + `billing.processor`: FREE userlar daily charge'dan o'tkazib yuboriladi
+- `uzum.controller`: FREE plan uchun `analyses_used++`
+- Discovery/Sourcing/Signals → `@RequiresPlan('PRO')`, AI → `@RequiresPlan('MAX')`
+- Worker: `analyses-reset` cron (`0 4 1 * *`) — oylik FREE counter reset
+- `auth.service.ts`: `getMe()` → plan, analyses_used, plan_expires_at qaytaradi
+- Migration: `20260306_add_plan_fields`
+- **Qolgan**: P1 (worker monthly billing, admin stats), P2 (frontend BillingPage, PlanGuard UI)
+
+---
+
+## T-393 | FRONTEND | Dashboard Empty State (2026-03-06)
+
+Yangi user dashboard'ga kirganda bo'sh sahifa o'rniga welcoming empty state ko'rsatiladi.
+- `EmptyState.tsx`: Welcome header + 4-step onboarding checklist + TOP 3 product cards
+- `DashboardPage.tsx`: `products.length === 0` → `<EmptyState>` render
+- i18n: 14 ta tarjima kaliti (uz, ru, en)
+
+---
+
 ## T-377 | PLATFORMA P0 | Demo credentials login page'dan olib tashlandi (2026-03-06)
 
 `LoginPage.tsx:167` da `demo@ventra.uz / Demo123!` matni ko'rinib turardi.
