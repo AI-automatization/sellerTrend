@@ -26,6 +26,27 @@
 
 > ~~T-328~~ ✅ DONE (2026-03-06, i18n qismi → T-399) → Done.md
 
+### T-400 | P1 | FRONTEND | Landing dizayn — T-382 komponentlari VENTRA uslubiga moslashtirish | 1h | pending[Sardor]
+
+Manba: foydalanuvchi sharhi (2026-03-06)
+
+**Muammo:** T-382 da qo'shilgan 4 ta komponent (`CookieBanner`, `VideoDemoSection`, `PrivacyPage`, `TermsPage`) VENTRA dizayn tizimidan farq qiladi:
+- `mesh-blob` animatsiyali background yo'q
+- `glass-card`, `gradient-text`, `glow-btn` ishlatilmagan
+- `useAnalytics` o'rniga `window.plausible` to'g'ridan ishlatilgan
+- `plausible.d.ts` redundant — `useAnalytics.ts` allaqachon declare qilgan
+
+**Yechim:** Barcha 4 ta komponentni VENTRA dizayn tizimiga (CTASection/HeroSection uslubiga) moslashtirish.
+
+**Fayllar:**
+- `apps/landing/src/components/CookieBanner.tsx`
+- `apps/landing/src/sections/VideoDemoSection.tsx`
+- `apps/landing/src/pages/PrivacyPage.tsx`
+- `apps/landing/src/pages/TermsPage.tsx`
+- `apps/landing/src/lib/plausible.d.ts` → o'chirish (redundant)
+
+---
+
 ### T-399 | P2 | FRONTEND | Desktop tray menu i18n (uz/ru/en) | 30min
 
 Manba: T-328 dan ajratildi (2026-03-06)
