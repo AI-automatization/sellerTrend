@@ -28,10 +28,11 @@ export function calculateScore(input: ScoreInput): number {
  *   https://uzum.uz/ru/product/molochnaya-smes-dlya-155927?skuId=232522
  */
 export function parseUzumProductId(url: string): number | null {
-  // Match the last numeric sequence in the product slug (before ? or end)
-  const match = url.match(/\/product\/[^?/]*?(\d+)(?:[?/]|$)/);
+  // Match product ID: either plain digits (/product/12345) or slug ending with -DIGITS
+  // Rejects model numbers embedded in slugs (e.g. gillette-mach3 → null)
+  const match = url.match(/\/product\/(?:(\d+)|[^?/]*-(\d+))(?:[?/]|$)/);
   if (!match) return null;
-  return parseInt(match[1], 10);
+  return parseInt(match[1] ?? match[2], 10);
 }
 
 /**
