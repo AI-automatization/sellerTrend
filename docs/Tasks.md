@@ -406,11 +406,11 @@ Tray i18n, loadURL error, devtools block, package.json metadata, macOS About, en
 | # | Muammo | Fayl | Vaqt |
 |---|--------|------|------|
 | ~~T-361~~ | ~~XSS — `dangerouslySetInnerHTML`~~ | → T-392 ga birlashtirildi | — |
-| T-362 | Auth Store token desync — stale role/email | `authStore.ts` + `base.ts` | 30min |
-| T-363 | WebSocket logout'da disconnect qilinmaydi | `useSocket.ts:12-23` | 15min |
-| T-364 | AdminRoute token expiry tekshirmaydi | `App.tsx:42-48` | 10min |
-| T-365 | ProductPage useEffect race condition | `ProductPage.tsx:120-162` | 30min |
-| T-366 | Duplicate TokenPayload types — 2 ta interface | `authStore.ts`, `base.ts` | 10min |
+| ~~T-362~~ | ~~Auth Store token desync~~ | allaqachon tuzatilgan — `setTokens()` JWT decode qiladi | ✅ |
+| ~~T-363~~ | ~~WebSocket logout disconnect~~ | allaqachon tuzatilgan — Zustand subscribe auto-disconnect | ✅ |
+| ~~T-364~~ | ~~AdminRoute token expiry~~ | tuzatildi — `isTokenValid()` check qo'shildi | ✅ |
+| ~~T-365~~ | ~~ProductPage race condition~~ | tuzatildi — AbortController + stale guard | ✅ |
+| ~~T-366~~ | ~~Duplicate TokenPayload~~ | tuzatildi — dead `JwtTokenPayload` alias o'chirildi | ✅ |
 
 ## P1 — MUHIM (3 task, ~28 bug)
 

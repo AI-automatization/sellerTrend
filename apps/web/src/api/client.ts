@@ -2,7 +2,6 @@
 // Existing imports from '../api/client' continue to work unchanged
 
 export { api, getTokenPayload, isTokenValid } from './base';
-export type { JwtTokenPayload } from './base';
 export { authApi } from './auth';
 export { productsApi, uzumApi, billingApi } from './products';
 export { discoveryApi, seasonalApi, nicheApi } from './discovery';

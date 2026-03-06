@@ -4,6 +4,16 @@
 
 ---
 
+## T-362..T-366 | WEB AUDIT P0 | Auth + WebSocket + ProductPage fixes (2026-03-06)
+
+- **T-362**: allaqachon tuzatilgan — `setTokens()` JWT decode qilib payload sync qiladi
+- **T-363**: allaqachon tuzatilgan — `useAuthStore.subscribe()` auto-disconnect qo'shilgan
+- **T-364**: `AdminRoute` ga `isTokenValid()` check qo'shildi — expired token bilan admin sahifa ochilmaydi
+- **T-365**: `ProductPage.loadData()` ga `AbortController` + stale response guard qo'shildi — race condition tuzatildi
+- **T-366**: Dead `JwtTokenPayload` type alias o'chirildi (`base.ts`, `client.ts`)
+
+---
+
 ## T-392 P0 | IKKALASI | Billing model — FREE plan (2026-03-06)
 
 Yangi user register bo'lganda PAYMENT_DUE ko'rmasligi uchun FREE plan tizimi qo'shildi.

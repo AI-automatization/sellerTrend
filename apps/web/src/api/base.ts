@@ -1,5 +1,6 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { queryClient } from '../stores/queryClient';
+import { useAuthStore, type TokenPayload } from '../stores/authStore';
 
 export const api = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL ?? ''}/api/v1`,
@@ -50,7 +51,7 @@ api.interceptors.response.use(
       const refreshToken = localStorage.getItem('refresh_token');
       if (!refreshToken) {
         queryClient.clear();
-        localStorage.removeItem('access_token');
+        useAuthStore.getState().clearTokens();
         window.location.href = '/login';
         return Promise.reject(err);
       }
@@ -75,8 +76,8 @@ api.interceptors.response.use(
         const res = await api.post('/auth/refresh', { refresh_token: refreshToken });
         const { access_token, refresh_token: newRefresh } = res.data;
 
-        localStorage.setItem('access_token', access_token);
-        localStorage.setItem('refresh_token', newRefresh);
+        // Zustand store + localStorage birga yangilanadi
+        useAuthStore.getState().setTokens(access_token, newRefresh);
 
         processPendingQueue(access_token, null);
         originalRequest.headers.Authorization = `Bearer ${access_token}`;
@@ -84,8 +85,7 @@ api.interceptors.response.use(
       } catch (refreshErr) {
         processPendingQueue(null, refreshErr);
         queryClient.clear();
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+        useAuthStore.getState().clearTokens();
         window.location.href = '/login';
         return Promise.reject(refreshErr);
       } finally {
@@ -99,8 +99,7 @@ api.interceptors.response.use(
       !originalRequest?.url?.includes('/auth/')
     ) {
       queryClient.clear();
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
+      useAuthStore.getState().clearTokens();
       window.location.href = '/login';
     }
 
@@ -117,38 +116,20 @@ api.interceptors.response.use(
   },
 );
 
-// ── JWT payload interface ─────────────────────────────────
-export interface JwtTokenPayload {
-  sub: string;
-  email: string;
-  role: string;
-  account_id: string;
-  exp: number;
-  iat?: number;
+// ── JWT helpers (store-based, no duplicate decode) ────────
+
+// Read payload from Zustand store (already decoded on setTokens)
+export function getTokenPayload(): TokenPayload | null {
+  return useAuthStore.getState().payload;
 }
 
-// Helper: decode JWT payload without verification
-export function getTokenPayload(): JwtTokenPayload | null {
-  const token = localStorage.getItem('access_token');
-  if (!token) return null;
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1])) as JwtTokenPayload;
-    return payload;
-  } catch {
-    return null;
-  }
-}
-
-// Helper: check if user is authenticated with a non-expired JWT
+// Check if user is authenticated with a non-expired JWT
 export function isTokenValid(): boolean {
-  const payload = getTokenPayload();
+  const payload = useAuthStore.getState().payload;
   if (!payload) return false;
-  // exp is in seconds, Date.now() in ms
   const nowSec = Math.floor(Date.now() / 1000);
   if (payload.exp && payload.exp < nowSec) {
-    // Token expired — clear stored tokens
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    useAuthStore.getState().clearTokens();
     return false;
   }
   return true;

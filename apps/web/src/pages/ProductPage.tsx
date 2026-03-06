@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useI18n } from '../i18n/I18nContext';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useParams, useNavigate, Link } from 'react-router-dom';
@@ -78,8 +78,16 @@ export function ProductPage() {
   const [showHistory, setShowHistory] = useState(false);
   const [showMlDetail, setShowMlDetail] = useState(false);
 
+  const abortRef = useRef<AbortController | null>(null);
+
   async function loadData(showRefreshing = false) {
     if (!id) return;
+
+    // Cancel previous in-flight request to prevent race condition (T-365)
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     if (showRefreshing) setRefreshing(true);
     else setLoading(true);
     setError('');
@@ -89,6 +97,7 @@ export function ProductPage() {
         productsApi.getSnapshots(id).catch(() => ({ data: [] })),
         productsApi.getForecast(id).catch(() => ({ data: null })),
       ]);
+      if (controller.signal.aborted) return;
       setResult(analyzeRes.data);
       const snaps: Snapshot[] = snapRes.data;
       const MONTHS = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn', 'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'];
@@ -110,14 +119,20 @@ export function ProductPage() {
       );
       if (forecastRes.data) setForecast(forecastRes.data);
     } catch (err: unknown) {
+      if (controller.signal.aborted) return;
       setError(getErrorMessage(err, "Uzumdan ma'lumot olib bo'lmadi"));
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }
 
-  useEffect(() => { loadData(); }, [id]);
+  useEffect(() => {
+    loadData();
+    return () => { abortRef.current?.abort(); };
+  }, [id]);
 
   // Fetch live USD rate
   useEffect(() => {

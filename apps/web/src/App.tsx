@@ -40,6 +40,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
+  if (!isTokenValid()) return <Navigate to="/login" replace />;
   const payload = getTokenPayload();
   if (!payload || payload.role !== 'SUPER_ADMIN') {
     return <Navigate to="/" replace />;
