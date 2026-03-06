@@ -36,6 +36,30 @@ export async function scheduleDailyBilling() {
 }
 
 /**
+ * Schedule monthly analyses_used reset for FREE plan accounts.
+ * Runs on the 1st of every month at 04:00 UTC.
+ */
+export async function scheduleAnalysesReset() {
+  const repeatableJobs = await billingQueue.getRepeatableJobs();
+  for (const job of repeatableJobs) {
+    if (job.name === 'analyses-reset') {
+      await billingQueue.removeRepeatableByKey(job.key);
+    }
+  }
+
+  await billingQueue.add(
+    'analyses-reset',
+    {},
+    {
+      repeat: { pattern: '0 4 1 * *' }, // 1st of every month at 04:00 UTC
+      jobId: 'analyses-reset-cron',
+    },
+  );
+
+  console.log('Analyses reset cron registered: 0 4 1 * *');
+}
+
+/**
  * Trigger billing manually (for testing)
  */
 export async function triggerBillingNow() {

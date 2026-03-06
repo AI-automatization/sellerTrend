@@ -1209,4 +1209,18 @@ export const ru: Record<string, string> = {
     'shops.emptyHint': 'ID можно найти на странице магазина в Uzum',
     // Leaderboard CTA
     'leaderboard.startTracking': 'Начать отслеживание товаров',
+    // Dashboard Empty State
+    'empty.welcome': 'Добро пожаловать',
+    'empty.subtitle': 'Анализируйте и отслеживайте товары Uzum с помощью VENTRA',
+    'empty.steps': 'Шаги для начала',
+    'empty.step1': 'Регистрация — выполнено',
+    'empty.step2': 'Анализ первого товара',
+    'empty.step3': 'Добавить товар в отслеживание',
+    'empty.step4': 'Подключить Telegram бот',
+    'empty.start': 'Начать',
+    'empty.connect': 'Подключить',
+    'empty.or': 'или',
+    'empty.topProducts': 'Попробуйте с популярными товарами',
+    'empty.analyze': 'Анализ',
+    'empty.exploreDiscovery': 'Перейти в раздел обзора',
 };

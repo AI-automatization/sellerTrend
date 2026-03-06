@@ -11,6 +11,8 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
+import { PlanGuard } from '../billing/plan.guard';
+import { RequiresPlan } from '../billing/requires-plan.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ActivityAction } from '../common/decorators/activity-action.decorator';
 import { DiscoveryService } from './discovery.service';
@@ -22,7 +24,8 @@ import { StartRunDto } from './dto/start-run.dto';
 
 @ApiTags('discovery')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, BillingGuard)
+@UseGuards(JwtAuthGuard, BillingGuard, PlanGuard)
+@RequiresPlan('PRO')
 @Controller('discovery')
 export class DiscoveryController {
   constructor(

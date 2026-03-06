@@ -36,6 +36,7 @@ export class BillingService {
     const accounts = await this.prisma.account.findMany({
       where: {
         status: 'ACTIVE',
+        plan: { not: 'FREE' },  // FREE users don't get charged
         id: { notIn: adminAccountIds },
       },
     });

@@ -9,3 +9,4 @@ export { HeroCards } from './HeroCards';
 export { ChartsSection } from './ChartsSection';
 export { ActivityChart } from './ActivityChart';
 export { ProductsTable } from './ProductsTable';
+export { EmptyState } from './EmptyState';

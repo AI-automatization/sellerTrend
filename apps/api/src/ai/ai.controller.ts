@@ -3,6 +3,8 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
+import { PlanGuard } from '../billing/plan.guard';
+import { RequiresPlan } from '../billing/requires-plan.decorator';
 import { AiThrottlerGuard } from '../common/guards/ai-throttler.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ParseBigIntPipe } from '../common/pipes/parse-bigint.pipe';
@@ -16,7 +18,8 @@ const AI_TTL_MS = 60000;
 
 @ApiTags('ai')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, BillingGuard, AiThrottlerGuard)
+@UseGuards(JwtAuthGuard, BillingGuard, PlanGuard, AiThrottlerGuard)
+@RequiresPlan('MAX')
 @Throttle({ ai: { ttl: AI_TTL_MS, limit: AI_CACHED_LIMIT } })
 @Controller('ai')
 export class AiController {

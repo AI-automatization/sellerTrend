@@ -10,6 +10,8 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
+import { PlanGuard } from '../billing/plan.guard';
+import { RequiresPlan } from '../billing/requires-plan.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ActivityAction } from '../common/decorators/activity-action.decorator';
 import { SourcingService } from './sourcing.service';
@@ -19,7 +21,8 @@ import { CreateSearchJobDto } from './dto/create-search-job.dto';
 
 @ApiTags('sourcing')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, BillingGuard)
+@UseGuards(JwtAuthGuard, BillingGuard, PlanGuard)
+@RequiresPlan('PRO')
 @Controller('sourcing')
 export class SourcingController {
   constructor(private readonly sourcingService: SourcingService) {}

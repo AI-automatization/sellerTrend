@@ -303,6 +303,9 @@ export class AuthService {
             status: true,
             balance: true,
             daily_fee: true,
+            plan: true,
+            plan_expires_at: true,
+            analyses_used: true,
             onboarding_completed: true,
             onboarding_step: true,
             selected_marketplaces: true,
@@ -322,6 +325,9 @@ export class AuthService {
         ...user.account,
         balance: user.account.balance.toString(),
         daily_fee: user.account.daily_fee?.toString() ?? null,
+        plan: user.account.plan,
+        plan_expires_at: user.account.plan_expires_at,
+        analyses_used: user.account.analyses_used,
       },
     };
   }

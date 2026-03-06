@@ -20,6 +20,10 @@ model Account {
   balance    BigInt        @default(0)
   daily_fee  BigInt?       // NULL = global default ishlatiladi
   ai_monthly_limit_usd Decimal? @db.Decimal(10, 2) // NULL = unlimited, e.g. 5.00
+  plan              String    @default("FREE")   @db.VarChar(20) // FREE | PRO | MAX | COMPANY
+  plan_expires_at   DateTime? @db.Timestamptz    // null = FREE (unlimited)
+  analyses_used     Int       @default(0)        // monthly counter, reset on 1st
+  plan_renewed_at   DateTime? @db.Timestamptz    // last payment date
   onboarding_completed Boolean  @default(false)
   onboarding_step      Int      @default(0)
   selected_marketplaces String[] @default(["uzum"])
@@ -109,6 +113,8 @@ enum TransactionType {
   CHARGE
   DEPOSIT
   REFUND
+  SUBSCRIPTION
+  PLAN_CHANGE
 }
 
 model AuditEvent {

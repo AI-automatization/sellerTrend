@@ -1220,4 +1220,18 @@ export const en: Record<string, string> = {
     'shops.emptyHint': 'You can find the ID on the Uzum shop page',
     // Leaderboard CTA
     'leaderboard.startTracking': 'Start tracking products',
+    // Dashboard Empty State
+    'empty.welcome': 'Welcome',
+    'empty.subtitle': 'Analyze and track Uzum products with VENTRA',
+    'empty.steps': 'Getting started',
+    'empty.step1': 'Registration — done',
+    'empty.step2': 'Analyze your first product',
+    'empty.step3': 'Add product to tracking',
+    'empty.step4': 'Connect Telegram bot',
+    'empty.start': 'Start',
+    'empty.connect': 'Connect',
+    'empty.or': 'or',
+    'empty.topProducts': 'Try with popular products',
+    'empty.analyze': 'Analyze',
+    'empty.exploreDiscovery': 'Explore Discovery section',
 };

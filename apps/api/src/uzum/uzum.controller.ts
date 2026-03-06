@@ -9,6 +9,7 @@ import { UzumService } from './uzum.service';
 import { ProductsService } from '../products/products.service';
 import { RequestLoggerService } from '../common/request-logger.service';
 import { BatchQuickScoreDto } from './dto/batch-quick-score.dto';
+import { PrismaService } from '../prisma/prisma.service';
 
 class AnalyzeUrlDto {
   @IsUrl()
@@ -23,14 +24,23 @@ export class UzumController {
     private readonly uzumService: UzumService,
     private readonly productsService: ProductsService,
     private readonly reqLogger: RequestLoggerService,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Post('analyze')
   @UseGuards(JwtAuthGuard, BillingGuard)
-  analyzeUrl(
+  async analyzeUrl(
     @Body() dto: AnalyzeUrlDto,
     @CurrentUser('account_id') accountId: string,
+    @CurrentUser() user: { account: { plan: string } },
   ) {
+    // Increment analyses_used for FREE plan users before running analysis
+    if (user.account.plan === 'FREE') {
+      await this.prisma.account.update({
+        where: { id: accountId },
+        data: { analyses_used: { increment: 1 } },
+      });
+    }
     this.reqLogger.logAnalyze(accountId, dto.url);
     return this.uzumService.analyzeUrl(dto.url);
   }
@@ -38,7 +48,18 @@ export class UzumController {
   /** Fresh analyze by product ID — fetches from Uzum, saves snapshot, runs AI */
   @Get('product/:id')
   @UseGuards(JwtAuthGuard, BillingGuard)
-  analyzeById(@Param('id', ParseIntPipe) id: number) {
+  async analyzeById(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('account_id') accountId: string,
+    @CurrentUser() user: { account: { plan: string } },
+  ) {
+    // Increment analyses_used for FREE plan users before running analysis
+    if (user.account.plan === 'FREE') {
+      await this.prisma.account.update({
+        where: { id: accountId },
+        data: { analyses_used: { increment: 1 } },
+      });
+    }
     return this.uzumService.analyzeProduct(id);
   }
 

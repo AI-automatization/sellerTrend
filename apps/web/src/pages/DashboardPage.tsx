@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { ArrowTrendingUpIcon, MagnifyingGlassIcon, WalletIcon } from '../components/icons';
 import { useI18n } from '../i18n/I18nContext';
+import { getTokenPayload } from '../api/client';
 import {
-  FadeIn, KPICards, HeroCards, ChartsSection, ActivityChart, ProductsTable,
+  FadeIn, KPICards, HeroCards, ChartsSection, ActivityChart, ProductsTable, EmptyState,
 } from '../components/dashboard';
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -13,6 +14,8 @@ export function DashboardPage() {
   const { products, balance, loading, isSuperAdmin, exporting, handleExportCsv } = useDashboardData();
   const [sortKey, setSortKey] = useState<'score' | 'weekly' | 'price'>('score');
   const { t } = useI18n();
+  const navigate = useNavigate();
+  const tokenPayload = getTokenPayload();
 
   // ── Computed ──
   const stats = useMemo(() => {
@@ -86,6 +89,15 @@ export function DashboardPage() {
         </div>
         <p className="text-xs text-base-content/30 animate-pulse">{t('dashboard.loadingPortfolio')}</p>
       </div>
+    );
+  }
+
+  if (products.length === 0) {
+    return (
+      <EmptyState
+        userEmail={tokenPayload?.email ?? 'user'}
+        onStartAnalysis={() => navigate('/analyze')}
+      />
     );
   }
 

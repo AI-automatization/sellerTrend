@@ -1225,4 +1225,18 @@ export const uz: Record<string, string> = {
     'shops.emptyHint': "Uzum do'kon sahifasidan ID ni olishingiz mumkin",
     // Leaderboard CTA
     'leaderboard.startTracking': 'Mahsulot kuzatishni boshlash',
+    // Dashboard Empty State
+    'empty.welcome': 'Xush kelibsiz',
+    'empty.subtitle': 'VENTRA bilan Uzum mahsulotlarini tahlil qiling va kuzating',
+    'empty.steps': 'Boshlash qadamlari',
+    'empty.step1': "Ro'yxatdan o'tish — bajarildi",
+    'empty.step2': 'Birinchi mahsulotni tahlil qilish',
+    'empty.step3': "Mahsulotni kuzatishga qo'shish",
+    'empty.step4': "Telegram botni ulash",
+    'empty.start': 'Boshlash',
+    'empty.connect': 'Ulash',
+    'empty.or': 'yoki',
+    'empty.topProducts': 'Mashhur mahsulotlar bilan sinab ko\'ring',
+    'empty.analyze': 'Tahlil qilish',
+    'empty.exploreDiscovery': "Kashfiyot bo'limini ko'rish",
 };

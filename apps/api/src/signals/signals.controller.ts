@@ -4,6 +4,8 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
+import { PlanGuard } from '../billing/plan.guard';
+import { RequiresPlan } from '../billing/requires-plan.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ActivityAction } from '../common/decorators/activity-action.decorator';
 import { ParseBigIntPipe } from '../common/pipes/parse-bigint.pipe';
@@ -14,7 +16,8 @@ import { UpdatePriceTestDto } from './dto/update-price-test.dto';
 
 @ApiTags('signals')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, BillingGuard)
+@UseGuards(JwtAuthGuard, BillingGuard, PlanGuard)
+@RequiresPlan('PRO')
 @Controller('signals')
 export class SignalsController {
   constructor(private readonly signalsService: SignalsService) {}
