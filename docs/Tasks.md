@@ -346,7 +346,7 @@ TXT    _railway-verify  → railway-verify=railway-verify=822d30ad3e89eb5a8c969c
 | ~~T-321~~ | ~~ipcRenderer.on memory leak~~ | ✅ DONE (2026-03-06) | — | — |
 | ~~T-322~~ | ~~`console.error` → electron-log~~ | ✅ DONE (2026-03-06) | — | — |
 | ~~T-323~~ | ~~`setInterval` cleanup~~ | ✅ DONE (2026-03-06) | — | — |
-| T-324 | `.ico`/`.icns` icon yaratish | `electron-builder.yml` | 15min | — |
+| ~~T-324~~ | ~~`.ico`/`.icns` icon yaratish~~ | ✅ DONE (2026-03-06) | — | — |
 | T-325 | IPC notification validatsiya | `ipc.ts:5-9` | 10min |
 | T-326 | IPC badge count validatsiya | `ipc.ts:31-36` | 5min |
 | T-327 | Permission request handler | `window.ts` | 10min |

@@ -4,6 +4,14 @@
 
 ---
 
+## T-324 | DESKTOP P1 | icon.ico + icon.icns yaratish (2026-03-06)
+
+- `png2icons` bilan `icon.png` (256x256) → `icon.ico` (Win) + `icon.icns` (macOS) konvertatsiya
+- `electron-builder.yml` da allaqachon `resources/icon.ico` va `resources/icon.icns` ko'rsatilgan edi — fayllar yo'q edi
+- `png2icons` devDependency sifatida qo'shildi
+
+---
+
 ## T-320..T-323 | DESKTOP P1 | Typed state, memory leak, logging, interval cleanup (2026-03-06)
 
 - **T-320** `declare module 'electron' { interface App { isQuitting?: boolean } }` — `(app as any)` o'chirildi (`window.ts`, `tray.ts`)
