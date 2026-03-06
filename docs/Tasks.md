@@ -444,7 +444,7 @@ Manba: T-328 dan ajratildi (2026-03-06)
 | T-376 | Platform model — multi-marketplace (kelajak) | Bekzod | 2h |
 | T-380 | Mobile UX — bottom nav, scroll-to-top, card layout (4 fix) | Sardor | 3h |
 | T-381 | Accessibility — skip-to-content, focus trap, colorblind, keyboard (5 fix) | Sardor | 2h |
-| T-382 | Landing conversion — privacy policy, cookie consent, analytics (4 fix) | Sardor | 4h |
+| ~~T-382~~ | ~~Landing conversion~~ | ✅ DONE (2026-03-06) | — |
 | T-383 | Landing multi-marketplace section + hero copy + pricing | Bekzod | 3h |
 
 ## P3 — KELAJAK (1 ta)
@@ -637,11 +637,11 @@ Manba: Onboarding-scenario.md (2026-03-06)
 | **Web Kod Audit P2** (T-370) | 1 | 15 | **Bekzod** |
 | **Platforma Audit P0** (T-377) | 1 | 1 | **Bekzod** |
 | ~~**Platforma Audit P1**~~ (~~T-373,T-374~~,T-375,T-378) | 2 | 2 | Bekzod |
-| **Platforma Audit P2** (T-376,T-380,T-381,T-382,T-383) | 5 | ~18 | Bekzod(4)+Sardor(1) |
+| **Platforma Audit P2** (T-376,T-380,T-381,~~T-382~~,T-383) | 4 | ~14 | Bekzod(4) |
 | **Platforma Audit P3** (T-384) | 1 | 6 | Bekzod |
-| Desktop Audit P0 (T-315..T-319) | 5 | 5 | Sardor |
-| Desktop Audit P1 (T-320..T-327) | 8 | 8 | Sardor |
-| Desktop Audit P2 (T-328) | 1 | 10 | Sardor |
+| ~~Desktop Audit P0 (T-315..T-319)~~ | ~~5~~ ✅ | ~~5~~ | Sardor |
+| ~~Desktop Audit P1 (T-320..T-327)~~ | ~~8~~ ✅ | ~~8~~ | Sardor |
+| ~~Desktop Audit P2 (T-328)~~ | ~~1~~ ✅ | ~~10~~ | Sardor |
 | ~~Landing Audit~~ (T-329..T-342) | ~~14~~ ✅ | ~~31~~ | Sardor |
 | Chrome Extension (T-216..T-233) | 18 | 18 | **Bekzod** |
 | Landing Manual (M-001..M-004) | 4 | 4 | Sardor |
