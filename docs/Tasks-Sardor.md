@@ -24,7 +24,17 @@
 
 ## P2 — O'RTA (batch)
 
-### T-328 | P2 | FRONTEND | Desktop P2 batch (10 ta) | 1h
+> ~~T-328~~ ✅ DONE (2026-03-06, i18n qismi → T-399) → Done.md
+
+### T-399 | P2 | FRONTEND | Desktop tray menu i18n (uz/ru/en) | 30min
+
+Manba: T-328 dan ajratildi (2026-03-06)
+
+**Muammo:** Tray menu labellar inglizcha hardcoded: `Show Window`, `Hide Window`, `Quit VENTRA`.
+
+**Yechim:** `app.getLocale()` bilan til aniqlab, `uz`/`ru`/`en` labellarga ko'chirish.
+
+**Fayllar:** `apps/desktop/src/main/tray.ts`
 
 ---
 

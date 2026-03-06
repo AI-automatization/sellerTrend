@@ -4,6 +4,17 @@
 
 ---
 
+## T-328 | DESKTOP P2 | loadURL error, devtools block, macOS About, package metadata, env.d.ts (2026-03-06)
+
+- **loadURL error** — `.catch(log.error)` qo'shildi (`window.ts`)
+- **devtools block** — production da F12/Ctrl+Shift+I bloklandi (`window.ts`)
+- **macOS About** — `app.setAboutPanelOptions()` qo'shildi (`index.ts`)
+- **package.json** — `name`, `description`, `author`, `homepage` to'ldirildi
+- **env.d.ts** — `VITE_APP_VERSION`, `VITE_APP_NAME` qo'shildi
+- **Tray i18n** → T-399 sifatida ajratildi (keyinroq)
+
+---
+
 ## T-327 | DESKTOP P1 | Permission request handler (2026-03-06)
 
 - `setupPermissionHandler()` — `session.defaultSession.setPermissionRequestHandler()`

@@ -344,8 +344,17 @@ TXT    _railway-verify  → railway-verify=railway-verify=822d30ad3e89eb5a8c969c
 
 ## P2 — O'RTA (batch)
 
-### T-328 | P2 | FRONTEND | Desktop P2 batch (10 ta) | 1h | pending[Sardor]
-Tray i18n, loadURL error, devtools block, package.json metadata, macOS About, env.d.ts
+> ~~T-328~~ ✅ DONE (2026-03-06, i18n qismi → T-399) → Done.md
+
+### T-399 | P2 | FRONTEND | Desktop tray menu i18n (uz/ru/en) | 30min
+
+Manba: T-328 dan ajratildi (2026-03-06)
+
+**Muammo:** Tray menu labellar inglizcha hardcoded.
+
+**Yechim:** `app.getLocale()` → `uz`/`ru`/`en` labellar.
+
+**Fayllar:** `apps/desktop/src/main/tray.ts`
 
 ---
 
