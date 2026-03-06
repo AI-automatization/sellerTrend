@@ -20,6 +20,16 @@ app.on('second-instance', () => {
 });
 
 app.whenReady().then(() => {
+  // macOS About panel
+  if (process.platform === 'darwin') {
+    app.setAboutPanelOptions({
+      applicationName: 'VENTRA',
+      applicationVersion: app.getVersion(),
+      copyright: '© 2026 VENTRA Analytics',
+      website: 'https://ventra.uz',
+    });
+  }
+
   registerIpcHandlers();
   createMainWindow();
   createTray();

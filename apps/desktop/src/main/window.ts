@@ -2,6 +2,7 @@ import { BrowserWindow, protocol, net, app, session, shell } from 'electron';
 import { join, resolve, relative, isAbsolute } from 'path';
 import { pathToFileURL } from 'url';
 import { existsSync } from 'fs';
+import log from 'electron-log';
 
 // T-320: Typed app state — avoid (app as any)
 declare module 'electron' {
@@ -149,11 +150,26 @@ export function createMainWindow(): BrowserWindow {
     return { action: 'deny' };
   });
 
+  // Block DevTools in production
+  if (!process.env.ELECTRON_RENDERER_URL) {
+    mainWindow.webContents.on('before-input-event', (e, input) => {
+      const isDevTools =
+        (input.key === 'F12') ||
+        (input.control && input.shift && input.key === 'I') ||
+        (input.meta && input.alt && input.key === 'I');
+      if (isDevTools) e.preventDefault();
+    });
+  }
+
   // Dev: load from Vite dev server; Prod: load from custom protocol
   if (process.env.ELECTRON_RENDERER_URL) {
-    mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
+    mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL).catch((err) => {
+      log.error('Failed to load dev URL:', err);
+    });
   } else {
-    mainWindow.loadURL('app://./index.html');
+    mainWindow.loadURL('app://./index.html').catch((err) => {
+      log.error('Failed to load app URL:', err);
+    });
   }
 
   return mainWindow;

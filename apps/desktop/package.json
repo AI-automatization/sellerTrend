@@ -1,6 +1,13 @@
 {
-  "name": "desktop",
+  "name": "ventra-desktop",
   "version": "1.0.0",
+  "description": "VENTRA Analytics — uzum.uz marketplace analytics platform",
+  "author": {
+    "name": "VENTRA",
+    "email": "support@ventra.uz",
+    "url": "https://ventra.uz"
+  },
+  "homepage": "https://ventra.uz",
   "private": true,
   "main": "out/main/index.js",
   "scripts": {
