@@ -28,22 +28,31 @@
 
 > ~~T-400~~ ✅ DONE (2026-03-06) → Done.md
 
-Manba: foydalanuvchi sharhi (2026-03-06)
+---
 
-**Muammo:** T-382 da qo'shilgan 4 ta komponent (`CookieBanner`, `VideoDemoSection`, `PrivacyPage`, `TermsPage`) VENTRA dizayn tizimidan farq qiladi:
-- `mesh-blob` animatsiyali background yo'q
-- `glass-card`, `gradient-text`, `glow-btn` ishlatilmagan
-- `useAnalytics` o'rniga `window.plausible` to'g'ridan ishlatilgan
-- `plausible.d.ts` redundant — `useAnalytics.ts` allaqachon declare qilgan
+## PLAYWRIGHT AUDIT — 2026-03-06 (Sardor)
 
-**Yechim:** Barcha 4 ta komponentni VENTRA dizayn tizimiga (CTASection/HeroSection uslubiga) moslashtirish.
+Manba: Playwright headless test, localhost:5173 (desktop renderer)
 
-**Fayllar:**
-- `apps/landing/src/components/CookieBanner.tsx`
-- `apps/landing/src/sections/VideoDemoSection.tsx`
-- `apps/landing/src/pages/PrivacyPage.tsx`
-- `apps/landing/src/pages/TermsPage.tsx`
-- `apps/landing/src/lib/plausible.d.ts` → o'chirish (redundant)
+**Natija: Kritik bug topilmadi.**
+
+| Tekshirilgan | Holat |
+|---|---|
+| Login sahifasi (form, validation, title, overflow) | ✅ PASS |
+| Empty form submit — sahifada qolish | ✅ PASS |
+| Login (demo@ventra.uz / Demo123!) | ✅ PASS |
+| Dashboard render — sidebar, spinner, overflow | ✅ PASS |
+| /analyze navigatsiya | ✅ PASS |
+| /discovery navigatsiya | ✅ PASS |
+| Console errors | ✅ YO'Q |
+| Layout overflow (1280px) | ✅ YO'Q |
+
+**False positive tushuntirishlari:**
+- Broken images → `onError: display:none` handler mavjud (`ProductsTable.tsx:94`) — handled
+- ERR_ABORTED requests → React AbortController cleanup (navigation paytida) — normal
+- Signals/leaderboard links not found → collapsible sidebar (expected)
+
+**Screenshotlar:** `screenshots/01-login.png`, `screenshots/02-dashboard.png`
 
 ---
 
