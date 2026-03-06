@@ -163,9 +163,6 @@ export function LoginPage() {
             </p>
           </div>
 
-          <p className="text-center text-xs text-base-content/20">
-            Demo: demo@ventra.uz / Demo123!
-          </p>
         </div>
       </div>
     </div>

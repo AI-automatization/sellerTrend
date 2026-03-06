@@ -436,12 +436,6 @@ Tray i18n, loadURL error, devtools block, package.json metadata, macOS About, en
 #
 # Manba: DEEP-PLATFORM-AUDIT-2026-03-04.md + Analysis-Onboarding-Multimarketplace.md
 
-## P0 — KRITIK (3 ta)
-
-| # | Muammo | Mas'ul | Vaqt |
-|---|--------|--------|------|
-| T-377 | Demo credentials `demo@ventra.uz` production'da ochiq | Sardor | 5min |
-
 ## P1 — MUHIM (4 ta)
 
 | # | Muammo | Mas'ul | Vaqt |
@@ -624,6 +618,127 @@ Schema o'zgaradi — docs eskiradi — audit noto'g'ri xulosa chiqaradi (ChatGPT
 
 ---
 
+# ═══════════════════════════════════════════════════════════
+# ONBOARDING & BILLING MODEL (T-392..T-398) — Bekzod
+# ═══════════════════════════════════════════════════════════
+#
+# Manba: docs/Onboarding-scenario.md tahlili (2026-03-06)
+
+## P0 — KRITIK
+
+### T-392 | P0 | IKKALASI | Billing model — FREE plan (yangi user PAYMENT_DUE ko'rmasin) | 6h
+
+Manba: Onboarding-scenario.md tahlili (2026-03-06) — hozir yangi user balance=0, daily_fee=50000 → birinchi logindan PAYMENT_DUE
+
+**Muammo:** Yangi ro'yxatdan o'tgan user birinchi kirganidayoq "Pul to'lang" banneri ko'radi. Hech narsa ko'rmay ketib qoladi.
+
+**Yechim:**
+- `schema.prisma`: `plan String @default("FREE")`, `plan_expires_at DateTime?`, `analyses_used Int @default(0)`
+- `auth.service.ts`: register'da `plan: 'FREE'` set, `balance` = 0 (o'zgarmaydi)
+- `billing.guard.ts`: `PAYMENT_DUE` check saqlanadi + yangi `PlanGuard` class qo'shiladi (plan feature check)
+- `uzum.controller.ts`: FREE plan uchun `analyses_used++` + limit 10 check
+- `billing.processor.ts` (worker): daily cron → monthly cron (`0 3 1 * *`) + `0 4 1 * *` (analyses_used reset)
+- Frontend: `PaymentDueBanner` matnini yangilash, `plan` field'ni useAccount hook'ga qo'shish
+
+**Fayllar:** `schema.prisma`, `auth/auth.service.ts`, `billing/billing.guard.ts`, `billing/billing.service.ts`, `uzum/uzum.controller.ts`, `apps/worker/src/processors/billing.processor.ts`, `apps/web/src/hooks/useAccount.ts`, `apps/web/src/components/PaymentDueBanner.tsx`
+
+---
+
+### T-393 | P0 | FRONTEND | Dashboard Empty State — "Aqlli bo'sh sahifa" | 2h
+
+Manba: Onboarding-scenario.md (2026-03-06) — hozir faqat "Portfolio bo'sh" deydi
+
+**Muammo:** Yangi user dashboard'ga kirganda bo'sh sahifa va "Portfolio is empty" matni ko'radi. Keyingi qadam noma'lum.
+
+**Yechim:** `tracked_products.length === 0` bo'lganda to'liq boshqa layout ko'rsatish:
+- Xush kelibsiz xabari + progress checklist (Registratsiya ✅ → Tahlil ⬜ → Track ⬜ → Bot ⬜)
+- "Birinchi tahlilni boshlash" CTA tugmasi
+- TOP mahsulotlar (layered: DB → hardcode fallback)
+
+**Fayllar:** `apps/web/src/pages/DashboardPage.tsx`, yangi `apps/web/src/components/dashboard/EmptyState.tsx`
+
+---
+
+## P1 — MUHIM
+
+### T-394 | P1 | FRONTEND | Onboarding Wizard — 3-stepli /onboarding sahifasi | 4h
+
+Manba: Onboarding-scenario.md (2026-03-06) — DB infra tayyor (onboarding_step, PATCH /auth/onboarding), frontend yo'q
+
+**Muammo:** `onboarding_completed: false` bo'lsa ham frontend hech narsa qilmaydi. Register → Dashboard yo'naltiriladi.
+
+**Yechim:**
+- Register'dan keyin `/onboarding` ga yo'naltirish (agar `onboarding_completed === false`)
+- Step 1: URL input + "Tahlil" (uzum analyze call)
+- Step 2: Natija ko'rsatish + "Kuzatishga qo'shish" tugmasi
+- Step 3: Telegram bot QR/link (ixtiyoriy, "Keyinroq" bilan o'tkazish mumkin)
+- Har stepda `PATCH /auth/onboarding` chaqiriladi
+
+**Fayllar:** `apps/web/src/pages/OnboardingPage.tsx` (yangi), `apps/web/src/App.tsx` (route qo'shish), `apps/web/src/components/onboarding/` (yangi papka)
+
+---
+
+### T-395 | P1 | BACKEND | Recommendation system — nishan-based layered | 3h
+
+Manba: Onboarding-scenario.md + suhbat (2026-03-06) — yangi user uchun bo'sh dashboard'da relevant productlar ko'rsatish
+
+**Muammo:** Yangi user "TOP mahsulotlar" ko'rishi kerak, lekin DB bo'sh bo'lsa hech narsa yo'q. Seed qilingan products esa eskirishi mumkin, nishanga mos kelmaydi.
+
+**Yechim (4 qatlamli):**
+1. `category_winners` da user nishani bo'yicha filter → ko'rsat
+2. `tracked_products` da nishanga mos productlar → ko'rsat
+3. Uzum search API ishlaydimi → live qidiruv (user nishani bo'yicha)
+4. Hardcoded fallback — nishan bo'yicha oldindan tanlangan popular product ID lar
+
+**Fayllar:** `apps/api/src/products/products.service.ts` (getRecommendations metodi), yangi endpoint `GET /products/recommendations?niche=kosmetika`
+
+---
+
+### T-396 | P1 | FRONTEND | Admin billing metrics — yangi churn, MRR, plan distribution | 2h
+
+Manba: Onboarding-scenario.md Admin ta'sir tahlili (2026-03-06)
+
+**Muammo:** `churnRatePct` = PAYMENT_DUE/ACTIVE — bu haqiqiy churn emas. MRR = daily CHARGE summasi — bu haqiqiy MRR emas.
+
+**Yechim:**
+- `admin-stats.service.ts` → `getStatsGrowth()`: churn = plan expired + yangilamagan
+- `getStatsRevenue()`: MRR = SUBSCRIPTION type transactionlar summasi; `avg_balance` o'rniga `avg_days_to_renewal`
+- `getStatsOverview()`: `plan_breakdown: { FREE, PRO, MAX, COMPANY }` qo'shish
+- Frontend `AdminAnalyticsTab.tsx`: plan distribution donut chart, conversion funnel
+
+**Fayllar:** `apps/api/src/admin/admin-stats.service.ts`, `apps/web/src/components/admin/AdminAnalyticsTab.tsx`
+
+---
+
+## P2 — O'RTA
+
+### T-397 | P2 | FRONTEND | Kontekstual tooltiplar — har sahifada birinchi marta | 1h
+
+Manba: Onboarding-scenario.md (2026-03-06)
+
+**Muammo:** Onboarding tugagandan keyin yangi user qaysi sahifaning nima qilishini bilmaydi.
+
+**Yechim:** 5 ta sahifada (`Dashboard`, `Analyze`, `Discovery`, `Signals`, `Sourcing`) birinchi kirishda qisqa tooltip/hint. `localStorage.tooltip_seen_{page}` flag bilan faqat 1 marta ko'rsatiladi.
+
+**Fayllar:** `apps/web/src/components/ui/PageHint.tsx` (yangi), sahifa komponentlarida `<PageHint page="dashboard" />`
+
+---
+
+### T-398 | P2 | BACKEND | Email/Telegram onboarding reminders | 3h
+
+Manba: Onboarding-scenario.md (2026-03-06)
+
+**Muammo:** Yangi user register qilib, 3 kundan keyin product tahlil qilmasa — hech qanday reminder yo'q.
+
+**Yechim:**
+- Register'dan keyin welcome email (email service ulangan bo'lsa)
+- 3 kun o'tib `onboarding_completed === false` bo'lsa → Telegram bot reminder (ulangan bo'lsa)
+- Cron job: `0 10 * * *` — har kuni 3 kunlik tekshirish
+
+**Fayllar:** `apps/worker/src/processors/` (onboarding-reminder processor), `apps/api/src/auth/auth.service.ts` (welcome trigger)
+
+---
+
 # LANDING MANUAL TASKLAR
 
 | # | Nima | Vaqt | Holat |
@@ -660,7 +775,10 @@ Schema o'zgaradi — docs eskiradi — audit noto'g'ri xulosa chiqaradi (ChatGPT
 | **Data Integrity P1** (T-385..T-388) | 4 | 4 | Bekzod |
 | **Data Integrity P2** (T-389..T-390) | 2 | 2 | Bekzod |
 | **Session Bug** (T-391) | 1 | 3 | Bekzod |
-| **JAMI task ochiq** | **78** | | |
+| **Onboarding & Billing P0** (T-392..T-393) | 2 | 2 | Bekzod |
+| **Onboarding & Billing P1** (T-394..T-396) | 3 | 3 | Bekzod |
+| **Onboarding & Billing P2** (T-397..T-398) | 2 | 2 | Bekzod |
+| **JAMI task ochiq** | **85** | | |
 | **JAMI bajarilgan** | **~138** | | → Done.md |
 
 ---

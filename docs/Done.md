@@ -1,6 +1,14 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
-# Yangilangan: 2026-03-04
+# Yangilangan: 2026-03-06
 # Ochiq tasklar → docs/Tasks.md, docs/Tasks-Bekzod.md, docs/Tasks-Sardor.md
+
+---
+
+## T-377 | PLATFORMA P0 | Demo credentials login page'dan olib tashlandi (2026-03-06)
+
+`LoginPage.tsx:167` da `demo@ventra.uz / Demo123!` matni ko'rinib turardi.
+Foydalanuvchilar o'z akkauntlari bilan ro'yxatdan o'tishi kerak (NPS data).
+`<p>Demo: ...</p>` qatori o'chirildi.
 
 ---
 
