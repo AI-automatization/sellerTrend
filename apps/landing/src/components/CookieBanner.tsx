@@ -35,7 +35,7 @@ export function CookieBanner() {
         <motion.div
           role="dialog"
           aria-label="Cookie consent"
-          className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 sm:max-w-md z-50"
+          className="fixed bottom-4 left-4 right-4 sm:right-auto sm:bottom-6 sm:max-w-md z-50"
           initial={{ opacity: 0, y: 24, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 16, scale: 0.95 }}
