@@ -53,13 +53,13 @@ async function scrapeAndSaveProduct(
   const numId = Number(productId);
 
   // 1. Playwright scrape for banner
-  const scrapedWb = await scrapeWeeklyBought(numId, jobId);
+  const scrapeResult = await scrapeWeeklyBought(numId, jobId);
+  const scrapedWb = scrapeResult.value;
 
   // 2. Fetch REST API data
   const detail = await fetchUzumProductRaw(numId);
   if (!detail) {
     logJobInfo(QUEUE_NAME, jobId, jobName, `REST API failed for product ${numId}`);
-    // Update next_scrape_at to retry sooner
     await prisma.trackedProduct.updateMany({
       where: { product_id: productId },
       data: { next_scrape_at: getRetryScrapeAt() },
@@ -70,9 +70,10 @@ async function scrapeAndSaveProduct(
   // Determine weekly_bought: prefer scraped, fallback to last scraped value
   let weeklyBought: number | null = scrapedWb;
   let source: string = 'scraped';
+  let rawText: string | null = scrapeResult.rawText;
+  let confidence: number = scrapeResult.confidence;
 
   if (weeklyBought === null) {
-    // Fallback: use last stored scraped value
     const lastScrapedSnap = await prisma.productSnapshot.findFirst({
       where: {
         product_id: productId,
@@ -80,13 +81,19 @@ async function scrapeAndSaveProduct(
         weekly_bought: { not: null },
       },
       orderBy: { snapshot_at: 'desc' },
-      select: { weekly_bought: true },
+      select: { weekly_bought: true, weekly_bought_confidence: true },
     });
     if (lastScrapedSnap?.weekly_bought != null) {
       weeklyBought = lastScrapedSnap.weekly_bought;
       source = 'stored_scraped';
+      rawText = null;
+      confidence = lastScrapedSnap.weekly_bought_confidence
+        ? Number(lastScrapedSnap.weekly_bought_confidence)
+        : 0.50;
     } else {
       source = 'calculated';
+      rawText = null;
+      confidence = 0.30;
     }
   }
 
@@ -102,7 +109,12 @@ async function scrapeAndSaveProduct(
     if (scrapedWb !== null && (lastSnap.weekly_bought == null || lastSnap.weekly_bought_source !== 'scraped')) {
       await prisma.productSnapshot.update({
         where: { id: lastSnap.id },
-        data: { weekly_bought: scrapedWb, weekly_bought_source: 'scraped' },
+        data: {
+          weekly_bought: scrapedWb,
+          weekly_bought_source: 'scraped',
+          weekly_bought_raw_text: rawText,
+          weekly_bought_confidence: confidence,
+        },
       });
       logJobInfo(QUEUE_NAME, jobId, jobName,
         `Snapshot dedup + wb update: product ${numId}, wb=${scrapedWb} (was ${lastSnap.weekly_bought})`);
@@ -249,6 +261,8 @@ async function scrapeAndSaveProduct(
         orders_quantity: BigInt(currentOrders),
         weekly_bought: weeklyBought,
         weekly_bought_source: source,
+        weekly_bought_raw_text: rawText,
+        weekly_bought_confidence: confidence,
         rating: detail.rating ?? null,
         feedback_quantity: detail.reviewsAmount ?? 0,
         score,

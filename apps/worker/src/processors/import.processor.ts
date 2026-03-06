@@ -119,14 +119,17 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
       // Prefer last scraped weekly_bought; fallback to calculation (transitional)
       let weeklyBought: number | null = null;
       let wbSource = 'calculated';
+      let wbConfidence = 0.30;
 
       const lastScraped = recentSnapshots.find((s) => s.weekly_bought_source === 'scraped' && s.weekly_bought != null);
       if (lastScraped) {
         weeklyBought = lastScraped.weekly_bought;
         wbSource = 'stored_scraped';
+        wbConfidence = 0.50;
       } else {
         const rawWeeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
         weeklyBought = weeklyBoughtWithFallback(rawWeeklyBought, recentSnapshots);
+        wbConfidence = recentSnapshots.length >= 7 ? 0.50 : 0.30;
       }
 
       const stockType = detail.skuList?.[0]?.stock?.type;
@@ -147,6 +150,7 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
             orders_quantity: currentOrders ? BigInt(currentOrders) : null,
             weekly_bought: weeklyBought,
             weekly_bought_source: wbSource,
+            weekly_bought_confidence: wbConfidence,
             rating: detail.rating ?? null,
             feedback_quantity: detail.reviewsAmount ?? 0,
             score,

@@ -221,8 +221,10 @@ model ProductSnapshot {
   id                   String   @id @default(uuid())
   product_id           BigInt
   orders_quantity      BigInt?
-  weekly_bought        Int?
-  weekly_bought_source String?  @db.VarChar(20) // 'scraped' | 'calculated' | 'stored_scraped'
+  weekly_bought            Int?
+  weekly_bought_source     String?  @db.VarChar(20) // 'scraped' | 'calculated' | 'stored_scraped'
+  weekly_bought_raw_text   String?  @db.Text         // original banner text for debugging
+  weekly_bought_confidence Decimal? @db.Decimal(3,2)  // 0.00–1.00 scrape strategy confidence
   rating               Decimal? @db.Decimal(3, 2)
   feedback_quantity    Int?
   score                Decimal? @db.Decimal(8, 4)

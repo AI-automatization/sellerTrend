@@ -122,13 +122,16 @@ export class UzumService {
     let weeklyBought: number | null = null;
     let wbSource = 'calculated';
 
+    let wbConfidence = 0.30;
     const lastScraped = recentSnapshots.find((s) => s.weekly_bought != null && s.weekly_bought_source === 'scraped');
     if (lastScraped) {
       weeklyBought = lastScraped.weekly_bought;
       wbSource = 'stored_scraped';
+      wbConfidence = 0.50;
     } else {
       const rawWeeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
       weeklyBought = weeklyBoughtWithFallback(rawWeeklyBought, recentSnapshots);
+      wbConfidence = recentSnapshots.length >= 7 ? 0.50 : 0.30;
     }
     this.logger.log(
       `weekly_bought: product=${productId}, currentOrders=${currentOrders}, ` +
@@ -192,6 +195,7 @@ export class UzumService {
           orders_quantity: BigInt(detail.ordersQuantity ?? 0),
           weekly_bought: weeklyBought,
           weekly_bought_source: wbSource,
+          weekly_bought_confidence: wbConfidence,
           rating: detail.rating,
           feedback_quantity: detail.feedbackQuantity,
           score: score,

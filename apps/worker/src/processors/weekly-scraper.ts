@@ -14,11 +14,16 @@ import { browserPool } from '../browser-pool';
 
 const QUEUE = 'weekly-scrape-queue';
 
+export interface ScrapeResult {
+  value: number | null;
+  rawText: string | null;
+  confidence: number; // 0.00–1.00
+}
+
 /**
  * Try to extract weekly_bought from page content using multiple strategies.
- * Returns parsed number or null.
  */
-function extractFromHtml(html: string, productId: number, jobId: string): number | null {
+function extractFromHtml(html: string, productId: number, jobId: string): ScrapeResult | null {
   // Strategy 1: SSR banners JSON with badge_bought
   const bannerRegex = /badge_bought[^}]*label["']\s*:\s*["']([^"']+)/i;
   const ssrMatch = html.match(bannerRegex);
@@ -26,17 +31,17 @@ function extractFromHtml(html: string, productId: number, jobId: string): number
     const parsed = parseWeeklyBoughtBanner(ssrMatch[1]);
     if (parsed !== null) {
       logJobInfo(QUEUE, jobId, 'scraper', `Strategy 1 (SSR): product=${productId}, wb=${parsed}`);
-      return parsed;
+      return { value: parsed, rawText: ssrMatch[1], confidence: 1.00 };
     }
   }
 
   // Strategy 1b: Direct regex for "N человек купили" in HTML source
-  const directMatch = html.match(/(\d+)\s*человек\s*купили/i);
+  const directMatch = html.match(/(\d+)\s*человек\s*купили[^<]{0,50}/i);
   if (directMatch) {
     const parsed = parseInt(directMatch[1], 10);
     if (parsed > 0) {
       logJobInfo(QUEUE, jobId, 'scraper', `Strategy 1b (HTML regex): product=${productId}, wb=${parsed}`);
-      return parsed;
+      return { value: parsed, rawText: directMatch[0].trim(), confidence: 0.95 };
     }
   }
 
@@ -47,21 +52,18 @@ function extractFromHtml(html: string, productId: number, jobId: string): number
  * Scrape weekly_bought from Uzum product page.
  *
  * Extraction strategies (cascade):
- *   1. SSR HTML source: regex for banners JSON containing badge_bought
- *   1b. Direct HTML regex: "N человек купили" in raw HTML
- *   2. DOM text: TreeWalker for "человек купили" / "купили на этой"
- *   3. Badge image parent: img[src*="badge_bought"] parent text
- *   4. Data attribute: [data-test-id] containing weekly/bought info
+ *   1. SSR HTML source: regex for banners JSON containing badge_bought → confidence 1.00
+ *   1b. Direct HTML regex: "N человек купили" in raw HTML → confidence 0.95
+ *   2. DOM text: TreeWalker for "человек купили" / "купили на этой" → confidence 0.90
+ *   3. Badge image parent: img[src*="badge_bought"] parent text → confidence 0.70
+ *   4. Broad DOM: span/div/p with weekly purchase text → confidence 0.80
  *
- * Uzum now redirects through auth endpoint before loading product page,
- * so we use networkidle + extended wait for full Vue.js hydration.
- *
- * @returns weekly_bought number or null if not found
+ * @returns ScrapeResult with value, rawText, and confidence
  */
 export async function scrapeWeeklyBought(
   productId: number,
   jobId = '-',
-): Promise<number | null> {
+): Promise<ScrapeResult> {
   const url = `https://uzum.uz/ru/product/-${productId}`;
   const browser = await browserPool.getBrowser();
   const context = await browser.newContext({
@@ -74,8 +76,6 @@ export async function scrapeWeeklyBought(
   try {
     const page = await context.newPage();
 
-    // Navigate — Uzum does auth redirect chain, 'load' is safer than 'networkidle'
-    // (networkidle times out because Uzum has persistent background connections)
     await page.goto(url, {
       waitUntil: 'load',
       timeout: 20000,
@@ -87,14 +87,12 @@ export async function scrapeWeeklyBought(
     if (earlyResult !== null) return earlyResult;
 
     // Wait for Vue.js hydration + dynamic banner rendering
-    // Try to detect banner element first (faster), fallback to fixed wait
     try {
       await page.waitForFunction(
         () => document.body?.textContent?.includes('человек купили') ?? false,
         { timeout: 8000 },
       );
     } catch {
-      // Banner not found via waitForFunction — wait fixed time for slow renders
       await page.waitForTimeout(3000);
     }
 
@@ -124,7 +122,7 @@ export async function scrapeWeeklyBought(
       const parsed = parseWeeklyBoughtBanner(bannerText);
       if (parsed !== null) {
         logJobInfo(QUEUE, jobId, 'scraper', `Strategy 2 (DOM text): product=${productId}, wb=${parsed}`);
-        return parsed;
+        return { value: parsed, rawText: bannerText, confidence: 0.90 };
       }
     }
 
@@ -140,11 +138,11 @@ export async function scrapeWeeklyBought(
       const parsed = parseWeeklyBoughtBanner(badgeParentText);
       if (parsed !== null) {
         logJobInfo(QUEUE, jobId, 'scraper', `Strategy 3 (badge img): product=${productId}, wb=${parsed}`);
-        return parsed;
+        return { value: parsed, rawText: badgeParentText, confidence: 0.70 };
       }
     }
 
-    // Strategy 4: Broader DOM search — any element with weekly purchase info
+    // Strategy 4: Broader DOM search
     const broadSearch = await page.evaluate(() => {
       const allElements = Array.from(document.querySelectorAll('span, div, p, b, strong'));
       for (let i = 0; i < allElements.length; i++) {
@@ -160,16 +158,16 @@ export async function scrapeWeeklyBought(
       const parsed = parseWeeklyBoughtBanner(broadSearch);
       if (parsed !== null) {
         logJobInfo(QUEUE, jobId, 'scraper', `Strategy 4 (broad DOM): product=${productId}, wb=${parsed}`);
-        return parsed;
+        return { value: parsed, rawText: broadSearch, confidence: 0.80 };
       }
     }
 
     logJobInfo(QUEUE, jobId, 'scraper', `No banner found: product=${productId}`);
-    return null;
+    return { value: null, rawText: null, confidence: 0 };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logJobInfo(QUEUE, jobId, 'scraper', `Scrape error: product=${productId}: ${msg}`);
-    return null;
+    return { value: null, rawText: null, confidence: 0 };
   } finally {
     await context.close();
     await browserPool.release();

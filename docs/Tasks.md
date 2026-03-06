@@ -479,29 +479,7 @@ Tray i18n, loadURL error, devtools block, package.json metadata, macOS About, en
 
 ---
 
-### T-387 | P1 | BACKEND | `weekly_bought_raw_text` + `confidence` saqlash | 1h
-
-**Muammo:**
-- Railway log retention = **7 kun**. Parsing bug 2 hafta oldin paydo bo'lsa — debug imkonsiz
-- Hozir faqat `weekly_bought` (son) va `weekly_bought_source` saqlanadi
-- Qaysi strategiya topgani, banner matni nima bo'lgani — yo'qoladi
-- Banner format o'zgarsa (A/B test, locale, UI update) — "silent wrong numbers"
-
-**Yechim:**
-1. `product_snapshots` ga 2 ta column qo'shish:
-   - `weekly_bought_raw_text Text?` — banner matni ("115 человек купили на этой неделе")
-   - `weekly_bought_confidence Decimal(3,2)?` — ishonchlilik (0.00–1.00)
-2. Confidence qiymatlari:
-   - SSR regex (Strategy 1) → 1.00
-   - HTML regex (Strategy 1b) → 0.95
-   - DOM TreeWalker (Strategy 2) → 0.90
-   - Badge img parent (Strategy 3) → 0.70
-   - Calculated delta (7d) → 0.50
-   - Calculated delta (1-3d) → 0.30
-   - stored_scraped → oldingi confidence saqlanadi
-3. `scrapeWeeklyBought()` → `{ value: number|null, rawText: string|null, confidence: number }` qaytaradi
-
-**Fayllar:** `schema.prisma`, `weekly-scraper.ts`, `weekly-scrape.processor.ts`, `import.processor.ts`, `uzum.service.ts`
+### ~~T-387~~ ✅ DONE (2026-03-06) → Done.md
 
 ---
 

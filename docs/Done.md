@@ -4,6 +4,16 @@
 
 ---
 
+## T-387 | BACKEND P1 | weekly_bought_raw_text + confidence (2026-03-06)
+
+- `product_snapshots` ga 2 column: `weekly_bought_raw_text` (Text), `weekly_bought_confidence` (Decimal 3,2)
+- `scrapeWeeklyBought()` return type: `ScrapeResult { value, rawText, confidence }`
+- Confidence: SSR=1.00, HTML=0.95, DOM=0.90, broad=0.80, badge=0.70, stored=0.50, calculated=0.30
+- 3 consumer yangilandi: `weekly-scrape.processor.ts`, `uzum.service.ts`, `import.processor.ts`
+- MML uchun: `confidence` ni `sample_weight` sifatida ishlatish mumkin
+
+---
+
 ## T-386 | BACKEND P1 | Snapshot dedup — DB unique constraint (5-min bucket) (2026-03-06)
 
 - `snapshot_bucket` generated column: `snapshot_at` ni 5 daqiqalik bucketga yaxlitlaydi
