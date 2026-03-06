@@ -1,8 +1,9 @@
 # MML + AI + RAG Strategiyasi — VENTRA Analytics Platform
 
-**Sana:** 2026-03-06
+**Sana:** 2026-03-06 (yangilangan)
 **Mualliflar:** Bekzod + Claude CLI
 **Holat:** Reja / Roadmap
+**Scale target:** 10K → 100K+ product, 1 yillik data, kundalik scrape
 
 ---
 
@@ -21,10 +22,18 @@
 | `user_activities` | action, details | har user harakati |
 | `seasonal_trends` | season_name, season_start, season_end, avg_score_boost | qo'lda kiritilgan |
 
+### Scale hisob-kitobi
+
+```
+10K product:   10,000 × 365 = 3,650,000 snapshot/yil    (~500 MB)
+100K product: 100,000 × 365 = 36,500,000 snapshot/yil   (~5 GB)
++ sku_snapshots: ~2x ko'paytirish (har product ~2 SKU)
+```
+
 ### Hozirgi AI/ML infra
 
 - **Anthropic Claude Haiku** — attribute extraction, trend explanation, sentiment (ai.service.ts)
-- **pgvector** — PostgreSQL 16 da yoqilgan, lekin **embedding hali saqlanmaydi** (comment holatda)
+- **pgvector** — PostgreSQL 16 da yoqilgan, lekin **embedding hali saqlanmaydi**
 - **Ensemble forecasting** — WMA + Holt's + Linear Regression (packages/utils)
 - **Rule-based** — dead stock predictor, saturation calculator, flash sale detection, stock cliff alert
 
@@ -61,7 +70,7 @@ model CategoryMetricSnapshot {
 model MlPrediction {
   id            String   @id @default(uuid())
   product_id    BigInt
-  model_name    String   @db.VarChar(50)  // 'prophet', 'xgboost', 'lstm'
+  model_name    String   @db.VarChar(50)  // 'lightgbm', 'neuralprophet', 'chronos'
   metric        String   @db.VarChar(30)  // 'weekly_bought', 'price', 'score'
   horizon_days  Int                       // necha kun oldinga
   predictions   Json     // [{date, value, lower, upper}]
@@ -90,9 +99,28 @@ model ChatMessage {
   content     String   @db.Text
   context     Json?    // retrieval natijasi (product IDs, scores)
   tokens_used Int?
+  feedback    String?  @db.VarChar(10)  // 'up' | 'down' | null
   created_at  DateTime @default(now()) @db.Timestamptz
   @@index([account_id, created_at])
   @@map("chat_messages")
+}
+
+// 5. ML audit log — prognoz vs real solishtirish
+model MlAuditLog {
+  id             String   @id @default(uuid())
+  product_id     BigInt
+  model_name     String   @db.VarChar(50)
+  metric         String   @db.VarChar(30)
+  predicted_value Float
+  actual_value    Float
+  error_abs       Float    // |predicted - actual|
+  error_pct       Float    // foizli xato
+  prediction_date DateTime @db.Timestamptz // qachon prognoz qilingan
+  actual_date     DateTime @db.Timestamptz // real data sanasi
+  created_at      DateTime @default(now()) @db.Timestamptz
+  @@index([model_name, created_at])
+  @@index([product_id, created_at])
+  @@map("ml_audit_logs")
 }
 ```
 
@@ -100,44 +128,84 @@ model ChatMessage {
 
 ## 2. ML Model Strategiyasi
 
-### Model 1: Sotuv Prognozi (Sales Forecast)
+### Nega bu texnologiyalar tanlandi
 
-**Maqsad:** Har bir product uchun kunlik, haftalik, oylik, yillik sotuvlarni bashorat qilish.
+| Eski tanlov | Muammo | Yangi tanlov | Sabab |
+|-------------|--------|-------------|-------|
+| Facebook Prophet | Meta development to'xtatgan, 10K+ da har product alohida = 5+ soat | **NeuralProphet** | Prophet evolyutsiyasi, PyTorch, batch training, 10x tez |
+| XGBoost | Feature engineering kerak, lekin jadval data da kuchli | **LightGBM** | 2-5x tez, kam memory, katta dataset da yaxshiroq |
+| LSTM | Eskirgan (2014), vanishing gradient, 60+ data point kerak | **PatchTST / TiDE** | Transformer-based, kam data bilan ishlaydi, 2023-2024 |
+| — | Yangi productlar uchun yechim yo'q | **Chronos** (Amazon) | Zero-shot prognoz, train shart emas |
+
+### Scale bo'yicha model tanlash
+
+| Scale | Asosiy model | Mavsumiylik | Yangi product fallback |
+|-------|-------------|-------------|----------------------|
+| **1K product** | LightGBM global | NeuralProphet (50 kat.) | Chronos zero-shot |
+| **10K product** | LightGBM global (2 min train) | NeuralProphet (100 kat.) | Chronos zero-shot |
+| **100K product** | LightGBM global (15-20 min) | NeuralProphet (200 kat.) | Chronos zero-shot |
+
+### TIER arxitekturasi
+
+```
+TIER 1 — Asosiy (kundalik, barcha productlar):
+  LightGBM global model
+  ├─ Train: haftada 1x
+  │   10K:  3.65M row → ~2 daqiqa
+  │   100K: 36.5M row → ~15-20 daqiqa
+  ├─ Inference: 10K = ~10s, 100K = ~30s
+  ├─ Feature: narx, kategoriya, badge, mavsum, seller_count, trend
+  └─ Output: 7/14/30 kunlik sotish prognozi
+
+TIER 2 — Mavsumiylik (haftalik, kategoriya-level):
+  NeuralProphet kategoriya-level
+  ├─ 10K:  ~100 kategoriya = 100 model → ~5 daqiqa
+  │  100K: ~200 kategoriya = 200 model → ~15 daqiqa
+  ├─ Train: haftada 1x
+  ├─ Mavsumiy regressorlar: Ramadan, Navro'z, Yangi yil, Black Friday
+  └─ Output: mavsumiy trend, bayram effekti, yillik sikllar
+
+TIER 3 — Fallback (yangi productlar, < 30 kun data):
+  Chronos zero-shot (Amazon, pretrained)
+  ├─ Train kerak EMAS — pretrained model
+  ├─ Yangi product qo'shilganda darhol prognoz
+  ├─ 30+ kun data yig'ilgach → TIER 1 ga o'tadi
+  └─ 100K da faqat yangi productlar uchun = tez
+
+TIER 4 — Eksperimental (3+ oy data bo'lganda):
+  PatchTST / TiDE (Transformer-based)
+  ├─ 90+ snapshot bo'lgan productlar uchun
+  ├─ Murakkab patternlar: hafta ichidagi sikllar, tashqi omillar
+  ├─ GPU optional (lekin tezroq)
+  └─ LightGBM bilan ensemble — ikkalasi birgalikda yaxshiroq
+```
+
+### Model 1: Sotuv Prognozi (Sales Forecast) — LightGBM
+
+**Maqsad:** Har product uchun kunlik, haftalik, oylik sotuvlarni bashorat qilish.
 
 **Kiruvchi ma'lumotlar (features):**
-- `weekly_bought` seriyasi (7/14/30/90 kun)
+- `weekly_bought` seriyasi (7/14/30/90 kun lag)
 - `rating` o'zgarishi (delta)
 - `feedback_quantity` o'sish tezligi
 - `sell_price` o'zgarishlari
 - `total_available_amount` (stok darajasi)
-- `category_id` (kategoriya ta'siri)
-- `day_of_week` (hafta kuni)
+- `category_id` (kategoriya embedding)
+- `day_of_week`, `month` (vaqt xususiyatlari)
 - `season_encoding` (mavsumiylik)
+- `seller_count` (kategoriya raqobat darajasi)
+- `discount_percent` (chegirma ta'siri)
 
 **Chiqish:** Keyingi 7/30/90 kun uchun `weekly_bought` prognozi + ishonch intervali (upper/lower)
 
-**Algoritmlar (bosqichma-bosqich):**
+**Nega LightGBM?**
+- **Global model** — 1 ta model BARCHA productlardan o'rganadi (cross-learning)
+- Har product uchun alohida model KERAK EMAS (Prophet dan farq)
+- 36.5M row ustida train — **15-20 daqiqa** (Prophet 100K da 28 soat!)
+- Inference: 100K product — **30 soniya**
+- Feature importance — qaysi omil eng ko'p ta'sir qilganini ko'rsatadi
 
-| Faza | Algoritm | Afzalligi | Kamchiligi |
-|------|----------|-----------|------------|
-| Faza 1 | **Facebook Prophet** | Mavsumiylikni ajratadi, tez ishga tushadi | Oddiy, cross-product o'rganmaydi |
-| Faza 2 | **XGBoost** | Jadval ma'lumotlari bilan kuchli, boshqa productlardan o'rganadi | Feature engineering kerak |
-| Faza 3 | **LSTM** | Murakkab patternlarni topadi | Ko'p data kerak (60+ snapshot), GPU |
-
-**Training data:**
-- `product_snapshots` JOIN `sku_snapshots`
-- Minimum: 30 snapshot (30 kun) — kamida 1 oy data bo'lgan productlar
-- 30 kundan kam bo'lsa → hozirgi ensemble forecasting (fallback)
-
-**Baholash metrikalari:**
-- **MAE** — o'rtacha xatolik (masalan: 15 ta sotuv farq)
-- **MAPE** — foizli xatolik (kutilgan: 20-30% — bozor ma'lumotlari shovqinli)
-- **RMSE** — katta xatolarni ko'proq jazolaydigan metrika
-- Cross-validation: 7 kunlik siljuvchi oyna
-
-### Model 2: Trend Aniqlash (Trend Classification)
-
-**Maqsad:** Har product uchun: "o'smoqda", "tusmoqda", "barqaror" aniqlash.
+### Model 2: Trend Aniqlash (Trend Classification) — LightGBM Classifier
 
 **Feature engineering:**
 ```
@@ -145,31 +213,27 @@ MA7  = 7 kunlik o'rtacha (score, weekly_bought)
 MA14 = 14 kunlik o'rtacha
 MA30 = 30 kunlik o'rtacha
 
-momentum    = (MA7 - MA14) / MA14      // qisqa muddatli harakat yo'nalishi
-acceleration = momentum_t - momentum_{t-7}  // tezlanish yoki sekinlashuv
+momentum     = (MA7 - MA14) / MA14       // qisqa muddatli harakat
+acceleration = momentum_t - momentum_{t-7} // tezlanish
+volume_ratio = weekly_bought / MA30         // hajm anomaliyasi
 ```
 
-**Klasslar:**
-- `rising` — momentum > 0.1 (o'sish)
-- `falling` — momentum < -0.1 (tushish)
-- `stable` — orada (barqaror)
+**Klasslar:** `rising` | `falling` | `stable`
+**LightGBM classifier** — bitta model 100K product uchun ishlaydi.
 
-**Algoritm:** XGBoost classifier + kategoriya darajasidagi feature'lar
+### Model 3: Narx Prognozi — NeuralProphet
 
-**Hozirgi holatdan farqi:** `forecastEnsemble()` rule-based — ML model uni almashtiradi, lekin fallback sifatida saqlanadi.
-
-### Model 3: Narx Prognozi (Price Prediction)
-
-**Kirish:** `sku_snapshots` dan narx seriyasi, raqobatchilar narxlari, chegirma tarixi, mavsumiy data
-**Algoritm:** Prophet + tashqi regressorlar (raqobatchi narxi, mavsumiy dummy)
+**Kirish:** `sku_snapshots` narx seriyasi + raqobatchi narxlari + mavsumiy data
+**Nega NeuralProphet?** Narx — vaqt seriyasi + tashqi omillar (raqobatchi, mavsumiy).
+NeuralProphet buni `add_future_regressor()` bilan qiladi.
 **Chiqish:** 7/30 kun uchun narx oralig'i
 **Kutilgan xatolik:** 5-10% MAPE
 
-### Model 4: Risk Baholash
+### Model 4: Risk Baholash — LightGBM Classifier
 
 **Hozirgi:** `predictDeadStock()` qoida asosida ishlaydi (packages/utils)
 
-**ML yaxshilash:** Tarixda sotuvlari 0 ga tushgan productlar ustida XGBoost train qilish:
+**ML yaxshilash:** Tarixda sotuvlari 0 ga tushgan productlar ustida LightGBM train:
 - Score traektoriyasi (tushish tezligi)
 - `weekly_bought` kamayish tezligi
 - `feedback_quantity` to'xtab qolishi
@@ -178,12 +242,11 @@ acceleration = momentum_t - momentum_{t-7}  // tezlanish yoki sekinlashuv
 
 **Chiqish:** `risk_score` 0-1, `risk_level`: low/medium/high/critical
 
-### Model 5: Kategoriya Intelligence
+### Model 5: Kategoriya Intelligence — NeuralProphet + LightGBM
 
 **Yangi data kerak:** `CategoryMetricSnapshot` kunlik aggregation
 **Feature'lar:** product_count o'sish tezligi, seller_count o'sishi, avg_price trendi, total_orders o'sishi
-**Klassifikatsiya:** `growing` (o'smoqda), `saturating` (to'yinmoqda), `declining` (tushmoqda), `emerging` (yangi paydo bo'lmoqda)
-**Amalga oshirish:** Batch job kundalik hisoblab, `category_metric_snapshots` ga saqlaydi
+**Klassifikatsiya:** `growing` | `saturating` | `declining` | `emerging`
 
 ---
 
@@ -207,12 +270,13 @@ Foydalanuvchi savoli
   |   |-- category_trend   -> category_metric_snapshots, category_winners
   |   |-- price_advice     -> narx tarixi, raqobatchilar narxlari, elastiklik
   |   |-- recommendation   -> top productlar, early signals, risk
+  |-- ML prognoz: MlPrediction jadvalidan (agar mavjud)
   |-- User kontekst: kuzatilayotgan productlar, faollik tarixi
      |
      v
 [3. Kontekst yig'ish — max 4K token]
   -> Ma'lumotlar ixcham jadval ko'rinishida
-  -> ML prognozlar ham qo'shiladi (agar mavjud)
+  -> ML prognozlar + confidence ham qo'shiladi
      |
      v
 [4. LLM javob — Claude Sonnet/Haiku]
@@ -220,73 +284,42 @@ Foydalanuvchi savoli
   -> Streaming SSE orqali real-time javob
      |
      v
-[5. Saqlash + log]
-  -> ChatMessage jadvaliga saqlash
+[5. Saqlash + Feedback]
+  -> ChatMessage jadvaliga saqlash (feedback: up/down)
   -> AiUsageLog yangilash (token sarfi)
 ```
 
 ### Embedding strategiyasi
 
-| Parametr | Qiymat |
-|----------|--------|
-| **Model** | `text-embedding-3-small` (OpenAI) yoki Anthropic Embeddings — 1536 dimension |
-| **Nima embed qilinadi** | Product title + category_path + badges (bir product = bir embedding) |
-| **Yangilash** | Kunlik BullMQ job — faqat yangi/o'zgargan productlar |
-| **Indeks** | `HNSW` (100K dan kam product uchun tezroq) |
+| Parametr | 10K | 100K |
+|----------|-----|------|
+| **Model** | `text-embedding-3-small` (OpenAI) — 1536 dim | Xuddi shu |
+| **Nima embed qilinadi** | Product title + category_path + badges | + description text |
+| **Yangilash** | Kunlik BullMQ job | Kunlik, batch 1000 talik |
+| **Indeks** | HNSW (10K da tez) | HNSW (100K gacha OK) |
+| **Embedding narxi** | ~$1/oy | ~$10/oy |
 
 ```sql
--- pgvector indeks
+-- pgvector HNSW indeks
 CREATE INDEX ON product_embeddings
   USING hnsw (embedding vector_cosine_ops)
   WITH (m = 16, ef_construction = 64);
-```
-
-### RAG uchun SQL shablonlar
-
-```sql
--- Product tahlili konteksti
-SELECT p.title, ps.score, ps.weekly_bought, ps.orders_quantity,
-       ps.rating, ss.sell_price, ss.discount_percent
-FROM product_snapshots ps
-JOIN products p ON p.id = ps.product_id
-LEFT JOIN sku_snapshots ss ON ss.sku_id = (
-  SELECT id FROM skus WHERE product_id = p.id LIMIT 1
-)
-WHERE ps.product_id = $1
-ORDER BY ps.snapshot_at DESC LIMIT 14;
-
--- Kategoriya intelligence konteksti
-SELECT cms.product_count, cms.seller_count, cms.avg_score,
-       cms.avg_weekly_sold, cms.total_orders
-FROM category_metric_snapshots cms
-WHERE cms.category_id = $1
-ORDER BY cms.snapshot_at DESC LIMIT 30;
 ```
 
 ### AI Assistant use case'lari
 
 | Savol | Intent | Retrieval | Javob |
 |-------|--------|-----------|-------|
-| "Bu product yaxshimi?" | product_analysis | snapshot + trend + competitor | Score, haftalik sotuv, risk, maslahat |
-| "Kosmetika da nima trend?" | category_trend | category_winners + metrics | O'suvchi/tushuvchi productlar, raqobat |
-| "Narx tushirsammi?" | price_advice | narx tarixi + raqobatchilar + elastiklik | Prognoz, raqobatchi narxi, maslahat |
-| "Nima sotishim kerak?" | recommendation | user nishasi + top products + risk | Personallashtirilgan tavsiyalar |
-
-### Yaratiladigan fayllar
-
-| Fayl | Vazifasi |
-|------|---------|
-| `apps/api/src/ai/rag.service.ts` | RAG orchestration: intent -> retrieve -> generate |
-| `apps/api/src/ai/embedding.service.ts` | Embedding yaratish + pgvector upsert |
-| `apps/api/src/ai/chat.controller.ts` | SSE streaming chat endpoint |
-| `apps/worker/src/processors/embedding.processor.ts` | Batch embedding job |
-| `apps/worker/src/jobs/embedding.job.ts` | Kunlik cron embedding yangilash |
+| "Bu product yaxshimi?" | product_analysis | snapshot + trend + ML prognoz | Score, haftalik sotuv, risk, prognoz |
+| "Kosmetika da nima trend?" | category_trend | category_winners + metrics + ML trend | O'suvchi/tushuvchi productlar, raqobat |
+| "Narx tushirsammi?" | price_advice | narx tarixi + raqobatchilar + ML narx prognoz | Prognoz, raqobatchi narxi, maslahat |
+| "Nima sotishim kerak?" | recommendation | user nishasi + top products + risk + ML | Personallashtirilgan tavsiyalar |
 
 ---
 
 ## 4. Texnik Arxitektura
 
-### Tizim sxemasi
+### 10K scale
 
 ```
 +-----------------------------------------------------------+
@@ -308,54 +341,111 @@ ORDER BY cms.snapshot_at DESC LIMIT 30;
 |                    Python ML Service                       |
 |  FastAPI | Port 8000 | Docker container                   |
 |                                                           |
-|  +----------+  +----------+  +-----------+                |
-|  | Prophet  |  | XGBoost  |  | LSTM      |                |
-|  | (Faza 1) |  | (Faza 2) |  | (Faza 3)  |                |
-|  +----------+  +----------+  +-----------+                |
+|  +-------------+  +----------+  +-----------+             |
+|  | LightGBM    |  |NeuralPro |  | Chronos   |            |
+|  | (TIER 1)    |  | (TIER 2) |  | (TIER 3)  |            |
+|  +-------------+  +----------+  +-----------+             |
 |                                                           |
 |  Endpointlar:                                             |
 |  POST /predict/sales    -> {product_id, horizon}          |
 |  POST /predict/price    -> {product_id, horizon}          |
 |  POST /predict/trend    -> {product_id}                   |
 |  POST /predict/risk     -> {product_id}                   |
-|  POST /batch/retrain    -> modelni qayta train qilish     |
+|  POST /batch/predict    -> batch 1000 talik               |
+|  POST /batch/retrain    -> modelni qayta train             |
 |  GET  /health                                             |
+|  GET  /audit/summary    -> model accuracy hisoboti        |
 +-----------------------------------------------------------+
-                       |
-                       v
-+-----------------------------------------------------------+
-|                    BullMQ Worker (Node.js)                 |
-|                                                           |
-|  Yangi queue'lar:                                         |
-|  +--------------------+  +---------------------+          |
-|  | ml-prediction-queue|  | embedding-queue      |         |
-|  | Kunlik prognoz     |  | Kunlik embedding     |         |
-|  +--------------------+  +---------------------+          |
-|                                                           |
-|  +--------------------+                                   |
-|  | category-agg-queue |                                   |
-|  | Kunlik kat. metrik |                                   |
-|  +--------------------+                                   |
-+-----------------------------------------------------------+
+```
+
+### 100K scale — qo'shimcha komponentlar
+
+```
+                    +---------------------+
+                    |   NGINX / Cloudflare |
+                    +----------+----------+
+                               |
+                    +----------v----------+
+                    |   NestJS API (x2-3)  |  <- Horizontal scale
+                    |   Load Balanced      |
+                    +----------+----------+
+                               |
+          +--------------------+--------------------+
+          |                    |                     |
+   +------v------+    +-------v-------+    +--------v-------+
+   | TimescaleDB  |    | Redis Cluster  |    |  ClickHouse    |
+   | (write path) |    | (cache+queue)  |    | (analytics)    |
+   | hypertable   |    |                |    | read-only      |
+   | compression  |    |                |    | kunlik delta   |
+   +------+-------+    +-------+-------+    +--------+-------+
+          |                    |                      |
+   +------v------+    +-------v-------+    +---------v------+
+   | Scrape Pool  |    | ML Service    |    | ETL Pipeline   |
+   | 5-10 worker  |    | FastAPI + GPU |    | TimescaleDB -> |
+   | proxy rotate |    | (optional)    |    | ClickHouse     |
+   +--------------+    +---------------+    +----------------+
+```
+
+### 100K da DB arxitektura
+
+```sql
+-- TimescaleDB: hypertable — vaqt bo'yicha auto-partition
+SELECT create_hypertable('product_snapshots', 'snapshot_at');
+
+-- 30 kundan eski data auto-compress (10x kichik hajm)
+ALTER TABLE product_snapshots SET (
+  timescaledb.compress,
+  timescaledb.compress_segmentby = 'product_id'
+);
+SELECT add_compression_policy('product_snapshots', INTERVAL '30 days');
+
+-- Continuous aggregate — kunlik delta AVTOMATIK hisoblaydi
+CREATE MATERIALIZED VIEW daily_sales
+WITH (timescaledb.continuous) AS
+SELECT product_id,
+       time_bucket('1 day', snapshot_at) AS day,
+       last(orders_quantity, snapshot_at) - first(orders_quantity, snapshot_at) AS daily_sold,
+       last(score, snapshot_at) AS score
+FROM product_snapshots
+GROUP BY product_id, time_bucket('1 day', snapshot_at);
+```
+
+**Nega ClickHouse?** 36.5M row ustida "top 100 o'sgan product" query:
+- PostgreSQL: **12-30 soniya**
+- ClickHouse: **50-200 millisekund**
+
+### 100K da Scraping arxitektura
+
+```
+Hozirgi:  1 worker, 1 req/s = 100K uchun 28 soat ❌
+
+100K uchun:
+  5 worker × 5 req/s = 25 req/s
+  100,000 / 25 = ~1.1 soat ✅
+
+Kerak:
+  ├─ Proxy pool (5-10 IP) — Uzum ban qilmasligi uchun
+  ├─ Priority queue — VIP product oldin, past priority keyin
+  ├─ Stale detection — 3 kun yangilanmagan = alert
+  └─ Redis SETNX lock (T-385 da qilingan) — dublikat scrape yo'q
 ```
 
 ### Data Pipeline (kunlik cron tartibi)
 
 ```
-03:00 UTC — Category Aggregation Job
-  -> Har aktiv kategoriya uchun CategoryMetricSnapshot INSERT
-
-04:00 UTC — Feature Engineering + Model Retrain (faqat haftada 1 marta)
-  -> Moving averages, momentum, delta features hisoblash
-  -> Python service ga POST /batch/retrain
-
+02:00 UTC — Scrape batch (5-10 worker, 100K product, ~1 soat)
+03:00 UTC — Category Aggregation Job (CategoryMetricSnapshot INSERT)
+04:00 UTC — Feature Engineering + Model Retrain (haftada 1x)
+             ├─ LightGBM: 36.5M row → ~15-20 min
+             ├─ NeuralProphet: 200 kategoriya → ~15 min
+             └─ Chronos: retrain yo'q (pretrained)
 05:00 UTC — Batch Prediction Job
-  -> Har tracked product uchun POST /predict/sales
-  -> Natija: MlPrediction jadvaliga + Redis cache (TTL 24h)
-
-06:00 UTC — Embedding Sync Job
-  -> Yangi/o'zgargan productlar uchun embedding yaratish
-  -> product_embeddings ga upsert (pgvector)
+             ├─ LightGBM inference: 100K product → ~30s
+             ├─ NeuralProphet: kategoriya prognoz → ~2 min
+             ├─ Natija: MlPrediction jadvalga + Redis cache (TTL 24h)
+             └─ ML Audit: kechagi prognoz vs bugungi real → MlAuditLog
+06:00 UTC — Embedding Sync (yangi/o'zgargan productlar → pgvector)
+06:30 UTC — RAG Audit batch (50 ta sample → LLM-as-Judge)
 ```
 
 ### Docker qo'shimchasi
@@ -369,23 +459,225 @@ ml-service:
     - "8000:8000"
   environment:
     DATABASE_URL: postgresql://uzum:uzum_pass@postgres:5432/uzum_trend_finder
+    MODEL_DIR: /app/models
+  volumes:
+    - ml-models:/app/models    # train qilingan modellar persist
   depends_on:
     - postgres
 ```
 
 ---
 
-## 5. Bosqichma-bosqich Reja (Roadmap)
+## 5. Audit va Monitoring Tizimi
 
-### Faza 1 (2 hafta): Feature Engineering + Asosiy Prognoz
+### 5.1. ML Prognoz Audit
+
+**Maqsad:** Prognoz qanchalik to'g'ri ishlayotganini AVTOMATIK tekshirish.
+
+#### Asosiy metrikalar
+
+| Metrika | Formula | Izoh |
+|---------|---------|------|
+| **MAE** | `\|real - prognoz\|` o'rtachasi | Absolyut xato (masalan: 15 ta sotuv farq) |
+| **MAPE** | `\|xato\| / real × 100%` | Foizli xato (masalan: 17.6%) |
+| **WAPE** | `sum(\|xatolar\|) / sum(real)` | 100K product bo'yicha bitta raqam |
+| **Direction Accuracy** | Yo'nalish to'g'rimi? | "O'sadi" dedi — haqiqatan o'sdimi? |
+
+#### Backtest (model sifatini sinash)
+
+```
+365 kunlik data:
+  [========= 300 kun TRAIN =========][=== 65 kun TEST ===]
+
+  Model 300 kun dan o'rganadi
+  65 kunni PROGNOZ qiladi
+  Prognoz vs REAL solishtiriladi → MAPE hisoblanadi
+
+  Sliding window: 7 kunlik qadam bilan 10 marta takrorlanadi
+  Natija: "Model 7 kunga 12% xato bilan bashorat qiladi"
+```
+
+#### Segment bo'yicha audit
+
+Umumiy MAPE yaxshi bo'lsa ham, segmentlar bo'yicha tekshirish SHART:
+
+```
+Kategoriya bo'yicha:
+  Elektronika:     MAPE 8%  ✅ (barqaror sotish)
+  Kiyim-kechak:    MAPE 35% ❌ (mavsumiy, notekis)
+  Oziq-ovqat:      MAPE 12% ✅
+
+Hajm bo'yicha:
+  Top seller (1000+ haftalik): MAPE 10% ✅
+  O'rta (100-999):             MAPE 18% ⚠️
+  Kam (< 100):                 MAPE 45% ❌ (shovqinli data)
+
+Mavsumiy:
+  Oddiy kunlar:    MAPE 15% ✅
+  Bayram atrofida:  MAPE 40% ❌ (spike/drop)
+```
+
+**Kam sotiladigan productlar** uchun prognoz har doim yomon — bu normal.
+Foydalanuvchiga **ishonch darajasi** ko'rsatiladi: "Bu prognoz 85% ishonchli" yoki "Bu prognoz taxminiy".
+
+#### Avtomatik monitoring (kundalik)
+
+```
+Har kuni 05:00 UTC (Batch Prediction ichida):
+  1. Kechagi prognoz olish (MlPrediction jadvaldan)
+  2. Bugungi real data olish (product_snapshots)
+  3. |prognoz - real| hisoblash → MlAuditLog ga yozish
+  4. Alertlar:
+     ├─ MAPE > 30% 3 kun ketma-ket → MODEL_DRIFT alert
+     ├─ MAPE > 50% 1 kun → PREDICTION_FAILURE alert
+     └─ Direction accuracy < 60% → DIRECTION_DRIFT alert
+  5. Trigger: MAPE 3 kun > 25% → avtomatik retrain boshlash
+```
+
+#### Model solishtirish
+
+```
+A/B test framework:
+  ├─ LightGBM prognoz → MlPrediction (model_name='lightgbm')
+  ├─ NeuralProphet prognoz → MlPrediction (model_name='neuralprophet')
+  ├─ Eski ensemble → MlPrediction (model_name='ensemble_legacy')
+  └─ Kunlik: MAPE solishtirish → qaysi model yaxshiroq?
+
+Natija: eng yaxshi model har kategoriya uchun avtomatik tanlanadi
+  Elektronika → LightGBM (MAPE 8%)
+  Kiyim → NeuralProphet (MAPE 22%, mavsumiylikni biladi)
+```
+
+### 5.2. LLM (RAG) Audit
+
+**RAG audit qiyinroq** — raqamli metrika bilan to'liq o'lchab bo'lmaydi.
+3 ta audit qatlami ishlatiladi:
+
+#### A. Avtomatik — LLM-as-Judge (kundalik)
+
+```
+Har kecha 06:30 UTC:
+  1. 50 ta tasodifiy RAG javobni ol (ChatMessage jadvaldan)
+  2. Har biri uchun DB dan real datani ol
+  3. Claude Sonnet tekshiradi (judge prompt):
+
+     "Quyidagi javob DB ma'lumotlariga mosmi?
+      Savol: {user_question}
+      Javob: {rag_response}
+      DB data: {actual_data}
+
+      Tekshir:
+      1. Raqamlar to'g'rimi? (factuality)
+      2. Trend yo'nalishi to'g'rimi? (direction)
+      3. O'ylab to'qilgan ma'lumot bormi? (hallucination)
+      4. Javob savolga mosmi? (relevance)
+
+      Natija: PASS / FAIL + sabab"
+
+  4. Natija: 50 dan 47 ta PASS = 94% accuracy
+  5. FAIL bo'lganlari loglanadi → prompt yoki retrieval tuzatish uchun
+```
+
+**Alert trigger:** Accuracy < 85% → RAG_QUALITY_DEGRADED alert
+
+#### B. Retrieval sifati (haftalik)
+
+```
+Savol: "Elektronika kategoriyasida eng yaxshi product?"
+
+Retrieval qaytargan context:
+  ├─ Product A (elektronika, score 95)  ✅ relevant
+  ├─ Product B (elektronika, score 88)  ✅ relevant
+  └─ Product C (kiyim, score 92)        ❌ NOTO'G'RI kategoriya!
+
+Metrikalar:
+  Precision@5 = relevant / jami = 2/3 = 66% → yomon
+  Recall@5 = topilgan relevant / barcha relevant
+  MRR = birinchi relevant natija nechanchida?
+
+Haftalik hisobot:
+  ├─ O'rtacha Precision@5 = 87%
+  ├─ Eng yomon intent: recommendation (72%)
+  └─ Eng yaxshi intent: product_analysis (95%)
+```
+
+**Retrieval yomon → LLM qanchalik aqlli bo'lmasin, javob noto'g'ri.**
+Shuning uchun avval retrieval auditlanadi, keyin LLM.
+
+#### C. Foydalanuvchi feedback (real-time)
+
+```
+Har RAG javob ostida:
+  [👍 Foydali]  [👎 Noto'g'ri]
+
+ChatMessage jadvalda saqlanadi: feedback = 'up' | 'down'
+
+Haftalik hisobot:
+  ├─ 200 javob, 180 👍 = 90% satisfaction
+  ├─ 👎 eng ko'p: "raqam eski" (12), "savol tushunilmadi" (5)
+  └─ 👎 ko'p bo'lgan savollar → prompt/retrieval tuzatish
+
+Alert: satisfaction < 80% haftalik → RAG_USER_DISSATISFIED alert
+```
+
+### 5.3. Audit dashboard (admin panel)
+
+```
+/admin/ml-audit sahifasi:
+
+┌─────────────────────────────────────────────┐
+│ ML Model Accuracy           Last 7 days     │
+│                                             │
+│ LightGBM (sales):    MAPE 14.2% ✅          │
+│ NeuralProphet (cat): MAPE 11.8% ✅          │
+│ Chronos (new prod):  MAPE 28.5% ⚠️          │
+│ Direction accuracy:  78.4%      ✅          │
+│                                             │
+│ [Retrain Now]  [View Details]               │
+├─────────────────────────────────────────────┤
+│ RAG Quality                 Last 7 days     │
+│                                             │
+│ LLM-as-Judge accuracy: 92.4%  ✅            │
+│ Retrieval Precision@5: 87.1%  ✅            │
+│ User satisfaction:     89.3%  ✅            │
+│ Hallucination rate:     2.1%  ✅            │
+│                                             │
+│ [View Failed Responses]  [Adjust Prompts]   │
+├─────────────────────────────────────────────┤
+│ Alerts                                      │
+│                                             │
+│ ⚠️ Kiyim kategoriya MAPE 35% (3 kun)        │
+│ ✅ Model retrain triggered 2 soat oldin      │
+│ ✅ RAG accuracy 92%+ barqaror                │
+└─────────────────────────────────────────────┘
+```
+
+### 5.4. Audit xulosa jadvali
+
+| Nima auditlanadi | Qanday | Qachon | Maqbul natija | Alert trigger |
+|------------------|--------|--------|---------------|---------------|
+| ML prognoz xatosi | MAPE backtest | Har retrain | < 20% | > 30% 3 kun |
+| ML model drift | Kunlik real vs prognoz | Har kuni | Drift < 5%/hafta | Drift > 10% |
+| ML direction | O'sdi/tushdi to'g'rimi | Har kuni | > 70% | < 60% |
+| RAG factuality | LLM-as-Judge + DB | Har kecha 50 sample | > 90% | < 85% |
+| RAG retrieval | Precision@5 | Har hafta | > 80% | < 70% |
+| RAG hallucination | LLM-as-Judge | Har kecha | < 5% | > 10% |
+| User satisfaction | 👍/👎 feedback | Real-time | > 85% | < 80% |
+
+---
+
+## 6. Bosqichma-bosqich Reja (Roadmap)
+
+### Faza 1 (2 hafta): LightGBM + Feature Engineering
 
 **1-hafta:**
-- [ ] Prisma migration: `CategoryMetricSnapshot`, `MlPrediction` jadvallar
+- [ ] Prisma migration: `CategoryMetricSnapshot`, `MlPrediction`, `MlAuditLog` jadvallar
 - [ ] `category-aggregation.processor.ts` — kunlik kategoriya metrikalari
 - [ ] `category-aggregation.job.ts` — cron `0 3 * * *`
-- [ ] Python ML service scaffold: `apps/ml/` FastAPI + Prophet
-- [ ] `POST /predict/sales` endpoint — Prophet model
-- [ ] Docker setup
+- [ ] Python ML service scaffold: `apps/ml/` FastAPI + LightGBM
+- [ ] `POST /predict/sales` — LightGBM global model
+- [ ] `POST /batch/predict` — batch inference 1000 talik
+- [ ] Docker setup + model persistence (volume)
 
 **2-hafta:**
 - [ ] `predictions.service.ts` — ML service chaqirish, Redis cache
@@ -393,7 +685,8 @@ ml-service:
 - [ ] BullMQ: `ml-prediction-queue` processor + kunlik batch job
 - [ ] `forecastEnsemble()` ni ML prognoz bilan almashtirish (fallback saqlanadi)
 - [ ] Frontend: prognoz grafiklari ProductPage da
-- [ ] Test: MAE/MAPE hisoblash, ensemble bilan solishtirish
+- [ ] Backtest: MAPE hisoblash, ensemble bilan solishtirish
+- [ ] ML Audit: kunlik prognoz vs real → `MlAuditLog`
 
 ### Faza 2 (2 hafta): RAG Pipeline + AI Assistant
 
@@ -402,100 +695,118 @@ ml-service:
 - [ ] pgvector HNSW indeks yaratish
 - [ ] `embedding.service.ts` — embedding yaratish
 - [ ] `embedding.processor.ts` — batch embedding job
-- [ ] Embedding API integratsiya (Anthropic/OpenAI)
+- [ ] Embedding API integratsiya (OpenAI text-embedding-3-small)
 
 **4-hafta:**
 - [ ] `rag.service.ts` — intent classification + retrieval + generation
 - [ ] `chat.controller.ts` — SSE streaming chat endpoint
-- [ ] Frontend: Chat widget component (streaming javob)
+- [ ] Frontend: Chat widget (streaming javob + 👍/👎 feedback)
 - [ ] System prompt — Uzum bozor tahlilchisi, O'zbek tilida
 - [ ] ChatMessage saqlash + suhbat tarixi
-- [ ] Test: kontekst relevantligi, javob sifati
+- [ ] RAG Audit: LLM-as-Judge nightly batch (50 sample)
+- [ ] Retrieval Precision@5 haftalik hisobot
 
-### Faza 3 (2 hafta): Kuchli ML + Kategoriya Intelligence
+### Faza 3 (1 hafta): NeuralProphet + Chronos
 
 **5-hafta:**
-- [ ] XGBoost model — trend classification (Python service)
-- [ ] XGBoost model — sales prediction (Prophet bilan ensemble)
-- [ ] Kategoriya intelligence endpoint: growing/saturating/declining
-- [ ] `category-intelligence.service.ts`
-- [ ] Frontend: Kategoriya intelligence dashboard
+- [ ] NeuralProphet: kategoriya-level mavsumiy model
+- [ ] Chronos: yangi productlar uchun zero-shot fallback
+- [ ] `POST /predict/seasonal` endpoint
+- [ ] Model tanlov logikasi: data hajmiga qarab TIER 1/2/3
+- [ ] Kategoriya intelligence dashboard (growing/saturating/declining)
+- [ ] A/B model solishtirish framework
+
+### Faza 4 (1 hafta): Audit Dashboard + Production Hardening
 
 **6-hafta:**
-- [ ] LSTM/Transformer tajriba (60+ snapshot bo'lgan productlar uchun)
-- [ ] A/B model solishtirish framework
-- [ ] Model versiyalash + metrikalar kuzatish
-- [ ] Auto-retrain: MAPE > 30% bo'lganda qayta train
-
-### Faza 4 (2 hafta): Risk Model + Narx Prognoz + Integratsiya
-
-**7-hafta:**
-- [ ] ML-based risk model (`predictDeadStock` o'rniga)
-- [ ] Narx prognoz modeli (Prophet + raqobatchi regressorlar)
-- [ ] `POST /predict/risk` va `POST /predict/price` endpointlar
-- [ ] Dashboard integratsiya: risk alertlar, narx prognozlari
-- [ ] Telegram bot: ML-based kunlik digest
-
-**8-hafta:**
-- [ ] End-to-end testing va calibration
-- [ ] Model monitoring: prognoz aniqligi dashboard
-- [ ] Performance optimizatsiya: batch inference, Redis caching
-- [ ] Dokumentatsiya: model cards, API docs
+- [ ] Admin panel: `/admin/ml-audit` sahifasi
+- [ ] ML metrikalar dashboard: MAPE, direction accuracy, model comparison
+- [ ] RAG metrikalar dashboard: factuality, retrieval, satisfaction
+- [ ] Alert tizimi: MODEL_DRIFT, RAG_QUALITY_DEGRADED, auto-retrain
+- [ ] Auto-retrain trigger: MAPE 3 kun > 25%
+- [ ] Performance: batch inference, Redis caching, TimescaleDB (100K uchun)
 - [ ] Production deploy (Railway)
 
 ---
 
-## 6. Risklar va Cheklovlar
+## 7. 100K Scale Tayyorlik (qo'shimcha qadam)
+
+100K productga o'tishda qo'shiladigan komponentlar:
+
+| Komponent | Narxi/oy | Nima uchun |
+|-----------|----------|-----------|
+| TimescaleDB (PG extension) | $0 (bepul) | Hypertable, compression, continuous aggregate |
+| ClickHouse (managed) | $50-100 | Analytical query 100x tez |
+| 5-10 Scrape Worker | $25-50 | 100K product 1.1 soatda |
+| Proxy pool (10 IP) | $20-50 | Uzum ban dan himoya |
+| ML GPU (optional) | $30-60 | PatchTST/TiDE training |
+| NestJS x2-3 instances | $20-40 | API horizontal scale |
+| **Jami qo'shimcha** | **~$145-300/oy** | |
+
+### 100K trigger ko'rsatkichlari
+
+```
+Qachon 100K infra ga o'tish kerak?
+  ├─ Product count > 50K
+  ├─ Analytical query > 5 soniya
+  ├─ Scrape batch > 4 soat
+  ├─ API response p95 > 2 soniya
+  └─ DB hajmi > 10 GB
+```
+
+---
+
+## 8. Risklar va Cheklovlar
 
 ### Ma'lumot hajmi
 
 | Holat | Minimum | Hozirgi | Yetarlimi? |
 |-------|---------|---------|-----------|
-| Prophet training | 30 snapshot (30 kun) | Fevral 2026 dan beri | Ha (1+ oy) |
-| XGBoost training | 1000+ product x 30 kun | ~1000 tracked product | Chegarada |
-| LSTM training | 60+ snapshot per product | Ko'pchilik < 30 | Hali yo'q (Faza 3 da) |
+| LightGBM training | 1000+ product × 30 kun | ~1000 tracked | Chegarada |
+| NeuralProphet | 30 snapshot per kategoriya | ~30 kun | Ha |
+| Chronos | 0 (zero-shot) | Har doim tayyor | Ha |
+| PatchTST (TIER 4) | 90+ snapshot per product | Ko'pchilik < 30 | Hali yo'q |
 
-**Cold start muammosi:** Yangi productlar uchun 0 snapshot. Yechim: kategoriya darajasidagi model prior sifatida ishlatiladi, product-specific data to'plangach blendlanadi.
+**Cold start:** Yangi product → Chronos zero-shot → 30 kun keyin LightGBM ga o'tadi.
 
 ### Model drift
 
 Uzum bozori o'zgaruvchan (mavsumiy aksiyalar, yangi sotuvchilar). Yechim:
-- Haftalik retrain cron
-- MAPE monitoring — 30% dan oshsa alert
+- Haftalik auto-retrain cron
+- MAPE monitoring — 25% dan oshsa avtomatik retrain
 - Mavsumiy regressorlar (Ramadan, Yangi yil, Navro'z)
+- MlAuditLog da trend kuzatish
 
 ### Hisoblash narxi
 
-| Operatsiya | Vaqt | Narx |
-|-----------|------|------|
-| Prophet 1 product | ~2 soniya | CPU only |
-| 1000 product batch | ~33 daqiqa | CPU only |
-| XGBoost 1000 product | ~2 daqiqa | CPU only |
-| LSTM | GPU kerak | Railway GPU addon |
+| Operatsiya | 10K | 100K | Resurs |
+|-----------|-----|------|--------|
+| LightGBM train | ~2 min | ~15-20 min | CPU only |
+| LightGBM inference | ~10s | ~30s | CPU only |
+| NeuralProphet (100 kat.) | ~5 min | ~15 min | CPU only |
+| Chronos (yangi prod) | ~2s per product | ~2s per product | CPU only |
+| PatchTST (TIER 4) | GPU recommended | GPU required | GPU |
 
 ### AI API narxi (oylik taxmin)
 
 | Xizmat | Hajm | Narx |
 |--------|------|------|
 | Claude Haiku (RAG chat) | ~3000 so'rov/oy | ~$30 |
-| Embedding API | 1000 product | ~$1 |
+| Claude Sonnet (RAG judge) | ~1500 audit/oy | ~$15 |
+| Embedding API | 10K-100K product | ~$1-10 |
 | Claude (trend tahlil) | ~1000 so'rov/oy | ~$5 |
-| **Jami** | | **~$36/oy** |
+| **Jami** | | **~$51-60/oy** |
 
 ### Aniqlik kutishlari
 
 | Model | Kutilgan MAPE | Izoh |
 |-------|--------------|------|
-| Haftalik sotuv | 20-30% | Bozor shovqinli, yo'nalish aniqlash uchun yetarli |
-| Narx prognoz | 5-10% | Narxlar barqarorroq |
+| Haftalik sotuv (LightGBM) | 15-25% | Bozor shovqinli, yo'nalish aniqlash yetarli |
+| Narx prognoz (NeuralProphet) | 5-10% | Narxlar barqarorroq |
 | Trend classification | 75%+ accuracy | 3 klass: rising/falling/stable |
 | Risk assessment | 80%+ AUC | Ikkilik: risk bor/yo'q |
-
-### pgvector cheklovlar
-
-- IVFFlat indeks katta o'zgarishlardan keyin qayta train qilish kerak
-- 100K dan kam product uchun **HNSW** tezroq va aniqroq
-- Migration: `CREATE INDEX USING hnsw ... WITH (m=16, ef_construction=64)`
+| RAG factuality | 90%+ | LLM-as-Judge metrikasi |
+| RAG satisfaction | 85%+ | Foydalanuvchi 👍/👎 |
 
 ---
 
@@ -505,10 +816,17 @@ Uzum bozori o'zgaruvchan (mavsumiy aksiyalar, yangi sotuvchilar). Yechim:
 |------|---------|
 | `apps/api/prisma/schema.prisma` | Asosiy schema — yangi jadvallar qo'shiladi |
 | `apps/api/src/ai/ai.service.ts` | Hozirgi AI — RAG service yoniga qo'shiladi |
-| `packages/utils/src/index.ts` | Hozirgi forecasting — ML model fallback sifatida saqlanadi |
+| `apps/api/src/ai/rag.service.ts` | **YANGI** — RAG orchestration |
+| `apps/api/src/ai/embedding.service.ts` | **YANGI** — embedding yaratish |
+| `apps/api/src/ai/chat.controller.ts` | **YANGI** — SSE streaming chat |
+| `apps/ml/` | **YANGI** — Python FastAPI ML service |
+| `apps/ml/models/lightgbm_sales.py` | **YANGI** — LightGBM global model |
+| `apps/ml/models/neuralprophet_category.py` | **YANGI** — NeuralProphet mavsumiy |
+| `apps/ml/models/chronos_fallback.py` | **YANGI** — Chronos zero-shot |
+| `packages/utils/src/index.ts` | Eski forecasting — ML model fallback sifatida saqlanadi |
 | `apps/worker/src/processors/weekly-scrape.processor.ts` | Asosiy data yig'ish — ML training data manba |
 | `docs/Onboarding-scenario.md` | Biznes talablar — 6 ta tahlil yo'nalishi |
 
 ---
 
-*MML-RAG-STRATEGY.md | VENTRA Analytics Platform | 2026-03-06*
+*MML-RAG-STRATEGY.md | VENTRA Analytics Platform | 2026-03-06 (v2)*
