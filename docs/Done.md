@@ -4,6 +4,16 @@
 
 ---
 
+## T-385 | BACKEND P1 | Scrape lock — Redis SETNX duplicate prevention (2026-03-06)
+
+- `apps/worker/src/scrape-lock.ts` — yangi utility: `acquireScrapeLock()` + `releaseScrapeLock()`
+- Redis SETNX + 10 min TTL — bir product ikki worker tomonidan parallel scrape bo'lmaydi
+- `weekly-scrape.processor.ts` — `processBatch()` va `processSingle()` da lock integratsiya
+- `finally` block bilan lock har doim release bo'ladi (error bo'lsa ham)
+- Skipped counter qo'shildi — lock tufayli o'tkazib yuborilgan productlar loglarda ko'rinadi
+
+---
+
 ## T-391 | BACKEND P1 | Active sessions bug — expired sessions fix (2026-03-06)
 
 5 ta query'da `expires_at > NOW()` check qo'shildi:

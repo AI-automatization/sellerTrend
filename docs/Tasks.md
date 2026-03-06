@@ -471,28 +471,7 @@ Tray i18n, loadURL error, devtools block, package.json metadata, macOS About, en
 
 ## P1 — MUHIM
 
-### T-385 | P1 | BACKEND | Scrape lock — `scrape_lock_until` yoki Redis SETNX | 1h
-
-**Muammo:** `concurrency=1` bitta worker ichida parallel'likni bloklaydi, lekin:
-- Worker restart → "at least once" delivery → bir product ikki marta scrape
-- Import SINGLE job + cron BATCH job — ikkalasi bitta queue'da, lekin retry/backoff overlap mumkin
-- Kelajakda 2+ worker qo'shilsa — darrov race condition
-- Dedup (5min) snapshot dublikatni to'xtatadi, lekin **Playwright resurs isrofi** (browser ochiladi, API uriladi)
-
-**Yechim (2 variant, birini tanlash):**
-
-**A) DB-based lock (sodda):**
-- `tracked_products` ga `scrape_lock_until DateTime?` column qo'shish
-- Scrape boshida: `UPDATE tracked_products SET scrape_lock_until = NOW() + 10min WHERE product_id = X AND (scrape_lock_until IS NULL OR scrape_lock_until < NOW())`
-- Agar `affectedRows = 0` → boshqa process allaqachon scrape qilmoqda → SKIP
-- Scrape tugagach: `scrape_lock_until = NULL`
-
-**B) Redis SETNX lock (tezroq):**
-- `SETNX scrape:lock:{productId} 1 EX 600` (10 min TTL)
-- Agar key mavjud → SKIP
-- Scrape tugagach: `DEL scrape:lock:{productId}`
-
-**Fayllar:** `weekly-scrape.processor.ts`, `tracked_products` schema (variant A)
+### ~~T-385~~ ✅ DONE (2026-03-06) → Done.md
 
 ---
 

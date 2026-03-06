@@ -13,12 +13,13 @@
  */
 
 import { Worker, Job } from 'bullmq';
-import { redisConnection } from '../redis';
+import { redisConnection, getHealthRedis } from '../redis';
 import { prisma } from '../prisma';
 import { calculateScore, getSupplyPressure, sleep, SNAPSHOT_MIN_GAP_MS } from '@uzum/utils';
 import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
 import { scrapeWeeklyBought } from './weekly-scraper';
 import { fetchUzumProductRaw } from './uzum-scraper';
+import { acquireScrapeLock, releaseScrapeLock } from '../scrape-lock';
 
 const QUEUE_NAME = 'weekly-scrape-queue';
 const BATCH_LIMIT = 50;
@@ -283,8 +284,18 @@ async function processBatch(jobId: string, jobName: string) {
 
   let scraped = 0;
   let failed = 0;
+  let skipped = 0;
+  const redis = getHealthRedis();
 
   for (const pid of productIds) {
+    // T-385: Acquire Redis lock to prevent duplicate scraping
+    const locked = await acquireScrapeLock(redis, pid.toString());
+    if (!locked) {
+      logJobInfo(QUEUE_NAME, jobId, jobName, `Product ${pid} already being scraped, skipping`);
+      skipped++;
+      continue;
+    }
+
     try {
       const result = await scrapeAndSaveProduct(pid, jobId, jobName);
       if (result.scraped) {
@@ -296,6 +307,8 @@ async function processBatch(jobId: string, jobName: string) {
       const msg = err instanceof Error ? err.message : String(err);
       logJobInfo(QUEUE_NAME, jobId, jobName, `Error for product ${pid}: ${msg}`);
       failed++;
+    } finally {
+      await releaseScrapeLock(redis, pid.toString());
     }
 
     // Anti-detection: 3-5s random pause between products
@@ -304,14 +317,26 @@ async function processBatch(jobId: string, jobName: string) {
     }
   }
 
-  return { total: productIds.length, scraped, failed };
+  return { total: productIds.length, scraped, failed, skipped };
 }
 
 async function processSingle(productId: string, jobId: string, jobName: string) {
   const pid = BigInt(productId);
-  const result = await scrapeAndSaveProduct(pid, jobId, jobName);
-  // Don't close browser for single — might have more coming soon
-  return result;
+  const redis = getHealthRedis();
+
+  // T-385: Acquire Redis lock to prevent duplicate scraping
+  const locked = await acquireScrapeLock(redis, productId);
+  if (!locked) {
+    logJobInfo(QUEUE_NAME, jobId, jobName, `Product ${productId} already being scraped, skipping`);
+    return { scraped: false, weeklyBought: null, skipped: true };
+  }
+
+  try {
+    const result = await scrapeAndSaveProduct(pid, jobId, jobName);
+    return result;
+  } finally {
+    await releaseScrapeLock(redis, productId);
+  }
 }
 
 export function createWeeklyScrapeWorker() {
