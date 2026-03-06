@@ -4,6 +4,15 @@
 
 ---
 
+## T-388 | BACKEND P1 | score_version field (2026-03-06)
+
+- `SCORE_VERSION = 2` constant qo'shildi (`packages/utils/src/index.ts`)
+- `product_snapshots.score_version Int @default(2)` column
+- 3 ta snapshot creator yangilandi: `weekly-scrape.processor`, `import.processor`, `uzum.service`
+- ML uchun: faqat oxirgi score_version bilan train qilish mumkin
+
+---
+
 ## T-387 | BACKEND P1 | weekly_bought_raw_text + confidence (2026-03-06)
 
 - `product_snapshots` ga 2 column: `weekly_bought_raw_text` (Text), `weekly_bought_confidence` (Decimal 3,2)

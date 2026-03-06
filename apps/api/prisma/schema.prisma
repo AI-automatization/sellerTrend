@@ -228,6 +228,7 @@ model ProductSnapshot {
   rating               Decimal? @db.Decimal(3, 2)
   feedback_quantity    Int?
   score                Decimal? @db.Decimal(8, 4)
+  score_version        Int      @default(2)      // scoring formula version (T-388)
   snapshot_at          DateTime @default(now()) @db.Timestamptz
   snapshot_bucket      DateTime? @db.Timestamptz // GENERATED ALWAYS AS (5-min truncation) — DB managed
 

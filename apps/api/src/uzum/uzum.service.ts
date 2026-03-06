@@ -5,6 +5,7 @@ import { AiService } from '../ai/ai.service';
 import {
   parseUzumProductId,
   calculateScore,
+  SCORE_VERSION,
   getSupplyPressure,
   calcWeeklyBought,
   weeklyBoughtWithFallback,
@@ -199,6 +200,7 @@ export class UzumService {
           rating: detail.rating,
           feedback_quantity: detail.feedbackQuantity,
           score: score,
+          score_version: SCORE_VERSION,
         },
       });
     } catch (err: unknown) {

@@ -1,7 +1,7 @@
 import { Worker, Job } from 'bullmq';
 import { redisConnection } from '../redis';
 import { prisma } from '../prisma';
-import { parseUzumProductId, calculateScore, getSupplyPressure, calcWeeklyBought, weeklyBoughtWithFallback, sleep, SNAPSHOT_MIN_GAP_MS } from '@uzum/utils';
+import { parseUzumProductId, calculateScore, getSupplyPressure, calcWeeklyBought, weeklyBoughtWithFallback, sleep, SNAPSHOT_MIN_GAP_MS, SCORE_VERSION } from '@uzum/utils';
 import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
 import { fetchUzumProductRaw } from './uzum-scraper';
 
@@ -154,6 +154,7 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
             rating: detail.rating ?? null,
             feedback_quantity: detail.reviewsAmount ?? 0,
             score,
+            score_version: SCORE_VERSION,
           },
         });
       } catch (err: unknown) {

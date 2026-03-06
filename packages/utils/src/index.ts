@@ -3,8 +3,11 @@ import type { ScoreInput } from '@uzum/types';
 /** Minimum gap between snapshots for the same product (T-267: dedup guard). */
 export const SNAPSHOT_MIN_GAP_MS = 5 * 60 * 1000; // 5 minutes
 
+/** Current scoring formula version. Increment when formula changes (T-388). */
+export const SCORE_VERSION = 2;
+
 /**
- * Momentum-first scoring formula
+ * Momentum-first scoring formula (v2)
  * score = 0.55*ln(1+wb) + 0.25*ln(1+oq) + 0.10*rating + 0.10*supply_pressure
  */
 export function calculateScore(input: ScoreInput): number {

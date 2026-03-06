@@ -483,18 +483,7 @@ Tray i18n, loadURL error, devtools block, package.json metadata, macOS About, en
 
 ---
 
-### T-388 | P1 | BACKEND | `score_version` field — formula o'zgarishini kuzatish | 30min
-
-**Muammo:** Scoring formula o'zgarsa (vaznlar, logarifm parametrlari), tarixiy snapshot'lardagi score'lar
-**qaysi versiya** bilan hisoblanganini bilish imkonsiz. Tahlil va ML algoritmlari noto'g'ri ishlaydi.
-
-**Yechim:**
-1. `packages/utils/src/index.ts` ga `SCORE_VERSION = 2` constant (hozirgi formula = v2)
-2. `product_snapshots` ga `score_version Int @default(2)` column
-3. `calculateScore()` natijasini saqlashda `score_version` ham yoziladi
-4. Formula o'zgarganda: version++ va eskilarini qayta hisoblash mumkin
-
-**Fayllar:** `packages/utils/src/index.ts`, `schema.prisma`, `weekly-scrape.processor.ts`, `import.processor.ts`, `uzum.service.ts`
+### ~~T-388~~ ✅ DONE (2026-03-06) → Done.md
 
 ---
 
