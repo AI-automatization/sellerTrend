@@ -183,18 +183,31 @@ export class UzumService {
       supply_pressure: supplyPressure,
     });
 
-    // 7. Product snapshot
-    const snapshot = await this.prisma.productSnapshot.create({
-      data: {
-        product_id: BigInt(productId),
-        orders_quantity: BigInt(detail.ordersQuantity ?? 0),
-        weekly_bought: weeklyBought,
-        weekly_bought_source: wbSource,
-        rating: detail.rating,
-        feedback_quantity: detail.feedbackQuantity,
-        score: score,
-      },
-    });
+    // 7. Product snapshot (dedup: DB unique constraint on 5-min bucket)
+    let snapshot;
+    try {
+      snapshot = await this.prisma.productSnapshot.create({
+        data: {
+          product_id: BigInt(productId),
+          orders_quantity: BigInt(detail.ordersQuantity ?? 0),
+          weekly_bought: weeklyBought,
+          weekly_bought_source: wbSource,
+          rating: detail.rating,
+          feedback_quantity: detail.feedbackQuantity,
+          score: score,
+        },
+      });
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'code' in err && err.code === 'P2002') {
+        this.logger.debug(`Snapshot dedup: product ${productId} already has snapshot in this 5-min bucket`);
+        snapshot = await this.prisma.productSnapshot.findFirst({
+          where: { product_id: BigInt(productId) },
+          orderBy: { snapshot_at: 'desc' },
+        });
+      } else {
+        throw err;
+      }
+    }
 
     // 7b. Enqueue immediate Playwright scrape (fire-and-forget)
     import('../products/weekly-scrape.queue')

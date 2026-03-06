@@ -475,23 +475,7 @@ Tray i18n, loadURL error, devtools block, package.json metadata, macOS About, en
 
 ---
 
-### T-386 | P1 | BACKEND | Snapshot dedup — DB constraint (5 min bucket) | 1h
-
-**Muammo:** Snapshot dedup hozir **3 joyda code-level** (uzum.service, import.processor, weekly-scrape.processor).
-Agar birontasida bug bo'lsa, parallel start bo'lsa, yoki clock drift bo'lsa — duplicate snapshot tushadi.
-Snapshot = analytics yuragi. Data integrity DB darajasida himoyalanishi **shart**.
-
-**Yechim:**
-1. `product_snapshots` ga `snapshot_bucket` generated column qo'shish:
-   ```sql
-   ALTER TABLE product_snapshots
-   ADD COLUMN snapshot_bucket timestamptz
-   GENERATED ALWAYS AS (date_trunc('hour', snapshot_at) + (EXTRACT(minute FROM snapshot_at)::int / 5) * interval '5 minutes') STORED;
-   ```
-2. Unique constraint: `@@unique([product_id, snapshot_bucket])`
-3. Code-level dedup **saqlanadi** (DB constraint = fallback safety net)
-
-**Fayllar:** `schema.prisma`, migration SQL
+### ~~T-386~~ ✅ DONE (2026-03-06) → Done.md
 
 ---
 

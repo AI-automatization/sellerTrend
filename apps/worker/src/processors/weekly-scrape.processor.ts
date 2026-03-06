@@ -232,7 +232,18 @@ async function scrapeAndSaveProduct(
       });
     }
 
-    await tx.productSnapshot.create({
+    await tx.trackedProduct.updateMany({
+      where: { product_id: productId },
+      data: {
+        last_scraped_at: new Date(),
+        next_scrape_at: getNextScrapeAt(),
+      },
+    });
+  });
+
+  // Snapshot create OUTSIDE transaction — dedup via DB unique constraint (5-min bucket)
+  try {
+    await prisma.productSnapshot.create({
       data: {
         product_id: productId,
         orders_quantity: BigInt(currentOrders),
@@ -243,15 +254,13 @@ async function scrapeAndSaveProduct(
         score,
       },
     });
-
-    await tx.trackedProduct.updateMany({
-      where: { product_id: productId },
-      data: {
-        last_scraped_at: new Date(),
-        next_scrape_at: getNextScrapeAt(),
-      },
-    });
-  });
+  } catch (err: unknown) {
+    if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'P2002') {
+      logJobInfo(QUEUE_NAME, jobId, jobName, `Snapshot dedup: product ${productId} already in this 5-min bucket`);
+    } else {
+      throw err;
+    }
+  }
 
   logJobInfo(QUEUE_NAME, jobId, jobName,
     `Scraped product=${numId}, wb=${weeklyBought}, source=${source}, score=${score.toFixed(4)}`);

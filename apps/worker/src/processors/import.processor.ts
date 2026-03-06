@@ -140,17 +140,25 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
         supply_pressure: supplyPressure,
       });
 
-      await prisma.productSnapshot.create({
-        data: {
-          product_id: pid,
-          orders_quantity: currentOrders ? BigInt(currentOrders) : null,
-          weekly_bought: weeklyBought,
-          weekly_bought_source: wbSource,
-          rating: detail.rating ?? null,
-          feedback_quantity: detail.reviewsAmount ?? 0,
-          score,
-        },
-      });
+      try {
+        await prisma.productSnapshot.create({
+          data: {
+            product_id: pid,
+            orders_quantity: currentOrders ? BigInt(currentOrders) : null,
+            weekly_bought: weeklyBought,
+            weekly_bought_source: wbSource,
+            rating: detail.rating ?? null,
+            feedback_quantity: detail.reviewsAmount ?? 0,
+            score,
+          },
+        });
+      } catch (err: unknown) {
+        if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'P2002') {
+          logJobInfo('import-queue', jobId, jobName, `Snapshot dedup: product ${pid} already has snapshot in this 5-min bucket`);
+        } else {
+          throw err;
+        }
+      }
     }
 
     // Enqueue immediate Playwright scrape (fire-and-forget)

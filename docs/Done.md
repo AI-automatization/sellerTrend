@@ -4,6 +4,17 @@
 
 ---
 
+## T-386 | BACKEND P1 | Snapshot dedup — DB unique constraint (5-min bucket) (2026-03-06)
+
+- `snapshot_bucket` generated column: `snapshot_at` ni 5 daqiqalik bucketga yaxlitlaydi
+- `UNIQUE(product_id, snapshot_bucket)` — bir product uchun 5 daqiqa ichida faqat 1 snapshot
+- Migration: dublikatlar tozalanadi (eski snapshot saqlanadi), keyin constraint qo'shiladi
+- 3 joyda P2002 catch: `uzum.service.ts`, `import.processor.ts`, `weekly-scrape.processor.ts`
+- `weekly-scrape.processor.ts`: snapshot yaratish transaction tashqarisiga chiqarildi (PG tx abort muammosi)
+- Prisma schema: `@@unique([product_id, snapshot_bucket])` qo'shildi
+
+---
+
 ## T-385 | BACKEND P1 | Scrape lock — Redis SETNX duplicate prevention (2026-03-06)
 
 - `apps/worker/src/scrape-lock.ts` — yangi utility: `acquireScrapeLock()` + `releaseScrapeLock()`

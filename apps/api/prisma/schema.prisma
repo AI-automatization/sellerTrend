@@ -227,10 +227,12 @@ model ProductSnapshot {
   feedback_quantity    Int?
   score                Decimal? @db.Decimal(8, 4)
   snapshot_at          DateTime @default(now()) @db.Timestamptz
+  snapshot_bucket      DateTime? @db.Timestamptz // GENERATED ALWAYS AS (5-min truncation) — DB managed
 
   product         Product                @relation(fields: [product_id], references: [id], onDelete: Cascade)
   ai_explanations ProductAiExplanation[]
 
+  @@unique([product_id, snapshot_bucket])
   @@index([product_id, snapshot_at])
   @@map("product_snapshots")
 }
