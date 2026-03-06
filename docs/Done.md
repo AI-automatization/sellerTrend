@@ -4,6 +4,17 @@
 
 ---
 
+## T-389 | BACKEND P2 | Snapshot retention + downsample (2026-03-06)
+
+- `ProductSnapshotDaily` model — kunlik aggregate jadval (`product_snapshot_daily`)
+- `@@unique([product_id, day])` — bir product uchun kunda 1 aggregate
+- `aggregateOldSnapshots()` — 30+ kunlik raw snapshot → daily aggregate ga yig'adi
+- Raw snapshot aggregation done → o'chiriladi (disk tejash)
+- `data-cleanup.processor.ts` ga integratsiya — mavjud cron ichida ishlaydi
+- Aggregate fieldlar: avg_score, max_weekly_bought, avg_rating, max_orders, snapshot_count
+
+---
+
 ## T-388 | BACKEND P1 | score_version field (2026-03-06)
 
 - `SCORE_VERSION = 2` constant qo'shildi (`packages/utils/src/index.ts`)

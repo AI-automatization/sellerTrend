@@ -489,20 +489,7 @@ Tray i18n, loadURL error, devtools block, package.json metadata, macOS About, en
 
 ## P2 — O'RTA
 
-### T-389 | P2 | BACKEND | Snapshot retention + downsample strategiya | 2h
-
-**Muammo:** Har product uchun har kuni 1+ snapshot. 1000 product × 365 kun = **365K row/yil**.
-Kattalashtirsa (10K product) — **3.6M row/yil**. Query'lar sekinlashadi, disk to'ladi.
-
-**Yechim:**
-1. Cron job (haftalik): 30+ kunlik snapshotlarni **kunlik aggregate** ga aylantiriladi:
-   - Avg score, max weekly_bought, avg rating, max orders_quantity
-   - `product_snapshot_daily` yangi jadval yoki mavjud snapshotlarni aggregate
-2. 90+ kunlik → **haftalik aggregate**
-3. Raw snapshotlar 30 kundan keyin o'chiriladi (aggregate saqlanadi)
-4. Index: `(product_id, snapshot_at DESC)` — allaqachon bor
-
-**Fayllar:** yangi cron job, `schema.prisma` (aggregate jadval), `products.service.ts` (query adaptation)
+### ~~T-389~~ ✅ DONE (2026-03-06) → Done.md
 
 ---
 

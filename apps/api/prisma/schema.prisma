@@ -187,6 +187,7 @@ model Product {
   shop              Shop?               @relation(fields: [shop_id], references: [id])
   skus              Sku[]
   snapshots         ProductSnapshot[]
+  daily_snapshots   ProductSnapshotDaily[]
   tracked_by        TrackedProduct[]
   category_winners  CategoryWinner[]
   alert_rules       AlertRule[]
@@ -238,6 +239,25 @@ model ProductSnapshot {
   @@unique([product_id, snapshot_bucket])
   @@index([product_id, snapshot_at])
   @@map("product_snapshots")
+}
+
+model ProductSnapshotDaily {
+  id                String   @id @default(uuid())
+  product_id        BigInt
+  day               DateTime @db.Date           // aggregation day
+  avg_score         Decimal? @db.Decimal(8, 4)
+  max_weekly_bought Int?
+  avg_rating        Decimal? @db.Decimal(3, 2)
+  max_orders        BigInt?
+  min_price         BigInt?                     // lowest SKU sell_price that day
+  snapshot_count    Int      @default(1)        // how many raw snapshots aggregated
+  score_version     Int      @default(2)
+
+  product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@unique([product_id, day])
+  @@index([product_id, day])
+  @@map("product_snapshot_daily")
 }
 
 model SkuSnapshot {
