@@ -342,11 +342,11 @@ TXT    _railway-verify  → railway-verify=railway-verify=822d30ad3e89eb5a8c969c
 
 | # | Muammo | Fayl | Vaqt |
 |---|--------|------|------|
-| T-320 | `(app as any)` → typed state | `window.ts:73`, `tray.ts:41` | 10min |
-| T-321 | ipcRenderer.on memory leak | `preload/index.ts:21-28` | 15min |
-| T-322 | `console.error` → electron-log | `updater.ts:32` | 10min |
-| T-323 | `setInterval` cleanup | `updater.ts:39-41` | 5min |
-| T-324 | `.ico`/`.icns` icon yaratish | `electron-builder.yml` | 15min |
+| T-320 | `(app as any)` → typed state | `window.ts:73`, `tray.ts:41` | 10min | pending[Sardor] |
+| T-321 | ipcRenderer.on memory leak | `preload/index.ts:21-28` | 15min | pending[Sardor] |
+| T-322 | `console.error` → electron-log | `updater.ts:32` | 10min | pending[Sardor] |
+| T-323 | `setInterval` cleanup | `updater.ts:39-41` | 5min | pending[Sardor] |
+| T-324 | `.ico`/`.icns` icon yaratish | `electron-builder.yml` | 15min | — |
 | T-325 | IPC notification validatsiya | `ipc.ts:5-9` | 10min |
 | T-326 | IPC badge count validatsiya | `ipc.ts:31-36` | 5min |
 | T-327 | Permission request handler | `window.ts` | 10min |
