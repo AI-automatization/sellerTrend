@@ -349,7 +349,7 @@ TXT    _railway-verify  → railway-verify=railway-verify=822d30ad3e89eb5a8c969c
 | ~~T-324~~ | ~~`.ico`/`.icns` icon yaratish~~ | ✅ DONE (2026-03-06) | — | — |
 | ~~T-325~~ | ~~IPC notification validatsiya~~ | ✅ DONE (2026-03-06) | — | — |
 | ~~T-326~~ | ~~IPC badge count validatsiya~~ | ✅ DONE (2026-03-06) | — | — |
-| T-327 | Permission request handler | `window.ts` | 10min | pending[Sardor] |
+| ~~T-327~~ | ~~Permission request handler~~ | ✅ DONE (2026-03-06) | — | — |
 
 ## P2 — O'RTA (batch)
 

@@ -4,6 +4,16 @@
 
 ---
 
+## T-327 | DESKTOP P1 | Permission request handler (2026-03-06)
+
+- `setupPermissionHandler()` — `session.defaultSession.setPermissionRequestHandler()`
+- `DENIED_PERMISSIONS` set: media, geolocation, notifications, midiSysex, pointerLock, fullscreen, openExternal
+- Analytics app uchun keraksiz ruxsatlar bloklandi
+
+**Fayl:** `apps/desktop/src/main/window.ts`
+
+---
+
 ## T-325..T-326 | DESKTOP P1 | IPC input validatsiya (2026-03-06)
 
 - **T-325** `ventra:notify`: `title`/`body` → `unknown` type, string tekshiruvi, `slice(0,100)`/`slice(0,300)`, trim, bo'sh title reject

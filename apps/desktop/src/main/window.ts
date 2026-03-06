@@ -77,9 +77,28 @@ function setupCSP(): void {
   });
 }
 
+// T-327: Block dangerous permission requests — analytics app needs none of these
+const DENIED_PERMISSIONS = new Set([
+  'media',
+  'geolocation',
+  'notifications',
+  'midiSysex',
+  'pointerLock',
+  'fullscreen',
+  'openExternal',
+  'clipboard-sanitized-write',
+]);
+
+function setupPermissionHandler(): void {
+  session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
+    callback(!DENIED_PERMISSIONS.has(permission));
+  });
+}
+
 export function createMainWindow(): BrowserWindow {
   registerAppProtocol();
   setupCSP();
+  setupPermissionHandler();
 
   mainWindow = new BrowserWindow({
     width: 1280,
