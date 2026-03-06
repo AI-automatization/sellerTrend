@@ -593,28 +593,7 @@ Schema o'zgaradi — docs eskiradi — audit noto'g'ri xulosa chiqaradi (ChatGPT
 
 ---
 
-### T-391 | P1 | BACKEND | Active sessions bug — expired sessions "active" ko'rinadi | 1.5h
-
-**Muammo (3 ta bug):**
-
-1. **Session leak** — `admin-stats.service.ts:282` da `userSession.count({ revoked_at: null })` query **`expires_at` ni tekshirmaydi**. User logout qilmasa, expired session'lar ham "active" deb sanab ketadi. Vaqt o'tgan sari active_sessions soni cheksiz o'sadi.
-
-2. **1 soatlik window noto'g'ri** — `logged_in_at >= 1h ago` faqat oxirgi 1 soatda **login** qilganlarni ko'rsatadi. Token refresh qilganda `logged_in_at` yangilanmaydi — 2+ soat oldin login qilib, hali active ishlayotgan user "active" deb ko'rinmaydi.
-
-3. **Session cleanup yo'q** — Expired + revoke qilinmagan session'lar DB da to'planib boradi. Cleanup cron yo'q.
-
-**Ta'sir:** Admin dashboard "Active Users" soni **noto'g'ri** — haqiqiy aktiv userlardan ko'p yoki kam ko'rsatadi.
-
-**Yechim:**
-1. Active session query'larni tuzatish — `expires_at > NOW()` AND `revoked_at IS NULL` shart qo'shish:
-   - `admin-stats.service.ts:282` — `getRealtimeStats()`
-   - `admin-monitoring.service.ts:270,298` — capacity/health queries
-2. Token refresh da `logged_in_at` yangilash — `auth.service.ts:refresh()` da session `logged_in_at = new Date()` qo'shish
-3. Expired session cleanup cron — worker job (kunlik, 03:30 UTC):
-   - `DELETE FROM user_sessions WHERE expires_at < NOW() - interval '7 days'`
-   - Yoki soft: `revoked_at = NOW()` set qilish
-
-**Fayllar:** `admin-stats.service.ts`, `admin-monitoring.service.ts`, `auth.service.ts`, `worker/` (cleanup cron)
+### ~~T-391~~ ✅ DONE (2026-03-06) → Done.md
 
 ---
 

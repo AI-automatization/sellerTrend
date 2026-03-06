@@ -283,6 +283,7 @@ export class AdminStatsService {
         where: {
           logged_in_at: { gte: oneHourAgo },
           revoked_at: null,
+          expires_at: { gt: new Date() },
         },
       }),
       this.prisma.userActivity.findMany({

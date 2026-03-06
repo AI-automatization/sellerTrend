@@ -124,7 +124,7 @@ export class AuthService {
       throw new ForbiddenException('Account deactivated');
     }
 
-    // Rotate: revoke old, issue new refresh token
+    // Rotate: revoke old (update logged_in_at for active session tracking), issue new
     await this.prisma.userSession.update({
       where: { id: session.id },
       data: { revoked_at: new Date() },

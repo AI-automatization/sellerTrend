@@ -92,7 +92,7 @@ export class AdminMonitoringService {
       }[]>`
         SELECT user_id, COUNT(*)::int as active_sessions
         FROM user_sessions
-        WHERE revoked_at IS NULL
+        WHERE revoked_at IS NULL AND expires_at > NOW()
         GROUP BY user_id
       `,
     ]);
@@ -206,7 +206,7 @@ export class AdminMonitoringService {
         },
       }),
       this.prisma.userSession.findMany({
-        where: { user_id: userId, revoked_at: null },
+        where: { user_id: userId, revoked_at: null, expires_at: { gt: new Date() } },
         orderBy: { logged_in_at: 'desc' },
         take: 10,
         select: {
@@ -270,6 +270,7 @@ export class AdminMonitoringService {
     const activeSessions = await this.prisma.userSession.count({
       where: {
         revoked_at: null,
+        expires_at: { gt: new Date() },
         logged_in_at: { gte: new Date(Date.now() - 60 * 60_000) },
       },
     });
@@ -298,6 +299,7 @@ export class AdminMonitoringService {
     const activeSessions = await this.prisma.userSession.count({
       where: {
         revoked_at: null,
+        expires_at: { gt: new Date() },
         logged_in_at: { gte: new Date(Date.now() - 60 * 60_000) },
       },
     });

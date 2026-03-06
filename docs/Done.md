@@ -4,6 +4,19 @@
 
 ---
 
+## T-391 | BACKEND P1 | Active sessions bug — expired sessions fix (2026-03-06)
+
+5 ta query'da `expires_at > NOW()` check qo'shildi:
+- `admin-stats.service.ts:282` — `getRealtimeStats()` active sessions
+- `admin-monitoring.service.ts:94` — raw SQL per-user active sessions
+- `admin-monitoring.service.ts:209` — `getUserHealth()` sessions
+- `admin-monitoring.service.ts:270` — `estimateCapacity()` sessions
+- `admin-monitoring.service.ts:298` — `captureBaseline()` sessions
+- Session cleanup allaqachon `data-cleanup.processor.ts` da mavjud ✅
+- Token refresh da yangi session yaratiladi (`logged_in_at = now()`) ✅
+
+---
+
 ## T-362..T-366 | WEB AUDIT P0 | Auth + WebSocket + ProductPage fixes (2026-03-06)
 
 - **T-362**: allaqachon tuzatilgan — `setTokens()` JWT decode qilib payload sync qiladi
