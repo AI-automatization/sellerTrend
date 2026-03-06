@@ -43,7 +43,7 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 > Manba: DEEP-PLATFORM-AUDIT-2026-03-04.md + Analysis-Onboarding-Multimarketplace.md
 
-### T-382 | P2 | FRONTEND | Landing conversion — 4 ta fix | 4h | pending[Sardor]
+> ~~T-382~~ ✅ DONE (2026-03-06) → Done.md
 **Sabab va yechim:**
 1. **Privacy Policy + Terms of Service pages yo'q** — Footer'da link bor, sahifa yo'q. O'zbekiston Shaxsiy Ma'lumotlar Qonuni (2019) talabi
 2. **Cookie consent banner yo'q** — legal requirement

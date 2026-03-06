@@ -4,6 +4,17 @@
 
 ---
 
+## T-382 | LANDING P2 | Privacy Policy, Cookie banner, Video demo, Plausible (2026-03-06)
+
+- **PrivacyPage** — `/privacy` route, uz+ru, O'zbekiston qonuni asosida (`pages/PrivacyPage.tsx`)
+- **TermsPage** — `/terms` route, uz+ru (`pages/TermsPage.tsx`)
+- **CookieBanner** — `localStorage` based, accept/decline, `/privacy` linkli (`components/CookieBanner.tsx`)
+- **VideoDemoSection** — Pricing dan oldin placeholder section, play button, CTA (`sections/VideoDemoSection.tsx`)
+- **Plausible tracking** — `window.plausible` type declaration, CTA event tracking (`lib/plausible.d.ts`)
+- **App.tsx** — `pathname` state routing + barcha yangi komponentlar ulandi
+
+---
+
 ## T-328 | DESKTOP P2 | loadURL error, devtools block, macOS About, package metadata, env.d.ts (2026-03-06)
 
 - **loadURL error** — `.catch(log.error)` qo'shildi (`window.ts`)

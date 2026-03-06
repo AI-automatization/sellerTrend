@@ -184,6 +184,21 @@ const translations = {
     'download.mac': 'macOS',
     'download.soon': 'Tez kunda',
 
+    // Cookie consent
+    'cookie.message': 'Saytimiz yaxshi ishlashi uchun cookie\'lardan foydalanamiz.',
+    'cookie.policy': 'Maxfiylik siyosati',
+    'cookie.accept': 'Qabul qilish',
+    'cookie.decline': 'Rad etish',
+
+    // Video demo
+    'demo.tag': 'Demo',
+    'demo.title1': 'VENTRA qanday',
+    'demo.title2': 'ishlashini ko\'ring',
+    'demo.subtitle': '90 soniyada platforma imkoniyatlarini ko\'ring',
+    'demo.placeholder': 'Demo video tez kunda chiqadi',
+    'demo.notify': 'Xabar bering',
+    'demo.cta': 'Hoziroq boshlash',
+
     // Footer
     'footer.desc': 'Uzum.uz sotuvchilari uchun premium AI analytics platforma.',
     'footer.col1': 'Mahsulot',
@@ -379,6 +394,21 @@ const translations = {
     'download.win': 'Скачать для Windows',
     'download.mac': 'macOS',
     'download.soon': 'Скоро',
+
+    // Cookie consent
+    'cookie.message': 'Мы используем cookie для улучшения работы сайта.',
+    'cookie.policy': 'Политика конфиденциальности',
+    'cookie.accept': 'Принять',
+    'cookie.decline': 'Отказать',
+
+    // Video demo
+    'demo.tag': 'Демо',
+    'demo.title1': 'Посмотрите, как',
+    'demo.title2': 'работает VENTRA',
+    'demo.subtitle': 'Узнайте о возможностях платформы за 90 секунд',
+    'demo.placeholder': 'Демо-видео скоро будет готово',
+    'demo.notify': 'Уведомить меня',
+    'demo.cta': 'Начать сейчас',
 
     // Footer
     'footer.desc': 'Премиум AI аналитика платформа для продавцов Uzum.uz.',
