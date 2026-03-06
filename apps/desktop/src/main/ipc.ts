@@ -2,9 +2,14 @@ import { ipcMain, Notification, app } from 'electron';
 
 export function registerIpcHandlers(): void {
   // Show native OS notification
-  ipcMain.handle('ventra:notify', (_event, title: string, body: string) => {
+  // T-325: Validate title and body before passing to OS
+  ipcMain.handle('ventra:notify', (_event, title: unknown, body: unknown) => {
+    if (typeof title !== 'string' || typeof body !== 'string') return;
+    const safeTitle = title.slice(0, 100).trim();
+    const safeBody = body.slice(0, 300).trim();
+    if (!safeTitle) return;
     if (Notification.isSupported()) {
-      const notification = new Notification({ title, body });
+      const notification = new Notification({ title: safeTitle, body: safeBody });
       notification.show();
     }
   });
@@ -28,9 +33,12 @@ export function registerIpcHandlers(): void {
   });
 
   // Set badge count (macOS dock badge)
-  ipcMain.handle('ventra:badge', (_event, count: number) => {
+  // T-326: Validate count — must be a non-negative integer
+  ipcMain.handle('ventra:badge', (_event, count: unknown) => {
+    if (typeof count !== 'number' || !Number.isFinite(count)) return { success: false };
+    const safeCount = Math.max(0, Math.floor(count));
     if (process.platform === 'darwin') {
-      app.setBadgeCount(count);
+      app.setBadgeCount(safeCount);
     }
     return { success: true };
   });

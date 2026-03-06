@@ -4,6 +4,15 @@
 
 ---
 
+## T-325..T-326 | DESKTOP P1 | IPC input validatsiya (2026-03-06)
+
+- **T-325** `ventra:notify`: `title`/`body` → `unknown` type, string tekshiruvi, `slice(0,100)`/`slice(0,300)`, trim, bo'sh title reject
+- **T-326** `ventra:badge`: `count` → `unknown` type, `Number.isFinite`, `Math.max(0, Math.floor())` — manfiy/NaN/Infinity bloklandi
+
+**Fayl:** `apps/desktop/src/main/ipc.ts`
+
+---
+
 ## T-324 | DESKTOP P1 | icon.ico + icon.icns yaratish (2026-03-06)
 
 - `png2icons` bilan `icon.png` (256x256) → `icon.ico` (Win) + `icon.icns` (macOS) konvertatsiya
