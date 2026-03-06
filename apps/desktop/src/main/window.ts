@@ -1,5 +1,5 @@
-import { BrowserWindow, protocol, net, app } from 'electron';
-import { join } from 'path';
+import { BrowserWindow, protocol, net, app, session, shell } from 'electron';
+import { join, resolve, relative, isAbsolute } from 'path';
 import { pathToFileURL } from 'url';
 import { existsSync } from 'fs';
 
@@ -18,10 +18,14 @@ function registerAppProtocol(): void {
     const url = new URL(req.url);
     let pathname = decodeURIComponent(url.pathname);
 
-    // Bypass: proxy API requests to the real backend server
+    // Proxy API requests to backend — T-318: validate origin before proxying
     if (pathname.startsWith('/api/')) {
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      return net.fetch(`${apiBase}${pathname}${url.search || ''}`, {
+      const safeUrl = new URL(pathname + (url.search || ''), apiBase);
+      if (safeUrl.origin !== new URL(apiBase).origin) {
+        return new Response('Forbidden', { status: 403 });
+      }
+      return net.fetch(safeUrl.href, {
         method: req.method,
         headers: req.headers,
         body: req.body,
@@ -32,20 +36,43 @@ function registerAppProtocol(): void {
     if (pathname.startsWith('/')) pathname = pathname.slice(1);
     if (!pathname || pathname === '.') pathname = 'index.html';
 
-    const rendererDir = join(__dirname, '../renderer');
-    let filePath = join(rendererDir, pathname);
+    const rendererDir = resolve(join(__dirname, '../renderer'));
+    const filePath = resolve(join(rendererDir, pathname));
 
-    // SPA fallback: serve index.html for routes that don't map to files
-    if (!existsSync(filePath)) {
-      filePath = join(rendererDir, 'index.html');
+    // T-317: Path traversal — ensure resolved path stays within rendererDir
+    const rel = relative(rendererDir, filePath);
+    if (rel.startsWith('..') || isAbsolute(rel)) {
+      return new Response('Forbidden', { status: 403 });
     }
 
-    return net.fetch(pathToFileURL(filePath).href);
+    // SPA fallback: serve index.html for routes that don't map to files
+    const finalPath = existsSync(filePath) ? filePath : join(rendererDir, 'index.html');
+    return net.fetch(pathToFileURL(finalPath).href);
+  });
+}
+
+// T-316: Content Security Policy — prevent arbitrary script/resource loading
+function setupCSP(): void {
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self' app:; " +
+          "script-src 'self' 'unsafe-inline'; " +
+          "style-src 'self' 'unsafe-inline'; " +
+          "img-src 'self' app: data: https:; " +
+          "connect-src 'self' http://localhost:* ws://localhost:* wss://localhost:*; " +
+          "font-src 'self' app: data:;",
+        ],
+      },
+    });
   });
 }
 
 export function createMainWindow(): BrowserWindow {
   registerAppProtocol();
+  setupCSP();
 
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -58,7 +85,7 @@ export function createMainWindow(): BrowserWindow {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true, // T-315: Enable Chromium sandbox
     },
     show: false,
   });
@@ -78,6 +105,22 @@ export function createMainWindow(): BrowserWindow {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+  });
+
+  // T-319: Block unwanted navigation — only allow app:// and localhost
+  mainWindow.webContents.on('will-navigate', (e, navUrl) => {
+    const isAllowed =
+      navUrl.startsWith('app://') ||
+      navUrl.startsWith('http://localhost') ||
+      navUrl.startsWith('https://localhost');
+    if (!isAllowed) e.preventDefault();
+  });
+
+  // T-319: Block new windows — open external links in system browser
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    const isExternal = !url.startsWith('app://') && !url.startsWith('http://localhost');
+    if (isExternal) shell.openExternal(url);
+    return { action: 'deny' };
   });
 
   // Dev: load from Vite dev server; Prod: load from custom protocol

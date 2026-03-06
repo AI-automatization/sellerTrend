@@ -4,6 +4,18 @@
 
 ---
 
+## T-315..T-319 | DESKTOP P0 | Electron xavfsizlik (2026-03-06)
+
+- **T-315** `sandbox: true` — Chromium sandbox yoqildi (`window.ts:88`)
+- **T-316** CSP header — `setupCSP()` qo'shildi, `session.defaultSession.webRequest.onHeadersReceived` orqali
+- **T-317** Path traversal — `relative()` + `isAbsolute()` tekshiruvi, `app://` dan tashqari fayl o'qib bo'lmaydi
+- **T-318** SSRF — `new URL()` bilan origin validatsiya, boshqa originga proxy taqiqlandi
+- **T-319** Navigation cheklovlari — `will-navigate` faqat `app://`/`localhost`, `setWindowOpenHandler` tashqi → `shell.openExternal()`
+
+**Fayl:** `apps/desktop/src/main/window.ts`
+
+---
+
 ## T-389 | BACKEND P2 | Snapshot retention + downsample (2026-03-06)
 
 - `ProductSnapshotDaily` model — kunlik aggregate jadval (`product_snapshot_daily`)
