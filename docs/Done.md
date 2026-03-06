@@ -4,6 +4,16 @@
 
 ---
 
+## T-400 | LANDING P1 | Dizayn fix — VENTRA uslubiga moslashtirish (2026-03-06)
+
+- **CookieBanner** — `AnimatePresence` + `motion` + `glass-card` + `glow-btn`, 1.5s delay bilan chiqadi
+- **VideoDemoSection** — `mesh-blob` bg, `gradient-text`, fake browser bar, animated play button, `useAnalytics` hook
+- **PrivacyPage** — `mesh-blob` bg, `glass-card` section cards, section number prefix, animated entry
+- **TermsPage** — bir xil pattern, `purple` blob
+- `plausible.d.ts` o'chirildi — `useAnalytics.ts` allaqachon declare qilgan (redundant edi)
+
+---
+
 ## T-382 | LANDING P2 | Privacy Policy, Cookie banner, Video demo, Plausible (2026-03-06)
 
 - **PrivacyPage** — `/privacy` route, uz+ru, O'zbekiston qonuni asosida (`pages/PrivacyPage.tsx`)

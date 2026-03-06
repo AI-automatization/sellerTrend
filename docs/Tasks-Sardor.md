@@ -26,7 +26,7 @@
 
 > ~~T-328~~ ✅ DONE (2026-03-06, i18n qismi → T-399) → Done.md
 
-### T-400 | P1 | FRONTEND | Landing dizayn — T-382 komponentlari VENTRA uslubiga moslashtirish | 1h | pending[Sardor]
+> ~~T-400~~ ✅ DONE (2026-03-06) → Done.md
 
 Manba: foydalanuvchi sharhi (2026-03-06)
 
