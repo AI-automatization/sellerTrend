@@ -340,16 +340,7 @@ TXT    _railway-verify  → railway-verify=railway-verify=822d30ad3e89eb5a8c969c
 
 ## P1 — MUHIM (8 ta)
 
-| # | Muammo | Fayl | Vaqt |
-|---|--------|------|------|
-| ~~T-320~~ | ~~`(app as any)` → typed state~~ | ✅ DONE (2026-03-06) | — | — |
-| ~~T-321~~ | ~~ipcRenderer.on memory leak~~ | ✅ DONE (2026-03-06) | — | — |
-| ~~T-322~~ | ~~`console.error` → electron-log~~ | ✅ DONE (2026-03-06) | — | — |
-| ~~T-323~~ | ~~`setInterval` cleanup~~ | ✅ DONE (2026-03-06) | — | — |
-| ~~T-324~~ | ~~`.ico`/`.icns` icon yaratish~~ | ✅ DONE (2026-03-06) | — | — |
-| ~~T-325~~ | ~~IPC notification validatsiya~~ | ✅ DONE (2026-03-06) | — | — |
-| ~~T-326~~ | ~~IPC badge count validatsiya~~ | ✅ DONE (2026-03-06) | — | — |
-| ~~T-327~~ | ~~Permission request handler~~ | ✅ DONE (2026-03-06) | — | — |
+> ~~T-320..T-327~~ ✅ DONE (2026-03-06) → Done.md
 
 ## P2 — O'RTA (batch)
 

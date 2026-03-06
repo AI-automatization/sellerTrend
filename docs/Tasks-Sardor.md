@@ -16,38 +16,11 @@
 
 ## P0 — KRITIK (5 ta)
 
-### T-315 | P0 | FRONTEND | Desktop: `sandbox: false` → `true` | 15min
-**Sabab:** `window.ts:61` — Chromium sandbox o'chirilgan. XSS orqali OS ga chiqish oson.
-**Yechim:** `sandbox: true`, preload ni sandbox rejimiga moslashtirish.
-
-### T-316 | P0 | FRONTEND | Desktop: CSP header qo'shish | 15min
-**Sabab:** `window.ts` — Content Security Policy yo'q. Renderer ixtiyoriy skript yuklashi mumkin.
-**Yechim:** `session.defaultSession.webRequest.onHeadersReceived` da CSP qo'shish.
-
-### T-317 | P0 | FRONTEND | Desktop: Path traversal — `app://` protocol fix | 15min
-**Sabab:** `window.ts:17-44` — `decodeURIComponent` + `join()` = rendererDir dan tashqari fayl o'qish mumkin.
-**Yechim:** `resolved.startsWith(rendererDir)` tekshiruvi qo'shish.
-
-### T-318 | P0 | FRONTEND | Desktop: SSRF — API proxy validatsiya | 15min
-**Sabab:** `window.ts:22-29` — `/api/` so'rovlar blindly proxy qilinadi. Origin tekshiruvi yo'q.
-**Yechim:** `new URL()` bilan safe URL yaratish, origin validatsiya.
-
-### T-319 | P0 | FRONTEND | Desktop: Navigation cheklovlari qo'shish | 15min
-**Sabab:** `window.ts` — `will-navigate` va `setWindowOpenHandler` yo'q.
-**Yechim:** Faqat `app://` va `localhost` ga ruxsat. Tashqi → `shell.openExternal()`.
+> ~~T-315..T-319~~ ✅ DONE (2026-03-06) → Done.md
 
 ## P1 — MUHIM (8 ta)
 
-### T-320 | P1 | FRONTEND | Desktop: `(app as any)` → typed state | 10min
-### T-321 | P1 | FRONTEND | Desktop: ipcRenderer.on memory leak fix | 15min
-### T-322 | P1 | FRONTEND | Desktop: `console.error` → `electron-log` | 10min
-### T-323 | P1 | FRONTEND | Desktop: `setInterval` cleanup | 5min
-### T-324 | P1 | FRONTEND | Desktop: `.ico`/`.icns` icon fayllar yaratish | 15min
-### T-325 | P1 | FRONTEND | Desktop: IPC notification input validatsiya | 10min
-### T-326 | P1 | FRONTEND | Desktop: IPC badge count validatsiya | 5min
-### T-327 | P1 | FRONTEND | Desktop: Permission request handler | 10min
-
-> Batafsil sabab/yechim: CODE-AUDIT-DESKTOP-LANDING-2026-03-04.md
+> ~~T-320..T-327~~ ✅ DONE (2026-03-06) → Done.md
 
 ## P2 — O'RTA (batch)
 
@@ -87,12 +60,12 @@
 | Kategoriya | Soni |
 |-----------|------|
 | **Platforma P2** (T-382) | **1 task, ~4 fix** |
-| Desktop P0 (T-315..T-319) | 5 |
-| Desktop P1 (T-320..T-327) | 8 |
+| ~~Desktop P0 (T-315..T-319)~~ | ✅ DONE |
+| ~~Desktop P1 (T-320..T-327)~~ | ✅ DONE |
 | Desktop P2 (T-328) | 10 |
 | Landing Manual (M-001..M-004) | 4 |
-| **JAMI task ochiq** | **~28** |
-| **JAMI bug/fix ochiq** | **~27** |
+| **JAMI task ochiq** | **~15** |
+| **JAMI bug/fix ochiq** | **~14** |
 |  |  |
 | ~~Web Audit~~ (T-361..T-370) | → **Bekzod**ga ko'chirildi |
 | ~~T-377, T-380, T-381~~ (web app) | → **Bekzod**ga ko'chirildi |
@@ -103,6 +76,7 @@
 
 # BAJARILDI → Done.md
 
+**Desktop Audit P0+P1 (13 ta):** T-315..T-327 (2026-03-06)
 **Extension Phase 1-2 (8 ta):** T-208..T-215
 **Desktop (1 ta):** T-234
 **Landing Dev (24 ta):** L-001..L-024
