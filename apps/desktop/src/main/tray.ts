@@ -2,6 +2,13 @@ import { Tray, Menu, nativeImage, app } from 'electron';
 import { join } from 'path';
 import { getMainWindow } from './window';
 
+// T-320: Typed app state — avoid (app as any)
+declare module 'electron' {
+  interface App {
+    isQuitting?: boolean;
+  }
+}
+
 let tray: Tray | null = null;
 
 export function createTray(): void {
@@ -38,7 +45,7 @@ export function createTray(): void {
     {
       label: 'Quit VENTRA',
       click: () => {
-        (app as any).isQuitting = true;
+        app.isQuitting = true;
         app.quit();
       },
     },

@@ -4,6 +4,15 @@
 
 ---
 
+## T-320..T-323 | DESKTOP P1 | Typed state, memory leak, logging, interval cleanup (2026-03-06)
+
+- **T-320** `declare module 'electron' { interface App { isQuitting?: boolean } }` — `(app as any)` o'chirildi (`window.ts`, `tray.ts`)
+- **T-321** `ipcRenderer.removeAllListeners()` — `onUpdateAvailable`/`onUpdateDownloaded` da memory leak tuzatildi (`preload/index.ts`)
+- **T-322** `electron-log` o'rnatildi, `console.error` → `log.error` (`updater.ts`)
+- **T-323** `updateIntervalId` + `stopUpdater()` + `app.on('before-quit')` — interval cleanup (`updater.ts`, `index.ts`)
+
+---
+
 ## T-315..T-319 | DESKTOP P0 | Electron xavfsizlik (2026-03-06)
 
 - **T-315** `sandbox: true` — Chromium sandbox yoqildi (`window.ts:88`)

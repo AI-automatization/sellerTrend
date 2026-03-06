@@ -3,6 +3,13 @@ import { join, resolve, relative, isAbsolute } from 'path';
 import { pathToFileURL } from 'url';
 import { existsSync } from 'fs';
 
+// T-320: Typed app state — avoid (app as any)
+declare module 'electron' {
+  interface App {
+    isQuitting?: boolean;
+  }
+}
+
 let mainWindow: BrowserWindow | null = null;
 let protocolRegistered = false;
 
@@ -97,7 +104,7 @@ export function createMainWindow(): BrowserWindow {
 
   // Hide instead of close (minimize to tray)
   mainWindow.on('close', (e) => {
-    if (!(app as any).isQuitting) {
+    if (!app.isQuitting) {
       e.preventDefault();
       mainWindow?.hide();
     }

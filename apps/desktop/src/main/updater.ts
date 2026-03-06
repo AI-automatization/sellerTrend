@@ -1,7 +1,18 @@
 import { autoUpdater } from 'electron-updater';
 import { BrowserWindow } from 'electron';
+import log from 'electron-log';
 
 const UPDATE_CHECK_INTERVAL = 4 * 60 * 60 * 1000; // 4 hours
+
+// T-323: Track interval so it can be cleared on app quit
+let updateIntervalId: ReturnType<typeof setInterval> | null = null;
+
+export function stopUpdater(): void {
+  if (updateIntervalId) {
+    clearInterval(updateIntervalId);
+    updateIntervalId = null;
+  }
+}
 
 export function initUpdater(): void {
   // Disable auto-download — let user decide
@@ -28,15 +39,15 @@ export function initUpdater(): void {
   });
 
   autoUpdater.on('error', (err) => {
-    // Silently log update errors — don't crash the app
-    console.error('Auto-updater error:', err.message);
+    // T-322: Use electron-log instead of console.error
+    log.error('Auto-updater error:', err.message);
   });
 
   // Check on launch
   autoUpdater.checkForUpdates().catch(() => {});
 
-  // Check periodically
-  setInterval(() => {
+  // T-323: Store interval ref for cleanup
+  updateIntervalId = setInterval(() => {
     autoUpdater.checkForUpdates().catch(() => {});
   }, UPDATE_CHECK_INTERVAL);
 }

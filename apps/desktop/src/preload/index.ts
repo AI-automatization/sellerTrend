@@ -19,11 +19,15 @@ contextBridge.exposeInMainWorld('ventraDesktop', {
 
   /** Listen for update-available events from main process */
   onUpdateAvailable: (cb: (info: { version: string; releaseDate?: string }) => void) => {
+    // T-321: Remove previous listener before adding new one — prevent memory leak
+    ipcRenderer.removeAllListeners('update-available');
     ipcRenderer.on('update-available', (_event, info) => cb(info));
   },
 
   /** Listen for update-downloaded events from main process */
   onUpdateDownloaded: (cb: (info: { version: string }) => void) => {
+    // T-321: Remove previous listener before adding new one — prevent memory leak
+    ipcRenderer.removeAllListeners('update-downloaded');
     ipcRenderer.on('update-downloaded', (_event, info) => cb(info));
   },
 });

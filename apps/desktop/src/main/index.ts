@@ -2,7 +2,7 @@ import { app } from 'electron';
 import { createMainWindow, getMainWindow } from './window';
 import { createTray } from './tray';
 import { registerIpcHandlers } from './ipc';
-import { initUpdater } from './updater';
+import { initUpdater, stopUpdater } from './updater';
 
 // Single instance lock — prevent multiple app windows
 const gotLock = app.requestSingleInstanceLock();
@@ -24,6 +24,11 @@ app.whenReady().then(() => {
   createMainWindow();
   createTray();
   initUpdater();
+});
+
+// T-323: Clean up interval before quitting
+app.on('before-quit', () => {
+  stopUpdater();
 });
 
 // Keep app running in tray when all windows closed
