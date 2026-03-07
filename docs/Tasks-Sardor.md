@@ -110,6 +110,8 @@ Manba: Playwright audit (2026-03-07)
 
 > ~~T-409~~ ✅ DONE (2026-03-07) → Done.md — Landing Hero + DownloadBanner Windows URL ulash
 
+> ~~T-410~~ ✅ DONE (2026-03-07) → Done.md — Desktop oq ekran fix (v1.0.2): loadURL `app://./` bilan BrowserRouter pathname `/` ko'radi
+
 ---
 
 ## P1 — MUHIM

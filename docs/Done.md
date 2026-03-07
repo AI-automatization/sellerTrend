@@ -4,6 +4,14 @@
 
 ---
 
+## T-410 | DESKTOP | Oq ekran fix — v1.0.2 (2026-03-07)
+
+- **Root cause:** `loadURL('app://./index.html')` → BrowserRouter `/index.html` pathname ko'radi → hech qanday route mos kelmaydi → oq ekran
+- **Fix:** `loadURL('app://./')` → protocol handler baribir `index.html` beradi, lekin `window.location.pathname = '/'` → routlar to'g'ri ishlaydi
+- **CSP fix** ham (`connect-src` ga `https://app.ventra.uz`, `style-src` ga Google Fonts)
+- `apps/desktop/src/main/window.ts` o'zgartirildi, versiya `1.0.2` ga oshirildi
+- Landing URL lar ham `v1.0.2` ga yangilandi (`HeroSection.tsx`, `DownloadBanner.tsx`, `i18n.ts`)
+
 ## T-409 | LANDING | Landing download tugmalari — Windows URL ulash (2026-03-07)
 
 - `HeroSection.tsx` — "Desktop yuklab olish" tugmasi `#download` scroll o'rniga to'g'ridan `.exe` URL ga
