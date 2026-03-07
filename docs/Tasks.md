@@ -378,12 +378,12 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 > T-353, T-354, T-355, T-356, T-357, T-358 → Done.md (2026-03-04)
 
-## P2 — O'RTA (2 task, ~41 bug)
+## P2 — O'RTA ✅ DONE (2026-03-08)
 
 | # | Muammo | Bug soni | Vaqt |
 |---|--------|----------|------|
-| T-359 | API P2 batch (27 ta) | 27 | 4h |
-| T-360 | Worker+Bot P2 batch (14 ta) | 14 | 2h |
+| ~~T-359~~ | ~~API P2 batch (27 ta)~~ | ~~27~~ | ✅ |
+| ~~T-360~~ | ~~Worker+Bot P2 batch (14 ta)~~ | ~~14~~ | ✅ |
 
 > Batafsil sabab/yechim: docs/Tasks-Bekzod.md
 
@@ -418,7 +418,7 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 | # | Muammo | Bug soni | Vaqt |
 |---|--------|----------|------|
-| T-370 | Web P2 batch (15 ta) | 15 | 3h |
+| ~~T-370~~ | ~~Web P2 batch (15 ta)~~ | ~~15~~ | ✅ DONE (2026-03-08) |
 
 > Batafsil sabab/yechim: docs/Tasks-Sardor.md
 
@@ -441,9 +441,9 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 | # | Muammo | Mas'ul | Vaqt |
 |---|--------|--------|------|
-| T-376 | Platform model — multi-marketplace (kelajak) | Bekzod | 2h |
-| T-380 | Mobile UX — bottom nav, scroll-to-top, card layout (4 fix) | Sardor | 3h |
-| T-381 | Accessibility — skip-to-content, focus trap, colorblind, keyboard (5 fix) | Sardor | 2h |
+| ~~T-376~~ | ~~Platform model — multi-marketplace (kelajak)~~ | ✅ DONE (2026-03-08) | — |
+| ~~T-380~~ | ~~Mobile UX — bottom nav, scroll-to-top, card layout (4 fix)~~ | ✅ DONE (2026-03-08) | — |
+| ~~T-381~~ | ~~Accessibility — skip-to-content, focus trap, colorblind, keyboard (5 fix)~~ | ✅ DONE (2026-03-08) | — |
 | ~~T-382~~ | ~~Landing conversion~~ | ✅ DONE (2026-03-06) | — |
 | T-383 | Landing multi-marketplace section + hero copy + pricing | Bekzod | 3h |
 
@@ -517,16 +517,9 @@ Schema o'zgaradi — docs eskiradi — audit noto'g'ri xulosa chiqaradi (ChatGPT
 ## P0 — KRITIK
 
 ### ~~T-392 P0~~ ✅ DONE (2026-03-06, 80dc8c3) → Done.md
-### T-392 P1-P2 | IKKALASI | Billing model — frontend + admin stats + monthly cron | ~10h
+### ~~T-392 P1-P2~~ ✅ DONE (2026-03-08) → Done.md
 
-**Qolgan ishlar:**
-- P1: Worker daily cron → monthly subscription renewal (`0 3 1 * *`)
-- P1: `admin-stats.service.ts`: churn, MRR, plan_distribution yangi formulalar
-- P1: `admin-account.service.ts`: setPlan() metod, plan fieldlar response'da
-- P2: Frontend `PaymentDueBanner` → `PlanExpiredBanner`
-- P2: `PlanGuard` component (locked feature overlay)
-- P2: `BillingPage`: plan selection + upgrade flow
-- P2: `AdminAnalyticsTab`: conversion funnel, plan distribution chart
+Billing full-stack: subscription renewal cron, setPlan admin endpoint, churn/MRR/plan_breakdown metrics, BillingPage, PlanGuard, PlanExpiredBanner.
 
 ---
 
@@ -540,64 +533,25 @@ Schema o'zgaradi — docs eskiradi — audit noto'g'ri xulosa chiqaradi (ChatGPT
 
 ---
 
-### T-395 | P1 | BACKEND | Recommendation system — nishan-based layered | 3h
-
-Manba: Onboarding-scenario.md + suhbat (2026-03-06) — yangi user uchun bo'sh dashboard'da relevant productlar ko'rsatish
-
-**Muammo:** Yangi user "TOP mahsulotlar" ko'rishi kerak, lekin DB bo'sh bo'lsa hech narsa yo'q. Seed qilingan products esa eskirishi mumkin, nishanga mos kelmaydi.
-
-**Yechim (4 qatlamli):**
-1. `category_winners` da user nishani bo'yicha filter → ko'rsat
-2. `tracked_products` da nishanga mos productlar → ko'rsat
-3. Uzum search API ishlaydimi → live qidiruv (user nishani bo'yicha)
-4. Hardcoded fallback — nishan bo'yicha oldindan tanlangan popular product ID lar
-
-**Fayllar:** `apps/api/src/products/products.service.ts` (getRecommendations metodi), yangi endpoint `GET /products/recommendations?niche=kosmetika`
+### ~~T-395~~ ✅ DONE (2026-03-08) → Done.md
+Recommendation system — 4-layer fallback (category winners → tracked → uzum API → hardcoded).
 
 ---
 
-### T-396 | P1 | FRONTEND | Admin billing metrics — yangi churn, MRR, plan distribution | 2h
-
-Manba: Onboarding-scenario.md Admin ta'sir tahlili (2026-03-06)
-
-**Muammo:** `churnRatePct` = PAYMENT_DUE/ACTIVE — bu haqiqiy churn emas. MRR = daily CHARGE summasi — bu haqiqiy MRR emas.
-
-**Yechim:**
-- `admin-stats.service.ts` → `getStatsGrowth()`: churn = plan expired + yangilamagan
-- `getStatsRevenue()`: MRR = SUBSCRIPTION type transactionlar summasi; `avg_balance` o'rniga `avg_days_to_renewal`
-- `getStatsOverview()`: `plan_breakdown: { FREE, PRO, MAX, COMPANY }` qo'shish
-- Frontend `AdminAnalyticsTab.tsx`: plan distribution donut chart, conversion funnel
-
-**Fayllar:** `apps/api/src/admin/admin-stats.service.ts`, `apps/web/src/components/admin/AdminAnalyticsTab.tsx`
+### ~~T-396~~ ✅ DONE (2026-03-08) → Done.md
+Admin billing metrics — churn, MRR, plan_breakdown PieChart donut, avg_days_to_renewal.
 
 ---
 
 ## P2 — O'RTA
 
-### T-397 | P2 | FRONTEND | Kontekstual tooltiplar — har sahifada birinchi marta | 1h
-
-Manba: Onboarding-scenario.md (2026-03-06)
-
-**Muammo:** Onboarding tugagandan keyin yangi user qaysi sahifaning nima qilishini bilmaydi.
-
-**Yechim:** 5 ta sahifada (`Dashboard`, `Analyze`, `Discovery`, `Signals`, `Sourcing`) birinchi kirishda qisqa tooltip/hint. `localStorage.tooltip_seen_{page}` flag bilan faqat 1 marta ko'rsatiladi.
-
-**Fayllar:** `apps/web/src/components/ui/PageHint.tsx` (yangi), sahifa komponentlarida `<PageHint page="dashboard" />`
+### ~~T-397~~ ✅ DONE (2026-03-08) → Done.md
+Kontekstual tooltiplar — PageHint component, 4 sahifada (Dashboard, Analyze, Discovery, Sourcing).
 
 ---
 
-### T-398 | P2 | BACKEND | Email/Telegram onboarding reminders | 3h
-
-Manba: Onboarding-scenario.md (2026-03-06)
-
-**Muammo:** Yangi user register qilib, 3 kundan keyin product tahlil qilmasa — hech qanday reminder yo'q.
-
-**Yechim:**
-- Register'dan keyin welcome email (email service ulangan bo'lsa)
-- 3 kun o'tib `onboarding_completed === false` bo'lsa → Telegram bot reminder (ulangan bo'lsa)
-- Cron job: `0 10 * * *` — har kuni 3 kunlik tekshirish
-
-**Fayllar:** `apps/worker/src/processors/` (onboarding-reminder processor), `apps/api/src/auth/auth.service.ts` (welcome trigger)
+### ~~T-398~~ ✅ DONE (2026-03-08) → Done.md
+Onboarding reminders — daily 10AM cron, 3-day check for incomplete onboarding.
 
 ---
 

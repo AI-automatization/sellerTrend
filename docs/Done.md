@@ -1,6 +1,32 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
-# Yangilangan: 2026-03-06
+# Yangilangan: 2026-03-08
 # Ochiq tasklar → docs/Tasks.md, docs/Tasks-Bekzod.md, docs/Tasks-Sardor.md
+
+---
+
+## P2 Mega Sprint (2026-03-08) — 13 task, 4 sprint, 115 fayl
+
+### Sprint 1: T-359 + T-370 — Kod Audit P2
+- **T-359** API P2 (18 fix): seed.ts env, DTO validation, cache eviction, pagination, parse-period dedup
+- **T-370** Web P2 (12 fix): BookingModal focus trap, aria-labels, formatDate util, i18n, useRef pattern
+
+### Sprint 2: T-395 + T-396 + T-360
+- **T-395** Recommendation system — 4-layer fallback (category winners, tracked, uzum API, hardcoded)
+- **T-396** Admin billing metrics — PieChart plan breakdown, real churn (7-day), MRR (SUBSCRIPTION), avg_days_to_renewal
+- **T-360** Worker+Bot P2 (11 fix): escapeHtml util, rate limiter, shared BrowserContext, BigInt null guard
+
+### Sprint 3: T-392 — Billing Full-Stack
+- Subscription renewal cron (daily 3AM), PLAN_PRICES constant
+- setPlan() admin endpoint (PATCH /admin/accounts/:id/plan)
+- BillingPage (4 plan cards), PlanGuard locked overlay, PlanExpiredBanner
+- billing-public.controller.ts (GET /billing/plans)
+
+### Sprint 4: T-376 + T-398 + T-380 + T-381 + T-397
+- **T-376** Platform model (uzum, wildberries, yandex_market, ozon), GET /platforms endpoint
+- **T-398** Onboarding reminder cron (daily 10AM, 3-day check)
+- **T-380** Mobile UX: BottomNav, ScrollToTop, pb-16
+- **T-381** Accessibility: skip-to-content, aria-labels, Ctrl+K shortcut, scope="col"
+- **T-397** Contextual tooltips: PageHint component, 4 sahifada hints
 
 ---
 
