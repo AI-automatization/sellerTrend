@@ -16,6 +16,7 @@ export function memoryPressureMiddleware(
 
   if (heapUsed > threshold && !WHITELIST.some((p) => req.url.startsWith(p))) {
     res.setHeader('Retry-After', '30');
+    res.setHeader('X-Memory-Pressure', 'true');
     res.status(503).json({
       statusCode: 503,
       message: 'Server under memory pressure, please retry later',

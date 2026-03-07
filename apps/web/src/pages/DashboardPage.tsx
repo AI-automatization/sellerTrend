@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { ArrowTrendingUpIcon, MagnifyingGlassIcon, WalletIcon } from '../components/icons';
 import { useI18n } from '../i18n/I18nContext';
@@ -7,11 +8,12 @@ import { getTokenPayload } from '../api/client';
 import {
   FadeIn, KPICards, HeroCards, ChartsSection, ActivityChart, ProductsTable, EmptyState,
 } from '../components/dashboard';
+import { PageHint } from '../components/PageHint';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function DashboardPage() {
-  const { products, balance, loading, isSuperAdmin, exporting, handleExportCsv } = useDashboardData();
+  const { products, balance, loading, error, isSuperAdmin, exporting, handleExportCsv } = useDashboardData();
   const [sortKey, setSortKey] = useState<'score' | 'weekly' | 'price'>('score');
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -92,6 +94,18 @@ export function DashboardPage() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+        <div className="text-5xl">⚠️</div>
+        <p className="text-sm text-base-content/50">{error}</p>
+        <button className="btn btn-primary btn-sm" onClick={() => window.location.reload()}>
+          {t('common.retry')}
+        </button>
+      </div>
+    );
+  }
+
   if (products.length === 0) {
     return (
       <EmptyState
@@ -103,6 +117,8 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6 w-full">
+      <PageHint page="dashboard">{t('hints.dashboard')}</PageHint>
+
       {/* ═══ HEADER ═══ */}
       <FadeIn>
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -152,7 +168,7 @@ export function DashboardPage() {
               <p className="font-bold text-sm text-error">{t('dashboard.paymentRequired')}</p>
               <p className="text-xs text-base-content/45 mt-0.5">{t('dashboard.paymentDesc')}</p>
             </div>
-            <button className="btn btn-error btn-sm shadow-sm">{t('dashboard.topUp')}</button>
+            <button className="btn btn-error btn-sm shadow-sm" onClick={() => toast.info(t('dashboard.topUpMessage'))}>{t('dashboard.topUp')}</button>
           </div>
         </FadeIn>
       )}

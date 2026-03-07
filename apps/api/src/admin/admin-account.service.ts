@@ -29,6 +29,8 @@ export class AdminAccountService {
         name: a.name,
         phone: a.phone ?? null,
         status: a.status,
+        plan: a.plan,
+        plan_expires_at: a.plan_expires_at,
         balance: a.balance.toString(),
         daily_fee: a.daily_fee?.toString() ?? null,
         created_at: a.created_at,
@@ -58,6 +60,9 @@ export class AdminAccountService {
       name: account.name,
       phone: account.phone ?? null,
       status: account.status,
+      plan: account.plan,
+      plan_expires_at: account.plan_expires_at,
+      plan_renewed_at: account.plan_renewed_at,
       balance: account.balance.toString(),
       daily_fee: account.daily_fee?.toString() ?? null,
       created_at: account.created_at,
@@ -161,6 +166,71 @@ export class AdminAccountService {
     ]);
 
     return { id: accountId, phone };
+  }
+
+  /** Plan pricing constants (som/month) */
+  private static readonly PLAN_PRICES: Record<string, bigint> = {
+    FREE: BigInt(0),
+    PRO: BigInt(150000),
+    MAX: BigInt(350000),
+    COMPANY: BigInt(990000),
+  };
+
+  /** Set account plan with auto-calculated expiration and subscription transaction */
+  async setPlan(accountId: string, plan: string, adminUserId: string) {
+    const validPlans = ['FREE', 'PRO', 'MAX', 'COMPANY'];
+    if (!validPlans.includes(plan)) {
+      throw new BadRequestException('Noto\'g\'ri plan. Mumkin: FREE, PRO, MAX, COMPANY');
+    }
+
+    const account = await this.prisma.account.findUniqueOrThrow({
+      where: { id: accountId },
+      select: { plan: true, plan_expires_at: true, balance: true },
+    });
+
+    const now = new Date();
+    const expiresAt = plan === 'FREE'
+      ? null
+      : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const isUpgradeFromFree = account.plan === 'FREE' && plan !== 'FREE';
+    const price = AdminAccountService.PLAN_PRICES[plan] ?? BigInt(0);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.account.update({
+        where: { id: accountId },
+        data: {
+          plan,
+          plan_expires_at: expiresAt,
+          plan_renewed_at: now,
+        },
+      });
+
+      await tx.auditEvent.create({
+        data: {
+          account_id: accountId,
+          user_id: adminUserId,
+          action: 'ACCOUNT_PLAN_CHANGED',
+          old_value: { plan: account.plan, plan_expires_at: account.plan_expires_at?.toISOString() ?? null },
+          new_value: { plan, plan_expires_at: expiresAt?.toISOString() ?? null },
+        },
+      });
+
+      // Create SUBSCRIPTION transaction when upgrading from FREE to a paid plan
+      if (isUpgradeFromFree && price > BigInt(0)) {
+        await tx.transaction.create({
+          data: {
+            account_id: accountId,
+            type: 'SUBSCRIPTION',
+            amount: price,
+            balance_before: account.balance,
+            balance_after: account.balance,
+            description: `Admin set plan: ${account.plan} \u2192 ${plan}`,
+          },
+        });
+      }
+    });
+
+    return { id: accountId, plan, plan_expires_at: expiresAt };
   }
 
   async setAccountDailyFee(

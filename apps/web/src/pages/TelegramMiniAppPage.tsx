@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { productsApi } from '../api/client';
 import { getErrorMessage } from '../utils/getErrorMessage';
+import { useI18n } from '../i18n/I18nContext';
 
 interface TrackedProduct {
   product_id: string;
@@ -17,13 +18,14 @@ interface TrackedProduct {
  * Accessible via /tg-app route (no sidebar, compact layout).
  */
 export function TelegramMiniAppPage() {
+  const { t } = useI18n();
   const [products, setProducts] = useState<TrackedProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     // Telegram WebApp SDK — theme sync
-    const tg = (window as any).Telegram?.WebApp;
+    const tg = window.Telegram?.WebApp;
     if (tg) {
       tg.ready();
       tg.expand();
@@ -55,7 +57,7 @@ export function TelegramMiniAppPage() {
         <div className="text-center space-y-3">
           <p className="text-3xl">⚠️</p>
           <p className="text-sm text-base-content/60">{error}</p>
-          <button onClick={() => window.location.reload()} className="btn btn-primary btn-sm">Qayta urinish</button>
+          <button onClick={() => window.location.reload()} className="btn btn-primary btn-sm">{t('telegram.retryBtn')}</button>
         </div>
       </div>
     );
@@ -70,18 +72,18 @@ export function TelegramMiniAppPage() {
         </div>
         <div>
           <p className="font-bold text-sm leading-tight">VENTRA</p>
-          <p className="text-xs text-base-content/40">{products.length} mahsulot</p>
+          <p className="text-xs text-base-content/40">{t('telegram.productCount').replace('{n}', String(products.length))}</p>
         </div>
       </div>
 
       {/* Summary stats */}
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div className="bg-base-200/60 rounded-xl p-2.5 text-center">
-          <p className="text-xs text-base-content/50">Jami</p>
+          <p className="text-xs text-base-content/50">{t('telegram.stat.total')}</p>
           <p className="font-bold text-lg tabular-nums">{products.length}</p>
         </div>
         <div className="bg-base-200/60 rounded-xl p-2.5 text-center">
-          <p className="text-xs text-base-content/50">O'rtacha</p>
+          <p className="text-xs text-base-content/50">{t('telegram.stat.avgScore')}</p>
           <p className="font-bold text-lg tabular-nums text-primary">
             {products.length > 0
               ? (products.reduce((s, p) => s + (p.score ?? 0), 0) / products.length).toFixed(1)
@@ -89,7 +91,7 @@ export function TelegramMiniAppPage() {
           </p>
         </div>
         <div className="bg-base-200/60 rounded-xl p-2.5 text-center">
-          <p className="text-xs text-base-content/50">Sotuv</p>
+          <p className="text-xs text-base-content/50">{t('telegram.stat.sales')}</p>
           <p className="font-bold text-lg tabular-nums text-success">
             {products.reduce((s, p) => s + (p.weekly_bought ?? 0), 0).toLocaleString()}
           </p>
@@ -100,7 +102,7 @@ export function TelegramMiniAppPage() {
       {products.length === 0 ? (
         <div className="text-center py-12 text-base-content/30">
           <p className="text-3xl mb-2">📭</p>
-          <p className="text-sm">Kuzatilayotgan mahsulotlar yo'q</p>
+          <p className="text-sm">{t('telegram.empty')}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -112,7 +114,7 @@ export function TelegramMiniAppPage() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{p.title}</p>
                 <div className="flex gap-3 text-xs text-base-content/40 mt-0.5">
-                  {p.weekly_bought != null && <span>{p.weekly_bought} ta/hft</span>}
+                  {p.weekly_bought != null && <span>{p.weekly_bought} {t('telegram.perWeek')}</span>}
                   {p.sell_price != null && <span>{Number(p.sell_price).toLocaleString()} so'm</span>}
                 </div>
               </div>

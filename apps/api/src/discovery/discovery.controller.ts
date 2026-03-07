@@ -19,7 +19,6 @@ import { DiscoveryService } from './discovery.service';
 import { NicheService } from './niche.service';
 import { RequestLoggerService } from '../common/request-logger.service';
 import { UzumClient } from '../uzum/uzum.client';
-import { PrismaService } from '../prisma/prisma.service';
 import { StartRunDto } from './dto/start-run.dto';
 
 @ApiTags('discovery')
@@ -33,7 +32,6 @@ export class DiscoveryController {
     private readonly nicheService: NicheService,
     private readonly uzumClient: UzumClient,
     private readonly reqLogger: RequestLoggerService,
-    private readonly prisma: PrismaService,
   ) {}
 
   @Post('run')
@@ -128,72 +126,15 @@ export class DiscoveryController {
   // ============================================================
 
   @Get('seasonal-calendar')
-  async getSeasonalCalendar(
+  getSeasonalCalendar(
     @Query('limit') limitParam?: string,
   ) {
-    const MAX_SEASONAL_TRENDS = 500;
-    const take = Math.min(
-      limitParam ? parseInt(limitParam, 10) || MAX_SEASONAL_TRENDS : MAX_SEASONAL_TRENDS,
-      MAX_SEASONAL_TRENDS,
-    );
-
-    const trends = await this.prisma.seasonalTrend.findMany({
-      orderBy: { season_start: 'asc' },
-      take,
-    });
-
-    return {
-      events: trends.map((t) => ({
-        id: t.id,
-        name: t.season_name,
-        start_month: t.season_start,
-        end_month: t.season_end,
-        boost: t.avg_score_boost ? Number(t.avg_score_boost) : null,
-        peak_week: t.peak_week,
-        category_id: t.category_id?.toString() ?? null,
-      })),
-    };
+    const limit = limitParam ? parseInt(limitParam, 10) || undefined : undefined;
+    return this.discoveryService.getSeasonalCalendar(limit);
   }
 
   @Get('seasonal-calendar/upcoming')
-  async getUpcomingSeasons() {
-    const now = new Date();
-    const currentMonth = now.getMonth() + 1; // 1-12
-    const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
-
-    const MAX_SEASONAL_TRENDS = 500;
-    const trends = await this.prisma.seasonalTrend.findMany({
-      orderBy: { season_start: 'asc' },
-      take: MAX_SEASONAL_TRENDS,
-    });
-
-    const upcoming = trends.filter((t) => {
-      if (t.season_start <= t.season_end) {
-        // Normal range (e.g. 3-4)
-        return (
-          (currentMonth >= t.season_start && currentMonth <= t.season_end) ||
-          (nextMonth >= t.season_start && nextMonth <= t.season_end)
-        );
-      }
-      // Wrapping range (e.g. 12-1)
-      return (
-        currentMonth >= t.season_start ||
-        currentMonth <= t.season_end ||
-        nextMonth >= t.season_start ||
-        nextMonth <= t.season_end
-      );
-    });
-
-    return {
-      current_month: currentMonth,
-      events: upcoming.map((t) => ({
-        id: t.id,
-        name: t.season_name,
-        start_month: t.season_start,
-        end_month: t.season_end,
-        boost: t.avg_score_boost ? Number(t.avg_score_boost) : null,
-        peak_week: t.peak_week,
-      })),
-    };
+  getUpcomingSeasons() {
+    return this.discoveryService.getUpcomingSeasons();
   }
 }

@@ -114,6 +114,11 @@ export class ConsultationService {
    * @param accountId - The account_id of the booking client (maps to DB column `client_id`)
    */
   async book(accountId: string, consultationId: string, scheduledAt: string) {
+    const scheduledDate = new Date(scheduledAt);
+    if (isNaN(scheduledDate.getTime()) || scheduledDate.getTime() <= Date.now()) {
+      throw new BadRequestException('scheduled_at kelajakda bo\'lishi kerak');
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const consultation = await tx.consultation.findUnique({
         where: { id: consultationId },

@@ -11,6 +11,7 @@ import {
   CalculationHistory,
   fmt,
 } from '../components/sourcing';
+import { PageHint } from '../components/PageHint';
 import type { CurrencyRates, CargoProvider, Tab } from '../components/sourcing';
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
@@ -22,7 +23,7 @@ export function SourcingPage() {
   const prefillPrice = searchParams.get('price') ?? '';
   const prefillProductId = searchParams.get('product_id') ?? '';
 
-  const [tab, setTab] = useState<Tab>(prefillProductId ? 'import' : prefillName ? 'calculator' : 'calculator');
+  const [tab, setTab] = useState<Tab>(prefillProductId ? 'import' : 'calculator');
   const [rates, setRates] = useState<CurrencyRates | null>(null);
   const [providers, setProviders] = useState<CargoProvider[]>([]);
   const [ratesLoading, setRatesLoading] = useState(true);
@@ -52,6 +53,8 @@ export function SourcingPage() {
 
   return (
     <div className="w-full space-y-4 lg:space-y-6">
+      <PageHint page="sourcing">{t('hints.sourcing')}</PageHint>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>

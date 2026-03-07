@@ -3,8 +3,10 @@ import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-const ADMIN_EMAIL    = 'admin@ventra.uz';
-const ADMIN_PASSWORD = 'Admin123!';
+const ADMIN_EMAIL    = process.env.SEED_ADMIN_EMAIL ?? 'admin@ventra.uz';
+const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? 'Admin123!';
+const DEMO_EMAIL     = process.env.SEED_DEMO_EMAIL ?? 'demo@ventra.uz';
+const DEMO_PASSWORD  = process.env.SEED_DEMO_PASSWORD ?? 'Demo123!';
 
 async function main() {
   console.log('🌱 Seeding database...\n');
@@ -56,20 +58,20 @@ async function main() {
     },
   });
 
-  const demoHash = await bcrypt.hash('Demo123!', 12);
+  const demoHash = await bcrypt.hash(DEMO_PASSWORD, 12);
   await prisma.user.upsert({
-    where:  { email: 'demo@ventra.uz' },
+    where:  { email: DEMO_EMAIL },
     update: {},
     create: {
       account_id:    demoAccount.id,
-      email:         'demo@ventra.uz',
+      email:         DEMO_EMAIL,
       password_hash: demoHash,
       role:          'USER',
     },
   });
   console.log('\n✅ Demo User yaratildi:');
-  console.log('   📧 Email:  demo@ventra.uz');
-  console.log('   🔑 Parol:  Demo123!');
+  console.log(`   📧 Email:  ${DEMO_EMAIL}`);
+  console.log(`   🔑 Parol:  ${DEMO_PASSWORD}`);
   console.log('   💰 Balans: 500,000 so\'m');
 
 
@@ -92,7 +94,7 @@ async function main() {
     });
   }
 
-  const testUsers = [
+  const testUsers: Array<{ email: string; account_id: string; role: 'SUPER_ADMIN' | 'ADMIN' | 'MODERATOR' | 'USER' }> = [
     { email: 'aziz@toshkent-electronics.uz', account_id: companies[0].id, role: 'ADMIN' },
     { email: 'malika@toshkent-electronics.uz', account_id: companies[0].id, role: 'USER' },
     { email: 'jasur@samarkand-fashion.uz', account_id: companies[1].id, role: 'ADMIN' },
@@ -113,7 +115,7 @@ async function main() {
         account_id: u.account_id,
         email: u.email,
         password_hash: pw,
-        role: u.role as any,
+        role: u.role as 'ADMIN' | 'USER' | 'MODERATOR',
       },
     });
   }
@@ -205,6 +207,18 @@ async function main() {
   } else {
     console.log('\n✅ Seasonal trends allaqachon mavjud');
   }
+
+  // 7. Platforms (multi-marketplace support)
+  const platforms = [
+    { slug: 'uzum', name: 'Uzum Market', is_active: true, coming_soon: false, logo_url: '/logos/uzum.svg' },
+    { slug: 'wildberries', name: 'Wildberries', is_active: false, coming_soon: true, logo_url: '/logos/wb.svg' },
+    { slug: 'yandex_market', name: 'Yandex Market', is_active: false, coming_soon: true, logo_url: '/logos/yandex.svg' },
+    { slug: 'ozon', name: 'Ozon', is_active: false, coming_soon: true, logo_url: '/logos/ozon.svg' },
+  ];
+  for (const p of platforms) {
+    await prisma.platform.upsert({ where: { slug: p.slug }, update: {}, create: p });
+  }
+  console.log('\n✅ Platformalar yaratildi (4 ta)');
 
   console.log('\n🎉 Seed yakunlandi!');
 }

@@ -13,6 +13,10 @@ export class AdminFeedbackService {
     page = 1,
     limit = 20,
   ) {
+    const MAX_ADMIN_FEEDBACK = 100;
+    const safePage = Math.max(1, page);
+    const take = Math.min(Math.max(1, limit), MAX_ADMIN_FEEDBACK);
+
     const where: Prisma.FeedbackTicketWhereInput = {};
     if (status) where.status = status as FeedbackStatus;
     if (type) where.type = type as FeedbackType;
@@ -21,8 +25,8 @@ export class AdminFeedbackService {
       this.prisma.feedbackTicket.findMany({
         where,
         orderBy: { created_at: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
+        skip: (safePage - 1) * take,
+        take,
         include: {
           user: { select: { email: true } },
           account: { select: { name: true } },
@@ -46,8 +50,8 @@ export class AdminFeedbackService {
         updated_at: t.updated_at,
       })),
       total,
-      page,
-      pages: Math.ceil(total / limit),
+      page: safePage,
+      pages: Math.ceil(total / take),
     };
   }
 

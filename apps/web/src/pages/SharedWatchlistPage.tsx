@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { watchlistApi } from '../api/client';
+import { useI18n } from '../i18n/I18nContext';
 
 interface SharedProduct {
   product_id: string;
@@ -18,6 +19,7 @@ interface WatchlistData {
 }
 
 export function SharedWatchlistPage() {
+  const { t } = useI18n();
   const { token } = useParams<{ token: string }>();
   const [data, setData] = useState<WatchlistData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,7 +29,7 @@ export function SharedWatchlistPage() {
     if (!token) return;
     watchlistApi.getShared(token)
       .then((r) => setData(r.data))
-      .catch(() => setError("Watchlist topilmadi yoki muddati o'tgan"))
+      .catch(() => setError(t('watchlist.notFound')))
       .finally(() => setLoading(false));
   }, [token]);
 
@@ -44,8 +46,8 @@ export function SharedWatchlistPage() {
       <div className="min-h-screen flex items-center justify-center bg-base-100">
         <div className="text-center space-y-4">
           <p className="text-4xl">🔗</p>
-          <p className="text-base-content/50">{error || 'Xato yuz berdi'}</p>
-          <Link to="/login" className="btn btn-primary btn-sm">Platformaga kirish</Link>
+          <p className="text-base-content/50">{error || t('watchlist.notFound')}</p>
+          <Link to="/login" className="btn btn-primary btn-sm">{t('watchlist.loginBtn')}</Link>
         </div>
       </div>
     );
@@ -65,10 +67,10 @@ export function SharedWatchlistPage() {
             </div>
             <h1 className="text-2xl font-bold">{data.name}</h1>
             <p className="text-sm text-base-content/50 mt-1">
-              {data.products.length} mahsulot &middot; {data.views} ko'rish
+              {t('watchlist.productCount').replace('{n}', String(data.products.length)).replace('{v}', String(data.views))}
             </p>
           </div>
-          <Link to="/login" className="btn btn-primary btn-sm">Platformaga kirish</Link>
+          <Link to="/login" className="btn btn-primary btn-sm">{t('watchlist.loginBtn')}</Link>
         </div>
 
         {/* Products table */}
@@ -76,17 +78,17 @@ export function SharedWatchlistPage() {
           {data.products.length === 0 ? (
             <div className="text-center py-12 text-base-content/30">
               <p className="text-4xl mb-2">📭</p>
-              <p className="text-sm">Bu ro'yxatda mahsulotlar yo'q</p>
+              <p className="text-sm">{t('watchlist.empty')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="table table-sm">
                 <thead>
                   <tr className="text-xs text-base-content/40 uppercase">
-                    <th>Mahsulot</th>
-                    <th className="text-right">Score</th>
-                    <th className="text-right">Haftalik sotuv</th>
-                    <th className="text-right">Narx</th>
+                    <th>{t('watchlist.col.product')}</th>
+                    <th className="text-right">{t('watchlist.col.score')}</th>
+                    <th className="text-right">{t('watchlist.col.weeklySales')}</th>
+                    <th className="text-right">{t('watchlist.col.price')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -120,7 +122,7 @@ export function SharedWatchlistPage() {
         </div>
 
         <p className="text-center text-xs text-base-content/30">
-          VENTRA Analytics Platform — uzum.uz marketplace tahlili
+          {t('watchlist.footerDesc')}
         </p>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useI18n } from '../i18n/I18nContext';
 import { consultationApi } from '../api/client';
 import type { ConsultationItem } from '../api/types';
@@ -252,42 +252,113 @@ export function ConsultationPage() {
 
       {/* Booking modal */}
       {bookingId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setBookingId(null)}>
-          <div className="bg-base-200 rounded-2xl border border-base-300 p-6 w-full max-w-sm space-y-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-bold text-lg">{t('consultation.booking.title')}</h3>
-            <p className="text-sm text-base-content/50">{t('consultation.booking.subtitle')}</p>
-            <div className="form-control">
-              <label className="label"><span className="label-text">{t('consultation.booking.dateLabel')}</span></label>
-              <input
-                type="date"
-                className="input input-bordered w-full"
-                value={bookingDate}
-                min={todayLocal}
-                onChange={(e) => setBookingDate(e.target.value)}
-              />
-            </div>
-            <div className="form-control">
-              <label className="label"><span className="label-text">{t('consultation.booking.timeLabel')}</span></label>
-              <input
-                type="time"
-                className="input input-bordered w-full"
-                value={bookingTime}
-                onChange={(e) => setBookingTime(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2 pt-2">
-              <button
-                onClick={handleBook}
-                disabled={!bookingDate}
-                className="btn btn-primary flex-1"
-              >
-                {t('consultation.booking.confirmBtn')}
-              </button>
-              <button onClick={() => setBookingId(null)} className="btn btn-ghost">{t('common.cancel')}</button>
-            </div>
-          </div>
-        </div>
+        <BookingModal
+          bookingDate={bookingDate}
+          bookingTime={bookingTime}
+          todayLocal={todayLocal}
+          onDateChange={setBookingDate}
+          onTimeChange={setBookingTime}
+          onBook={handleBook}
+          onClose={() => setBookingId(null)}
+        />
       )}
+    </div>
+  );
+}
+
+/* ── Booking modal with Escape key + focus trap ── */
+interface BookingModalProps {
+  bookingDate: string;
+  bookingTime: string;
+  todayLocal: string;
+  onDateChange: (v: string) => void;
+  onTimeChange: (v: string) => void;
+  onBook: () => void;
+  onClose: () => void;
+}
+
+function BookingModal({
+  bookingDate, bookingTime, todayLocal,
+  onDateChange, onTimeChange, onBook, onClose,
+}: BookingModalProps) {
+  const { t } = useI18n();
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      onClose();
+      return;
+    }
+    // Focus trap: cycle between first and last focusable elements
+    if (e.key === 'Tab' && modalRef.current) {
+      const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+        'input, button, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  }, [onClose]);
+
+  // Auto-focus first input on mount
+  useEffect(() => {
+    const firstInput = modalRef.current?.querySelector<HTMLElement>('input');
+    firstInput?.focus();
+  }, []);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('consultation.booking.title')}
+      onKeyDown={handleKeyDown}
+    >
+      <div
+        ref={modalRef}
+        className="bg-base-200 rounded-2xl border border-base-300 p-6 w-full max-w-sm space-y-4 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="font-bold text-lg">{t('consultation.booking.title')}</h3>
+        <p className="text-sm text-base-content/50">{t('consultation.booking.subtitle')}</p>
+        <div className="form-control">
+          <label className="label"><span className="label-text">{t('consultation.booking.dateLabel')}</span></label>
+          <input
+            type="date"
+            className="input input-bordered w-full"
+            value={bookingDate}
+            min={todayLocal}
+            onChange={(e) => onDateChange(e.target.value)}
+          />
+        </div>
+        <div className="form-control">
+          <label className="label"><span className="label-text">{t('consultation.booking.timeLabel')}</span></label>
+          <input
+            type="time"
+            className="input input-bordered w-full"
+            value={bookingTime}
+            onChange={(e) => onTimeChange(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-2 pt-2">
+          <button
+            onClick={onBook}
+            disabled={!bookingDate}
+            className="btn btn-primary flex-1"
+          >
+            {t('consultation.booking.confirmBtn')}
+          </button>
+          <button onClick={onClose} className="btn btn-ghost">{t('common.cancel')}</button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -60,22 +60,6 @@ export class CompetitorController {
     );
   }
 
-  /** Get price history for a competitor (chart data) */
-  @Get('products/:productId/history')
-  getHistory(
-    @Param('productId', ParseBigIntPipe) productId: bigint,
-    @Query('competitor_id', ParseBigIntPipe) competitorId: bigint,
-    @CurrentUser('account_id') accountId: string,
-    @Query('limit') limit?: string,
-  ) {
-    return this.competitorService.getCompetitorPriceHistory(
-      productId,
-      competitorId,
-      accountId,
-      limit ? parseInt(limit, 10) : 50,
-    );
-  }
-
   /** Get price history for a specific competitor */
   @Get('products/:productId/competitors/:competitorId/history')
   getCompetitorHistory(

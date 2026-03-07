@@ -287,17 +287,17 @@ Trial tugashidan 2 kun oldin:
 Bajarish tartibi
 
 ┌─────┬────────────────────────────┬─────────────┬────────────────────────────────────────────┐
-│ # │ Nima │ Murakkablik │ Ta'sir │
+│ #   │ Nima                       │ Murakkablik │ Ta'sir                                     │
 ├─────┼────────────────────────────┼─────────────┼────────────────────────────────────────────┤
-│ 1 │ Welcome plan (FREE) │ 10 min │ Eng yuqori  | plan bo'yicha dostup ochiladi (limit bilan)
+│ 1   │ Welcome plan (FREE)        │ 10 min      │ Eng yuqori                                 | plan bo'yicha dostup ochiladi (limit bilan)
 ├─────┼────────────────────────────┼─────────────┼────────────────────────────────────────────┤
-│ 2 │ Dashboard empty state │ 2-3 soat │ Yuqori — yangi user yo'qolmaydi │
+│ 2   │ Dashboard empty state      │ 2-3 soat    │ Yuqori — yangi user yo'qolmaydi            │
 ├─────┼────────────────────────────┼─────────────┼────────────────────────────────────────────┤
-│ 3 │ Onboarding wizard (3 step) │ 4-5 soat │ O'rta — guided experience │
+│ 3   │ Onboarding wizard (3 step) │ 4-5 soat    │ O'rta — guided experience                  │
 ├─────┼────────────────────────────┼─────────────┼────────────────────────────────────────────┤
-│ 4 │ Kontekstual tooltiplar │ 1-2 soat │ Past — polish │
+│ 4   │ Kontekstual tooltiplar     │ 1-2 soat    │ Past — polish                              │
 ├─────┼────────────────────────────┼─────────────┼────────────────────────────────────────────┤
-│ 5 │ Email/Telegram reminders │ 3-4 soat │ Past — retention │
+│ 5   │ Email/Telegram reminders   │ 3-4 soat    │ Past — retention                           │
 └─────────────────────────────────────────────────────────────────────────────────────────────
 
 ---

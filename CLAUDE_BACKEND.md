@@ -1,19 +1,22 @@
-# CLAUDE_BACKEND.md — Backend Engineer Guide
-# NestJS · Prisma · BullMQ · PostgreSQL · Redis · Claude API · Telegram
-# Claude CLI bu faylni Backend dasturchi (Bekzod) tanlanganda o'qiydi
+# CLAUDE_BACKEND.md — Full-Stack Engineer Guide (Bekzod)
+# Backend: NestJS · Prisma · BullMQ · PostgreSQL · Redis · Claude API · Telegram
+# Frontend: React 19 · Vite 7 · Tailwind v4 · DaisyUI v5
+# Claude CLI bu faylni Bekzod tanlanganda o'qiydi
 
 ---
 
-## ZONA
+## ZONA (Bekzod — Full-Stack)
 
 ```
 apps/api/        → Backend API (NestJS)
 apps/worker/     → BullMQ processors
 apps/bot/        → Telegram bot (grammY)
+apps/web/        → Frontend Web dashboard (React)
+apps/extension/  → Chrome Extension
 docker-compose.yml → Infra config
 ```
 
-**TEGINMA:** `apps/web/` — bu Frontend zonasi.
+**TEGINMA:** `apps/landing/`, `apps/desktop/` — bu Sardor zonasi.
 
 ---
 
@@ -270,7 +273,7 @@ const results = [alibabaResult, taobaoResult, amazonResult]
 ## TAQIQLANGAN HARAKATLAR
 
 ```
-❌ apps/web/ papkasiga TEGINMA
+❌ apps/landing/, apps/desktop/ papkalariga TEGINMA (Sardor zonasi)
 ❌ prisma migrate reset — data yo'qoladi
 ❌ main branch'ga to'g'ridan push
 ❌ .env faylni commit qilma

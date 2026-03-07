@@ -4,6 +4,9 @@ import { Suspense, lazy } from 'react';
 import 'react-toastify/dist/ReactToastify.css';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { NotFoundPage } from './pages/NotFoundPage';
 import { Layout } from './components/Layout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PageSkeleton } from './components/skeletons';
@@ -30,6 +33,8 @@ const AdminPage = lazy(() => import('./pages/AdminPage').then(m => ({ default: m
 const ExtensionPage = lazy(() => import('./pages/ExtensionPage').then(m => ({ default: m.ExtensionPage })));
 const SharedWatchlistPage = lazy(() => import('./pages/SharedWatchlistPage').then(m => ({ default: m.SharedWatchlistPage })));
 const TelegramMiniAppPage = lazy(() => import('./pages/TelegramMiniAppPage').then(m => ({ default: m.TelegramMiniAppPage })));
+const OnboardingPage = lazy(() => import('./pages/OnboardingPage').then(m => ({ default: m.OnboardingPage })));
+const BillingPage = lazy(() => import('./pages/BillingPage').then(m => ({ default: m.BillingPage })));
 
 function isAuthenticated() {
   return isTokenValid();
@@ -66,6 +71,9 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/onboarding" element={<PrivateRoute><LazyRoute><OnboardingPage /></LazyRoute></PrivateRoute>} />
         <Route path="/watchlists/shared/:token" element={<LazyRoute><SharedWatchlistPage /></LazyRoute>} />
         <Route path="/tg-app" element={<LazyRoute><TelegramMiniAppPage /></LazyRoute>} />
         <Route
@@ -93,8 +101,10 @@ export default function App() {
           <Route path="enterprise" element={<LazyRoute><EnterprisePage /></LazyRoute>} />
           <Route path="feedback" element={<LazyRoute><FeedbackPage /></LazyRoute>} />
           <Route path="extension" element={<LazyRoute><ExtensionPage /></LazyRoute>} />
+          <Route path="billing" element={<LazyRoute><BillingPage /></LazyRoute>} />
           <Route path="admin" element={<AdminRoute><LazyRoute><AdminPage /></LazyRoute></AdminRoute>} />
         </Route>
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );

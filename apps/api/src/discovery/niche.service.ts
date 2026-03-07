@@ -43,24 +43,38 @@ export class NicheService {
     const weeklyBoughts = winners.map((w) => w.weekly_bought ?? 0);
     const maxWb = Math.max(...weeklyBoughts, 1);
 
-    // Seller count per category: count distinct shop_ids
-    const shopIds = new Set(
-      winners.map((w) => w.product.shop_id?.toString()),
-    );
-    const sellerCount = shopIds.size;
-    const maxSellers = Math.max(sellerCount, 1);
+    // Per-shop product count for competition assessment
+    const shopProductCounts = new Map<string, number>();
+    for (const w of winners) {
+      const sid = w.product.shop_id?.toString() ?? 'unknown';
+      shopProductCounts.set(sid, (shopProductCounts.get(sid) ?? 0) + 1);
+    }
+    const totalSellers = Math.max(shopProductCounts.size, 1);
+
+    // Products per seller: higher = more competitive
+    const productsPerSeller = winners.length / totalSellers;
 
     // Score growth: compare rank position (higher rank = lower growth potential)
     const scores = winners.map((w) => Number(w.score ?? 0));
     const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length || 1;
 
+    // Feedback-based competition: more reviews = more established = harder to enter
+    const feedbacks = winners.map((w) => w.product.feedback_quantity ?? 0);
+    const maxFeedback = Math.max(...feedbacks, 1);
+
     const niches = winners.map((w) => {
       const wb = w.weekly_bought ?? 0;
       const score = Number(w.score ?? 0);
 
+      // Competition: blend of seller density and product review maturity
+      // Low competition = fewer sellers + fewer reviews = easier to enter
+      const feedbackRatio = (w.product.feedback_quantity ?? 0) / maxFeedback;
+      const sellerDensity = Math.min(productsPerSeller / 10, 1); // normalize: 10+ products/seller = max
+      const competition = sellerDensity * 0.5 + feedbackRatio * 0.5;
+
       const nicheScore = calculateNicheScore({
         demand: wb / maxWb,
-        competition: sellerCount / (maxSellers * 2), // normalize down
+        competition,
         growth: score > avgScore ? Math.min((score - avgScore) / avgScore, 1) : 0,
         margin: 0.5, // default estimate without price data
       });

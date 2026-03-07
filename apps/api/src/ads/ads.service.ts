@@ -77,7 +77,7 @@ export class AdsService {
     campaignId: string,
     data: {
       name?: string;
-      status?: string;
+      status?: AdCampaignStatus;
       spent_uzs?: number;
       impressions?: number;
       clicks?: number;
@@ -98,7 +98,7 @@ export class AdsService {
 
     const updateData: Prisma.AdCampaignUpdateInput = {};
     if (data.name !== undefined) updateData.name = data.name;
-    if (data.status !== undefined) updateData.status = data.status as AdCampaignStatus;
+    if (data.status !== undefined) updateData.status = data.status;
     if (data.spent_uzs !== undefined) updateData.spent_uzs = BigInt(data.spent_uzs);
     if (data.impressions !== undefined) updateData.impressions = data.impressions;
     if (data.clicks !== undefined) updateData.clicks = data.clicks;

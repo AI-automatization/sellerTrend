@@ -8,6 +8,7 @@
  * Each product gets its own BrowserContext for isolation.
  */
 
+import { BrowserContext } from 'playwright';
 import { parseWeeklyBoughtBanner } from '@uzum/utils';
 import { logJobInfo } from '../logger';
 import { browserPool } from '../browser-pool';
@@ -49,6 +50,20 @@ function extractFromHtml(html: string, productId: number, jobId: string): Scrape
 }
 
 /**
+ * Create a shared BrowserContext for batch scraping.
+ * Caller is responsible for closing the context and releasing the browser pool.
+ */
+export async function createWeeklyScrapeContext(): Promise<BrowserContext> {
+  const browser = await browserPool.getBrowser();
+  return browser.newContext({
+    userAgent:
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    locale: 'ru-RU',
+    extraHTTPHeaders: { 'Accept-Language': 'ru-RU,ru;q=0.9' },
+  });
+}
+
+/**
  * Scrape weekly_bought from Uzum product page.
  *
  * Extraction strategies (cascade):
@@ -58,24 +73,28 @@ function extractFromHtml(html: string, productId: number, jobId: string): Scrape
  *   3. Badge image parent: img[src*="badge_bought"] parent text → confidence 0.70
  *   4. Broad DOM: span/div/p with weekly purchase text → confidence 0.80
  *
+ * @param sharedContext - Optional shared BrowserContext for batch mode.
+ *   When provided, caller owns the context lifecycle (no close here).
+ *   When omitted, a new context is created and closed in finally.
  * @returns ScrapeResult with value, rawText, and confidence
  */
 export async function scrapeWeeklyBought(
   productId: number,
   jobId = '-',
+  sharedContext?: BrowserContext,
 ): Promise<ScrapeResult> {
   const url = `https://uzum.uz/ru/product/-${productId}`;
-  const browser = await browserPool.getBrowser();
-  const context = await browser.newContext({
-    userAgent:
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    locale: 'ru-RU',
-    extraHTTPHeaders: { 'Accept-Language': 'ru-RU,ru;q=0.9' },
-  });
+  const ownsContext = !sharedContext;
+  let context: BrowserContext;
 
+  if (sharedContext) {
+    context = sharedContext;
+  } else {
+    context = await createWeeklyScrapeContext();
+  }
+
+  const page = await context.newPage();
   try {
-    const page = await context.newPage();
-
     await page.goto(url, {
       waitUntil: 'load',
       timeout: 20000,
@@ -169,7 +188,10 @@ export async function scrapeWeeklyBought(
     logJobInfo(QUEUE, jobId, 'scraper', `Scrape error: product=${productId}: ${msg}`);
     return { value: null, rawText: null, confidence: 0 };
   } finally {
-    await context.close();
-    await browserPool.release();
+    await page.close();
+    if (ownsContext) {
+      await context.close();
+      await browserPool.release();
+    }
   }
 }

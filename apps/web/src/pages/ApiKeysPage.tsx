@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { apiKeysApi } from '../api/client';
 import { useI18n } from '../i18n/I18nContext';
 import { logError, toastError } from '../utils/handleError';
+import { formatDateTime } from '../utils/formatDate';
 
 interface ApiKeyItem {
   id: string;
@@ -24,6 +25,7 @@ export function ApiKeysPage() {
   const [newKeyValue, setNewKeyValue] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   async function loadKeys() {
     try { const res = await apiKeysApi.list(); setKeys(res.data); }
@@ -47,6 +49,7 @@ export function ApiKeysPage() {
   }
 
   async function handleDelete(id: string) {
+    setConfirmDeleteId(null);
     setDeletingId(id);
     try { await apiKeysApi.remove(id); await loadKeys(); }
     catch (e) { toastError(e); } finally { setDeletingId(null); }
@@ -170,13 +173,14 @@ export function ApiKeysPage() {
                       </td>
                       <td className="text-center tabular-nums text-sm text-base-content/50">{k.daily_limit}</td>
                       <td className="text-xs text-base-content/50">
-                        {k.last_used_at ? new Date(k.last_used_at).toLocaleString('ru-RU') : t('apikeys.notUsed')}
+                        {k.last_used_at ? formatDateTime(k.last_used_at) : t('apikeys.notUsed')}
                       </td>
                       <td>
                         <button
-                          onClick={() => handleDelete(k.id)}
+                          onClick={() => setConfirmDeleteId(k.id)}
                           disabled={deletingId === k.id}
                           className="btn btn-ghost btn-xs text-error"
+                          aria-label={`${t('common.delete')} ${k.name}`}
                         >
                           {deletingId === k.id ? <span className="loading loading-spinner loading-xs" /> : t('common.delete')}
                         </button>
@@ -203,6 +207,27 @@ export function ApiKeysPage() {
           </p>
         </div>
       </div>
+
+      {/* Delete confirmation modal */}
+      {confirmDeleteId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setConfirmDeleteId(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('apikeys.deleteConfirm')}
+          onKeyDown={(e) => { if (e.key === 'Escape') setConfirmDeleteId(null); }}
+        >
+          <div className="bg-base-200 rounded-2xl border border-base-300 p-6 w-full max-w-sm space-y-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold text-lg">{t('apikeys.deleteConfirm')}</h3>
+            <p className="text-sm text-base-content/60">{t('apikeys.deleteWarning')}</p>
+            <div className="flex gap-2 pt-2">
+              <button onClick={() => handleDelete(confirmDeleteId)} className="btn btn-error flex-1">{t('common.delete')}</button>
+              <button onClick={() => setConfirmDeleteId(null)} className="btn btn-ghost">{t('common.cancel')}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -15,6 +15,24 @@ export interface CapacityEstimate {
   };
 }
 
+/** Extract connection_limit from DATABASE_URL query params, fallback to default */
+function getDbPoolSizeFromEnv(): number {
+  const DEFAULT_POOL_SIZE = 20;
+  try {
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) return DEFAULT_POOL_SIZE;
+    const url = new URL(dbUrl);
+    const limit = url.searchParams.get('connection_limit');
+    if (limit) {
+      const parsed = parseInt(limit, 10);
+      return isNaN(parsed) ? DEFAULT_POOL_SIZE : parsed;
+    }
+  } catch {
+    // URL parsing failed
+  }
+  return DEFAULT_POOL_SIZE;
+}
+
 /**
  * Estimate the maximum number of concurrent users the system can support
  * based on the current metrics snapshot.
@@ -23,8 +41,9 @@ export function estimateCapacity(
   snapshot: MetricsSnapshot,
   activeSessions: number,
   maxHeapMb: number,
-  dbPoolSize = 50,
+  dbPoolSize?: number,
 ): CapacityEstimate {
+  const effectivePoolSize = dbPoolSize ?? getDbPoolSizeFromEnv();
   const recommendations: string[] = [];
 
   // Memory-based estimate
@@ -37,7 +56,7 @@ export function estimateCapacity(
       : 999;
 
   // DB pool-based estimate (assume avg query holds connection for ~50ms)
-  const maxByDb = dbPoolSize * 20; // 20 req/s per pool slot at 50ms avg
+  const maxByDb = effectivePoolSize * 20; // 20 req/s per pool slot at 50ms avg
 
   // Event loop-based estimate
   let maxByEventLoop = 999;

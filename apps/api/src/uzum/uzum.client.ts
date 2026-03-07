@@ -1,6 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ProxyAgent } from 'undici';
+import type { Dispatcher } from 'undici';
 import { parseUzumCategoryId, sleep } from '@uzum/utils';
+
+/**
+ * Node.js 18+ global fetch accepts `dispatcher` from undici,
+ * but it's not part of the standard RequestInit type.
+ * This interface extends RequestInit with the undici-specific property.
+ */
+interface UndiciRequestInit extends RequestInit {
+  dispatcher?: Dispatcher;
+}
 
 /** Minimal Uzum SKU shape returned from REST API */
 interface UzumSku {
@@ -127,14 +137,16 @@ const HTML_HEADERS = {
 /** Fetch with AbortController timeout (default 15s) */
 async function fetchWithTimeout(
   url: string,
-  opts: RequestInit & { dispatcher?: unknown } = {},
+  opts: UndiciRequestInit = {},
   timeoutMs = 15_000,
 ): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    // dispatcher is a node-fetch/undici extension not in standard RequestInit
-    return await fetch(url, { ...opts, signal: controller.signal } as RequestInit);
+    return await (fetch as (url: string, init: UndiciRequestInit) => Promise<Response>)(
+      url,
+      { ...opts, signal: controller.signal },
+    );
   } finally {
     clearTimeout(timer);
   }
@@ -200,7 +212,7 @@ export class UzumClient {
         `${REST_BASE}/main/search/product` +
         `?text=${encodeURIComponent(keyword)}&size=3&sort=ORDER_COUNT_DESC&showAdultContent=HIDE`;
 
-      const res = await fetchWithTimeout(searchUrl, { headers: HEADERS, dispatcher: proxyDispatcher } as RequestInit);
+      const res = await fetchWithTimeout(searchUrl, { headers: HEADERS, dispatcher: proxyDispatcher });
       if (!res.ok) return null;
 
       const data = (await res.json()) as UzumApiResponse;
@@ -214,7 +226,7 @@ export class UzumClient {
 
       await this.fetchProductDetail(Number(productId));
       // detail.category comes from the raw data — need to re-fetch raw
-      const rawRes = await fetchWithTimeout(`${REST_BASE}/product/${productId}`, { headers: HEADERS, dispatcher: proxyDispatcher } as RequestInit);
+      const rawRes = await fetchWithTimeout(`${REST_BASE}/product/${productId}`, { headers: HEADERS, dispatcher: proxyDispatcher });
       if (!rawRes.ok) return null;
 
       const raw = (await rawRes.json()) as UzumApiResponse;
@@ -269,7 +281,10 @@ export class UzumClient {
       `?categoryId=${categoryId}&size=${size}&page=0&sort=ORDER_COUNT_DESC&showAdultContent=HIDE`;
 
     try {
-      const response = await fetch(url, { headers: HEADERS, dispatcher: proxyDispatcher } as RequestInit);
+      const response = await (fetch as (url: string, init: UndiciRequestInit) => Promise<Response>)(
+        url,
+        { headers: HEADERS, dispatcher: proxyDispatcher },
+      );
       if (!response.ok) {
         this.logger.warn(`fetchCategoryProducts HTTP ${response.status}`);
         return [];
@@ -298,7 +313,7 @@ export class UzumClient {
 
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
-        const response = await fetchWithTimeout(url, { headers: HEADERS, dispatcher: proxyDispatcher } as RequestInit);
+        const response = await fetchWithTimeout(url, { headers: HEADERS, dispatcher: proxyDispatcher });
 
         if (response.status === 429) {
           this.logger.warn(`Rate limited (429), waiting 5s...`);
@@ -332,7 +347,7 @@ export class UzumClient {
 
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
-        const response = await fetchWithTimeout(url, { headers: HEADERS, dispatcher: proxyDispatcher } as RequestInit);
+        const response = await fetchWithTimeout(url, { headers: HEADERS, dispatcher: proxyDispatcher });
 
         if (response.status === 429) {
           await sleep(5000);

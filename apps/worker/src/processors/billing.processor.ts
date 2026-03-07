@@ -3,6 +3,14 @@ import { redisConnection } from '../redis';
 import { prisma } from '../prisma';
 import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
 
+/** Plan pricing constants (som/month) */
+const PLAN_PRICES: Record<string, bigint> = {
+  FREE: BigInt(0),
+  PRO: BigInt(150000),
+  MAX: BigInt(350000),
+  COMPANY: BigInt(990000),
+};
+
 /** Sentinel error used to signal insufficient balance inside a transaction */
 class InsufficientBalanceError extends Error {
   constructor() {
@@ -50,6 +58,16 @@ async function chargeAllActiveAccounts(jobId: string) {
   let suspended = 0;
 
   for (const account of accounts) {
+    // Skip accounts with expired plans — downgrade to FREE instead of charging
+    if (account.plan_expires_at && account.plan_expires_at < new Date()) {
+      await prisma.account.update({
+        where: { id: account.id },
+        data: { plan: 'FREE', status: 'ACTIVE' },
+      });
+      logJobInfo('billing-queue', jobId, 'charge', `Account ${account.id} plan expired — downgraded to FREE`);
+      continue;
+    }
+
     const fee = account.daily_fee ?? defaultFee;
 
     try {
@@ -110,6 +128,97 @@ async function resetFreeAnalyses(jobId: string) {
   return { reset: result.count };
 }
 
+/**
+ * Renew subscriptions for accounts whose plan is about to expire (within 3 days).
+ * Charges the monthly subscription fee if balance is sufficient, otherwise marks PAYMENT_DUE.
+ * Runs daily at 03:00 UTC via cron.
+ */
+async function renewSubscriptions(jobId: string) {
+  const now = new Date();
+  const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+
+  // Exclude SUPER_ADMIN accounts
+  const adminAccountIds = (
+    await prisma.user.findMany({
+      where: { role: 'SUPER_ADMIN' },
+      select: { account_id: true },
+    })
+  ).map((u) => u.account_id);
+
+  const accounts = await prisma.account.findMany({
+    where: {
+      plan: { not: 'FREE' },
+      plan_expires_at: { lte: threeDaysFromNow },
+      id: { notIn: adminAccountIds },
+      status: { not: 'SUSPENDED' },
+    },
+  });
+
+  let renewed = 0;
+  let paymentDue = 0;
+
+  for (const account of accounts) {
+    const price = PLAN_PRICES[account.plan];
+    if (price === undefined || price === BigInt(0)) continue;
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        const fresh = await tx.account.findUniqueOrThrow({
+          where: { id: account.id },
+        });
+
+        if (fresh.balance < price) {
+          await tx.account.update({
+            where: { id: account.id },
+            data: { status: 'PAYMENT_DUE' },
+          });
+          throw new InsufficientBalanceError();
+        }
+
+        const newExpiresAt = new Date(
+          (fresh.plan_expires_at ?? now).getTime() + 30 * 24 * 60 * 60 * 1000,
+        );
+
+        await tx.account.update({
+          where: { id: account.id },
+          data: {
+            balance: { decrement: price },
+            plan_expires_at: newExpiresAt,
+            plan_renewed_at: now,
+          },
+        });
+
+        await tx.transaction.create({
+          data: {
+            account_id: account.id,
+            type: 'SUBSCRIPTION',
+            amount: price,
+            balance_before: fresh.balance,
+            balance_after: fresh.balance - price,
+            description: `Monthly subscription renewal: ${account.plan}`,
+          },
+        });
+      }, { isolationLevel: 'Serializable' });
+
+      logJobInfo('billing-queue', jobId, 'subscription-renewal',
+        `Account ${account.id} renewed ${account.plan} for ${price.toString()} som`);
+      renewed++;
+    } catch (err) {
+      if (err instanceof InsufficientBalanceError) {
+        logJobInfo('billing-queue', jobId, 'subscription-renewal',
+          `Account ${account.id} insufficient balance for ${account.plan} renewal — set PAYMENT_DUE`);
+        paymentDue++;
+      } else {
+        throw err;
+      }
+    }
+  }
+
+  logJobInfo('billing-queue', jobId, 'subscription-renewal',
+    `Renewal complete: ${renewed} renewed, ${paymentDue} payment_due, ${accounts.length} total`);
+  return { renewed, paymentDue, total: accounts.length };
+}
+
 export function createBillingWorker() {
   const worker = new Worker(
     'billing-queue',
@@ -120,6 +229,8 @@ export function createBillingWorker() {
         let result: Record<string, number | boolean>;
         if (job.name === 'analyses-reset') {
           result = await resetFreeAnalyses(job.id ?? '-');
+        } else if (job.name === 'subscription-renewal') {
+          result = await renewSubscriptions(job.id ?? '-');
         } else {
           result = await chargeAllActiveAccounts(job.id ?? '-');
         }

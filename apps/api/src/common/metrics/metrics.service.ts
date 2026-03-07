@@ -3,6 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { ConcurrencyTrackerInterceptor } from '../interceptors/concurrency-tracker.interceptor';
 import Redis from 'ioredis';
 import { REDIS_CLIENT } from '../redis/redis.module';
+import { parsePeriodMs } from '../utils/parse-period';
 
 const MAX_HEAP_MB = parseInt(process.env.MAX_HEAP_MB || '2048', 10);
 const RING_BUFFER_SIZE = 240; // 240 x 15s = 1 hour
@@ -300,7 +301,7 @@ export class MetricsService implements OnModuleInit, OnModuleDestroy {
   getRingBuffer(period?: string): MetricsSnapshot[] {
     if (!period) return [...this.ringBuffer];
 
-    const periodMs = this.parsePeriodMs(period);
+    const periodMs = parsePeriodMs(period);
     const cutoff = Date.now() - periodMs;
 
     return this.ringBuffer.filter(
@@ -310,7 +311,7 @@ export class MetricsService implements OnModuleInit, OnModuleDestroy {
 
   /** Get persisted history from DB */
   async getHistory(period: string): Promise<unknown[]> {
-    const periodMs = this.parsePeriodMs(period);
+    const periodMs = parsePeriodMs(period);
     const since = new Date(Date.now() - periodMs);
 
     return this.prisma.systemMetric.findMany({
@@ -325,18 +326,4 @@ export class MetricsService implements OnModuleInit, OnModuleDestroy {
     return MAX_HEAP_MB;
   }
 
-  private parsePeriodMs(period: string): number {
-    switch (period) {
-      case '1h':
-        return 60 * 60_000;
-      case '6h':
-        return 6 * 60 * 60_000;
-      case '24h':
-        return 24 * 60 * 60_000;
-      case '7d':
-        return 7 * 24 * 60 * 60_000;
-      default:
-        return 60 * 60_000;
-    }
-  }
 }

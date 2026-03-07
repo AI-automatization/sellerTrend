@@ -131,6 +131,66 @@
 
 ---
 
+## T-367 | FRONTEND P1 | AdminPage God Component refactor (2026-03-06)
+
+- `AdminPage.tsx` — 454 qator → 188 qator (presentation-only component)
+- `useAdminData.ts` — yangi hook (494 qator): 30+ useState, useEffect, handler'lar extraction
+- `UseAdminDataReturn` interface — 116 qator typed return
+- `useMemo` computed values, `useCallback` handlers
+- Admin komponentlar (`DashboardTab`, `SystemTab`, `FeedbackTab`, `NotificationsTab`, `DepositsTab`) — `Record<string, unknown>` → typed interfaces
+- `adminTypes.ts` — `redis_connected` qo'shildi `SystemHealth` interface ga
+- tsc --noEmit ✅ zero errors
+
+---
+
+## T-361 | FRONTEND P0 | XSS — dangerouslySetInnerHTML tuzatildi (2026-03-06)
+
+- `Layout.tsx:282` — `dangerouslySetInnerHTML` o'chirildi
+- JSX interpolation: `{t('payment.overduePrefix')}<strong>{balance}</strong>{t('payment.overdueSuffix')}`
+- i18n kalitlar qo'shildi: `payment.overduePrefix`, `payment.overdueSuffix` (uz/ru/en)
+
+---
+
+## T-394 | FRONTEND P1 | Onboarding Wizard — allaqachon mavjud (2026-03-06)
+
+- `OnboardingPage.tsx` — 3-step wizard to'liq ishlaydi
+- Step 1: URL input → analyzeUrl API call → natija ko'rsatish
+- Step 2: Mahsulotni kuzatishga qo'shish (productsApi.track)
+- Step 3: Telegram bot ulash (t.me/VentraBot link)
+- Har step da `PATCH /auth/onboarding` chaqiriladi
+- Route: `/onboarding` (PrivateRoute + LazyRoute)
+- RegisterPage → `/onboarding` ga yo'naltiradi
+
+---
+
+## T-368 | FRONTEND P1 | UX gaps — 6 ta user-facing bug (2026-03-06)
+
+**Tuzatilgan buglar:**
+1. ~~404 route~~ — allaqachon bor edi (`App.tsx:105` → `<NotFoundPage />`)
+2. **Notification count real-time** — `Layout.tsx` da `useNotificationRefresh` qo'shildi, WebSocket orqali unread count avtomatik yangilanadi
+3. **Payment "To'ldirish" onClick** — `DashboardPage.tsx:155` ga `toast.info()` handler qo'shildi, foydalanuvchiga to'lov yo'riqnomasi chiqadi
+4. **Parol confirmation** — `RegisterPage.tsx` ga `confirm_password` input + validatsiya qo'shildi (`passwordsDoNotMatch` check)
+5. ~~Bo'sh Dashboard onboarding~~ — allaqachon `EmptyState` component bilan hal qilingan
+6. **useDashboardData error UI** — `error` state qo'shildi, `DashboardPage` da error holat ko'rsatiladi (reload tugma bilan)
+
+**Qo'shimcha fix:** `Layout.tsx:118` — `isSuperAdmin` useEffect deps ga qo'shildi (T-369.5)
+
+**Fayllar:** `DashboardPage.tsx`, `RegisterPage.tsx`, `Layout.tsx`, `useDashboardData.ts`, `uz.ts`, `ru.ts`, `en.ts`
+
+---
+
+## T-369 | FRONTEND P1 | Code quality — 8 ta fix (2026-03-06)
+
+1. **PublicLeaderboardPage dead code** — `PublicLeaderboardPage.tsx` o'chirildi (route yo'q, hech joyda import qilinmagan)
+2. **ErrorBoundary i18n** — localStorage `lang` dan til aniqlab, 3 tilda (uz/ru/en) xato xabarlari chiqaradi (class component uchun hook'siz yechim)
+3. **Version "v5.1" → "v5.6"** — `LoginPage`, `RegisterPage`, `ForgotPasswordPage`, `ResetPasswordPage` da yangilandi
+4. **branding.ts dead code** — `config/branding.ts` o'chirildi (hech joyda import qilinmagan)
+5. **isSuperAdmin useEffect deps** — `Layout.tsx:118` da `[]` → `[isSuperAdmin]` tuzatildi
+
+**Fayllar:** `ErrorBoundary.tsx`, `LoginPage.tsx`, `RegisterPage.tsx`, `ForgotPasswordPage.tsx`, `ResetPasswordPage.tsx`, `PublicLeaderboardPage.tsx` (deleted), `branding.ts` (deleted)
+
+---
+
 ## T-389 | BACKEND P2 | Snapshot retention + downsample (2026-03-06)
 
 - `ProductSnapshotDaily` model — kunlik aggregate jadval (`product_snapshot_daily`)

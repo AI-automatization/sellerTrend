@@ -60,11 +60,21 @@ export interface RevenueStats {
 }
 
 export interface DailyGrowth { date: string; count: number; }
+export interface PlanBreakdown {
+  FREE: number;
+  PRO: number;
+  MAX: number;
+  COMPANY: number;
+}
+
 export interface GrowthStats {
   week_new: number;
   month_new: number;
   churn_rate_pct: number;
   daily_new_users?: DailyGrowth[];
+  plan_breakdown?: PlanBreakdown;
+  avg_days_to_renewal?: number;
+  churned_accounts?: number;
 }
 
 export interface ActivityFeedItem { action: string; user_email: string; created_at: string; }
@@ -107,6 +117,7 @@ export interface SystemHealth {
   status: string;
   uptime_seconds: number;
   db_connected: boolean;
+  redis_connected?: boolean;
   memory?: MemoryStats;
 }
 

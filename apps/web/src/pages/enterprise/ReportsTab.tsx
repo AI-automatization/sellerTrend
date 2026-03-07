@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { reportsApi } from '../../api/client';
 import { SectionCard, SectionHeader, Loading, EmptyState } from './shared';
 import { logError, toastError } from '../../utils/handleError';
+import { formatDate, formatISODate } from '../../utils/formatDate';
 import { useI18n } from '../../i18n/I18nContext';
 
 interface Report {
@@ -76,7 +77,7 @@ export function ReportsTab() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `market-share-${marketCatId}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `market-share-${marketCatId}-${formatISODate()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -124,7 +125,7 @@ export function ReportsTab() {
                   <tr key={r.id} className="hover:bg-base-300/20 transition-colors">
                     <td className="text-sm font-medium">{r.title}</td>
                     <td><span className="badge badge-sm badge-outline">{r.report_type}</span></td>
-                    <td className="text-xs text-base-content/40">{new Date(r.created_at).toLocaleDateString()}</td>
+                    <td className="text-xs text-base-content/40">{formatDate(r.created_at)}</td>
                     <td><button className="btn btn-xs btn-ghost text-info" onClick={() => generateReport(r.id)}>{t('reports.generateBtn')}</button></td>
                   </tr>
                 ))}

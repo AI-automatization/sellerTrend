@@ -1,10 +1,50 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, Logger, NotFoundException, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { UzumClient } from '../uzum/uzum.client';
 import { forecastEnsemble, calcWeeklyBought } from '@uzum/utils';
+
+/** Map niche keyword to Uzum category IDs */
+const NICHE_CATEGORY_MAP: Record<string, number[]> = {
+  kosmetika: [10012, 10091, 10165],
+  elektronika: [876],
+  telefon: [1001],
+  kiyim: [1024],
+  oziq_ovqat: [10172],
+};
+
+/** Fallback category IDs for Uzum search when no DB data found */
+const FALLBACK_PRODUCTS: Record<string, number[]> = {
+  kosmetika: [10012],
+  elektronika: [876],
+  kiyim: [1024],
+  default: [10012, 876, 1024],
+};
+
+export interface RecommendationProduct {
+  product_id: string;
+  title: string;
+  score: number | null;
+  weekly_bought: number | null;
+  sell_price: number | null;
+  photo_url: string | null;
+  shop_name: string | null;
+}
+
+export interface RecommendationsResult {
+  source: string;
+  products: RecommendationProduct[];
+  total: number;
+}
 
 @Injectable()
 export class ProductsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(ProductsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => UzumClient))
+    private readonly uzumClient: UzumClient,
+  ) {}
 
   /**
    * Verify that the given product is tracked by the given account.
@@ -23,6 +63,167 @@ export class ProductsService {
     if (!tracked) {
       throw new NotFoundException('Product not found');
     }
+  }
+
+  /**
+   * 4-layer fallback recommendation system for onboarding / new users.
+   * Layer 1: CategoryWinner (account-specific discovery results)
+   * Layer 2: Cross-account TrackedProducts matching niche
+   * Layer 3: Live Uzum Search API
+   * Layer 4: Hardcoded fallback category IDs
+   */
+  async getRecommendations(
+    accountId: string,
+    niche?: string,
+    limit = 10,
+  ): Promise<RecommendationsResult> {
+    const nicheKey = niche?.toLowerCase() ?? 'default';
+    const categoryIds = NICHE_CATEGORY_MAP[nicheKey] ?? [];
+
+    // Layer 1: CategoryWinner from account's discovery runs
+    if (categoryIds.length > 0) {
+      const winners = await this.prisma.categoryWinner.findMany({
+        where: {
+          run: { account_id: accountId },
+          product: {
+            category_id: { in: categoryIds.map((id) => BigInt(id)) },
+            is_active: true,
+          },
+        },
+        orderBy: { rank: 'asc' },
+        take: limit,
+        select: {
+          product: {
+            select: {
+              id: true,
+              title: true,
+              photo_url: true,
+              shop: { select: { title: true } },
+            },
+          },
+          score: true,
+          weekly_bought: true,
+          sell_price: true,
+        },
+      });
+
+      if (winners.length > 0) {
+        return {
+          source: 'category_winner',
+          products: winners.map((w) => ({
+            product_id: w.product.id.toString(),
+            title: w.product.title,
+            score: w.score ? Number(w.score) : null,
+            weekly_bought: w.weekly_bought,
+            sell_price: w.sell_price ? Number(w.sell_price) : null,
+            photo_url: w.product.photo_url,
+            shop_name: w.product.shop?.title ?? null,
+          })),
+          total: winners.length,
+        };
+      }
+    }
+
+    // Layer 2: Cross-account tracked products matching niche categories
+    if (categoryIds.length > 0) {
+      const tracked = await this.prisma.trackedProduct.findMany({
+        where: {
+          is_active: true,
+          product: {
+            category_id: { in: categoryIds.map((id) => BigInt(id)) },
+            is_active: true,
+          },
+        },
+        distinct: ['product_id'],
+        orderBy: { created_at: 'desc' },
+        take: limit,
+        select: {
+          product: {
+            select: {
+              id: true,
+              title: true,
+              photo_url: true,
+              shop: { select: { title: true } },
+              snapshots: {
+                orderBy: { snapshot_at: 'desc' },
+                take: 1,
+                select: { score: true, weekly_bought: true },
+              },
+              skus: {
+                where: { is_available: true },
+                orderBy: { min_sell_price: 'asc' },
+                take: 1,
+                select: { min_sell_price: true },
+              },
+            },
+          },
+        },
+      });
+
+      if (tracked.length > 0) {
+        return {
+          source: 'tracked_popular',
+          products: tracked.map((t) => {
+            const snap = t.product.snapshots[0];
+            const sku = t.product.skus[0];
+            return {
+              product_id: t.product.id.toString(),
+              title: t.product.title,
+              score: snap?.score ? Number(snap.score) : null,
+              weekly_bought: snap?.weekly_bought ?? null,
+              sell_price: sku?.min_sell_price ? Number(sku.min_sell_price) : null,
+              photo_url: t.product.photo_url,
+              shop_name: t.product.shop?.title ?? null,
+            };
+          }),
+          total: tracked.length,
+        };
+      }
+    }
+
+    // Layer 3: Live Uzum search API
+    const searchCategoryIds = categoryIds.length > 0
+      ? categoryIds
+      : (FALLBACK_PRODUCTS[nicheKey] ?? FALLBACK_PRODUCTS['default']);
+
+    try {
+      for (const catId of searchCategoryIds) {
+        const items = await this.uzumClient.fetchCategoryProducts(catId, limit);
+        if (items.length > 0) {
+          return {
+            source: 'uzum_search',
+            products: items.slice(0, limit).map((item) => ({
+              product_id: String(item.id ?? item.productId ?? 0),
+              title: item.title ?? '',
+              score: null,
+              weekly_bought: null,
+              sell_price: item.minSellPrice ?? item.sellPrice ?? null,
+              photo_url: null,
+              shop_name: null,
+            })),
+            total: items.length,
+          };
+        }
+      }
+    } catch (err: unknown) {
+      this.logger.warn(`Uzum search failed for recommendations: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    // Layer 4: Hardcoded fallback (return category IDs so frontend knows which to browse)
+    const fallbackIds = FALLBACK_PRODUCTS[nicheKey] ?? FALLBACK_PRODUCTS['default'];
+    return {
+      source: 'fallback',
+      products: fallbackIds.map((catId) => ({
+        product_id: String(catId),
+        title: `Category ${catId}`,
+        score: null,
+        weekly_bought: null,
+        sell_price: null,
+        photo_url: null,
+        shop_name: null,
+      })),
+      total: fallbackIds.length,
+    };
   }
 
   async getTrackedProducts(accountId: string) {

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { getTokenPayload } from '../api/client';
+import { useAuthStore } from '../stores/authStore';
 
 /**
  * WebSocket "refresh signal" pattern.
@@ -9,17 +10,37 @@ import { getTokenPayload } from '../api/client';
  */
 
 let sharedSocket: Socket | null = null;
+let socketAccountId: string | null = null;
 
 function getSocket(): Socket {
+  const payload = getTokenPayload();
+  const currentAccountId = payload?.account_id ?? '';
+
+  // Agar boshqa account login qilgan bo'lsa — eski socket'ni yopish
+  if (sharedSocket && socketAccountId !== currentAccountId) {
+    sharedSocket.disconnect();
+    sharedSocket = null;
+    socketAccountId = null;
+  }
+
   if (!sharedSocket) {
-    const payload = getTokenPayload();
     sharedSocket = io('/ws', {
       transports: ['websocket'],
       autoConnect: true,
-      query: { account_id: payload?.account_id ?? '' },
+      query: { account_id: currentAccountId },
     });
+    socketAccountId = currentAccountId;
   }
   return sharedSocket;
+}
+
+/** Logout/401 da chaqiriladi — socket'ni yopadi */
+export function disconnectSocket(): void {
+  if (sharedSocket) {
+    sharedSocket.disconnect();
+    sharedSocket = null;
+    socketAccountId = null;
+  }
 }
 
 export function useSocket() {
@@ -45,35 +66,54 @@ export function useSocket() {
   return { socket: socketRef.current, connected };
 }
 
-/** Listen for score refresh signals — call `onRefresh` to refetch products via REST */
+/** Listen for score refresh signals — call `onRefresh` to refetch products via REST.
+ * Uses useRef to avoid stale closures when callback captures changing state. */
 export function useScoreRefresh(onRefresh: () => void) {
   const { socket } = useSocket();
+  const callbackRef = useRef(onRefresh);
+  callbackRef.current = onRefresh;
 
   useEffect(() => {
     if (!socket) return;
-    socket.on('refresh:score', onRefresh);
-    return () => { socket.off('refresh:score', onRefresh); };
-  }, [socket, onRefresh]);
+    const handler = () => callbackRef.current();
+    socket.on('refresh:score', handler);
+    return () => { socket.off('refresh:score', handler); };
+  }, [socket]);
 }
 
-/** Listen for discovery progress signals */
+/** Listen for discovery progress signals.
+ * Uses useRef to avoid stale closures. */
 export function useDiscoveryRefresh(onRefresh: (data: { run_id: string; status: string; progress: number }) => void) {
   const { socket } = useSocket();
+  const callbackRef = useRef(onRefresh);
+  callbackRef.current = onRefresh;
 
   useEffect(() => {
     if (!socket) return;
-    socket.on('refresh:discovery', onRefresh);
-    return () => { socket.off('refresh:discovery', onRefresh); };
-  }, [socket, onRefresh]);
+    const handler = (data: { run_id: string; status: string; progress: number }) => callbackRef.current(data);
+    socket.on('refresh:discovery', handler);
+    return () => { socket.off('refresh:discovery', handler); };
+  }, [socket]);
 }
 
-/** Listen for notification signals — call `onRefresh` to refetch notifications */
+/** Listen for notification signals — call `onRefresh` to refetch notifications.
+ * Uses useRef to avoid stale closures. */
 export function useNotificationRefresh(onRefresh: () => void) {
   const { socket } = useSocket();
+  const callbackRef = useRef(onRefresh);
+  callbackRef.current = onRefresh;
 
   useEffect(() => {
     if (!socket) return;
-    socket.on('refresh:notification', onRefresh);
-    return () => { socket.off('refresh:notification', onRefresh); };
-  }, [socket, onRefresh]);
+    const handler = () => callbackRef.current();
+    socket.on('refresh:notification', handler);
+    return () => { socket.off('refresh:notification', handler); };
+  }, [socket]);
 }
+
+// Auto-disconnect when auth tokens are cleared (logout, 401, token expiry)
+useAuthStore.subscribe((state, prevState) => {
+  if (prevState.accessToken && !state.accessToken) {
+    disconnectSocket();
+  }
+});

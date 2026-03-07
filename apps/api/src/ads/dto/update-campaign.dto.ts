@@ -1,5 +1,6 @@
-import { IsString, IsOptional, IsNumber, Min } from 'class-validator';
+import { IsString, IsOptional, IsNumber, Min, IsEnum } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { AdCampaignStatus } from '@prisma/client';
 
 export class UpdateCampaignDto {
   @ApiPropertyOptional({ description: 'Campaign name' })
@@ -7,10 +8,10 @@ export class UpdateCampaignDto {
   @IsString()
   name?: string;
 
-  @ApiPropertyOptional({ description: 'Campaign status' })
+  @ApiPropertyOptional({ description: 'Campaign status', enum: AdCampaignStatus })
   @IsOptional()
-  @IsString()
-  status?: string;
+  @IsEnum(AdCampaignStatus)
+  status?: AdCampaignStatus;
 
   @ApiPropertyOptional({ description: 'Amount spent in UZS' })
   @IsOptional()

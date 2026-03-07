@@ -4,6 +4,7 @@ import type { CompetitorProduct, DiscoveredCompetitor, CompetitorPricePoint } fr
 import { getErrorMessage } from '../utils/getErrorMessage';
 import { logError, toastError } from '../utils/handleError';
 import { glassTooltip, CHART_ANIMATION_MS } from '../utils/formatters';
+import { formatShortDate } from '../utils/formatDate';
 import { useI18n } from '../i18n/I18nContext';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -181,7 +182,7 @@ export function CompetitorSection({ productId, productPrice }: Props) {
                 <ResponsiveContainer width="100%" height={180}>
                   <LineChart
                     data={history.map((h) => ({
-                      date: new Date(h.snapshot_at).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
+                      date: formatShortDate(h.snapshot_at),
                       price: h.sell_price,
                     }))}
                     margin={{ top: 4, right: 8, left: -20, bottom: 0 }}

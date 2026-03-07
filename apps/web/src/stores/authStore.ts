@@ -1,11 +1,12 @@
 import { create } from 'zustand';
 
-interface TokenPayload {
+export interface TokenPayload {
   sub: string;
   email?: string;
   role: string;
   account_id: string;
   exp: number;
+  iat?: number;
 }
 
 interface AuthState {
@@ -16,7 +17,7 @@ interface AuthState {
   clearTokens: () => void;
 }
 
-function decodePayload(token: string): TokenPayload | null {
+export function decodePayload(token: string): TokenPayload | null {
   try {
     const base64 = token.split('.')[1];
     return JSON.parse(atob(base64)) as TokenPayload;

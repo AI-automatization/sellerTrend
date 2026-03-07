@@ -38,13 +38,21 @@ export class ExportController {
     @CurrentUser('account_id') accountId: string,
     @Res() res: Response,
   ) {
-    const csv = await this.exportService.exportTrackedCsv(accountId);
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader(
-      'Content-Disposition',
-      'attachment; filename=tracked-products.csv',
-    );
-    res.send(csv);
+    try {
+      const csv = await this.exportService.exportTrackedCsv(accountId);
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader(
+        'Content-Disposition',
+        'attachment; filename=tracked-products.csv',
+      );
+      res.send(csv);
+    } catch (err) {
+      const status = (err as { status?: number }).status ?? 500;
+      const message = err instanceof Error ? err.message : 'Export failed';
+      if (!res.headersSent) {
+        res.status(status).json({ statusCode: status, message });
+      }
+    }
   }
 
   @Get('discovery/export/excel')
@@ -55,19 +63,27 @@ export class ExportController {
   ) {
     if (!runId) throw new BadRequestException('run_id query param required');
 
-    const buffer = await this.exportService.exportDiscoveryXlsx(
-      accountId,
-      runId,
-    );
-    res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    );
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename=discovery-${runId.slice(0, 8)}.xlsx`,
-    );
-    res.send(buffer);
+    try {
+      const buffer = await this.exportService.exportDiscoveryXlsx(
+        accountId,
+        runId,
+      );
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename=discovery-${runId.slice(0, 8)}.xlsx`,
+      );
+      res.send(buffer);
+    } catch (err) {
+      const status = (err as { status?: number }).status ?? 500;
+      const message = err instanceof Error ? err.message : 'Export failed';
+      if (!res.headersSent) {
+        res.status(status).json({ statusCode: status, message });
+      }
+    }
   }
 
   @Post('products/import/csv')

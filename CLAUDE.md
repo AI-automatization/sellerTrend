@@ -12,8 +12,8 @@
 Salom! Men VENTRA loyihasidaman.
 
 Kimligingizni aniqlay olmayman — ismingiz kim?
-  1. Bekzod (Backend)
-  2. Sardor (Frontend)
+  1. Bekzod (Full-Stack: Backend + Frontend Web + DevOps)
+  2. Sardor (Landing + Desktop)
 
 Ishlash rejimi:
   A. Single Task  — 1 agent, oddiy task
@@ -46,10 +46,13 @@ Javob kelgach:
 **Monorepo:** `pnpm workspaces` + `turbo`
 
 ```
-apps/api/        → Backend (Bekzod)
+apps/api/        → Backend API (Bekzod)
 apps/worker/     → Worker (Bekzod)
 apps/bot/        → Telegram bot (Bekzod)
-apps/web/        → Frontend (Sardor)
+apps/web/        → Frontend Web (Bekzod)
+apps/extension/  → Chrome Extension (Bekzod)
+apps/landing/    → Landing page (Sardor)
+apps/desktop/    → Desktop app (Sardor)
 packages/types/  → Shared types (IKKALASI — kelishib)
 packages/utils/  → Shared utils (IKKALASI — kelishib)
 ```
@@ -126,7 +129,7 @@ Format: `T-XXX | [KATEGORIYA] | Sarlavha | Mas'ul | Vaqt`
 
 ```markdown
 ### T-241 | P1 | BACKEND | totalAvailableAmount ... | pending[Bekzod]
-### T-264 | P1 | FRONTEND | Admin route ... | pending[Sardor]
+### T-264 | P1 | FRONTEND | Admin route ... | pending[Bekzod]
 ### T-280 | P0 | DEVOPS | Railway EU migration ... |              ← ochiq, hech kim olmagan
 ```
 
@@ -262,7 +265,8 @@ pnpm --filter web exec tsc --noEmit
 |-------|------|------|----------|
 | **Orchestrator** | Main CLI session | docs/, git | Task parsing, dispatch, merge, archive |
 | **Backend Agent** | `Agent(subagent_type: "general-purpose", isolation: "worktree")` | apps/api, worker, bot | NestJS, Prisma, BullMQ |
-| **Frontend Agent** | `Agent(subagent_type: "general-purpose", isolation: "worktree")` | apps/web, desktop | React, Tailwind, i18n |
+| **Web Agent** | `Agent(subagent_type: "general-purpose", isolation: "worktree")` | apps/web, extension | React, Tailwind, i18n (Bekzod) |
+| **Landing Agent** | `Agent(subagent_type: "general-purpose", isolation: "worktree")` | apps/landing, desktop | Landing + Desktop (Sardor) |
 | **QA Agent** | `Agent(subagent_type: "general-purpose")` | read-only, barcha fayllar | tsc, build, lint, test |
 | **Explorer** | `Agent(subagent_type: "Explore")` | read-only | Code research, bug analysis |
 | **Planner** | `Agent(subagent_type: "Plan")` | read-only | Architecture, decomposition |
@@ -273,7 +277,8 @@ pnpm --filter web exec tsc --noEmit
 1. PLAN   — Orchestrator: Tasks.md o'qish → dependency graph → parallel batch
 2. DISPATCH — Parallel agentlar ishga tushirish (worktree isolation)
    ├─ Backend Agent  → backend task (worktree A)
-   ├─ Frontend Agent → frontend task (worktree B)
+   ├─ Web Agent      → frontend web task (worktree B) — Bekzod
+   ├─ Landing Agent  → landing/desktop task (worktree C) — Sardor
    └─ Explorer Agent → research (read-only, agar kerak)
 3. VALIDATE — QA Agent: tsc + build + test (MAJBURIY, har merge dan oldin)
 4. MERGE   — Orchestrator: worktree → main, conflict resolve
@@ -284,15 +289,17 @@ pnpm --filter web exec tsc --noEmit
 
 ```
 ZONE MATRIX:
-                Backend    Frontend   Shared    Docs
-  Backend Agent:  ✅ o'zi    ❌ tegma   🔒 lock   ❌ tegma
-  Frontend Agent: ❌ tegma   ✅ o'zi    🔒 lock   ❌ tegma
-  QA Agent:       👁 read    👁 read    👁 read   ❌ tegma
-  Orchestrator:   👁 read    👁 read    ✅ merge  ✅ yozadi
+                Backend    Web        Landing    Shared    Docs
+  Backend Agent:  ✅ o'zi    ❌ tegma   ❌ tegma   🔒 lock   ❌ tegma
+  Web Agent:      ❌ tegma   ✅ o'zi    ❌ tegma   🔒 lock   ❌ tegma
+  Landing Agent:  ❌ tegma   ❌ tegma   ✅ o'zi    🔒 lock   ❌ tegma
+  QA Agent:       👁 read    👁 read    👁 read   👁 read   ❌ tegma
+  Orchestrator:   👁 read    👁 read    👁 read   ✅ merge  ✅ yozadi
 
 ZONE MAP:
-  backend  = apps/api/, apps/worker/, apps/bot/
-  frontend = apps/web/, apps/desktop/
+  backend  = apps/api/, apps/worker/, apps/bot/        (Bekzod)
+  web      = apps/web/, apps/extension/                (Bekzod)
+  landing  = apps/landing/, apps/desktop/              (Sardor)
   shared   = packages/types/, packages/utils/
   docs     = docs/, CLAUDE*.md
 ```
@@ -346,14 +353,16 @@ CONSTRAINTS:
 ```
 Task fayllariga qarab agent tanlanadi:
 
-  apps/api/**          → Backend Agent
-  apps/worker/**       → Backend Agent
-  apps/bot/**          → Backend Agent
-  apps/web/**          → Frontend Agent
-  apps/desktop/**      → Frontend Agent
+  apps/api/**          → Backend Agent (Bekzod)
+  apps/worker/**       → Backend Agent (Bekzod)
+  apps/bot/**          → Backend Agent (Bekzod)
+  apps/web/**          → Web Agent (Bekzod)
+  apps/extension/**    → Web Agent (Bekzod)
+  apps/landing/**      → Landing Agent (Sardor)
+  apps/desktop/**      → Landing Agent (Sardor)
   packages/**          → Lock → birinchi kelgan agent
-  prisma/schema.prisma → Backend Agent
-  IKKALASI tasks       → Sequential: Backend → Frontend
+  prisma/schema.prisma → Backend Agent (Bekzod)
+  IKKALASI tasks       → Sequential: Backend → Web
 
 Task hajmi → mode:
   < 30 min, 1-2 fayl   → Single Agent (worktree'siz)
@@ -384,27 +393,62 @@ NATIJA:
 ```
   Bekzod (Terminal 1)              Sardor (Terminal 2)
   ═══════════════════              ═══════════════════
-  Mode B → Backend Orch.           Mode B → Frontend Orch.
+  Mode B → Full-Stack Orch.        Mode B → Landing Orch.
     │                                │
-    ├─ Agent: T-241 (Prisma)         ├─ Agent: T-276 (i18n UZ)
-    ├─ Agent: T-214 (batch API)      ├─ Agent: T-202 (ProductPage)
-    ├─ QA: tsc api+worker            ├─ QA: tsc web
+    ├─ Agent: T-299 (Redis fix)      ├─ Agent: L-XXX (Landing SEO)
+    ├─ Agent: T-303 (Axios timeout)  ├─ Agent: T-XXX (Desktop build)
+    ├─ QA: tsc api+web+worker        ├─ QA: tsc landing+desktop
     ├─ git commit + push             ├─ git commit + push
     └─ Done.md update                └─ Done.md update
 
-  PARALLEL OK: backend zone ≠ frontend zone → conflict YO'Q
+  Bekzod ZONASI: apps/api + apps/web + apps/worker + apps/bot + apps/extension
+  Sardor ZONASI: apps/landing + apps/desktop
+  PARALLEL OK: zona'lar kesishmaydi → conflict YO'Q
   SHARED ZONE: packages/* → LOCK protocol faollashadi
 ```
 
 ---
 
-## XAVFLI ZONALAR (IKKALA DASTURCHI UCHUN)
+## ZONA HIMOYASI (pre-commit hook MAJBURIY)
+
+**Git pre-commit hook (`.husky/pre-commit`) avtomatik tekshiradi:**
+
+```
+BEKZOD ZONASI (Sardor commit qilolmaydi):
+  ❌ apps/api/        — Backend API
+  ❌ apps/web/        — Frontend Web dashboard
+  ❌ apps/worker/     — BullMQ Worker
+  ❌ apps/bot/        — Telegram Bot
+  ❌ apps/extension/  — Chrome Extension
+
+SARDOR ZONASI (Bekzod commit qilolmaydi):
+  ❌ apps/landing/    — Landing page
+  ❌ apps/desktop/    — Desktop app
+
+UMUMIY ZONA (ikkalasi, kelishib):
+  ✅ packages/        — Shared types/utils (lock protocol)
+  ✅ docs/            — Dokumentatsiya
+```
+
+**Hook qanday ishlaydi:**
+1. `git config user.name` va `user.email` orqali committer aniqlanadi
+2. Sardor identifikatsiyasi: ism yoki email da "sardor" bo'lsa
+3. Agar Sardor Bekzod zonasidagi faylni stage qilgan bo'lsa → **commit BLOKLADI**
+4. Xato xabari bilan taqiqlangan fayllar ro'yxati ko'rsatiladi
+
+**Claude CLI uchun qo'shimcha qoida:**
+- Sardor sessiyasida `apps/web/`, `apps/api/`, `apps/worker/`, `apps/bot/`, `apps/extension/`
+  dagi fayllarni EDIT/WRITE qilish **TAQIQLANGAN** — hook'dan OLDIN Claude o'zi bloklashi kerak
+- Bekzod sessiyasida `apps/landing/`, `apps/desktop/` dagi fayllarni EDIT/WRITE **TAQIQLANGAN**
+
+---
+
+## XAVFLI ZONALAR
 
 ```
 ❌ prisma migrate reset — ma'lumotlar yo'qoladi!
 ❌ main branch'ga to'g'ridan push — PR orqali
 ❌ .env faylni commit qilma — .gitignore da bo'lishi kerak
-❌ O'zga dasturchining papkasiga teginma (apps/api ↔ apps/web)
 ❌ packages/* o'zgartirish — avval kelishib olish (yoki lock protocol)
 ❌ Multi-Agent: agent zone dan tashqari fayl o'zgartirishi TAQIQLANGAN
 ❌ Multi-Agent: QA Agent tekshirmasdan merge qilish TAQIQLANGAN
@@ -412,4 +456,4 @@ NATIJA:
 
 ---
 
-*CLAUDE.md | VENTRA Analytics Platform | 2026-03-01*
+*CLAUDE.md | VENTRA Analytics Platform | 2026-03-03*

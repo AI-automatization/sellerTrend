@@ -193,7 +193,7 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
 
     return productId;
   } catch (err: unknown) {
-    logJobInfo('import-batch', jobId, jobName, `Error for ${url}: ${err instanceof Error ? err.message : String(err)}`);
+    logJobError('import-batch', jobId, jobName, err);
     return null;
   }
 }

@@ -1,18 +1,11 @@
 /**
  * Claude AI-powered scraper helpers for Uzum category pages.
  *
- * Two capabilities:
- *
- * 1. filterByCategory(products, categoryName)
- *    After DOM scraping we get products from Uzum's featured widget —
- *    these may include cross-category noise (e.g. category 676 "beauty"
- *    showing electronics). Claude reads product titles and keeps only
- *    those relevant to the requested category.
- *
- * 2. visionExtractProducts(screenshotBase64)
- *    Fallback when DOM scraping yields 0 results. Sends a page screenshot
- *    to Claude claude-haiku (vision) and asks it to extract visible product cards.
- *    Returns [{title, price}] — caller then tries to match with product API.
+ * filterByCategory(products, categoryName)
+ *   After DOM scraping we get products from Uzum's featured widget —
+ *   these may include cross-category noise (e.g. category 676 "beauty"
+ *   showing electronics). Claude reads product titles and keeps only
+ *   those relevant to the requested category.
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -21,9 +14,11 @@ import { logJobInfo } from '../logger';
 
 // T-062: lazy initialization — client yaratilmaydi ANTHROPIC_API_KEY yo'q bo'lsa
 let _client: Anthropic | null = null;
-function getAiClient(): Anthropic {
+function getAiClient(): Anthropic | null {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key || key.includes('YOUR_KEY')) return null;
   if (!_client) {
-    _client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    _client = new Anthropic({ apiKey: key });
   }
   return _client;
 }
@@ -51,7 +46,8 @@ export async function filterByCategory(
   products: ProductDetail[],
   categoryName: string,
 ): Promise<ProductDetail[]> {
-  if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY.includes('YOUR_KEY')) {
+  const ai = getAiClient();
+  if (!ai) {
     logJobInfo('discovery-queue', '-', 'ai-scraper', 'No API key — skipping category filter');
     return products;
   }
@@ -75,13 +71,14 @@ Respond with ONLY a JSON array of integer indexes. Example: [0, 2, 5, 7]
 No explanation, no text — just the JSON array.`;
 
   try {
-    const response = await getAiClient().messages.create({
+    const response = await ai.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 256,
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const text = (response.content[0] as any).text?.trim() ?? '';
+    const firstBlock = response.content[0];
+    const text = firstBlock.type === 'text' ? firstBlock.text.trim() : '';
     logJobInfo('discovery-queue', '-', 'ai-scraper', `Filter response: ${text.slice(0, 100)}`);
 
     const indexes: number[] = JSON.parse(text);
@@ -96,77 +93,5 @@ No explanation, no text — just the JSON array.`;
   } catch (err) {
     logJobInfo('discovery-queue', '-', 'ai-scraper', `Filter error: ${err}`);
     return products; // fallback: return unfiltered
-  }
-}
-
-export interface VisionProduct {
-  title: string;
-  price: number | null;
-  rating: number | null;
-}
-
-/**
- * Fallback: when DOM scraping yields 0 products, use the pre-captured
- * page screenshot and ask Claude Vision to extract visible product cards.
- *
- * Returns a list of {title, price, rating} — caller can use titles to
- * search for product IDs if needed.
- */
-export async function visionExtractProducts(
-  screenshotBase64: string,
-  categoryName: string,
-): Promise<VisionProduct[]> {
-  if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY.includes('YOUR_KEY')) {
-    logJobInfo('discovery-queue', '-', 'ai-scraper', 'No API key — skipping vision extraction');
-    return [];
-  }
-
-  try {
-    logJobInfo('discovery-queue', '-', 'ai-scraper', 'Running vision extraction on screenshot...');
-
-    const response = await getAiClient().messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1500,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: { type: 'base64', media_type: 'image/png', data: screenshotBase64 },
-            },
-            {
-              type: 'text',
-              text: `This is a screenshot of an Uzum.uz e-commerce category page for "${categoryName}".
-
-Extract all visible product cards from this page.
-For each product card, extract:
-- title: product name (in Russian or Uzbek as shown)
-- price: numeric price in UZS (remove spaces, just the number), null if not visible
-- rating: rating score 0-5, null if not visible
-
-Return ONLY a valid JSON array. Example:
-[{"title":"Помада губная","price":45000,"rating":4.5},{"title":"Тушь для ресниц","price":32000,"rating":4.2}]
-
-If no products are visible, return empty array: []`,
-            },
-          ],
-        },
-      ],
-    });
-
-    const text = (response.content[0] as any).text?.trim() ?? '';
-    logJobInfo('discovery-queue', '-', 'ai-scraper', `Vision response: ${text.slice(0, 150)}`);
-
-    // Extract JSON from response (might have markdown code block)
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) return [];
-
-    const extracted: VisionProduct[] = JSON.parse(jsonMatch[0]);
-    logJobInfo('discovery-queue', '-', 'ai-scraper', `Vision extracted ${extracted.length} products`);
-    return extracted;
-  } catch (err) {
-    logJobInfo('discovery-queue', '-', 'ai-scraper', `Vision extraction error: ${err}`);
-    return [];
   }
 }

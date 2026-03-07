@@ -6,6 +6,8 @@ interface CachedData {
   expiry: number;
 }
 
+const MAX_CACHE_ENTRIES = 10;
+
 @Injectable()
 export class LeaderboardService {
   private cache = new Map<string, CachedData>();
@@ -102,6 +104,19 @@ export class LeaderboardService {
   }
 
   private setCache(key: string, data: unknown) {
+    // Evict expired entries before adding
+    for (const [k, v] of this.cache) {
+      if (Date.now() > v.expiry) {
+        this.cache.delete(k);
+      }
+    }
+    // Evict oldest if at max capacity
+    if (this.cache.size >= MAX_CACHE_ENTRIES) {
+      const firstKey = this.cache.keys().next().value;
+      if (firstKey !== undefined) {
+        this.cache.delete(firstKey);
+      }
+    }
     this.cache.set(key, { data, expiry: Date.now() + this.TTL });
   }
 }

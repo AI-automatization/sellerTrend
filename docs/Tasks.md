@@ -1,5 +1,5 @@
 # VENTRA — OCHIQ VAZIFALAR
-# Yangilangan: 2026-03-04
+# Yangilangan: 2026-03-06
 # Developer-specific fayllar:
 #   - Bekzod → docs/Tasks-Bekzod.md
 #   - Sardor → docs/Tasks-Sardor.md
@@ -399,7 +399,7 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 | # | Muammo | Fayl | Vaqt |
 |---|--------|------|------|
-| ~~T-361~~ | ~~XSS — `dangerouslySetInnerHTML`~~ | → T-392 ga birlashtirildi | — |
+| ~~T-361~~ | ~~XSS — `dangerouslySetInnerHTML`~~ | ✅ tuzatildi — JSX interpolation (Layout.tsx) | ✅ |
 | ~~T-362~~ | ~~Auth Store token desync~~ | allaqachon tuzatilgan — `setTokens()` JWT decode qiladi | ✅ |
 | ~~T-363~~ | ~~WebSocket logout disconnect~~ | allaqachon tuzatilgan — Zustand subscribe auto-disconnect | ✅ |
 | ~~T-364~~ | ~~AdminRoute token expiry~~ | tuzatildi — `isTokenValid()` check qo'shildi | ✅ |
@@ -410,9 +410,9 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 | # | Muammo | Bug soni | Vaqt |
 |---|--------|----------|------|
-| T-367 | AdminPage refactor — God Component (30+ useState) | 2 | 2h |
-| T-368 | UX gaps — 404 route, notification, payment, register | 6 | 2h |
-| T-369 | Code quality — dead code, i18n, version, deps | 8 | 1h |
+| ~~T-367~~ | ~~AdminPage refactor — God Component (30+ useState)~~ | ✅ DONE (2026-03-06) → Done.md | — |
+| ~~T-368~~ | ~~UX gaps~~ | ✅ DONE (2026-03-06) → Done.md | — |
+| ~~T-369~~ | ~~Code quality~~ | ✅ DONE (2026-03-06) → Done.md | — |
 
 ## P2 — O'RTA (1 task, 15 bug)
 
@@ -434,8 +434,8 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 | # | Muammo | Mas'ul | Vaqt |
 |---|--------|--------|------|
-~~| T-375 | Worker monitoring jobs — stock, trend, currency, cleanup, digest (5 cron) | Bekzod | 8h |~~
-| T-378 | Forgot Password UI | Bekzod | 2h |
+| ~~T-375~~ | ~~Worker monitoring jobs~~ | ✅ DONE (2026-03-05) → Done.md | — |
+| ~~T-378~~ | ~~Forgot Password UI~~ | ✅ allaqachon mavjud | — |
 
 ## P2 — O'RTA (6 ta)
 
@@ -536,20 +536,7 @@ Schema o'zgaradi — docs eskiradi — audit noto'g'ri xulosa chiqaradi (ChatGPT
 
 ## P1 — MUHIM
 
-### T-394 | P1 | FRONTEND | Onboarding Wizard — 3-stepli /onboarding sahifasi | 4h
-
-Manba: Onboarding-scenario.md (2026-03-06) — DB infra tayyor (onboarding_step, PATCH /auth/onboarding), frontend yo'q
-
-**Muammo:** `onboarding_completed: false` bo'lsa ham frontend hech narsa qilmaydi. Register → Dashboard yo'naltiriladi.
-
-**Yechim:**
-- Register'dan keyin `/onboarding` ga yo'naltirish (agar `onboarding_completed === false`)
-- Step 1: URL input + "Tahlil" (uzum analyze call)
-- Step 2: Natija ko'rsatish + "Kuzatishga qo'shish" tugmasi
-- Step 3: Telegram bot QR/link (ixtiyoriy, "Keyinroq" bilan o'tkazish mumkin)
-- Har stepda `PATCH /auth/onboarding` chaqiriladi
-
-**Fayllar:** `apps/web/src/pages/OnboardingPage.tsx` (yangi), `apps/web/src/App.tsx` (route qo'shish), `apps/web/src/components/onboarding/` (yangi papka)
+### ~~T-394~~ ✅ allaqachon mavjud — OnboardingPage.tsx 3-step + route + API integration
 
 ---
 
@@ -632,12 +619,12 @@ Manba: Onboarding-scenario.md (2026-03-06)
 | ~~Backend Kod Audit P0~~ (T-343..T-352) | ~~10~~ ✅ | ~~10~~ | Bekzod |
 | ~~Backend Kod Audit P1~~ (T-354) | ~~1~~ ✅ | ~~40~~ | Bekzod |
 | **Backend Kod Audit P2** (T-359..T-360) | 2 | ~41 | Bekzod |
-| **Web Kod Audit P0** (T-361..T-366) | 6 | 6 | **Bekzod** |
-| **Web Kod Audit P1** (T-367..T-369) | 3 | ~14 | **Bekzod** |
+| ~~Web Kod Audit P0~~ (T-361..T-366) | ~~6~~ ✅ | ~~6~~ | Bekzod |
+| ~~Web Kod Audit P1~~ (T-367..T-369) | ~~3~~ ✅ | ~~30~~ | Bekzod |
 | **Web Kod Audit P2** (T-370) | 1 | 15 | **Bekzod** |
-| **Platforma Audit P0** (T-377) | 1 | 1 | **Bekzod** |
-| ~~**Platforma Audit P1**~~ (~~T-373,T-374~~,T-375,T-378) | 2 | 2 | Bekzod |
-| **Platforma Audit P2** (T-376,T-380,T-381,~~T-382~~,T-383) | 4 | ~14 | Bekzod(4) |
+| ~~Platforma Audit P0~~ (T-377) | ~~1~~ ✅ | ~~1~~ | Bekzod |
+| ~~**Platforma Audit P1**~~ (T-373,T-374,T-375,T-378) | ~~4~~ ✅ | ~~4~~ | Bekzod |
+| **Platforma Audit P2** (T-376,T-380,T-381,~~T-382~~,T-383) | 4 | ~14 | Bekzod(3)+Sardor(1) |
 | **Platforma Audit P3** (T-384) | 1 | 6 | Bekzod |
 | ~~Desktop Audit P0 (T-315..T-319)~~ | ~~5~~ ✅ | ~~5~~ | Sardor |
 | ~~Desktop Audit P1 (T-320..T-327)~~ | ~~8~~ ✅ | ~~8~~ | Sardor |
@@ -647,15 +634,15 @@ Manba: Onboarding-scenario.md (2026-03-06)
 | Landing Manual (M-001..M-004) | 4 | 4 | Sardor |
 | ENV manual (E-006, E-008, E-010) | 3 | 3 | Bekzod |
 | DevOps (T-178, T-243, T-245, T-281, T-283) | 5 | 5 | Bekzod |
-| **Data Integrity P1** (T-385..T-388) | 4 | 4 | Bekzod |
-| **Data Integrity P2** (T-389..T-390) | 2 | 2 | Bekzod |
-| **Session Bug** (T-391) | 1 | 3 | Bekzod |
-| **Onboarding & Billing P0** (T-392..T-393) | 2 | 2 | Bekzod |
+| ~~Data Integrity P1~~ (T-385..T-388) | ~~4~~ ✅ | ~~4~~ | Bekzod |
+| **Data Integrity P2** (T-390) | 1 | 1 | Bekzod |
+| ~~Session Bug~~ (T-391) | ~~1~~ ✅ | ~~3~~ | Bekzod |
+| ~~Onboarding & Billing P0~~ (T-392..T-393) | ~~2~~ ✅ | ~~2~~ | Bekzod |
 | **Onboarding & Billing P1** (T-394..T-396) | 3 | 3 | Bekzod |
 | **Onboarding & Billing P2** (T-397..T-398) | 2 | 2 | Bekzod |
-| **JAMI task ochiq** | **85** | | |
-| **JAMI bajarilgan** | **~138** | | → Done.md |
+| **JAMI task ochiq** | **~60** | | |
+| **JAMI bajarilgan** | **~163** | | → Done.md |
 
 ---
 
-*Tasks.md | VENTRA Analytics Platform | 2026-03-04*
+*Tasks.md | VENTRA Analytics Platform | 2026-03-06*

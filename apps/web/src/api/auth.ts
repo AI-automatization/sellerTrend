@@ -9,4 +9,10 @@ export const authApi = {
     api.post('/auth/refresh', { refresh_token }),
   logout: (refresh_token: string) =>
     api.post('/auth/logout', { refresh_token }),
+  forgotPassword: (email: string) =>
+    api.post('/auth/forgot-password', { email }),
+  resetPassword: (token: string, password: string) =>
+    api.post('/auth/reset-password', { token, password }),
+  updateOnboarding: (data: { step?: number; completed?: boolean; marketplaces?: string[] }) =>
+    api.patch('/auth/onboarding', data),
 };

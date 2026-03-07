@@ -69,14 +69,14 @@ export function ProductsTable({ products, sortedProducts, sortKey, setSortKey }:
             <table className="table table-sm">
               <thead>
                 <tr className="bg-base-300/10 text-[9px] text-base-content/30 uppercase tracking-[0.12em]">
-                  <th className="font-bold pl-5">{t('dashboard.product')}</th>
-                  <th className="font-bold text-center">{t('dashboard.score')}</th>
-                  <th className="font-bold text-center">{t('dashboard.trend')}</th>
-                  <th className="font-bold text-right">{t('dashboard.weekly')}</th>
-                  <th className="font-bold text-right hidden md:table-cell">{t('dashboard.orders')}</th>
-                  <th className="font-bold text-right">{t('dashboard.price')}</th>
-                  <th className="font-bold text-right hidden sm:table-cell">{t('dashboard.rating')}</th>
-                  <th className="w-10"></th>
+                  <th scope="col" className="font-bold pl-5">{t('dashboard.product')}</th>
+                  <th scope="col" className="font-bold text-center">{t('dashboard.score')}</th>
+                  <th scope="col" className="font-bold text-center">{t('dashboard.trend')}</th>
+                  <th scope="col" className="font-bold text-right">{t('dashboard.weekly')}</th>
+                  <th scope="col" className="font-bold text-right hidden md:table-cell">{t('dashboard.orders')}</th>
+                  <th scope="col" className="font-bold text-right">{t('dashboard.price')}</th>
+                  <th scope="col" className="font-bold text-right hidden sm:table-cell">{t('dashboard.rating')}</th>
+                  <th scope="col" className="w-10"></th>
                 </tr>
               </thead>
               <tbody>

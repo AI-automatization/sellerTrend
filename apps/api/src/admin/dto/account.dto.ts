@@ -6,6 +6,7 @@ import {
   IsArray,
   IsEnum,
   IsEmail,
+  IsIn,
   Min,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -98,4 +99,11 @@ export class BulkAccountActionDto {
   @IsOptional()
   @IsNumber()
   fee?: number;
+}
+
+export class SetPlanDto {
+  @ApiProperty({ description: 'Plan name', enum: ['FREE', 'PRO', 'MAX', 'COMPANY'] })
+  @IsString()
+  @IsIn(['FREE', 'PRO', 'MAX', 'COMPANY'])
+  plan!: string;
 }

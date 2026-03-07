@@ -11,7 +11,8 @@ import { createMonitoringWorker } from './processors/monitoring.processor';
 import { createMorningDigestWorker } from './processors/morning-digest.processor';
 import { createCurrencyUpdateWorker } from './processors/currency-update.processor';
 import { createDataCleanupWorker } from './processors/data-cleanup.processor';
-import { scheduleDailyBilling, scheduleAnalysesReset } from './jobs/billing.job';
+import { createOnboardingReminderWorker } from './processors/onboarding-reminder.processor';
+import { scheduleDailyBilling, scheduleAnalysesReset, scheduleSubscriptionRenewal } from './jobs/billing.job';
 import { scheduleCompetitorSnapshots } from './jobs/competitor-snapshot.job';
 import { scheduleWeeklyScrape } from './jobs/weekly-scrape.job';
 import { scheduleAlertDelivery } from './jobs/alert-delivery.job';
@@ -19,6 +20,7 @@ import { scheduleMonitoring } from './jobs/monitoring.job';
 import { scheduleMorningDigest } from './jobs/morning-digest.job';
 import { scheduleCurrencyUpdate } from './jobs/currency-update.job';
 import { scheduleDataCleanup } from './jobs/data-cleanup.job';
+import { scheduleOnboardingReminder } from './jobs/onboarding-reminder.job';
 import { logProcess } from './logger';
 import { browserPool } from './browser-pool';
 import { prisma } from './prisma';
@@ -60,10 +62,12 @@ async function bootstrap() {
   const morningDigestWorker = createMorningDigestWorker();
   const currencyUpdateWorker = createCurrencyUpdateWorker();
   const dataCleanupWorker = createDataCleanupWorker();
+  const onboardingReminderWorker = createOnboardingReminderWorker();
 
   // Schedule cron jobs
   await scheduleDailyBilling();
   await scheduleAnalysesReset();
+  await scheduleSubscriptionRenewal();
   await scheduleCompetitorSnapshots();
   await scheduleWeeklyScrape();
   await scheduleAlertDelivery();
@@ -71,9 +75,10 @@ async function bootstrap() {
   await scheduleMorningDigest();
   await scheduleCurrencyUpdate();
   await scheduleDataCleanup();
+  await scheduleOnboardingReminder();
 
-  logProcess('info', 'Workers running: billing, discovery, sourcing, competitor, import, weekly-scrape, alert-delivery, monitoring, morning-digest, currency-update, data-cleanup');
-  logProcess('info', 'Crons: billing 00:00, analyses-reset 1st/04:00, competitor 6h, weekly-scrape 15min, alert-delivery 5min, monitoring 6h, digest 07:00, currency 00:30, cleanup 02:00');
+  logProcess('info', 'Workers running: billing, discovery, sourcing, competitor, import, weekly-scrape, alert-delivery, monitoring, morning-digest, currency-update, data-cleanup, onboarding-reminder');
+  logProcess('info', 'Crons: billing 00:00, analyses-reset 1st/04:00, subscription-renewal 03:00, competitor 6h, weekly-scrape 15min, alert-delivery 5min, monitoring 6h, digest 07:00, currency 00:30, cleanup 02:00, onboarding-reminder 10:00');
 
   // Health check HTTP server — reuse shared Redis from redis.ts
   const healthPort = parseInt(process.env.PORT || process.env.WORKER_HEALTH_PORT || '3001', 10);
@@ -92,7 +97,7 @@ async function bootstrap() {
       res.end(JSON.stringify({
         status,
         redis: redisOk ? 'ok' : 'unreachable',
-        workers: 11,
+        workers: 12,
         timestamp: new Date().toISOString(),
       }));
     } else {
@@ -126,6 +131,7 @@ async function bootstrap() {
         morningDigestWorker.close(),
         currencyUpdateWorker.close(),
         dataCleanupWorker.close(),
+        onboardingReminderWorker.close(),
       ]);
       await browserPool.shutdown();
       await redis.quit();

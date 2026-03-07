@@ -1,5 +1,7 @@
 import { Outlet, NavLink, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { BottomNav } from './BottomNav';
+import { ScrollToTop } from './ScrollToTop';
 import { queryClient } from '../stores/queryClient';
 import { useAuthStore } from '../stores/authStore';
 import {
@@ -32,6 +34,7 @@ import {
 } from './icons';
 import { getTokenPayload, billingApi, notificationApi } from '../api/client';
 import { logError } from '../utils/handleError';
+import { useNotificationRefresh } from '../hooks/useSocket';
 import { useI18n } from '../i18n/I18nContext';
 import { useTheme } from '../hooks/useTheme';
 import type { Lang } from '../i18n/translations';
@@ -115,7 +118,7 @@ export function Layout() {
         setBalance(r.data.balance);
       }
     }).catch(logError);
-  }, []);
+  }, [isSuperAdmin]);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -127,12 +130,28 @@ export function Layout() {
     return () => window.removeEventListener('payment-due', handler);
   }, []);
 
-  useEffect(() => {
+  const fetchNotifications = useCallback(() => {
     notificationApi.getMy().then((r) => {
       const unread = (r.data || []).filter((n: { is_read: boolean }) => !n.is_read).length;
       setUnreadCount(unread);
     }).catch(logError);
   }, []);
+
+  useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
+
+  useNotificationRefresh(fetchNotifications);
+
+  // Ctrl+K → quick navigate to Analyze
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        navigate('/analyze');
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [navigate]);
 
   const clearTokens = useAuthStore((s) => s.clearTokens);
 
@@ -227,12 +246,15 @@ export function Layout() {
 
   return (
     <div className="drawer lg:drawer-open min-h-screen">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-3 focus:bg-primary focus:text-primary-content focus:rounded-md focus:m-2">
+        {t('a11y.skipToContent')}
+      </a>
       <input id="drawer" type="checkbox" className="drawer-toggle" />
 
       <div className="drawer-content flex flex-col">
         {/* Mobile navbar */}
-        <div className="navbar bg-base-100 border-b border-base-300 lg:hidden">
-          <label htmlFor="drawer" className="btn btn-ghost drawer-button">
+        <div className="navbar bg-base-100 border-b border-base-300 lg:hidden" role="navigation" aria-label="Mobile navigation">
+          <label htmlFor="drawer" className="btn btn-ghost drawer-button" aria-label={t('layout.openMenu')}>
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
               viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -241,10 +263,10 @@ export function Layout() {
           </label>
           <span className="font-heading font-bold text-lg ml-2 tracking-tight">VENTRA</span>
           <div className="flex-1" />
-          <button onClick={toggle} className="btn btn-ghost btn-sm btn-square">
+          <button onClick={toggle} className="btn btn-ghost btn-sm btn-square" aria-label={isDark ? t('layout.lightMode') : t('layout.darkMode')}>
             {isDark ? <SunIcon className="w-4.5 h-4.5" /> : <MoonIcon className="w-4.5 h-4.5" />}
           </button>
-          <NavLink to="/feedback" className="btn btn-ghost btn-sm relative">
+          <NavLink to="/feedback" className="btn btn-ghost btn-sm relative" aria-label={t('nav.feedback')}>
             <BellIcon className="w-5 h-5" />
             {unreadCount > 0 && (
               <span className="badge badge-error badge-xs absolute -top-1 -right-1">{unreadCount}</span>
@@ -258,28 +280,41 @@ export function Layout() {
             <div className="flex items-center gap-2 text-error text-sm">
               <WalletIcon className="w-4 h-4 shrink-0" />
               <span>
-                <strong>{t('payment.due')}</strong> {t('payment.balance')}: {Number(balance).toLocaleString()} {t('common.som')}.
+                <strong>{t('billing.planExpired')}</strong> {t('payment.balance')}: {Number(balance).toLocaleString()} {t('common.som')}.
               </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button className="btn btn-error btn-xs" onClick={() => navigate('/billing')}>
+                {t('billing.upgradePlan')}
+              </button>
+              <button className="btn btn-ghost btn-xs text-error" onClick={() => navigate('/feedback')}>
+                {t('billing.contactSupport')}
+              </button>
             </div>
           </div>
         )}
 
-        <main className="flex-1 p-4 lg:p-6 ventra-main-bg relative">
+        <main id="main-content" className="flex-1 p-4 lg:p-6 pb-16 lg:pb-6 ventra-main-bg relative" role="main" aria-live="polite">
           <div className="ventra-page-enter">
           <Outlet />
           </div>
-          {paymentDue && !['/', '/admin'].includes(location.pathname) && (
-            <div className="absolute inset-0 bg-base-100/80 backdrop-blur-sm z-30 flex items-center justify-center">
+          {paymentDue && !['/', '/admin', '/billing'].includes(location.pathname) && (
+            <div className="absolute inset-0 bg-base-100/90 backdrop-blur-sm supports-[backdrop-filter]:bg-base-100/80 z-30 flex items-center justify-center">
               <div className="card bg-base-200 shadow-xl border border-error/30 max-w-md mx-4">
                 <div className="card-body items-center text-center gap-4">
                   <WalletIcon className="w-12 h-12 text-error" />
-                  <h3 className="text-lg font-bold">{t('payment.overdue')}</h3>
-                  <p className="text-base-content/60 text-sm"
-                    dangerouslySetInnerHTML={{ __html: t('payment.overdueDesc').replace('{balance}', `<strong>${Number(balance).toLocaleString()} ${t('common.som')}</strong>`) }}
-                  />
-                  <button className="btn btn-primary btn-sm" onClick={() => navigate('/')}>
-                    {t('payment.goHome')}
-                  </button>
+                  <h3 className="text-lg font-bold">{t('billing.planExpired')}</h3>
+                  <p className="text-base-content/60 text-sm">
+                    {t('payment.overduePrefix')}<strong>{Number(balance).toLocaleString()} {t('common.som')}</strong>{t('payment.overdueSuffix')}
+                  </p>
+                  <div className="flex gap-2">
+                    <button className="btn btn-primary btn-sm" onClick={() => navigate('/billing')}>
+                      {t('billing.upgradePlan')}
+                    </button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => navigate('/feedback')}>
+                      {t('billing.contactSupport')}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -306,7 +341,7 @@ export function Layout() {
           </div>
 
           {/* ── Navigation ── */}
-          <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1 sidebar-scroll">
+          <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1 sidebar-scroll" role="navigation" aria-label="Sidebar navigation">
             {sections.map((section, si) => {
               const key = sectionKeys[si];
               const isOpen = openSections[key] ?? false;
@@ -425,6 +460,9 @@ export function Layout() {
           </div>
         </aside>
       </div>
+
+      <BottomNav />
+      <ScrollToTop />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { useI18n } from '../i18n/I18nContext';
 import { ArrowTrendingUpIcon } from '../components/icons';
 import { ScannerTab, SeasonalCalendarTab, NicheFinderTab } from '../components/discovery';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { PageHint } from '../components/PageHint';
 
 export function DiscoveryPage() {
   const [tab, setTab] = useState<'scanner' | 'seasonal' | 'niche'>('scanner');
@@ -10,6 +11,8 @@ export function DiscoveryPage() {
 
   return (
     <div className="space-y-6 w-full">
+      <PageHint page="discovery">{t('hints.discovery')}</PageHint>
+
       {/* Header */}
       <div>
         <h1 className="text-2xl lg:text-3xl font-bold flex items-center gap-2">

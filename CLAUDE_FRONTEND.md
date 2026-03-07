@@ -1,22 +1,51 @@
-# CLAUDE_FRONTEND.md — Frontend Engineer Guide
-# React 19 · TypeScript · Tailwind v4 · DaisyUI v5 · Recharts · React Router v7
-# Claude CLI bu faylni Frontend dasturchi (Sardor) tanlanganda o'qiydi
+# CLAUDE_FRONTEND.md — Landing + Desktop Engineer Guide
+# React 19 · TypeScript · Tailwind v4 · DaisyUI v5
+# Claude CLI bu faylni Sardor tanlanganda o'qiydi
 
 ---
 
-## ZONA
+## !! QATTIQ OGOHLANTIRISH — ZONA HIMOYASI !!
 
 ```
-apps/web/src/
-  pages/          → Sahifalar (route = 1 page)
-  components/     → Qayta ishlatiluvchi komponentlar
-  hooks/          → Custom React hooks
-  api/            → API client functions
-  types/          → Frontend-only TypeScript types
-  i18n/           → Tarjima fayllari
+╔══════════════════════════════════════════════════════════════╗
+║  SARDOR — FAQAT LANDING VA DESKTOP BILAN ISHLAYSIZ!        ║
+║                                                              ║
+║  TAQIQLANGAN (pre-commit hook BLOKLAYDI):                    ║
+║    ❌ apps/api/        — Backend API (Bekzod)                ║
+║    ❌ apps/web/        — Frontend Dashboard (Bekzod)         ║
+║    ❌ apps/worker/     — BullMQ Worker (Bekzod)              ║
+║    ❌ apps/bot/        — Telegram Bot (Bekzod)               ║
+║    ❌ apps/extension/  — Chrome Extension (Bekzod)           ║
+║                                                              ║
+║  Bu zona'lardagi fayllarni edit qilsangiz —                  ║
+║  git commit ISHLAMAYDI, hook bloklaydi!                      ║
+║                                                              ║
+║  Agar bu zona'larda o'zgartirish kerak bo'lsa —              ║
+║  Bekzod bilan Telegram orqali gaplashing.                    ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
-**TEGINMA:** `apps/api/`, `apps/worker/`, `apps/bot/` — bu Backend zonasi.
+---
+
+## ZONA (Sardor)
+
+```
+apps/landing/    → Landing page (ventra.uz marketing sahifasi)
+apps/desktop/    → Desktop app (Electron/Tauri)
+```
+
+**RUXSAT BERILGAN:**
+- `apps/landing/` — Landing page (to'liq ruxsat)
+- `apps/desktop/` — Desktop app (to'liq ruxsat)
+- `packages/` — Shared types/utils (LOCK protocol bilan, Bekzod bilan kelishib)
+- `docs/` — Dokumentatsiya
+
+**TAQIQLANGAN (pre-commit hook bloklaydi):**
+- `apps/web/` — Asosiy frontend dashboard (Bekzod zonasi)
+- `apps/api/` — Backend API (Bekzod zonasi)
+- `apps/worker/` — BullMQ Worker (Bekzod zonasi)
+- `apps/bot/` — Telegram Bot (Bekzod zonasi)
+- `apps/extension/` — Chrome Extension (Bekzod zonasi)
 
 ---
 
@@ -26,16 +55,14 @@ apps/web/src/
 
 ```typescript
 // ✅ TO'G'RI — murakkab page alohida fayllarda
-apps/web/src/
-  pages/
-    SourcingPage/
-      index.tsx               // asosiy page, export { SourcingPage }
-      SourcingResultCard.tsx   // faqat shu page da ishlatilsa — ichida
-      useSourcingPolling.ts   // page-specific hook — ichida
+apps/landing/src/  // yoki apps/desktop/src/
+  sections/
+    HeroSection/
+      index.tsx               // asosiy section
+      AnimatedCounter.tsx      // faqat shu section da ishlatilsa
   components/
-    sourcing/
-      PlatformBadge.tsx       // ko'p joyda ishlatilsa → components ga
-      CargoBreakdownCard.tsx
+    shared/
+      FeatureCard.tsx          // ko'p joyda ishlatilsa → components ga
   hooks/
     useRealtime.ts            // global hooks
     useDebounce.ts
@@ -317,8 +344,10 @@ Fonts:    Inter (body) + Space Grotesk (headings)
 ## TAQIQLANGAN HARAKATLAR
 
 ```
+❌ apps/web/ papkasiga TEGINMA — bu Bekzod zonasi!
 ❌ apps/api/ papkasiga TEGINMA
 ❌ apps/api/prisma/ ga TEGINMA — migration Backend qiladi
+❌ apps/extension/ papkasiga TEGINMA
 ❌ any type — TypeScript strict
 ❌ console.log — development faqat
 ❌ inline style (style={{...}}) → Tailwind class
@@ -330,4 +359,4 @@ Fonts:    Inter (body) + Space Grotesk (headings)
 
 ---
 
-*CLAUDE_FRONTEND.md | VENTRA Analytics Platform | 2026-02-26*
+*CLAUDE_FRONTEND.md | VENTRA Analytics Platform | 2026-03-03*

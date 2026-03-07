@@ -68,7 +68,7 @@ function sanitizeObj(obj: unknown): unknown {
 
 // ─── User-Agent Classification ───────────────────────────────────────────────
 
-export function classifyUA(ua: string): LogEntry['ua_type'] {
+export function classifyUA(ua: string | null | undefined): LogEntry['ua_type'] {
   if (!ua || ua === '-') return 'unknown';
   const lower = ua.toLowerCase();
   if (/bot|crawler|spider|scrapy|curl|wget|python-requests|got\//i.test(lower)) return 'bot';
@@ -106,10 +106,18 @@ export class RotatingFileWriter {
   private rotate(date: string) {
     if (this.stream) {
       this.stream.end();
+      this.stream = null;
     }
     this.currentDate = date;
     const filePath = path.join(this.logDir, `${this.prefix}-${date}.log`);
-    this.stream = fs.createWriteStream(filePath, { flags: 'a' });
+    try {
+      this.stream = fs.createWriteStream(filePath, { flags: 'a' });
+      this.stream.on('error', () => {
+        this.stream = null;
+      });
+    } catch {
+      this.stream = null;
+    }
   }
 
   destroy() {

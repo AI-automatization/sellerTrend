@@ -1,7 +1,9 @@
 // ─── DepositsTab ─────────────────────────────────────────────────────────────
 
+import type { DepositEntry } from './adminTypes';
+
 export interface DepositsTabProps {
-  depositLog: Record<string, unknown>[];
+  depositLog: DepositEntry[];
   depositLogTotal: number;
   depositLogPage: number;
   onDepositLogPageChange: (page: number) => void;
@@ -21,15 +23,15 @@ export function DepositsTab({ depositLog, depositLogTotal, depositLogPage, onDep
           </thead>
           <tbody>
             {depositLog.map((d) => (
-              <tr key={d.id as string} className="hover">
-                <td className="text-xs whitespace-nowrap">{new Date(d.created_at as string).toLocaleString()}</td>
-                <td className="text-sm">{d.account_name as string}</td>
+              <tr key={d.id} className="hover">
+                <td className="text-xs whitespace-nowrap">{new Date(d.created_at).toLocaleString()}</td>
+                <td className="text-sm">{d.account_name}</td>
                 <td className="text-success font-bold tabular-nums">+{Number(d.amount).toLocaleString()}</td>
                 <td className="text-xs tabular-nums text-base-content/50">{Number(d.balance_before).toLocaleString()}</td>
                 <td className="text-xs tabular-nums text-base-content/50">{Number(d.balance_after).toLocaleString()}</td>
-                <td className="text-xs text-base-content/40 max-w-xs truncate">{(d.description as string) || '—'}</td>
+                <td className="text-xs text-base-content/40 max-w-xs truncate">{d.description || '—'}</td>
                 <td>
-                  <button className="btn btn-ghost btn-xs text-error" onClick={() => onDeleteDeposit(d.id as string)}>
+                  <button className="btn btn-ghost btn-xs text-error" onClick={() => onDeleteDeposit(d.id)}>
                     O'chirish
                   </button>
                 </td>

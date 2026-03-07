@@ -38,6 +38,8 @@ import { CommunityModule } from './community/community.module';
 // v5.0 Feedback & Notifications
 import { FeedbackModule } from './feedback/feedback.module';
 import { NotificationModule } from './notification/notification.module';
+// v6.0 Multi-marketplace
+import { PlatformsModule } from './platforms/platforms.module';
 
 @Module({
   imports: [
@@ -80,6 +82,8 @@ import { NotificationModule } from './notification/notification.module';
     // v5.0 Feedback & Notifications
     FeedbackModule,
     NotificationModule,
+    // v6.0 Multi-marketplace
+    PlatformsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: CustomThrottlerGuard }],
   controllers: [HealthController],

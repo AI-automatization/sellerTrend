@@ -13,11 +13,12 @@
  */
 
 import { Worker, Job } from 'bullmq';
+import { BrowserContext } from 'playwright';
 import { redisConnection, getHealthRedis } from '../redis';
 import { prisma } from '../prisma';
 import { calculateScore, getSupplyPressure, sleep, SNAPSHOT_MIN_GAP_MS, SCORE_VERSION } from '@uzum/utils';
 import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
-import { scrapeWeeklyBought } from './weekly-scraper';
+import { scrapeWeeklyBought, createWeeklyScrapeContext } from './weekly-scraper';
 import { fetchUzumProductRaw } from './uzum-scraper';
 import { acquireScrapeLock, releaseScrapeLock } from '../scrape-lock';
 
@@ -49,11 +50,12 @@ async function scrapeAndSaveProduct(
   productId: bigint,
   jobId: string,
   jobName: string,
+  sharedContext?: BrowserContext,
 ): Promise<{ scraped: boolean; weeklyBought: number | null }> {
   const numId = Number(productId);
 
   // 1. Playwright scrape for banner
-  const scrapeResult = await scrapeWeeklyBought(numId, jobId);
+  const scrapeResult = await scrapeWeeklyBought(numId, jobId, sharedContext);
   const scrapedWb = scrapeResult.value;
 
   // 2. Fetch REST API data
@@ -197,6 +199,7 @@ async function scrapeAndSaveProduct(
 
     // Upsert SKUs + create SkuSnapshot
     for (const sku of skuList) {
+      if (sku.id == null) continue;
       const skuStockType = sku.stock?.type === 'FBO' ? 'FBO' : 'FBS';
       const skuId = BigInt(sku.id);
 
@@ -311,34 +314,41 @@ async function processBatch(jobId: string, jobName: string) {
   let skipped = 0;
   const redis = getHealthRedis();
 
-  for (const pid of productIds) {
-    // T-385: Acquire Redis lock to prevent duplicate scraping
-    const locked = await acquireScrapeLock(redis, pid.toString());
-    if (!locked) {
-      logJobInfo(QUEUE_NAME, jobId, jobName, `Product ${pid} already being scraped, skipping`);
-      skipped++;
-      continue;
-    }
-
-    try {
-      const result = await scrapeAndSaveProduct(pid, jobId, jobName);
-      if (result.scraped) {
-        scraped++;
-      } else {
-        failed++;
+  // Create a single shared BrowserContext for the entire batch
+  const sharedContext = await createWeeklyScrapeContext();
+  try {
+    for (const pid of productIds) {
+      // T-385: Acquire Redis lock to prevent duplicate scraping
+      const locked = await acquireScrapeLock(redis, pid.toString());
+      if (!locked) {
+        logJobInfo(QUEUE_NAME, jobId, jobName, `Product ${pid} already being scraped, skipping`);
+        skipped++;
+        continue;
       }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      logJobInfo(QUEUE_NAME, jobId, jobName, `Error for product ${pid}: ${msg}`);
-      failed++;
-    } finally {
-      await releaseScrapeLock(redis, pid.toString());
-    }
 
-    // Anti-detection: 3-5s random pause between products
-    if (productIds.indexOf(pid) < productIds.length - 1) {
-      await sleep(randomInt(3000, 5000));
+      try {
+        const result = await scrapeAndSaveProduct(pid, jobId, jobName, sharedContext);
+        if (result.scraped) {
+          scraped++;
+        } else {
+          failed++;
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        logJobInfo(QUEUE_NAME, jobId, jobName, `Error for product ${pid}: ${msg}`);
+        failed++;
+      } finally {
+        await releaseScrapeLock(redis, pid.toString());
+      }
+
+      // Anti-detection: 3-5s random pause between products
+      if (productIds.indexOf(pid) < productIds.length - 1) {
+        await sleep(randomInt(3000, 5000));
+      }
     }
+  } finally {
+    await sharedContext.close();
+    await (await import('../browser-pool')).browserPool.release();
   }
 
   return { total: productIds.length, scraped, failed, skipped };

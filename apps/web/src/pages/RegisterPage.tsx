@@ -10,7 +10,7 @@ export function RegisterPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const refCode = searchParams.get('ref') ?? '';
-  const [form, setForm] = useState({ email: '', password: '', company_name: '', referral_code: refCode });
+  const [form, setForm] = useState({ email: '', password: '', confirm_password: '', company_name: '', referral_code: refCode });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { t } = useI18n();
@@ -27,12 +27,18 @@ export function RegisterPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+
+    if (form.password !== form.confirm_password) {
+      setError(t('auth.passwordsDoNotMatch'));
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await authApi.register(form.email, form.password, form.company_name, form.referral_code || undefined);
       queryClient.clear();
       setTokens(res.data.access_token, res.data.refresh_token ?? '');
-      navigate('/');
+      navigate('/onboarding');
     } catch (err: unknown) {
       setError(getErrorMessage(err, t('auth.registerError')));
     } finally {
@@ -75,7 +81,7 @@ export function RegisterPage() {
           </div>
 
           <p className="text-xs text-base-content/25">
-            VENTRA v5.1 — 43+ funksiya
+            VENTRA v5.6 — 43+ funksiya
           </p>
         </div>
       </div>
@@ -153,6 +159,20 @@ export function RegisterPage() {
                   minLength={8}
                   className="input input-bordered w-full"
                   placeholder={t('auth.minChars')}
+                  autoComplete="new-password"
+                />
+              </fieldset>
+
+              <fieldset className="fieldset">
+                <legend className="fieldset-legend text-xs">{t('auth.confirmPassword')}</legend>
+                <input
+                  type="password"
+                  value={form.confirm_password}
+                  onChange={(e) => setForm({ ...form, confirm_password: e.target.value })}
+                  required
+                  minLength={8}
+                  className="input input-bordered w-full"
+                  placeholder={t('auth.confirmPassword')}
                   autoComplete="new-password"
                 />
               </fieldset>

@@ -44,6 +44,7 @@ export class AdminStatsService {
 
     const [
       accountsByStatus,
+      planBreakdown,
       totalUsers,
       activeUsers,
       todayActiveSessions,
@@ -53,6 +54,11 @@ export class AdminStatsService {
     ] = await Promise.all([
       this.prisma.account.groupBy({
         by: ['status'],
+        where: { id: { not: SUPER_ADMIN_ACCOUNT_ID } },
+        _count: { id: true },
+      }),
+      this.prisma.account.groupBy({
+        by: ['plan'],
         where: { id: { not: SUPER_ADMIN_ACCOUNT_ID } },
         _count: { id: true },
       }),
@@ -79,6 +85,11 @@ export class AdminStatsService {
       statusMap[row.status] = row._count.id;
     }
 
+    const planMap: Record<string, number> = {};
+    for (const row of planBreakdown) {
+      planMap[row.plan] = row._count.id;
+    }
+
     return {
       accounts: {
         active: statusMap.ACTIVE,
@@ -86,6 +97,7 @@ export class AdminStatsService {
         suspended: statusMap.SUSPENDED,
         total: statusMap.ACTIVE + statusMap.PAYMENT_DUE + statusMap.SUSPENDED,
       },
+      plan_breakdown: planMap,
       users: {
         total: totalUsers,
         active: activeUsers,
@@ -161,11 +173,51 @@ export class AdminStatsService {
     const monthAgo = new Date();
     monthAgo.setDate(monthAgo.getDate() - 30);
 
-    const [weekNew, monthNew, activeAccounts, paymentDueAccounts] = await Promise.all([
+    // Churn = accounts whose plan expired 7+ days ago AND status is not ACTIVE
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const [
+      weekNew, monthNew, activeAccounts, paymentDueAccounts,
+      churnedAccounts, planBreakdown, mrrResult, avgDaysToRenewal,
+    ] = await Promise.all([
       this.prisma.user.count({ where: { created_at: { gte: weekAgo }, account_id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
       this.prisma.user.count({ where: { created_at: { gte: monthAgo }, account_id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
       this.prisma.account.count({ where: { status: 'ACTIVE', id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
       this.prisma.account.count({ where: { status: 'PAYMENT_DUE', id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
+      // Real churn: plan expired 7+ days ago AND not renewed (not ACTIVE)
+      this.prisma.account.count({
+        where: {
+          id: { not: SUPER_ADMIN_ACCOUNT_ID },
+          plan_expires_at: { lt: sevenDaysAgo },
+          status: { not: 'ACTIVE' },
+          plan: { not: 'FREE' },
+        },
+      }),
+      // Plan distribution: group by plan
+      this.prisma.account.groupBy({
+        by: ['plan'],
+        where: { id: { not: SUPER_ADMIN_ACCOUNT_ID } },
+        _count: { id: true },
+      }),
+      // MRR: sum of SUBSCRIPTION transactions in the last 30 days
+      this.prisma.transaction.aggregate({
+        where: {
+          type: 'SUBSCRIPTION',
+          created_at: { gte: monthAgo },
+        },
+        _sum: { amount: true },
+      }),
+      // Average days to plan renewal for active paid accounts
+      this.prisma.$queryRaw<{ avg_days: number | null }[]>`
+        SELECT AVG(EXTRACT(EPOCH FROM (plan_expires_at - NOW())) / 86400)::float as avg_days
+        FROM accounts
+        WHERE status = 'ACTIVE'
+          AND plan != 'FREE'
+          AND plan_expires_at IS NOT NULL
+          AND plan_expires_at > NOW()
+          AND id != ${SUPER_ADMIN_ACCOUNT_ID}
+      `,
     ]);
 
     // Use raw SQL for daily grouping — avoids loading all users into memory
@@ -177,17 +229,31 @@ export class AdminStatsService {
       ORDER BY date ASC
     `;
 
-    const churnRatePct = activeAccounts > 0
-      ? Number(((paymentDueAccounts / activeAccounts) * 100).toFixed(2))
+    // Churn rate: churned / (active + churned) — real churn metric
+    const totalRelevant = activeAccounts + churnedAccounts;
+    const churnRatePct = totalRelevant > 0
+      ? Number(((churnedAccounts / totalRelevant) * 100).toFixed(2))
       : 0;
+
+    // Build plan breakdown map
+    const planBreakdownMap: Record<string, number> = { FREE: 0, PRO: 0, MAX: 0, COMPANY: 0 };
+    for (const row of planBreakdown) {
+      planBreakdownMap[row.plan] = row._count.id;
+    }
 
     return {
       daily_new_users: dailyNewUsers,
       week_new: weekNew,
       month_new: monthNew,
       churn_rate_pct: churnRatePct,
+      churned_accounts: churnedAccounts,
       active_accounts: activeAccounts,
       payment_due_accounts: paymentDueAccounts,
+      plan_breakdown: planBreakdownMap,
+      mrr: (mrrResult._sum.amount ?? BigInt(0)).toString(),
+      avg_days_to_renewal: avgDaysToRenewal[0]?.avg_days != null
+        ? Number(avgDaysToRenewal[0].avg_days.toFixed(1))
+        : null,
     };
   }
 

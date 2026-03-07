@@ -5,6 +5,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { uzumApi, productsApi, sourcingApi } from '../api/client';
 import { getErrorMessage } from '../utils/getErrorMessage';
 import { logError } from '../utils/handleError';
+import { formatDateTime, formatWeekdayDate } from '../utils/formatDate';
 import { ScoreChart } from '../components/ScoreChart';
 import {
   AreaChart,
@@ -63,8 +64,10 @@ export function ProductPage() {
   const [extLoading, setExtLoading] = useState(false);
   const [extSearched, setExtSearched] = useState(false);
   const [extNote, setExtNote] = useState('');
-  const DEFAULT_USD_RATE = 12_900;
-  const [usdRate, setUsdRate] = useState(DEFAULT_USD_RATE);
+  // TODO(T-370): Replace with dynamic rate from API config endpoint.
+  // This fallback is only used while the live rate is being fetched.
+  const FALLBACK_USD_RATE = 12_900;
+  const [usdRate, setUsdRate] = useState(FALLBACK_USD_RATE);
 
   // ML Forecast state
   const [mlForecast, setMlForecast] = useState<MlForecast | null>(null);
@@ -465,7 +468,7 @@ export function ProductPage() {
             </h2>
             {weeklyTrend.last_updated && (
               <span className="text-xs text-base-content/40">
-                Yangilangan: {new Date(weeklyTrend.last_updated).toLocaleString('ru-RU')}
+                Yangilangan: {formatDateTime(weeklyTrend.last_updated)}
               </span>
             )}
           </div>
@@ -529,7 +532,7 @@ export function ProductPage() {
                   <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
                   <Tooltip
                     {...glassTooltip}
-                    labelFormatter={(v) => new Date(v).toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' })}
+                    labelFormatter={(v: string) => formatWeekdayDate(v)}
                     formatter={(value: number) => [`${value} ta`, 'Kunlik sotuv']}
                   />
                   <Bar dataKey="daily_sold" radius={[4, 4, 0, 0]} name="Kunlik sotuv" animationDuration={CHART_ANIMATION_MS}>

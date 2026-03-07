@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, UseGuards, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, UseGuards, NotFoundException } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
@@ -7,6 +7,7 @@ import { ActivityAction } from '../common/decorators/activity-action.decorator';
 import { ParseBigIntPipe } from '../common/pipes/parse-bigint.pipe';
 import { ProductsService } from './products.service';
 import { AiService } from '../ai/ai.service';
+import { RecommendationsQueryDto } from './dto/recommendations-query.dto';
 
 @ApiTags('products')
 @ApiBearerAuth()
@@ -21,6 +22,15 @@ export class ProductsController {
   @Get('tracked')
   getTracked(@CurrentUser('account_id') accountId: string) {
     return this.productsService.getTrackedProducts(accountId);
+  }
+
+  /** 4-layer fallback recommendations for onboarding / new users */
+  @Get('recommendations')
+  getRecommendations(
+    @CurrentUser('account_id') accountId: string,
+    @Query() query: RecommendationsQueryDto,
+  ) {
+    return this.productsService.getRecommendations(accountId, query.niche, query.limit);
   }
 
   @Get(':id')

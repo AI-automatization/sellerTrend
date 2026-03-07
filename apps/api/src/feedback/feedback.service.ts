@@ -229,13 +229,14 @@ export class FeedbackService {
     limit = 20,
   ) {
     const MAX_ADMIN_TICKETS = 50;
-    const take = Math.min(limit, MAX_ADMIN_TICKETS);
+    const safePage = Math.max(1, page);
+    const take = Math.min(Math.max(1, limit), MAX_ADMIN_TICKETS);
 
     const where: { status?: FeedbackStatus; type?: FeedbackType } = {};
     if (status) where.status = status;
     if (type) where.type = type;
 
-    const skip = (page - 1) * take;
+    const skip = (safePage - 1) * take;
 
     const [tickets, total] = await Promise.all([
       this.prisma.feedbackTicket.findMany({

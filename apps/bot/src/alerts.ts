@@ -1,4 +1,5 @@
 import { Bot } from 'grammy';
+import { escapeHtml } from './utils';
 
 /**
  * Send alert to a Telegram chat when a product score spikes.
@@ -29,21 +30,14 @@ export async function sendDiscoveryAlert(
 
     return (
       `${w.rank}. <b>${escapeHtml(w.title)}</b>\n` +
-      `   📊 Score: <code>${score}</code>  🔥 Faollik: <code>${activity}</code>  💰 ${price}`
+      `   Score: <code>${score}</code>  Faollik: <code>${activity}</code>  ${price}`
     );
   });
 
   const message =
-    `🏆 <b>Category #${categoryId} — Top 5 Trending</b>\n\n` +
+    `<b>Category #${categoryId} — Top 5 Trending</b>\n\n` +
     lines.join('\n\n') +
-    `\n\n<i>🤖 VENTRA Analytics</i>`;
+    `\n\n<i>VENTRA Analytics</i>`;
 
   await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
 }

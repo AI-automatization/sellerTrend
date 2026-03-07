@@ -32,6 +32,7 @@ import {
   UpdateAccountStatusDto,
   UpdateAccountPhoneDto,
   BulkAccountActionDto,
+  SetPlanDto,
 } from './dto/account.dto';
 import { CreateUserDto, ChangePasswordDto, UpdateRoleDto } from './dto/user.dto';
 import {
@@ -152,6 +153,17 @@ export class AdminController {
     @CurrentUser('id') adminUserId: string,
   ) {
     return this.accountService.updateAccountPhone(accountId, body.phone, adminUserId);
+  }
+
+  /** Set account plan (FREE/PRO/MAX/COMPANY) — auto-calculates expiration */
+  @Patch('accounts/:id/plan')
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  setPlan(
+    @Param('id') id: string,
+    @Body() body: SetPlanDto,
+    @CurrentUser('id') adminUserId: string,
+  ) {
+    return this.accountService.setPlan(id, body.plan, adminUserId);
   }
 
   /** E2 — Bulk Account Action */
@@ -651,27 +663,32 @@ export class AdminController {
   /** Export — Users CSV */
   @Get('export/users')
   async exportUsers(@Res() res: Response) {
-    const data = await this.logService.getExportUsersData();
+    try {
+      const data = await this.logService.getExportUsersData();
 
-    const headers = ['id', 'email', 'role', 'is_active', 'account_id', 'account_name', 'account_status', 'account_balance', 'created_at'];
-    const csvRows = [headers.join(',')];
+      const headers = ['id', 'email', 'role', 'is_active', 'account_id', 'account_name', 'account_status', 'account_balance', 'created_at'];
+      const csvRows = [headers.join(',')];
 
-    for (const row of data) {
-      csvRows.push(headers.map((h) => {
-        const val = (row as Record<string, unknown>)[h];
-        const str = String(val ?? '');
-        // Escape commas and quotes
-        return str.includes(',') || str.includes('"')
-          ? `"${str.replace(/"/g, '""')}"`
-          : str;
-      }).join(','));
+      for (const row of data) {
+        csvRows.push(headers.map((h) => {
+          const val = (row as Record<string, unknown>)[h];
+          const str = String(val ?? '');
+          return str.includes(',') || str.includes('"')
+            ? `"${str.replace(/"/g, '""')}"`
+            : str;
+        }).join(','));
+      }
+
+      const csv = csvRows.join('\n');
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename=users_export.csv');
+      res.send(csv);
+    } catch (err) {
+      if (!res.headersSent) {
+        res.status(500).json({ statusCode: 500, message: 'Export failed' });
+      }
     }
-
-    const csv = csvRows.join('\n');
-
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename=users_export.csv');
-    res.send(csv);
   }
 
   /** Export — Revenue CSV */
@@ -681,29 +698,35 @@ export class AdminController {
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    const data = await this.logService.getExportRevenueData(
-      from ? new Date(from) : undefined,
-      to ? new Date(to) : undefined,
-    );
+    try {
+      const data = await this.logService.getExportRevenueData(
+        from ? new Date(from) : undefined,
+        to ? new Date(to) : undefined,
+      );
 
-    const headers = ['id', 'account_id', 'account_name', 'type', 'amount', 'balance_before', 'balance_after', 'description', 'created_at'];
-    const csvRows = [headers.join(',')];
+      const headers = ['id', 'account_id', 'account_name', 'type', 'amount', 'balance_before', 'balance_after', 'description', 'created_at'];
+      const csvRows = [headers.join(',')];
 
-    for (const row of data) {
-      csvRows.push(headers.map((h) => {
-        const val = (row as Record<string, unknown>)[h];
-        const str = String(val ?? '');
-        return str.includes(',') || str.includes('"')
-          ? `"${str.replace(/"/g, '""')}"`
-          : str;
-      }).join(','));
+      for (const row of data) {
+        csvRows.push(headers.map((h) => {
+          const val = (row as Record<string, unknown>)[h];
+          const str = String(val ?? '');
+          return str.includes(',') || str.includes('"')
+            ? `"${str.replace(/"/g, '""')}"`
+            : str;
+        }).join(','));
+      }
+
+      const csv = csvRows.join('\n');
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename=revenue_export.csv');
+      res.send(csv);
+    } catch (err) {
+      if (!res.headersSent) {
+        res.status(500).json({ statusCode: 500, message: 'Export failed' });
+      }
     }
-
-    const csv = csvRows.join('\n');
-
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename=revenue_export.csv');
-    res.send(csv);
   }
 
   /** Export — Activity CSV */
@@ -713,28 +736,34 @@ export class AdminController {
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    const data = await this.logService.getExportActivityData(
-      from ? new Date(from) : undefined,
-      to ? new Date(to) : undefined,
-    );
+    try {
+      const data = await this.logService.getExportActivityData(
+        from ? new Date(from) : undefined,
+        to ? new Date(to) : undefined,
+      );
 
-    const headers = ['id', 'user_id', 'user_email', 'account_id', 'action', 'ip', 'created_at'];
-    const csvRows = [headers.join(',')];
+      const headers = ['id', 'user_id', 'user_email', 'account_id', 'action', 'ip', 'created_at'];
+      const csvRows = [headers.join(',')];
 
-    for (const row of data) {
-      csvRows.push(headers.map((h) => {
-        const val = (row as Record<string, unknown>)[h];
-        const str = String(val ?? '');
-        return str.includes(',') || str.includes('"')
-          ? `"${str.replace(/"/g, '""')}"`
-          : str;
-      }).join(','));
+      for (const row of data) {
+        csvRows.push(headers.map((h) => {
+          const val = (row as Record<string, unknown>)[h];
+          const str = String(val ?? '');
+          return str.includes(',') || str.includes('"')
+            ? `"${str.replace(/"/g, '""')}"`
+            : str;
+        }).join(','));
+      }
+
+      const csv = csvRows.join('\n');
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename=activity_export.csv');
+      res.send(csv);
+    } catch (err) {
+      if (!res.headersSent) {
+        res.status(500).json({ statusCode: 500, message: 'Export failed' });
+      }
     }
-
-    const csv = csvRows.join('\n');
-
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename=activity_export.csv');
-    res.send(csv);
   }
 }

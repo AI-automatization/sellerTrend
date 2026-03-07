@@ -2,6 +2,63 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MetricsService, MetricsSnapshot } from '../common/metrics/metrics.service';
 import { estimateCapacity, CapacityEstimate } from '../common/metrics/capacity-estimator';
+import { parsePeriodHours } from '../common/utils/parse-period';
+
+export interface UserHealthRow {
+  user_id: string;
+  email: string;
+  account_name: string;
+  requests_1h: number;
+  requests_24h: number;
+  errors_24h: number;
+  error_rate_pct: number;
+  top_error_endpoint: string | null;
+  slow_requests_24h: number;
+  avg_response_ms: number;
+  rate_limit_hits_24h: number;
+  last_active: Date | null;
+  active_sessions: number;
+}
+
+export interface UserHealthDetail {
+  user: {
+    id: string;
+    email: string;
+    role: string;
+    is_active: boolean;
+    account: { name: string; status: string } | null;
+  } | null;
+  recent_errors: Array<{
+    id: string;
+    endpoint: string | null;
+    method: string | null;
+    status: number | null;
+    message: string | null;
+    created_at: Date;
+  }>;
+  recent_activities: Array<{
+    id: string;
+    action: string;
+    details: unknown;
+    ip: string | null;
+    created_at: Date;
+  }>;
+  active_sessions: Array<{
+    id: string;
+    ip: string | null;
+    device_type: string | null;
+    user_agent: string | null;
+    logged_in_at: Date;
+    expires_at: Date | null;
+  }>;
+  summary: {
+    errors_24h: number;
+    activities_24h: number;
+    session_count: number;
+  };
+  error?: string;
+}
+
 @Injectable()
 export class AdminMonitoringService {
   private readonly logger = new Logger(AdminMonitoringService.name);
@@ -36,7 +93,7 @@ export class AdminMonitoringService {
     period: string,
     limit: number,
     sort: string,
-  ): Promise<unknown[]> {
+  ): Promise<UserHealthRow[]> {
     try {
       return await this.getUserHealthSummaryInternal(period, limit, sort);
     } catch (err) {
@@ -49,8 +106,8 @@ export class AdminMonitoringService {
     period: string,
     limit: number,
     sort: string,
-  ): Promise<unknown[]> {
-    const hours = this.parsePeriodHours(period);
+  ): Promise<UserHealthRow[]> {
+    const hours = parsePeriodHours(period);
     const since = new Date(Date.now() - hours * 60 * 60_000);
 
     // Run all 3 queries in parallel to reduce connection hold time
@@ -166,7 +223,7 @@ export class AdminMonitoringService {
   }
 
   /** Single user health detail */
-  async getSingleUserHealth(userId: string): Promise<unknown> {
+  async getSingleUserHealth(userId: string): Promise<UserHealthDetail | { error: string }> {
     const since24h = new Date(Date.now() - 24 * 60 * 60_000);
 
     const [user, errors, activities, sessions] = await Promise.all([
@@ -336,18 +393,4 @@ export class AdminMonitoringService {
     });
   }
 
-  private parsePeriodHours(period: string): number {
-    switch (period) {
-      case '1h':
-        return 1;
-      case '6h':
-        return 6;
-      case '24h':
-        return 24;
-      case '7d':
-        return 7 * 24;
-      default:
-        return 24;
-    }
-  }
 }

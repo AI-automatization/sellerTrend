@@ -60,6 +60,30 @@ export async function scheduleAnalysesReset() {
 }
 
 /**
+ * Schedule daily subscription renewal check at 03:00 UTC.
+ * Finds accounts whose plan expires within 3 days and renews if balance sufficient.
+ */
+export async function scheduleSubscriptionRenewal() {
+  const repeatableJobs = await billingQueue.getRepeatableJobs();
+  for (const job of repeatableJobs) {
+    if (job.name === 'subscription-renewal') {
+      await billingQueue.removeRepeatableByKey(job.key);
+    }
+  }
+
+  await billingQueue.add(
+    'subscription-renewal',
+    {},
+    {
+      repeat: { pattern: '0 3 * * *' }, // Every day at 03:00 UTC
+      jobId: 'subscription-renewal-cron',
+    },
+  );
+
+  console.log('Subscription renewal cron registered: 0 3 * * *');
+}
+
+/**
  * Trigger billing manually (for testing)
  */
 export async function triggerBillingNow() {

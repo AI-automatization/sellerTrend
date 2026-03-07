@@ -14,6 +14,21 @@ interface State {
   error: Error | null;
 }
 
+const ERROR_TEXTS: Record<string, Record<string, string>> = {
+  'section.failed': { uz: 'yuklanmadi', ru: 'не загружен', en: 'failed to load' },
+  'section.default': { uz: "Bo'lim", ru: 'Раздел', en: 'Section' },
+  'unexpected.default': { uz: 'Kutilmagan xato', ru: 'Непредвиденная ошибка', en: 'Unexpected error' },
+  'unexpected.title': { uz: 'Kutilmagan xato yuz berdi', ru: 'Произошла непредвиденная ошибка', en: 'An unexpected error occurred' },
+  'unexpected.desc': { uz: "Sahifani qayta yuklang yoki boshqa sahifaga o'ting.", ru: 'Перезагрузите страницу или перейдите на другую.', en: 'Reload the page or navigate to another page.' },
+  retry: { uz: 'Qayta urinish', ru: 'Повторить', en: 'Try again' },
+  home: { uz: 'Bosh sahifaga', ru: 'На главную', en: 'Go home' },
+};
+
+function et(key: string): string {
+  const lang = (typeof localStorage !== 'undefined' && localStorage.getItem('lang')) || 'uz';
+  return ERROR_TEXTS[key]?.[lang] || ERROR_TEXTS[key]?.['uz'] || key;
+}
+
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -41,10 +56,10 @@ export class ErrorBoundary extends Component<Props, State> {
               <span className="text-xl shrink-0">⚠️</span>
               <div>
                 <p className="text-sm font-medium text-base-content/80">
-                  {this.props.label ?? 'Bo\'lim'} yuklanmadi
+                  {this.props.label ?? et('section.default')} {et('section.failed')}
                 </p>
                 <p className="text-xs text-base-content/40 mt-0.5">
-                  {this.state.error?.message ?? 'Kutilmagan xato'}
+                  {this.state.error?.message ?? et('unexpected.default')}
                 </p>
               </div>
             </div>
@@ -52,7 +67,7 @@ export class ErrorBoundary extends Component<Props, State> {
               className="btn btn-ghost btn-xs shrink-0"
               onClick={() => this.setState({ hasError: false, error: null })}
             >
-              Qayta
+              {et('retry')}
             </button>
           </div>
         );
@@ -62,23 +77,23 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4 p-8">
           <div className="text-6xl">⚠️</div>
           <h2 className="text-xl font-bold text-base-content">
-            Kutilmagan xato yuz berdi
+            {et('unexpected.title')}
           </h2>
           <p className="text-base-content/60 text-sm max-w-md text-center">
-            {this.state.error?.message || "Sahifani qayta yuklang yoki boshqa sahifaga o'ting."}
+            {this.state.error?.message || et('unexpected.desc')}
           </p>
           <div className="flex gap-2">
             <button
               className="btn btn-primary btn-sm"
               onClick={() => this.setState({ hasError: false, error: null })}
             >
-              Qayta urinish
+              {et('retry')}
             </button>
             <button
               className="btn btn-ghost btn-sm"
               onClick={() => (window.location.href = '/')}
             >
-              Bosh sahifaga
+              {et('home')}
             </button>
           </div>
         </div>

@@ -171,4 +171,67 @@ export class DiscoveryService {
       })),
     };
   }
+
+  /** Seasonal calendar — list all seasonal trends */
+  async getSeasonalCalendar(limit?: number) {
+    const MAX_SEASONAL_TRENDS = 500;
+    const take = Math.min(limit ?? MAX_SEASONAL_TRENDS, MAX_SEASONAL_TRENDS);
+
+    const trends = await this.prisma.seasonalTrend.findMany({
+      orderBy: { season_start: 'asc' },
+      take,
+    });
+
+    return {
+      events: trends.map((t) => ({
+        id: t.id,
+        name: t.season_name,
+        start_month: t.season_start,
+        end_month: t.season_end,
+        boost: t.avg_score_boost ? Number(t.avg_score_boost) : null,
+        peak_week: t.peak_week,
+        category_id: t.category_id?.toString() ?? null,
+      })),
+    };
+  }
+
+  /** Upcoming seasons — current + next month */
+  async getUpcomingSeasons() {
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1; // 1-12
+    const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+
+    const MAX_SEASONAL_TRENDS = 500;
+    const trends = await this.prisma.seasonalTrend.findMany({
+      orderBy: { season_start: 'asc' },
+      take: MAX_SEASONAL_TRENDS,
+    });
+
+    const upcoming = trends.filter((t) => {
+      if (t.season_start <= t.season_end) {
+        return (
+          (currentMonth >= t.season_start && currentMonth <= t.season_end) ||
+          (nextMonth >= t.season_start && nextMonth <= t.season_end)
+        );
+      }
+      return (
+        currentMonth >= t.season_start ||
+        currentMonth <= t.season_end ||
+        nextMonth >= t.season_start ||
+        nextMonth <= t.season_end
+      );
+    });
+
+    return {
+      current_month: currentMonth,
+      events: upcoming.map((t) => ({
+        id: t.id,
+        name: t.season_name,
+        start_month: t.season_start,
+        end_month: t.season_end,
+        boost: t.avg_score_boost ? Number(t.avg_score_boost) : null,
+        peak_week: t.peak_week,
+      })),
+    };
+  }
 }

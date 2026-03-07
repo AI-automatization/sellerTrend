@@ -3,14 +3,36 @@ import http from 'http';
 import { Bot, GrammyError, HttpError } from 'grammy';
 import { prisma } from './prisma';
 import { parseUzumProductId } from '@uzum/utils';
+import { escapeHtml } from './utils';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+const WEB_URL = process.env.WEB_URL ?? 'https://ventra.uz';
+
+// ─── Per-user rate limiter (2s cooldown) ─────────────────────────────────────
+
+const RATE_LIMIT_MS = 2000;
+const RATE_LIMIT_MAX_ENTRIES = 1000;
+const userLastMessage = new Map<number, number>();
+
+function isRateLimited(userId: number): boolean {
+  const now = Date.now();
+
+  // Evict old entries when map grows too large
+  if (userLastMessage.size > RATE_LIMIT_MAX_ENTRIES) {
+    for (const [uid, ts] of userLastMessage) {
+      if (now - ts > RATE_LIMIT_MS) {
+        userLastMessage.delete(uid);
+      }
+    }
+  }
+
+  const lastTs = userLastMessage.get(userId);
+  if (lastTs && now - lastTs < RATE_LIMIT_MS) {
+    return true;
+  }
+  userLastMessage.set(userId, now);
+  return false;
 }
 
 /** Format BigInt UZS amount: 1_500_000 → "1 500 000" */
@@ -90,6 +112,16 @@ if (!TOKEN) {
 }
 
 const bot = new Bot(TOKEN);
+
+// ─── Rate limiter middleware ─────────────────────────────────────────────────
+
+bot.use(async (ctx, next) => {
+  const userId = ctx.from?.id;
+  if (userId && isRateLimited(userId)) {
+    return; // silently drop
+  }
+  await next();
+});
 
 // ─── Commands ────────────────────────────────────────────────────────────────
 
@@ -519,7 +551,7 @@ bot.command('help', async (ctx) => {
     `/unsubscribe — Obunani bekor qiling\n` +
     `/status — Obuna holatingiz\n` +
     `/top — So'nggi top trending mahsulotlar\n\n` +
-    `Dashboard: ventra.uz`,
+    `Dashboard: ${WEB_URL}`,
     { parse_mode: 'HTML' },
   );
 });
@@ -554,8 +586,16 @@ async function bootstrap() {
   const healthPort = parseInt(process.env.PORT || '3002', 10);
   const healthServer = http.createServer((req, res) => {
     if (req.url === '/health' && req.method === 'GET') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ status: 'ok', bot: 'running', timestamp: new Date().toISOString() }));
+      bot.api.getMe()
+        .then((me) => {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'ok', bot: me.username, timestamp: new Date().toISOString() }));
+        })
+        .catch((err) => {
+          logBot('error', 'Health check: bot.api.getMe() failed', err);
+          res.writeHead(503, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'disconnected', timestamp: new Date().toISOString() }));
+        });
     } else {
       res.writeHead(404);
       res.end();

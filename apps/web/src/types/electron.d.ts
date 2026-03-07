@@ -8,9 +8,29 @@ interface VentraDesktop {
   onUpdateDownloaded(cb: (info: { version: string }) => void): void;
 }
 
+/** Telegram WebApp SDK — injected by Telegram Mini App container */
+interface TelegramWebApp {
+  ready(): void;
+  expand(): void;
+  close(): void;
+  initData: string;
+  initDataUnsafe: Record<string, unknown>;
+  colorScheme: 'light' | 'dark';
+  themeParams: Record<string, string>;
+  MainButton: {
+    text: string;
+    show(): void;
+    hide(): void;
+    onClick(cb: () => void): void;
+  };
+}
+
 declare global {
   interface Window {
     ventraDesktop?: VentraDesktop;
+    Telegram?: {
+      WebApp: TelegramWebApp;
+    };
   }
 }
 

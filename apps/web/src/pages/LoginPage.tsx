@@ -74,7 +74,7 @@ export function LoginPage() {
           </div>
 
           <p className="text-xs text-base-content/25">
-            VENTRA v5.1 — Premium Analytics
+            VENTRA v5.6 — Premium Analytics
           </p>
         </div>
       </div>
@@ -142,6 +142,12 @@ export function LoginPage() {
                   autoComplete="current-password"
                 />
               </fieldset>
+
+              <div className="text-right">
+                <Link to="/forgot-password" className="link link-primary text-xs font-medium">
+                  {t('auth.forgotPassword')}
+                </Link>
+              </div>
 
               <button
                 type="submit"

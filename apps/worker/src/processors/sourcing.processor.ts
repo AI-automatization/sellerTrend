@@ -20,6 +20,15 @@ import { browserPool } from '../browser-pool';
 import { prisma } from '../prisma';
 import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const CUSTOMS_DUTY_RATE = parseFloat(process.env.CUSTOMS_DUTY_RATE ?? '0.10');
+const VAT_RATE = parseFloat(process.env.VAT_RATE ?? '0.12');
+const BANGGOOD_LOAD_WAIT_MS = 8000;
+const BANGGOOD_SCROLL_WAIT_MS = 2000;
+const SHOPEE_LOAD_WAIT_MS = 6000;
+const SHOPEE_SCROLL_WAIT_MS = 2000;
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface SourcingSearchJobData {
@@ -171,7 +180,7 @@ async function scrapeBanggood(
   try {
     const url = `https://www.banggood.com/search/${encodeURIComponent(query)}_1.html`;
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25_000 });
-    await page.waitForTimeout(8000);
+    await page.waitForTimeout(BANGGOOD_LOAD_WAIT_MS);
 
     // Check captured JSON for product list
     for (const { json } of captured) {
@@ -179,12 +188,12 @@ async function scrapeBanggood(
         json?.data?.list ?? json?.list ?? json?.result?.list ??
         json?.products ?? json?.data?.products ?? json?.ret?.list ?? json?.data?.ret?.list;
       if (Array.isArray(list) && list.length > 0) {
-        return list.slice(0, 8).map((item: any) => ({
-          title: item.name ?? item.title ?? item.goods_name ?? '',
-          price: item.price ?? item.sale_price ?? item.shop_price ?? '',
+        return list.slice(0, 8).map((item: Record<string, unknown>) => ({
+          title: (item.name ?? item.title ?? item.goods_name ?? '') as string,
+          price: (item.price ?? item.sale_price ?? item.shop_price ?? '') as string,
           source: 'BANGGOOD',
-          link: item.url ?? item.goods_url ?? '',
-          image: item.img ?? item.goods_img ?? item.image ?? '',
+          link: (item.url ?? item.goods_url ?? '') as string,
+          image: (item.img ?? item.goods_img ?? item.image ?? '') as string,
           store: 'Banggood',
         })).filter((i: ExternalProduct) => i.title.length > 0);
       }
@@ -192,7 +201,7 @@ async function scrapeBanggood(
 
     // DOM fallback
     await page.evaluate(() => window.scrollTo(0, 600));
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(BANGGOOD_SCROLL_WAIT_MS);
 
     const items: ExternalProduct[] = await page.evaluate(() => {
       const cards = Array.from(document.querySelectorAll('li[data-product-id]')).slice(0, 10);
@@ -249,9 +258,9 @@ async function scrapeShopee(
       return [];
     }
 
-    await page.waitForTimeout(6000);
+    await page.waitForTimeout(SHOPEE_LOAD_WAIT_MS);
     await page.evaluate(() => window.scrollTo(0, 400));
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(SHOPEE_SCROLL_WAIT_MS);
 
     if (shopeeItems.length > 0) {
       return shopeeItems.slice(0, 8).map((item: any) => {
@@ -506,11 +515,9 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
             // Weight estimate: use category-based heuristic (default 0.5kg for small items)
             const estWeightKg = priceUsd > 50 ? 1.0 : priceUsd > 20 ? 0.7 : 0.5;
             const cargoCost = estWeightKg * Number(defaultProvider.rate_per_kg);
-            const customsRate = 0.10;
-            const vatRate = 0.12;
             const base = priceUsd + cargoCost;
-            const customs = base * customsRate;
-            const vat = (base + customs) * vatRate;
+            const customs = base * CUSTOMS_DUTY_RATE;
+            const vat = (base + customs) * VAT_RATE;
             const landedUsd = priceUsd + cargoCost + customs + vat;
             const landedUzs = landedUsd * usdToUzs;
 
@@ -532,8 +539,8 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
                 item_cost_usd: priceUsd,
                 weight_kg: estWeightKg,
                 quantity: 1,
-                customs_rate: customsRate,
-                vat_rate: vatRate,
+                customs_rate: CUSTOMS_DUTY_RATE,
+                vat_rate: VAT_RATE,
                 cargo_cost_usd: cargoCost,
                 customs_usd: customs,
                 vat_usd: vat,

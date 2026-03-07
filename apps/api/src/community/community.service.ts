@@ -34,7 +34,7 @@ export class CommunityService {
   }
 
   /** List insights, optionally filtered by category, ordered by net votes */
-  async listInsights(category?: string, page = 1, limit = 50) {
+  async listInsights(category?: string, page = 1, limit = 50, sort?: string) {
     const MAX_COMMUNITY_INSIGHTS = 50;
     const take = Math.min(limit, MAX_COMMUNITY_INSIGHTS);
     const skip = (page - 1) * take;
@@ -44,12 +44,27 @@ export class CommunityService {
       where.category = category;
     }
 
+    type InsightOrderBy = Prisma.CommunityInsightOrderByWithRelationInput;
+    let orderBy: InsightOrderBy[];
+    switch (sort) {
+      case 'newest':
+        orderBy = [{ created_at: 'desc' }];
+        break;
+      case 'oldest':
+        orderBy = [{ created_at: 'asc' }];
+        break;
+      case 'votes':
+      default:
+        orderBy = [{ upvotes: 'desc' }, { downvotes: 'asc' }, { created_at: 'desc' }];
+        break;
+    }
+
     const [insights, total] = await Promise.all([
       this.prisma.communityInsight.findMany({
         where,
         take,
         skip,
-        orderBy: [{ upvotes: 'desc' }, { downvotes: 'asc' }, { created_at: 'desc' }],
+        orderBy,
         include: {
           account: { select: { name: true } },
         },

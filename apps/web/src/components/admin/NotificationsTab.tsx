@@ -1,6 +1,7 @@
 // ─── NotificationsTab ────────────────────────────────────────────────────────
 
 import type { Account } from './types';
+import type { NotificationTemplate } from './adminTypes';
 
 export interface NotificationsTabProps {
   accounts: Account[];
@@ -9,7 +10,7 @@ export interface NotificationsTabProps {
   notifSending: boolean;
   notifTarget: 'all' | 'selected';
   notifSelectedAccounts: string[];
-  templates: Record<string, unknown>[];
+  templates: NotificationTemplate[];
   newTmplName: string;
   newTmplMsg: string;
   newTmplType: string;
@@ -107,14 +108,14 @@ export function NotificationsTab({
           {templates.length > 0 ? (
             <div className="space-y-2 mt-3">
               {templates.map((t) => (
-                <div key={t.id as string} className="flex items-center gap-2 bg-base-300/50 rounded-lg px-3 py-2">
-                  <span className={`badge badge-xs ${t.type === 'error' ? 'badge-error' : t.type === 'warning' ? 'badge-warning' : t.type === 'success' ? 'badge-success' : 'badge-info'}`}>{t.type as string}</span>
-                  <span className="font-semibold text-sm">{t.name as string}</span>
-                  <span className="text-xs text-base-content/50 flex-1 truncate">{t.message as string}</span>
-                  <button className="btn btn-ghost btn-xs text-primary" onClick={() => onUseTemplate(t.message as string, t.type as string)}>
+                <div key={t.id} className="flex items-center gap-2 bg-base-300/50 rounded-lg px-3 py-2">
+                  <span className={`badge badge-xs ${t.type === 'error' ? 'badge-error' : t.type === 'warning' ? 'badge-warning' : t.type === 'success' ? 'badge-success' : 'badge-info'}`}>{t.type}</span>
+                  <span className="font-semibold text-sm">{t.name}</span>
+                  <span className="text-xs text-base-content/50 flex-1 truncate">{t.message}</span>
+                  <button className="btn btn-ghost btn-xs text-primary" onClick={() => onUseTemplate(t.message, t.type)}>
                     Ishlat
                   </button>
-                  <button className="btn btn-ghost btn-xs text-error" onClick={() => onDeleteTemplate(t.id as string)}>
+                  <button className="btn btn-ghost btn-xs text-error" onClick={() => onDeleteTemplate(t.id)}>
                     X
                   </button>
                 </div>
