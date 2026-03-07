@@ -68,10 +68,10 @@ function setupCSP(): void {
         'Content-Security-Policy': [
           "default-src 'self' app:; " +
           "script-src 'self' 'unsafe-inline'; " +
-          "style-src 'self' 'unsafe-inline'; " +
+          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
           "img-src 'self' app: data: https:; " +
-          "connect-src 'self' http://localhost:* ws://localhost:* wss://localhost:*; " +
-          "font-src 'self' app: data:;",
+          "connect-src 'self' app: http://localhost:* ws://localhost:* wss://localhost:* https://app.ventra.uz https://*.ventra.uz; " +
+          "font-src 'self' app: data: https://fonts.gstatic.com;",
         ],
       },
     });
@@ -167,7 +167,7 @@ export function createMainWindow(): BrowserWindow {
       log.error('Failed to load dev URL:', err);
     });
   } else {
-    mainWindow.loadURL('app://./index.html').catch((err) => {
+    mainWindow.loadURL('app://./' ).catch((err) => {
       log.error('Failed to load app URL:', err);
     });
   }

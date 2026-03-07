@@ -52,7 +52,7 @@ export function DownloadBanner({ canShow }: DownloadBannerProps) {
                 </p>
                 <div className="flex gap-2 mt-3">
                   <a
-                    href="https://github.com/AI-automatization/sellerTrend-desktop/releases/download/v1.0.0/VENTRA.Setup.1.0.0.exe"
+                    href="https://github.com/AI-automatization/sellerTrend-desktop/releases/download/v1.0.2/VENTRA.Setup.1.0.2.exe"
                     className="btn btn-primary btn-xs rounded-full"
                     download
                   >

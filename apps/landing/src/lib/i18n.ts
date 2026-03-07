@@ -179,7 +179,7 @@ const translations = {
 
     // Download banner
     'download.title': 'VENTRA Desktop — Brauzer ochmasdan ishlang',
-    'download.version': 'v1.0.0 · 85 MB · Windows 10+ / macOS 12+',
+    'download.version': 'v1.0.2 · 85 MB · Windows 10+ / macOS 12+',
     'download.win': 'Windows yuklab olish',
     'download.mac': 'macOS',
     'download.soon': 'Tez kunda',
@@ -390,7 +390,7 @@ const translations = {
 
     // Download banner
     'download.title': 'VENTRA Desktop — Работайте без браузера',
-    'download.version': 'v1.0.0 · 85 MB · Windows 10+ / macOS 12+',
+    'download.version': 'v1.0.2 · 85 MB · Windows 10+ / macOS 12+',
     'download.win': 'Скачать для Windows',
     'download.mac': 'macOS',
     'download.soon': 'Скоро',

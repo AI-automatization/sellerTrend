@@ -58,7 +58,7 @@ export function HeroSection({ appUrl }: HeroSectionProps) {
                 {t('hero.cta1')}
               </a>
               <a
-                href="https://github.com/AI-automatization/sellerTrend-desktop/releases/download/v1.0.0/VENTRA.Setup.1.0.0.exe"
+                href="https://github.com/AI-automatization/sellerTrend-desktop/releases/download/v1.0.2/VENTRA.Setup.1.0.2.exe"
                 onClick={() => track('Download Click', { location: 'hero' })}
                 className="btn btn-outline rounded-full px-8 py-3 text-base font-600 border-base-content/20 text-base-content hover:bg-base-content/10"
                 aria-label="Desktop ilovani yuklab olish"
