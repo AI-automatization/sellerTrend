@@ -84,12 +84,76 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 ---
 
+# LANDING UX AUDIT — 2026-03-07 (Playwright)
+
+> Manba: Playwright screenshot audit, localhost:5174
+
+## P0 — KRITIK
+
+### T-401 | P0 | FRONTEND | Video demo section — olib tashlash yoki real video | 30min
+
+Manba: Playwright audit (2026-03-07)
+
+**Muammo:** "VENTRA qanday ishlashini ko'ring" section butunlay bo'sh — faqat play tugmasi va `"Demo video tez kunda chiqadi"` matni. Yangi foydalanuvchi "sayt tayyor emas" deb o'ylaydi.
+
+**Yechim:** Video tayyor bo'lmaguncha shu sectionni `display:none` yoki komponentdan olib tashlash. Real video bo'lsa — `<iframe>` yoki `<video>` tag bilan qo'shish.
+
+**Fayllar:** `apps/landing/src/components/VideoDemoSection.tsx` (yoki shu nom bilan fayl)
+
+---
+
+> ~~T-402~~ ✅ DONE (2026-03-07) → Done.md
+
+> ~~T-407~~ ✅ DONE (2026-03-07) → Done.md — GitHub sellerTrend-desktop repo yaratish + README push
+
+> ~~T-408~~ ✅ DONE (2026-03-07) → Done.md — GitHub Releases v1.0.0 yaratish + installer upload
+
+> ~~T-409~~ ✅ DONE (2026-03-07) → Done.md — Landing Hero + DownloadBanner Windows URL ulash
+
+---
+
+## P1 — MUHIM
+
+### T-403 | P1 | FRONTEND | Mobile hero — dashboard screenshot yo'q | 1h
+
+Manba: Playwright audit, 390px viewport (2026-03-07)
+
+**Muammo:** Mobil (390px) da hero sectiondagi dashboard screenshot ko'rinmaydi — faqat matn va tugmalar. Vizual element yo'qligi ishonchni kamaytiradi.
+
+**Yechim:** Mobile da ham screenshot ko'rsatish — kichikroq qilib yoki vertikal joylashtirib. `hidden md:block` klassini tekshirish.
+
+**Fayllar:** `apps/landing/src/components/HeroSection.tsx`
+
+---
+
+> ~~T-404~~ ✅ DONE (2026-03-07) → Done.md
+
+---
+
+## P2 — O'RTA
+
+> ~~T-405~~ ✅ DONE (2026-03-07) → Done.md
+
+---
+
+### T-406 | P2 | FRONTEND | Testimonials — ko'paytirish va real ma'lumot | 1h
+
+Manba: Playwright audit (2026-03-07)
+
+**Muammo:** Faqat 2 ta testimonial, 2-si o'ng tomonda qisman kesib ketgan. Kam soni ishontirmaydi.
+
+**Yechim:** Kamida 4 ta testimonial, slider/carousel bilan. Real foydalanuvchi ma'lumotlari (M-003 bilan birga).
+
+**Fayllar:** `apps/landing/src/components/TestimonialsSection.tsx`
+
+---
+
 # LANDING MANUAL (4 task)
 
 | # | Nima | Vaqt | Holat |
 |---|------|------|-------|
 | M-001 | Dashboard screenshot'lar | 30min | ⬜ |
-| M-002 | Desktop installer build | 20min | ⬜ |
+| ~~M-002~~ | ~~Desktop installer build~~ | ~~20min~~ | ✅ DONE (2026-03-07) |
 | M-003 | Testimonial ma'lumotlari | 1h | ⬜ |
 | M-004 | Domain va hosting | 30min | ⬜ |
 
@@ -104,8 +168,11 @@ Manba: T-328 dan ajratildi (2026-03-06)
 | ~~Desktop P1 (T-320..T-327)~~ | ✅ DONE |
 | Desktop P2 (T-328) | 10 |
 | Landing Manual (M-001..M-004) | 4 |
-| **JAMI task ochiq** | **~15** |
-| **JAMI bug/fix ochiq** | **~14** |
+| **Landing UX Audit P0** (T-401..T-402) | **2 task** |
+| **Landing UX Audit P1** (T-403..T-404) | **2 task** |
+| **Landing UX Audit P2** (T-405..T-406) | **2 task** |
+| **JAMI task ochiq** | **~21** |
+| **JAMI bug/fix ochiq** | **~20** |
 |  |  |
 | ~~Web Audit~~ (T-361..T-370) | → **Bekzod**ga ko'chirildi |
 | ~~T-377, T-380, T-381~~ (web app) | → **Bekzod**ga ko'chirildi |

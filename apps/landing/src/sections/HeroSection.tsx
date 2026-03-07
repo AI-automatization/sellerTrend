@@ -25,7 +25,7 @@ export function HeroSection({ appUrl }: HeroSectionProps) {
         <div className="absolute inset-0 opacity-5 grid-pattern" />
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-20">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left: Text */}
           <div>
@@ -58,14 +58,11 @@ export function HeroSection({ appUrl }: HeroSectionProps) {
                 {t('hero.cta1')}
               </a>
               <a
-                href="#download"
-                onClick={(e) => {
-                  e.preventDefault();
-                  track('Download Click', { location: 'hero' });
-                  document.querySelector('#download')?.scrollIntoView({ behavior: 'smooth' });
-                }}
+                href="https://github.com/AI-automatization/sellerTrend-desktop/releases/download/v1.0.0/VENTRA.Setup.1.0.0.exe"
+                onClick={() => track('Download Click', { location: 'hero' })}
                 className="btn btn-outline rounded-full px-8 py-3 text-base font-600 border-base-content/20 text-base-content hover:bg-base-content/10"
                 aria-label="Desktop ilovani yuklab olish"
+                download
               >
                 <MonitorIcon className="w-4 h-4 inline-block" /> {t('hero.cta2')}
               </a>

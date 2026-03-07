@@ -4,6 +4,45 @@
 
 ---
 
+## T-409 | LANDING | Landing download tugmalari — Windows URL ulash (2026-03-07)
+
+- `HeroSection.tsx` — "Desktop yuklab olish" tugmasi `#download` scroll o'rniga to'g'ridan `.exe` URL ga
+- `DownloadBanner.tsx` — "Windows yuklab olish" `disabled` button → real GitHub Releases `<a href>` ga
+
+## T-408 | DEVOPS | GitHub Releases v1.0.0 — installer upload (2026-03-07)
+
+- `AI-automatization/sellerTrend-desktop` reposida `v1.0.0` release yaratildi
+- `VENTRA Setup 1.0.0.exe` (82MB) upload qilindi
+- Download URL: `https://github.com/AI-automatization/sellerTrend-desktop/releases/download/v1.0.0/VENTRA.Setup.1.0.0.exe`
+
+## T-407 | DEVOPS | GitHub sellerTrend-desktop repo yaratish (2026-03-07)
+
+- `AI-automatization/sellerTrend-desktop` public repo yaratildi
+- `README.md` push qilindi (birinchi commit, releases uchun zarur)
+
+## M-002 + Landing Download | Desktop installer + Landing integratsiya (2026-03-07)
+
+- **VENTRA Setup 1.0.0.exe** — `pnpm dist:win` (Developer Mode yoqib, NSIS installer, 82MB)
+- **GitHub Releases** — `AI-automatization/sellerTrend-desktop` repo, `v1.0.0` release
+- **HeroSection** — "Desktop yuklab olish" tugmasi real GitHub Releases URL ga ulandi
+- **DownloadBanner** — "Windows yuklab olish" tugmasi real URL ga ulandi, macOS hali disabled
+
+## T-402 | LANDING P0 | Stats "21/7" typo (2026-03-07)
+
+- Kod da allaqachon `value: 24, suffix: '/7'` to'g'ri edi — animatsiya artefakti, bug yo'q edi
+
+## T-404 | LANDING P1 | Cookie + Download banner overlap fix (2026-03-07)
+
+- `App.tsx` — `cookieDone` state qo'shildi, `CookieBanner` `onDone` callback oladi
+- `CookieBanner` — accept/decline da `onDone()` chaqiriladi
+- `DownloadBanner` — `canShow` prop qo'shildi, cookie yopilgandan keyingina chiqadi (1s delay)
+
+## T-405 | LANDING P2 | Hero top whitespace (2026-03-07)
+
+- `HeroSection.tsx` — `py-20` → `pt-8 pb-20` (~80px yuqori padding kamaytirish)
+
+---
+
 ## T-400 | LANDING P1 | Dizayn fix — VENTRA uslubiga moslashtirish (2026-03-06)
 
 - **CookieBanner** — `AnimatePresence` + `motion` + `glass-card` + `glow-btn`, 1.5s delay bilan chiqadi

@@ -3,24 +3,29 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLang } from '../lib/LangContext';
 import { MonitorIcon } from './icons';
 
-const COOKIE_KEY = 'ventra-download-banner-dismissed';
+const DISMISS_KEY = 'ventra-download-banner-dismissed';
 
-export function DownloadBanner() {
+interface DownloadBannerProps {
+  canShow: boolean;
+}
+
+export function DownloadBanner({ canShow }: DownloadBannerProps) {
   const [visible, setVisible] = useState(false);
   const { t } = useLang();
 
   useEffect(() => {
+    if (!canShow) return;
     try {
-      const dismissed = localStorage.getItem(COOKIE_KEY);
+      const dismissed = localStorage.getItem(DISMISS_KEY);
       if (!dismissed) {
-        const timer = setTimeout(() => setVisible(true), 3000);
+        const timer = setTimeout(() => setVisible(true), 1000);
         return () => clearTimeout(timer);
       }
     } catch { /* Safari private mode */ }
-  }, []);
+  }, [canShow]);
 
   function dismiss() {
-    try { localStorage.setItem(COOKIE_KEY, '1'); } catch { /* Safari private mode */ }
+    try { localStorage.setItem(DISMISS_KEY, '1'); } catch { /* Safari private mode */ }
     setVisible(false);
   }
 
@@ -46,13 +51,13 @@ export function DownloadBanner() {
                   {t('download.version')}
                 </p>
                 <div className="flex gap-2 mt-3">
-                  <button
-                    className="btn btn-primary btn-xs rounded-full opacity-60 cursor-not-allowed"
-                    disabled
-                    title={t('download.soon')}
+                  <a
+                    href="https://github.com/AI-automatization/sellerTrend-desktop/releases/download/v1.0.0/VENTRA.Setup.1.0.0.exe"
+                    className="btn btn-primary btn-xs rounded-full"
+                    download
                   >
                     {t('download.win')}
-                  </button>
+                  </a>
                   <button
                     className="btn btn-outline btn-xs rounded-full opacity-60 cursor-not-allowed"
                     disabled

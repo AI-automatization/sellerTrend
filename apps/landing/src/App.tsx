@@ -18,9 +18,13 @@ import { PrivacyPage } from './pages/PrivacyPage';
 import { TermsPage } from './pages/TermsPage';
 
 const APP_URL = import.meta.env.VITE_APP_URL || 'https://app.ventra.uz';
+const COOKIE_KEY = 'ventra_cookie_consent';
 
 export default function App() {
   const [pathname, setPathname] = useState(window.location.pathname);
+  const [cookieDone, setCookieDone] = useState(() => {
+    try { return !!localStorage.getItem(COOKIE_KEY); } catch { return false; }
+  });
 
   useEffect(() => {
     const onPop = () => setPathname(window.location.pathname);
@@ -48,8 +52,8 @@ export default function App() {
         <EmailCaptureSection />
       </main>
       <FooterSection />
-      <DownloadBanner />
-      <CookieBanner />
+      <DownloadBanner canShow={cookieDone} />
+      <CookieBanner onDone={() => setCookieDone(true)} />
     </div>
   );
 }

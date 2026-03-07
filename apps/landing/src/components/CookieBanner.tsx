@@ -4,7 +4,11 @@ import { useLang } from '../lib/LangContext';
 
 const STORAGE_KEY = 'ventra_cookie_consent';
 
-export function CookieBanner() {
+interface CookieBannerProps {
+  onDone: () => void;
+}
+
+export function CookieBanner({ onDone }: CookieBannerProps) {
   const { t } = useLang();
   const [visible, setVisible] = useState(false);
 
@@ -13,20 +17,25 @@ export function CookieBanner() {
       if (!localStorage.getItem(STORAGE_KEY)) {
         const timer = setTimeout(() => setVisible(true), 1500);
         return () => clearTimeout(timer);
+      } else {
+        onDone();
       }
     } catch {
       // Private mode
+      onDone();
     }
   }, []);
 
   function accept() {
     try { localStorage.setItem(STORAGE_KEY, 'accepted'); } catch { /* ignore */ }
     setVisible(false);
+    onDone();
   }
 
   function decline() {
     try { localStorage.setItem(STORAGE_KEY, 'declined'); } catch { /* ignore */ }
     setVisible(false);
+    onDone();
   }
 
   return (
