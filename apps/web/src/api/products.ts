@@ -1,4 +1,5 @@
 import { api } from './base';
+import type { SearchProduct } from './types';
 
 export const productsApi = {
   getTracked: () => api.get('/products/tracked'),
@@ -9,6 +10,10 @@ export const productsApi = {
   getMlForecast: (productId: string) => api.get(`/products/${productId}/ml-forecast`),
   getTrendAnalysis: (productId: string) => api.get(`/products/${productId}/trend-analysis`),
   getWeeklyTrend: (productId: string) => api.get(`/products/${productId}/weekly-trend`),
+  searchProducts: (query: string, limit = 24) =>
+    api.get<SearchProduct[]>('/products/search', { params: { q: query, limit } }),
+  trackFromSearch: (uzumProductId: number) =>
+    api.post<{ tracked: boolean }>(`/products/search/${uzumProductId}/track`),
 };
 
 export const uzumApi = {

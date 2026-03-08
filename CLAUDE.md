@@ -86,29 +86,36 @@ packages/utils/  → Shared utils (IKKALASI — kelishib)
 
 ---
 
-## TASK TRACKING (MAJBURIY)
+## TASK TRACKING v2 (MAJBURIY)
 
 **Loyiha vazifalari 2 ta faylda boshqariladi:**
 
 | Fayl | Vazifasi |
 |------|----------|
-| `docs/Tasks.md` | Barcha ochiq vazifalar — bug, error, feature, arxitektura, devops |
-| `docs/Done.md` | Bajarilgan ishlar arxivi — fix, feature, test natijalari |
+| `docs/Tasks.md` | Ochiq vazifalar + task formati qoidalari (batafsil shablon ichida) |
+| `docs/Done.md` | Bajarilgan ishlar arxivi (manba, muammo, yechim, ta'sir) |
 
-**Yangi bug/error/task topilganda `docs/Tasks.md` ga qo'shiladi:**
+**Task formati `docs/Tasks.md` ichida batafsil yozilgan — U YERDAN O'QI.**
 
-Format: `T-XXX | [KATEGORIYA] | Sarlavha | Mas'ul | Vaqt`
-- Kategoriyalar: BACKEND, FRONTEND, DEVOPS, IKKALASI
-- Prioritetlar: P0 (kritik), P1 (muhim), P2 (o'rta), P3 (past)
+**Qisqa eslatma:**
 
-**Fix bo'lgandan keyin:**
-1. `docs/Tasks.md` dan o'chiriladi
-2. `docs/Done.md` ga ko'chiriladi (sana + qisqa yechim)
+```
+SARLAVHA:   ### T-XXX | P(0-3) | KATEGORIYA | Sarlavha | Vaqt
+MAJBURIY:   Sana, Manba, Mas'ul, Tahlil, Muammo, Yechim, Fayllar
+IXTIYORIY:  Topilgan joyda, Qo'shimcha kontekst, Screenshot
+
+MANBA TEGLARI (standart):
+  kod-audit | production-bug | ai-tahlil | user-feedback |
+  code-review | dependency-update | sentry-alert |
+  self-improve | regression | performance
+```
 
 **Qoidalar:**
 - Bug/task topilgan paytda DARHOL yoziladi
-- Har sessiyada avval `docs/Tasks.md` o'qib, T-raqamni davom ettirish
+- Har sessiyada avval `docs/Tasks.md` o'qib, T-raqamni davom ettirish (hozirgi: T-410, keyingi: T-411)
 - Takroriy task yaratmaslik, mavjudini yangilash
+- **Tahlil** maydoni MAJBURIY — "nega" bu muammo, ta'sir ko'lami yozilishi SHART
+- **Done.md** ga ko'chirganda **Ta'sir** maydoni MAJBURIY — nima yaxshilandi
 
 ### GIT-BASED TASK LOCKING (MAJBURIY)
 

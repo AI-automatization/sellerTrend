@@ -99,6 +99,21 @@ export interface TrackedProduct {
   photo_url?: string | null;
 }
 
+// ─── Search Domain ──────────────────────────────────────────────────────────
+
+export interface SearchProduct {
+  id: number;
+  productId?: number;
+  title: string;
+  sellPrice?: number;
+  minSellPrice?: number;
+  rating: number;
+  ordersQuantity?: number;
+  ordersAmount?: number;
+  reviewsAmount?: number;
+  photoUrl?: string;
+}
+
 // ─── Revenue Estimator Domain ────────────────────────────────────────────────
 
 export type CompetitionLevel = 'low' | 'medium' | 'high';
