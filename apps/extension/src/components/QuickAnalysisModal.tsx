@@ -4,6 +4,7 @@ import type { QuickScoreResponseBody } from "~/background/messages/quick-score";
 import type { CategoryItem } from "~/lib/api";
 import AdvancedFilters from "./AdvancedFilters";
 import CategoryInsights from "./CategoryInsights";
+import CompetitorAnalysis from "./CompetitorAnalysis";
 
 interface QuickAnalysisModalProps {
   productId: string | null;
@@ -66,12 +67,14 @@ export default function QuickAnalysisModal({
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"score" | "price-asc" | "price-desc" | "weekly">("score");
+  const [activeTab, setActiveTab] = useState<"analysis" | "competitors">("analysis");
 
   useEffect(() => {
     if (!isOpen) {
       setProduct(null);
       setSearchQuery("");
       setSortBy("score");
+      setActiveTab("analysis");
       return;
     }
 
@@ -156,8 +159,27 @@ export default function QuickAnalysisModal({
             {/* Product Analysis */}
             {product && !isCategory && (
               <div className="space-y-4">
-                {/* Stats Grid */}
-                <div className="grid grid-cols-2 gap-3">
+                {/* Tabs */}
+                <div className="tabs tabs-boxed bg-base-200 p-1">
+                  <button
+                    className={`tab tab-sm ${activeTab === "analysis" ? "tab-active" : ""}`}
+                    onClick={() => setActiveTab("analysis")}
+                  >
+                    📊 Tahlil
+                  </button>
+                  <button
+                    className={`tab tab-sm ${activeTab === "competitors" ? "tab-active" : ""}`}
+                    onClick={() => setActiveTab("competitors")}
+                  >
+                    🏆 Raqobatchilar
+                  </button>
+                </div>
+
+                {/* Analysis Tab Content */}
+                {activeTab === "analysis" && (
+                  <>
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-2 gap-3">
                   {/* Score */}
                   <div className="stat bg-base-200 rounded-lg p-3">
                     <div className="stat-title text-xs">Score</div>
@@ -217,6 +239,36 @@ export default function QuickAnalysisModal({
                     Yopish
                   </button>
                 </div>
+                  </>
+                )}
+
+                {/* Competitors Tab Content */}
+                {activeTab === "competitors" && (
+                  <CompetitorAnalysis
+                    product={product}
+                    maxPrice={product.sell_price}
+                  />
+                )}
+
+                {/* Close in competitors tab too */}
+                {activeTab === "competitors" && (
+                  <div className="flex gap-2 pt-4 border-t">
+                    <a
+                      href={`https://ventra.uz/analyze?productId=${product.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn btn-primary btn-sm flex-1"
+                    >
+                      Batafsil
+                    </a>
+                    <button
+                      onClick={onClose}
+                      className="btn btn-outline btn-sm flex-1"
+                    >
+                      Yopish
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
