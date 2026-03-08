@@ -1,6 +1,8 @@
 import { Injectable, Inject, Logger, NotFoundException, forwardRef } from '@nestjs/common';
+import Redis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
-import { UzumClient } from '../uzum/uzum.client';
+import { UzumClient, UzumSearchProduct } from '../uzum/uzum.client';
+import { REDIS_CLIENT } from '../common/redis/redis.module';
 import { forecastEnsemble, calcWeeklyBought } from '@uzum/utils';
 import { RevenueEstimateResponse } from './dto/revenue-estimate.dto';
 
@@ -45,6 +47,8 @@ export class ProductsService {
     private readonly prisma: PrismaService,
     @Inject(forwardRef(() => UzumClient))
     private readonly uzumClient: UzumClient,
+    @Inject(REDIS_CLIENT)
+    private readonly redis: Redis,
   ) {}
 
   /**
@@ -225,6 +229,39 @@ export class ProductsService {
       })),
       total: fallbackIds.length,
     };
+  }
+
+  /** Search Uzum products by text query with 5-min Redis cache */
+  async searchProducts(query: string, limit = 24): Promise<UzumSearchProduct[]> {
+    const CACHE_TTL_SECONDS = 300; // 5 minutes
+    const sanitized = query.trim().slice(0, 100);
+    if (sanitized.length < 2) return [];
+
+    const cacheKey = `search:${sanitized}:${limit}`;
+
+    // Check Redis cache
+    try {
+      const cached = await this.redis.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached) as UzumSearchProduct[];
+      }
+    } catch (err: unknown) {
+      this.logger.warn(`Redis cache read error: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    // Fetch from Uzum API
+    const results = await this.uzumClient.searchProducts(sanitized, limit, 0);
+
+    // Cache result (only if non-empty)
+    if (results.length > 0) {
+      try {
+        await this.redis.set(cacheKey, JSON.stringify(results), 'EX', CACHE_TTL_SECONDS);
+      } catch (err: unknown) {
+        this.logger.warn(`Redis cache write error: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+
+    return results;
   }
 
   async getTrackedProducts(accountId: string) {

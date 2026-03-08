@@ -8,6 +8,7 @@ import { ParseBigIntPipe } from '../common/pipes/parse-bigint.pipe';
 import { ProductsService } from './products.service';
 import { AiService } from '../ai/ai.service';
 import { RecommendationsQueryDto } from './dto/recommendations-query.dto';
+import { SearchQueryDto } from './dto/search-query.dto';
 
 @ApiTags('products')
 @ApiBearerAuth()
@@ -31,6 +32,15 @@ export class ProductsController {
     @Query() query: RecommendationsQueryDto,
   ) {
     return this.productsService.getRecommendations(accountId, query.niche, query.limit);
+  }
+
+  /** Uzum search proxy with 5-min Redis cache */
+  @Get('search')
+  searchProducts(
+    @CurrentUser('account_id') _accountId: string,
+    @Query() query: SearchQueryDto,
+  ) {
+    return this.productsService.searchProducts(query.q, query.limit);
   }
 
   @Get(':id')

@@ -301,6 +301,48 @@ export class UzumClient {
   }
 
   /**
+   * Search Uzum products by text query.
+   * Returns items array from the search endpoint.
+   * On error / rate-limit returns empty array.
+   */
+  async searchProducts(
+    query: string,
+    size: number,
+    page: number,
+  ): Promise<UzumSearchProduct[]> {
+    const url =
+      `${REST_BASE}/main/search/product` +
+      `?text=${encodeURIComponent(query)}&size=${size}&page=${page}&sort=BY_RELEVANCE_DESC&showAdultContent=HIDE`;
+
+    try {
+      const response = await fetchWithTimeout(url, {
+        headers: HEADERS,
+        dispatcher: proxyDispatcher,
+      });
+
+      if (response.status === 429) {
+        this.logger.warn('searchProducts rate limited (429)');
+        return [];
+      }
+
+      if (!response.ok) {
+        this.logger.warn(`searchProducts HTTP ${response.status}`);
+        return [];
+      }
+
+      const data = (await response.json()) as UzumApiResponse;
+      const products: UzumSearchProduct[] =
+        data?.payload?.products ?? data?.products ?? data?.data?.products ?? [];
+      return products;
+    } catch (err: unknown) {
+      this.logger.warn(
+        `searchProducts failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return [];
+    }
+  }
+
+  /**
    * Fetch category listing via REST API (legacy — broken endpoint)
    */
   async fetchCategoryListing(
