@@ -274,12 +274,79 @@ Modal'da: "⭐ Sevimlilarga qo'shish" button + text area
 
 ---
 
+## Phase 6 — AI + Hotkeys (P2) ~2.5h
+
+### T-223 | P2 | FRONTEND | Extension — AI recommendations (Claude) | 1.5h
+
+**Manba:** yangi-feature
+**Topilgan joyda:** `apps/extension/src/components/AIRecommendations.tsx`
+**Mas'ul:** pending[Sardor]
+
+**Tahlil:**
+Mahsulot tahlilida AI ko'rsatmalari — Claude API orqali.
+Modal'da: "💡 AI Ko'rsatma" section
+
+AI'dan:
+- Mahsulot tavsiyalari (narxi, reyting, raqobat)
+- Yaxshilash bo'yicha maslahatlar
+- Risk analiz (qoshimcha tafsirlar)
+
+**Yechim:**
+1. `AIRecommendations.tsx` — YANGI component
+   - Prompt: product score, price, competitors, weekly_bought → analysis
+   - Streaming yoki regular response
+   - Markdown formatting
+2. `QuickAnalysisModal.tsx` — Integrate in analysis tab (collapse/expand)
+3. Rate limiting: localStorage key + 1-hour cache
+4. Backend: `/api/v1/ai/analyze-product` endpoint (future)
+
+**Fayllar:**
+- `apps/extension/src/components/AIRecommendations.tsx` — YANGI
+- `apps/extension/src/components/QuickAnalysisModal.tsx` — Integrate
+- `apps/extension/src/lib/api.ts` — `getAIRecommendations()` (future)
+
+**Bog'liqlik:** T-220 DONE
+
+---
+
+### T-224 | P2 | FRONTEND | Extension — Hotkeys & shortcuts | 1h
+
+**Manba:** yangi-feature
+**Topilgan joyda:** `apps/extension/src/lib/hotkeys.ts`
+**Mas'ul:** pending[Sardor]
+
+**Tahlil:**
+Extension'da hotkey'lar:
+- `Ctrl+Shift+V` — Open/close popup
+- `Ctrl+Shift+T` — Toggle quick analysis modal
+- `Ctrl+Shift+S` — Save to favorites (product page'da)
+- `Ctrl+Shift+N` — Open notes editor
+
+Content script orqali keyboard events.
+
+**Yechim:**
+1. `hotkeys.ts` — YANGI helper
+   - Register hotkeys
+   - Global listeners (content script)
+2. `contents/product-page.tsx` — Add hotkey listeners
+3. `popup.tsx` — Hotkey hints (small tooltips)
+4. Settings page (future): customizable hotkeys
+
+**Fayllar:**
+- `apps/extension/src/lib/hotkeys.ts` — YANGI
+- `apps/extension/src/contents/product-page.tsx` — UPDATED
+- `apps/extension/src/popup.tsx` — UPDATED (hints)
+
+**Bog'liqlik:** T-217 DONE
+
+---
+
 | Faza | Tasklar | Vaqt | Holat |
 |------|---------|------|-------|
 | 3. Popup Dashboard (P1) | ~~T-216~~ | ~1.5h | ✅ DONE (2026-03-08) |
 | 4. Category + Advanced (P1) | ~~T-217, T-218, T-219~~ | ~5h | ✅ DONE (2026-03-08) |
-| 5. Competitor + Narx (P2) | T-220..T-222 | ~4.5h | pending[Sardor] — **T-220** |
-| 6. AI + Hotkeys (P2) | T-223..T-224 | ~2.5h | ⬜ |
+| 5. Competitor + Narx (P2) | ~~T-220, T-221, T-222~~ | ~4.5h | ✅ DONE (2026-03-08) |
+| 6. AI + Hotkeys (P2) | T-223..T-224 | ~2.5h | pending[Sardor] — **T-223** |
 | 7. i18n + Testing (P2) | T-225..T-227 | ~4.5h | ⬜ |
 | 8. Build + Publish (P1) | T-228..T-229 | ~3h | ⬜ |
 | 9. Security + Polish (P1) | T-230..T-233 | ~3.5h | ⬜ |
