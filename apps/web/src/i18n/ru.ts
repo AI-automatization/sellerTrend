@@ -1353,6 +1353,28 @@ export const ru: Record<string, string> = {
     'achievement.sourcing_pro.title': 'Sourcing Pro',
     'achievement.sourcing_pro.desc': '3 расчёта sourcing',
 
+    // ── Search ──────────────────────────────────────────────────────────────
+    'nav.search': 'Поиск',
+    'search.title': 'Поиск товаров',
+    'search.subtitle': 'Поиск товаров на маркетплейсе Uzum по названию',
+    'search.placeholder': 'Поиск товаров... напр. iPhone, Samsung, ...',
+    'search.minChars': 'Введите минимум 2 символа для поиска',
+    'search.error': 'Ошибка поиска. Попробуйте ещё раз.',
+    'search.resultsCount': 'Найдено {count} товаров',
+    'search.orders': 'Заказы',
+    'search.reviews': 'Отзывы',
+    'search.from': 'от',
+    'search.noPrice': 'Цена N/A',
+    'search.track': 'Отслеживать',
+    'search.tracked': 'Отслеживается',
+    'search.trackSuccess': 'Товар добавлен в отслеживание',
+    'search.trackError': 'Не удалось добавить товар',
+    'search.noResults': 'Товары не найдены',
+    'search.noResultsHint': 'Попробуйте другой запрос',
+    'search.initial': 'Поиск товаров',
+    'search.initialHint': 'Начните вводить, чтобы найти товары на Uzum',
+    'hints.search': 'Ищите товары по названию на маркетплейсе Uzum. Нажмите Отслеживать, чтобы добавить их на дашборд.',
+
     // ── What\'s New ──────────────────────────────────────────────────────────
     'whatsNew.title': 'Что нового',
     'whatsNew.dismiss': 'Понятно',

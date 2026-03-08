@@ -1,13 +1,13 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { HomeIcon, MagnifyingGlassIcon, ArrowTrendingUpIcon, SignalIcon, GlobeAltIcon } from './icons';
+import { HomeIcon, MagnifyingGlassCircleIcon, MagnifyingGlassIcon, ArrowTrendingUpIcon, SignalIcon, GlobeAltIcon } from './icons';
 import { useI18n } from '../i18n/I18nContext';
 
 const NAV_ITEMS = [
   { to: '/', icon: HomeIcon, labelKey: 'nav.dashboard', end: true },
+  { to: '/search', icon: MagnifyingGlassCircleIcon, labelKey: 'nav.search', end: false },
   { to: '/analyze', icon: MagnifyingGlassIcon, labelKey: 'nav.analyze', end: false },
   { to: '/discovery', icon: ArrowTrendingUpIcon, labelKey: 'nav.discovery', end: false },
   { to: '/signals', icon: SignalIcon, labelKey: 'nav.signals', end: false },
-  { to: '/sourcing', icon: GlobeAltIcon, labelKey: 'nav.sourcing', end: false },
 ] as const;
 
 export function BottomNav() {

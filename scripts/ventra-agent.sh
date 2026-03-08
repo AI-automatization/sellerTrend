@@ -27,6 +27,7 @@ COUNT=1
 DRY_RUN=false
 ZONE_FILTER=""
 PRIORITY_FILTER=""
+AUTO_YES=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -34,6 +35,7 @@ while [[ $# -gt 0 ]]; do
     --dry-run)  DRY_RUN=true; shift ;;
     --zone)     ZONE_FILTER="$2"; shift 2 ;;
     --priority) PRIORITY_FILTER="$2"; shift 2 ;;
+    --yes|-y)   AUTO_YES=true; shift ;;
     --help)
       echo "VENTRA Autonomous Agent Runner"
       echo ""
@@ -420,12 +422,14 @@ main() {
   fi
 
   # Tasdiqlash
-  echo ""
-  read -p "Davom etaymi? (y/n): " -n 1 -r
-  echo ""
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    log_info "Bekor qilindi."
-    exit 0
+  if [[ "$AUTO_YES" != true ]]; then
+    echo ""
+    read -p "Davom etaymi? (y/n): " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      log_info "Bekor qilindi."
+      exit 0
+    fi
   fi
 
   # Tasklar bajarish

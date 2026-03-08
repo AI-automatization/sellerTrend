@@ -14,6 +14,7 @@ import { isTokenValid, getTokenPayload } from './api/client';
 
 // Lazy-loaded pages (code splitting)
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
+const SearchPage = lazy(() => import('./pages/SearchPage').then(m => ({ default: m.SearchPage })));
 const AnalyzePage = lazy(() => import('./pages/AnalyzePage').then(m => ({ default: m.AnalyzePage })));
 const ProductPage = lazy(() => import('./pages/ProductPage').then(m => ({ default: m.ProductPage })));
 const DiscoveryPage = lazy(() => import('./pages/DiscoveryPage').then(m => ({ default: m.DiscoveryPage })));
@@ -88,6 +89,7 @@ export default function App() {
           }
         >
           <Route index element={<LazyRoute><DashboardPage /></LazyRoute>} />
+          <Route path="search" element={<LazyRoute><SearchPage /></LazyRoute>} />
           <Route path="analyze" element={<LazyRoute><AnalyzePage /></LazyRoute>} />
           <Route path="products/:id" element={<LazyRoute><ProductPage /></LazyRoute>} />
           <Route path="discovery" element={<LazyRoute><DiscoveryPage /></LazyRoute>} />

@@ -1364,6 +1364,28 @@ export const en: Record<string, string> = {
     'achievement.sourcing_pro.title': 'Sourcing Pro',
     'achievement.sourcing_pro.desc': 'Calculate 3 sourcing estimates',
 
+    // ── Search ──────────────────────────────────────────────────────────────
+    'nav.search': 'Search',
+    'search.title': 'Product Search',
+    'search.subtitle': 'Search Uzum marketplace products by name',
+    'search.placeholder': 'Search products... e.g. iPhone, Samsung, ...',
+    'search.minChars': 'Enter at least 2 characters to search',
+    'search.error': 'Search failed. Please try again.',
+    'search.resultsCount': '{count} products found',
+    'search.orders': 'Orders',
+    'search.reviews': 'Reviews',
+    'search.from': 'from',
+    'search.noPrice': 'Price N/A',
+    'search.track': 'Track',
+    'search.tracked': 'Tracked',
+    'search.trackSuccess': 'Product added to tracking',
+    'search.trackError': 'Failed to track product',
+    'search.noResults': 'No products found',
+    'search.noResultsHint': 'Try a different search query',
+    'search.initial': 'Search for products',
+    'search.initialHint': 'Start typing to find products on Uzum',
+    'hints.search': 'Search products by name across the Uzum marketplace. Click Track to add them to your dashboard.',
+
     // ── What\'s New ──────────────────────────────────────────────────────────
     'whatsNew.title': "What's New",
     'whatsNew.dismiss': 'Got it',

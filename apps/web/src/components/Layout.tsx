@@ -8,6 +8,7 @@ import {
   HomeIcon,
   ChartBarIcon,
   MagnifyingGlassIcon,
+  MagnifyingGlassCircleIcon,
   ArrowRightOnRectangleIcon,
   WalletIcon,
   ArrowTrendingUpIcon,
@@ -102,7 +103,7 @@ export function Layout() {
   useEffect(() => {
     const path = location.pathname;
     const initial: Record<string, boolean> = {};
-    if (['/', '/analyze', '/discovery', '/sourcing'].some(p => p === '/' ? path === '/' : path.startsWith(p))) initial['asosiy'] = true;
+    if (['/', '/search', '/analyze', '/discovery', '/sourcing'].some(p => p === '/' ? path === '/' : path.startsWith(p))) initial['asosiy'] = true;
     if (['/shops', '/signals', '/leaderboard'].some(p => path.startsWith(p))) initial['mahsulot'] = true;
     if (['/calculator', '/revenue-estimator', '/elasticity', '/ai-description', '/consultation', '/compare'].some(p => path.startsWith(p))) initial['asboblar'] = true;
     if (['/achievements', '/enterprise', '/referral', '/api-keys', '/feedback', '/extension'].some(p => path.startsWith(p))) initial['biznes'] = true;
@@ -197,6 +198,7 @@ export function Layout() {
       label: t('nav.section.main'),
       items: [
         { to: '/', icon: HomeIcon, label: t('nav.dashboard'), end: true },
+        { to: '/search', icon: MagnifyingGlassCircleIcon, label: t('nav.search') },
         { to: '/analyze', icon: MagnifyingGlassIcon, label: t('nav.analyze') },
         { to: '/discovery', icon: ArrowTrendingUpIcon, label: t('nav.discovery') },
         { to: '/sourcing', icon: GlobeAltIcon, label: t('nav.sourcing') },

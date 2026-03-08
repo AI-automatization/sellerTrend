@@ -1369,6 +1369,28 @@ export const uz: Record<string, string> = {
     'achievement.sourcing_pro.title': 'Sourcing Pro',
     'achievement.sourcing_pro.desc': '3 ta sourcing hisoblang',
 
+    // ── Search ──────────────────────────────────────────────────────────────
+    'nav.search': 'Qidiruv',
+    'search.title': 'Mahsulot qidiruv',
+    'search.subtitle': "Uzum marketplace'da mahsulotlarni nomi bo'yicha qidiring",
+    'search.placeholder': 'Mahsulot qidirish... masalan: iPhone, Samsung, ...',
+    'search.minChars': "Qidirish uchun kamida 2 ta belgi kiriting",
+    'search.error': 'Qidirishda xato. Qayta urinib ko\'ring.',
+    'search.resultsCount': '{count} ta mahsulot topildi',
+    'search.orders': 'Buyurtmalar',
+    'search.reviews': 'Sharhlar',
+    'search.from': 'dan',
+    'search.noPrice': "Narx yo'q",
+    'search.track': 'Kuzatish',
+    'search.tracked': 'Kuzatilmoqda',
+    'search.trackSuccess': "Mahsulot kuzatuvga qo'shildi",
+    'search.trackError': "Mahsulotni qo'shib bo'lmadi",
+    'search.noResults': 'Mahsulot topilmadi',
+    'search.noResultsHint': "Boshqa so'z bilan qidirib ko'ring",
+    'search.initial': 'Mahsulot qidiring',
+    'search.initialHint': "Uzum'da mahsulot topish uchun yozishni boshlang",
+    'hints.search': "Uzum marketplace'da mahsulotlarni nomi bo'yicha qidiring. Kuzatish tugmasini bosib dashboardga qo'shing.",
+
     // ── Yangiliklar ──────────────────────────────────────────────────────────
     'whatsNew.title': 'Yangiliklar',
     'whatsNew.dismiss': 'Tushunarli',

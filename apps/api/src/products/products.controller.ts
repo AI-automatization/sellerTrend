@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ActivityAction } from '../common/decorators/activity-action.decorator';
+import { NoBilling } from '../common/decorators/no-billing.decorator';
 import { ParseBigIntPipe } from '../common/pipes/parse-bigint.pipe';
 import { ProductsService } from './products.service';
 import { AiService } from '../ai/ai.service';
@@ -36,11 +37,22 @@ export class ProductsController {
 
   /** Uzum search proxy with 5-min Redis cache */
   @Get('search')
+  @NoBilling()
   searchProducts(
     @CurrentUser('account_id') _accountId: string,
     @Query() query: SearchQueryDto,
   ) {
     return this.productsService.searchProducts(query.q, query.limit);
+  }
+
+  /** Track a product from search results — creates Product if missing */
+  @Post('search/:uzumId/track')
+  @ActivityAction('PRODUCT_TRACK')
+  trackFromSearch(
+    @CurrentUser('account_id') accountId: string,
+    @Param('uzumId', ParseBigIntPipe) uzumId: bigint,
+  ) {
+    return this.productsService.trackFromSearch(accountId, Number(uzumId));
   }
 
   @Get(':id')

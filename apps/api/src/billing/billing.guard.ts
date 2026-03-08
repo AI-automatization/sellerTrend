@@ -5,6 +5,8 @@ import {
   HttpException,
   ForbiddenException,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { NO_BILLING_KEY } from '../common/decorators/no-billing.decorator';
 
 /** Maximum analyses per month for FREE plan users */
 const FREE_PLAN_ANALYSIS_LIMIT = 10;
@@ -17,7 +19,12 @@ const FREE_PLAN_ANALYSIS_LIMIT = 10;
  */
 @Injectable()
 export class BillingGuard implements CanActivate {
+  constructor(private readonly reflector: Reflector) {}
+
   canActivate(context: ExecutionContext): boolean {
+    const noBilling = this.reflector.get<boolean>(NO_BILLING_KEY, context.getHandler());
+    if (noBilling) return true;
+
     const req = context.switchToHttp().getRequest();
     const user = req.user;
     const account = user?.account;

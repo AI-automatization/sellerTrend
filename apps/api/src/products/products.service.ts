@@ -477,6 +477,84 @@ export class ProductsService {
     };
   }
 
+  /**
+   * Track a product from search results.
+   * If the Product doesn't exist in our DB yet, fetch it from Uzum API
+   * and create the Product (+ Shop) record first, then link TrackedProduct.
+   */
+  async trackFromSearch(accountId: string, uzumProductId: number): Promise<{
+    product_id: string;
+    title: string;
+    is_new: boolean;
+  }> {
+    const productBigInt = BigInt(uzumProductId);
+
+    // Check if Product already exists in our DB
+    const existing = await this.prisma.product.findUnique({
+      where: { id: productBigInt },
+      select: { id: true, title: true },
+    });
+
+    let title: string;
+    if (existing) {
+      title = existing.title;
+    } else {
+      // Product not in DB — fetch from Uzum API
+      const detail = await this.uzumClient.fetchProductDetail(uzumProductId);
+      if (!detail) {
+        throw new NotFoundException(`Product ${uzumProductId} not found on Uzum`);
+      }
+
+      // Upsert shop first (FK constraint)
+      if (detail.shop) {
+        await this.prisma.shop.upsert({
+          where: { id: BigInt(detail.shop.id) },
+          update: {
+            title: detail.shop.title,
+            rating: detail.shop.rating,
+            orders_quantity: detail.shop.ordersQuantity,
+          },
+          create: {
+            id: BigInt(detail.shop.id),
+            title: detail.shop.title,
+            rating: detail.shop.rating,
+            orders_quantity: detail.shop.ordersQuantity,
+          },
+        });
+      }
+
+      // Create Product record
+      const totalAvailable = detail.totalAvailableAmount != null
+        ? BigInt(detail.totalAvailableAmount)
+        : null;
+
+      await this.prisma.product.create({
+        data: {
+          id: productBigInt,
+          title: detail.title,
+          rating: detail.rating,
+          feedback_quantity: detail.feedbackQuantity,
+          orders_quantity: BigInt(detail.ordersQuantity ?? 0),
+          total_available_amount: totalAvailable,
+          photo_url: detail.photoUrl ?? undefined,
+          shop_id: detail.shop ? BigInt(detail.shop.id) : undefined,
+        },
+      });
+
+      title = detail.title;
+      this.logger.log(`Created product ${uzumProductId} from search track`);
+    }
+
+    // Now create TrackedProduct link
+    await this.trackProduct(accountId, productBigInt);
+
+    return {
+      product_id: productBigInt.toString(),
+      title,
+      is_new: !existing,
+    };
+  }
+
   async trackProduct(accountId: string, productId: bigint) {
     const tp = await this.prisma.trackedProduct.upsert({
       where: {
