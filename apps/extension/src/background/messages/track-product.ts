@@ -1,6 +1,7 @@
 import type { PlasmoMessaging } from "@plasmohq/messaging"
 import { trackProduct, ApiError } from "~/lib/api"
 import { setBadgeCount } from "~/lib/badge"
+import { notifyTrackSuccess, notifyTrackError } from "~/lib/notifications"
 
 export interface TrackProductRequestBody {
   productId: string
@@ -28,12 +29,15 @@ const handler: PlasmoMessaging.MessageHandler<
     } catch {
       // Badge update is non-critical
     }
+    notifyTrackSuccess().catch(() => {})
     res.send({ success: true })
   } catch (err) {
     if (err instanceof ApiError) {
+      notifyTrackError(err.message).catch(() => {})
       res.send({ success: false, error: `${err.status}: ${err.message}` })
     } else {
       const message = err instanceof Error ? err.message : "Unknown error"
+      notifyTrackError(message).catch(() => {})
       res.send({ success: false, error: message })
     }
   }

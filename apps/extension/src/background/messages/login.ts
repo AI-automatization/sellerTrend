@@ -1,6 +1,7 @@
 import type { PlasmoMessaging } from "@plasmohq/messaging";
 import { login as apiLogin, type LoginResult } from "~/lib/api";
 import { setBadgeCount } from "~/lib/badge";
+import { notifyLogin } from "~/lib/notifications";
 
 export interface LoginRequestBody {
   email: string;
@@ -22,6 +23,7 @@ const handler: PlasmoMessaging.MessageHandler<
   try {
     const result = await apiLogin(email, password);
     await setBadgeCount(0);
+    notifyLogin(email).catch(() => {});
     res.send({ success: true, data: result });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Login failed";

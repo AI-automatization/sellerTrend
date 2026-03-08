@@ -6,12 +6,15 @@ import LoginForm from "~/components/LoginForm";
 import TrackedList from "~/components/TrackedList";
 import type { AuthStateResponseBody } from "~/background/messages/get-auth-state";
 import type { LogoutResponseBody } from "~/background/messages/logout";
+import type { NotificationSettingsResponseBody } from "~/background/messages/get-notification-settings";
+import type { SetNotificationSettingsRequestBody, SetNotificationSettingsResponseBody } from "~/background/messages/set-notification-settings";
 
 const DASHBOARD_URL = process.env.PLASMO_PUBLIC_API_URL?.replace("/api/v1", "") ?? "http://localhost:5173";
 
 function Popup() {
   const [loading, setLoading] = useState(true);
   const [authState, setAuthState] = useState<AuthStateResponseBody | null>(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   async function checkAuth() {
     try {
@@ -29,6 +32,12 @@ function Popup() {
 
   useEffect(() => {
     checkAuth();
+    sendToBackground<Record<string, never>, NotificationSettingsResponseBody>({
+      name: "get-notification-settings",
+      body: {},
+    })
+      .then((s) => setNotificationsEnabled(s.enabled))
+      .catch(() => {});
   }, []);
 
   async function handleLogout() {
@@ -87,6 +96,23 @@ function Popup() {
       <TrackedList />
 
       <div className="divider my-2" />
+
+      <div className="flex items-center justify-between px-1 mb-2">
+        <span className="text-xs opacity-70">Bildirishnomalar</span>
+        <input
+          type="checkbox"
+          className="toggle toggle-sm toggle-primary"
+          checked={notificationsEnabled}
+          onChange={async (e) => {
+            const enabled = e.target.checked;
+            setNotificationsEnabled(enabled);
+            await sendToBackground<SetNotificationSettingsRequestBody, SetNotificationSettingsResponseBody>({
+              name: "set-notification-settings",
+              body: { enabled },
+            }).catch(() => {});
+          }}
+        />
+      </div>
 
       <div className="flex flex-col gap-2">
         <a
