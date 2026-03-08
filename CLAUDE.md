@@ -48,11 +48,11 @@ Javob kelgach:
 ```
 apps/api/        → Backend API (Bekzod)
 apps/worker/     → Worker (Bekzod)
-apps/bot/        → Telegram bot (Bekzod)
 apps/web/        → Frontend Web (Bekzod)
-apps/extension/  → Chrome Extension (Bekzod)
 apps/landing/    → Landing page (Sardor)
 apps/desktop/    → Desktop app (Sardor)
+apps/bot/        → Telegram bot (Sardor)
+apps/extension/  → Chrome Extension (Sardor)
 packages/types/  → Shared types (IKKALASI — kelishib)
 packages/utils/  → Shared utils (IKKALASI — kelishib)
 ```
@@ -311,9 +311,10 @@ ZONE MATRIX:
   Orchestrator:   👁 read    👁 read    👁 read   ✅ merge  ✅ yozadi
 
 ZONE MAP:
-  backend  = apps/api/, apps/worker/, apps/bot/        (Bekzod)
-  web      = apps/web/, apps/extension/                (Bekzod)
+  backend  = apps/api/, apps/worker/                   (Bekzod)
+  web      = apps/web/                                 (Bekzod)
   landing  = apps/landing/, apps/desktop/              (Sardor)
+  frontend = apps/bot/, apps/extension/                (Sardor)
   shared   = packages/types/, packages/utils/
   docs     = docs/, CLAUDE*.md
 ```
@@ -510,12 +511,12 @@ BEKZOD ZONASI (Sardor commit qilolmaydi):
   ❌ apps/api/        — Backend API
   ❌ apps/web/        — Frontend Web dashboard
   ❌ apps/worker/     — BullMQ Worker
-  ❌ apps/bot/        — Telegram Bot
-  ❌ apps/extension/  — Chrome Extension
 
 SARDOR ZONASI (Bekzod commit qilolmaydi):
   ❌ apps/landing/    — Landing page
   ❌ apps/desktop/    — Desktop app
+  ❌ apps/bot/        — Telegram Bot
+  ❌ apps/extension/  — Chrome Extension
 
 UMUMIY ZONA (ikkalasi, kelishib):
   ✅ packages/        — Shared types/utils (lock protocol)
@@ -529,9 +530,9 @@ UMUMIY ZONA (ikkalasi, kelishib):
 4. Xato xabari bilan taqiqlangan fayllar ro'yxati ko'rsatiladi
 
 **Claude CLI uchun qo'shimcha qoida:**
-- Sardor sessiyasida `apps/web/`, `apps/api/`, `apps/worker/`, `apps/bot/`, `apps/extension/`
+- Sardor sessiyasida `apps/web/`, `apps/api/`, `apps/worker/`
   dagi fayllarni EDIT/WRITE qilish **TAQIQLANGAN** — hook'dan OLDIN Claude o'zi bloklashi kerak
-- Bekzod sessiyasida `apps/landing/`, `apps/desktop/` dagi fayllarni EDIT/WRITE **TAQIQLANGAN**
+- Bekzod sessiyasida `apps/landing/`, `apps/desktop/`, `apps/bot/`, `apps/extension/` dagi fayllarni EDIT/WRITE **TAQIQLANGAN**
 
 ---
 

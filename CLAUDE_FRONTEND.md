@@ -27,16 +27,20 @@
 
 ---
 
-## ZONA (Sardor)
+## ZONA (Sardor — Frontend + Bot + Extension)
 
 ```
 apps/landing/    → Landing page (ventra.uz marketing sahifasi)
 apps/desktop/    → Desktop app (Electron/Tauri)
+apps/bot/        → Telegram bot (grammY framework)
+apps/extension/  → Chrome Extension
 ```
 
 **RUXSAT BERILGAN:**
 - `apps/landing/` — Landing page (to'liq ruxsat)
 - `apps/desktop/` — Desktop app (to'liq ruxsat)
+- `apps/bot/` — Telegram bot (to'liq ruxsat)
+- `apps/extension/` — Chrome Extension (to'liq ruxsat)
 - `packages/` — Shared types/utils (LOCK protocol bilan, Bekzod bilan kelishib)
 - `docs/` — Dokumentatsiya
 
@@ -44,8 +48,6 @@ apps/desktop/    → Desktop app (Electron/Tauri)
 - `apps/web/` — Asosiy frontend dashboard (Bekzod zonasi)
 - `apps/api/` — Backend API (Bekzod zonasi)
 - `apps/worker/` — BullMQ Worker (Bekzod zonasi)
-- `apps/bot/` — Telegram Bot (Bekzod zonasi)
-- `apps/extension/` — Chrome Extension (Bekzod zonasi)
 
 ---
 

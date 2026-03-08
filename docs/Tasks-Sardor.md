@@ -1,12 +1,12 @@
 # SARDOR — Ochiq Vazifalar
-# Fayllar: apps/desktop/, apps/landing/
-# Yangilangan: 2026-03-04
+# Fayllar: apps/desktop/, apps/landing/, apps/bot/, apps/extension/
+# Yangilangan: 2026-03-08
 # Bajarilganlar → docs/Done.md
 # Audit manba: CODE-AUDIT + DEEP-PLATFORM-AUDIT + Analysis-Onboarding
 #
-# ESLATMA: apps/web/ va apps/extension/ — BEKZOD ZONASI (CLAUDE.md)
-# Web Audit tasklar (T-361..T-370, T-377, T-380, T-381) → Tasks-Bekzod.md ga ko'chirildi
-# Chrome Extension tasklar (T-216..T-233) → Tasks-Bekzod.md ga ko'chirildi
+# ZONE TUZATISH (2026-03-08): apps/bot/ va apps/extension/ Sardor zonasiga qo'shildi
+# Chrome Extension tasklar (T-216..T-233) endi SARDOR da
+# Telegram Bot fayllar endi SARDOR da
 
 ---
 
@@ -68,6 +68,45 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 ---
 
+# CHROME EXTENSION — 18 TASK (T-216..T-233)
+
+> Phase 1 (T-208..T-211) va Phase 2 (T-212..T-215) ✅ DONE → Done.md
+> apps/extension/ — Sardor zonasi (CLAUDE.md, 2026-03-08 dan)
+
+| Faza | Tasklar | Vaqt | Holat |
+|------|---------|------|-------|
+| 3. Popup Dashboard (P1) | T-216 | ~1.5h | ⬜ |
+| 4. Category + Advanced (P1) | T-217..T-219 | ~5h | ⬜ |
+| 5. Competitor + Narx (P2) | T-220..T-222 | ~4.5h | ⬜ |
+| 6. AI + Hotkeys (P2) | T-223..T-224 | ~2.5h | ⬜ |
+| 7. i18n + Testing (P2) | T-225..T-227 | ~4.5h | ⬜ |
+| 8. Build + Publish (P1) | T-228..T-229 | ~3h | ⬜ |
+| 9. Security + Polish (P1) | T-230..T-233 | ~3.5h | ⬜ |
+
+---
+
+# TELEGRAM BOT — ONGOING (Sardor)
+
+> apps/bot/ — Sardor zonasi (2026-03-08 dan)
+> Backend Bekzod tomonidan yaratilgan, Sardor support/maintenance qiladi
+
+**Bot funksiyalari (mavjud):**
+- `/start` — onboarding flow
+- `/search {query}` — mahsulot qidirish
+- `/track` — tracked products ro'yxati
+- `/stats` — personal statistics
+- Telegram Web App integratsiya
+
+**Mavjud tasklar (Bekzod dan T-359..T-360 batchi):**
+- Domain placeholder → test.domain.uz yoki real domain
+- `/top` numeric ID fix
+- Rate limiting qo'shish
+- HTML escape duplicate functions
+- Hardcoded customs/VAT values
+- Bot health check
+- Dead code cleanup
+
+---
 
 # PLATFORMA AUDIT — UX/DESIGN/ONBOARDING (T-377..T-384)
 
@@ -165,6 +204,8 @@ Manba: Playwright audit (2026-03-07)
 
 | Kategoriya | Soni |
 |-----------|------|
+| **Chrome Extension** (T-216..T-233) | **18 task, ~35h** |
+| **Telegram Bot** (apps/bot/) | **~5-7 bug** |
 | **Platforma P2** (T-382) | **1 task, ~4 fix** |
 | ~~Desktop P0 (T-315..T-319)~~ | ✅ DONE |
 | ~~Desktop P1 (T-320..T-327)~~ | ✅ DONE |
@@ -173,13 +214,12 @@ Manba: Playwright audit (2026-03-07)
 | **Landing UX Audit P0** (T-401..T-402) | **2 task** |
 | **Landing UX Audit P1** (T-403..T-404) | **2 task** |
 | **Landing UX Audit P2** (T-405..T-406) | **2 task** |
-| **JAMI task ochiq** | **~21** |
-| **JAMI bug/fix ochiq** | **~20** |
+| **JAMI task ochiq** | **~50+** |
+| **JAMI bug/fix ochiq** | **~60+** |
 |  |  |
-| ~~Web Audit~~ (T-361..T-370) | → **Bekzod**ga ko'chirildi |
-| ~~T-377, T-380, T-381~~ (web app) | → **Bekzod**ga ko'chirildi |
+| ~~Web Audit~~ (T-361..T-370) | → **Bekzod** (2026-03-06) |
+| ~~T-377, T-380, T-381~~ (web app) | → **Bekzod** (2026-03-06) |
 | ~~T-379~~ (Design system) | ✅ DONE (Bekzod, T-379) |
-| ~~Chrome Extension~~ (T-216..T-233) | → **Bekzod**ga ko'chirildi |
 
 ---
 
@@ -196,4 +236,4 @@ Manba: Playwright audit (2026-03-07)
 **Bekzod Dependent (3 ta):** T-193b, T-196b, T-199b
 
 ---
-*Tasks-Sardor.md | VENTRA | 2026-03-04 (zone tuzatish: web/extension → Bekzod)*
+*Tasks-Sardor.md | VENTRA | 2026-03-08 (zone tuzatish: bot/extension → Sardor)*

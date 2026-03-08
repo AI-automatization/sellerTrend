@@ -70,7 +70,7 @@ function setupCSP(): void {
           "script-src 'self' 'unsafe-inline'; " +
           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
           "img-src 'self' app: data: https:; " +
-          "connect-src 'self' app: http://localhost:* ws://localhost:* wss://localhost:* https://app.ventra.uz https://*.ventra.uz; " +
+          "connect-src 'self' app: http://localhost:* ws://localhost:* wss://localhost:* https://api-staging-5e3c.up.railway.app wss://api-staging-5e3c.up.railway.app https://app.ventra.uz https://*.ventra.uz; " +
           "font-src 'self' app: data: https://fonts.gstatic.com;",
         ],
       },

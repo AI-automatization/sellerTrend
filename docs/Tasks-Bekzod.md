@@ -1,8 +1,11 @@
 # BEKZOD — Ochiq Vazifalar
-# Fayllar: apps/api/, apps/worker/, apps/bot/, apps/web/, apps/extension/, packages/*, prisma
-# Yangilangan: 2026-03-06
+# Fayllar: apps/api/, apps/worker/, apps/web/, packages/*, prisma
+# Yangilangan: 2026-03-08
 # Bajarilganlar → docs/Done.md
 # Audit manba: CODE-AUDIT + DEEP-PLATFORM-AUDIT + Analysis-Onboarding
+#
+# ESLATMA (2026-03-08): apps/bot/ va apps/extension/ → SARDOR ZONASI ko'chirildi
+# Chrome Extension tasklar (T-216..T-233) → Tasks-Sardor.md ga ko'chirildi
 
 ---
 
@@ -64,25 +67,6 @@ Bot domain placeholder, /top numeric ID, bot rate limiting, escapeHtml duplicate
 13. `as any` in AnalyzePage → typed
 14. SharedWatchlistPage/TelegramMiniApp i18n
 15. `useScoreRefresh` stale closure → ref pattern
-
----
-
-# CHROME EXTENSION — 18 TASK (T-216..T-233)
-
-> Phase 1 (T-208..T-211) va Phase 2 (T-212..T-215) ✅ DONE → Done.md
-> apps/extension/ — Bekzod zonasi (CLAUDE.md)
-
-| Faza | Tasklar | Vaqt | Holat |
-|------|---------|------|-------|
-| 3. Popup Dashboard (P1) | T-216 | ~1.5h | ⬜ |
-| 4. Category + Advanced (P1) | T-217..T-219 | ~5h | ⬜ |
-| 5. Competitor + Narx (P2) | T-220..T-222 | ~4.5h | ⬜ |
-| 6. AI + Hotkeys (P2) | T-223..T-224 | ~2.5h | ⬜ |
-| 7. i18n + Testing (P2) | T-225..T-227 | ~4.5h | ⬜ |
-| 8. Build + Publish (P1) | T-228..T-229 | ~3h | ⬜ |
-| 9. Security + Polish (P1) | T-230..T-233 | ~3.5h | ⬜ |
-
----
 
 # PLATFORMA AUDIT — UX/PIPELINE/ONBOARDING
 
@@ -149,12 +133,11 @@ Bot domain placeholder, /top numeric ID, bot rate limiting, escapeHtml duplicate
 | ~~Web Audit P0~~ (T-361..T-366) | ✅ DONE |
 | ~~Web Audit P1~~ (T-367..T-369) | ✅ DONE |
 | **Web Audit P2** (T-370) | **1 task, 15 bug** |
-| **Chrome Extension** (T-216..T-233) | **18 task** |
 | **Platforma P2** (T-376, T-380, T-381) | **3** |
 | **Platforma P3** (T-384) | **1** |
 | ENV manual | 3 |
 | DevOps | 5 |
-| **JAMI task ochiq** | **~35** |
+| **JAMI task ochiq** | **~17** |
 
 ---
 
@@ -179,4 +162,4 @@ Bot domain placeholder, /top numeric ID, bot rate limiting, escapeHtml duplicate
 **Onboarding (2 ta):** T-392 (P0), T-393
 
 ---
-*Tasks-Bekzod.md | VENTRA | 2026-03-06*
+*Tasks-Bekzod.md | VENTRA | 2026-03-08 (bot/extension → Sardor)*

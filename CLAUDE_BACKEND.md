@@ -5,18 +5,17 @@
 
 ---
 
-## ZONA (Bekzod — Full-Stack)
+## ZONA (Bekzod — Backend)
 
 ```
 apps/api/        → Backend API (NestJS)
 apps/worker/     → BullMQ processors
-apps/bot/        → Telegram bot (grammY)
-apps/web/        → Frontend Web dashboard (React)
-apps/extension/  → Chrome Extension
 docker-compose.yml → Infra config
 ```
 
-**TEGINMA:** `apps/landing/`, `apps/desktop/` — bu Sardor zonasi.
+**TEGINMA:**
+- `apps/landing/`, `apps/desktop/` — Sardor zonasi
+- `apps/bot/`, `apps/extension/` — Sardor zonasi (2026-03-08 dan)
 
 ---
 
