@@ -353,9 +353,17 @@ export default function QuickAnalysisModal({
       </div>
 
       {/* Modal Backdrop */}
-      <form method="dialog" className="modal-backdrop" onClick={onClose}>
-        <button type="submit" />
-      </form>
+      <div
+        className="modal-backdrop cursor-pointer"
+        onClick={(e) => {
+          // Only close if clicking directly on backdrop, not on modal-box
+          if (e.target === e.currentTarget) {
+            onClose();
+          }
+        }}
+        role="button"
+        tabIndex={0}
+      />
     </dialog>
   );
 }
