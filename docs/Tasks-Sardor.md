@@ -85,26 +85,49 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 ---
 
-# TELEGRAM BOT — ONGOING (Sardor)
+# TELEGRAM BOT — BUGS & FIXES (Sardor)
 
 > apps/bot/ — Sardor zonasi (2026-03-08 dan)
-> Backend Bekzod tomonidan yaratilgan, Sardor support/maintenance qiladi
 
-**Bot funksiyalari (mavjud):**
+### T-426 | P2 | FRONTEND | Bot fixes — 6 ta bug (domain, health, rate limit, escapeHtml, /top, dead code) | 2h
+
+**Sana:** 2026-03-08
+**Manba:** kod-audit (T-360 dan ajratildi)
+**Topilgan joyda:** `apps/bot/src/main.ts`, `utils.ts`, `.env.example`
+**Mas'ul:** pending[Sardor]
+
+**Tahlil:**
+Bot kodi Bekzod tomonidan yozilgan, Sardor endi maintenance qiladi.
+T-360 P2 batch'da bot-specific 6 ta bug topilgan:
+1. WEB_URL hardcoded (env ishlatish kerak)
+2. Health check faqat bot API (Prisma tekshirish kerak)
+3. Rate limit map cleanup (production ready)
+4. /top command category_id type check
+5. escapeHtml duplicate check (@uzum/utils da bo'lsa)
+6. Startup logs detail
+
+**Yechim:**
+1. `main.ts:10` — WEB_URL env fallback
+2. `main.ts:589-598` — Health check Prisma ham tekshirish
+3. `main.ts:18-36` — Rate limit cleanup (Optional: Redis scale)
+4. `main.ts:532` — category_id to String()
+5. `utils.ts` — Check for @uzum/utils escapeHtml duplicate
+6. `.env.example` — WEB_URL qo'shish
+
+**Fayllar:**
+- `apps/bot/src/main.ts`
+- `apps/bot/src/utils.ts`
+- `.env.example`
+
+**Bot funksiyalari (mavjud, o'zgarmas qoladi):**
 - `/start` — onboarding flow
-- `/search {query}` — mahsulot qidirish
-- `/track` — tracked products ro'yxati
-- `/stats` — personal statistics
-- Telegram Web App integratsiya
-
-**Mavjud tasklar (Bekzod dan T-359..T-360 batchi):**
-- Domain placeholder → test.domain.uz yoki real domain
-- `/top` numeric ID fix
-- Rate limiting qo'shish
-- HTML escape duplicate functions
-- Hardcoded customs/VAT values
-- Bot health check
-- Dead code cleanup
+- `/connect [prefix]` — akkount ulash
+- `/myproducts` — tracked products
+- `/balance` — balans va kunlar
+- `/product [URL/ID]` — mahsulot info
+- `/subscribe` — obuna
+- `/top` — trending mahsulotlar
+- Health check: `GET /health`
 
 ---
 
@@ -204,8 +227,8 @@ Manba: Playwright audit (2026-03-07)
 
 | Kategoriya | Soni |
 |-----------|------|
+| **Telegram Bot P2** (T-426) | **1 task, 6 bug, ~2h** |
 | **Chrome Extension** (T-216..T-233) | **18 task, ~35h** |
-| **Telegram Bot** (apps/bot/) | **~5-7 bug** |
 | **Platforma P2** (T-382) | **1 task, ~4 fix** |
 | ~~Desktop P0 (T-315..T-319)~~ | ✅ DONE |
 | ~~Desktop P1 (T-320..T-327)~~ | ✅ DONE |
