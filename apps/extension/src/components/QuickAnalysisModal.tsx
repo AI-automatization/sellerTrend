@@ -3,6 +3,7 @@ import { sendToBackground } from "@plasmohq/messaging";
 import type { QuickScoreResponseBody } from "~/background/messages/quick-score";
 import type { CategoryItem } from "~/lib/api";
 import AdvancedFilters from "./AdvancedFilters";
+import CategoryInsights from "./CategoryInsights";
 
 interface QuickAnalysisModalProps {
   productId: string | null;
@@ -221,44 +222,51 @@ export default function QuickAnalysisModal({
 
             {/* Category Analysis */}
             {isCategory && categoryData && (
-              <div className="space-y-4">
-                {/* Category Header */}
-                <div className="bg-base-200 rounded-lg p-3">
-                  <div className="text-sm font-semibold mb-1">{categoryData.category_title}</div>
-                  <div className="text-xs text-base-content/70 flex justify-between">
-                    <span>⭐ {categoryData.avg_score.toFixed(1)}</span>
-                    <span>📦 {categoryData.product_count} mahsulot</span>
+              <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                {/* Category Title */}
+                <div>
+                  <h4 className="font-semibold text-sm">{categoryData.category_title}</h4>
+                </div>
+
+                {/* Category Insights */}
+                <CategoryInsights category={categoryData} />
+
+                {/* Divider */}
+                <div className="divider my-2" />
+
+                {/* Top Products Section */}
+                <div>
+                  <h4 className="font-semibold text-sm mb-2">Top Mahsulotlar</h4>
+
+                  {/* Advanced Filters */}
+                  <AdvancedFilters
+                    onSearchChange={setSearchQuery}
+                    onSortChange={setSortBy}
+                    resultCount={filteredProducts.length}
+                  />
+
+                  {/* Top Products List */}
+                  <div className="space-y-2 mt-2">
+                    {filteredProducts.length > 0 ? (
+                      filteredProducts.slice(0, 5).map((prod) => (
+                        <div key={prod.product_id} className="bg-base-200 rounded-lg p-2 text-xs">
+                          <div className="font-medium line-clamp-2">{prod.title}</div>
+                          <div className="text-base-content/70 mt-1 flex justify-between">
+                            <span>⭐ {prod.score.toFixed(1)}</span>
+                            <span>💰 {Math.floor(prod.sell_price).toLocaleString()}so'm</span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-4 text-xs text-base-content/60">
+                        Mahsulot topilmadi
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Advanced Filters */}
-                <AdvancedFilters
-                  onSearchChange={setSearchQuery}
-                  onSortChange={setSortBy}
-                  resultCount={filteredProducts.length}
-                />
-
-                {/* Top Products Grid */}
-                <div className="space-y-2 max-h-72 overflow-y-auto">
-                  {filteredProducts.length > 0 ? (
-                    filteredProducts.map((prod) => (
-                      <div key={prod.product_id} className="bg-base-200 rounded-lg p-2 text-xs">
-                        <div className="font-medium line-clamp-2">{prod.title}</div>
-                        <div className="text-base-content/70 mt-1 flex justify-between">
-                          <span>⭐ {prod.score.toFixed(1)}</span>
-                          <span>💰 {Math.floor(prod.sell_price).toLocaleString()}so'm</span>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-4 text-xs text-base-content/60">
-                      Mahsulot topilmadi
-                    </div>
-                  )}
-                </div>
-
                 {/* Actions */}
-                <div className="flex gap-2 pt-4 border-t">
+                <div className="flex gap-2 pt-2 border-t">
                   <a
                     href={`https://ventra.uz/discovery`}
                     target="_blank"
