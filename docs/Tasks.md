@@ -10,7 +10,7 @@
 ## STATISTIKA
 
 ```
-Ochiq:       ~37 ta
+Ochiq:       ~34 ta
 Bajarilgan:  ~170+ ta (Done.md)
 Oxirgi T-#:  T-425
 Keyingi T-#: T-426 dan boshlash
@@ -669,120 +669,15 @@ Onboarding reminders — daily 10AM cron, 3-day check for incomplete onboarding.
 
 > ~~T-411~~ DONE (2026-03-08) — Route order fix, commit e464044
 > ~~T-412~~ DONE (2026-03-08) — searchProducts endpoint, commit e464044
-
-### T-413 | P0 | BACKEND | trackFromSearch — FK constraint safe track | 1h
-
-**Sana:** 2026-03-08
-**Manba:** kod-audit
-**Topilgan joyda:** `apps/api/src/products/products.service.ts` — trackProduct()
-**Mas'ul:** Bekzod
-
-**Tahlil:**
-Mavjud `trackProduct(accountId, productId)` faqat `TrackedProduct` ga upsert qiladi.
-Lekin `TrackedProduct.product_id → Product.id` foreign key mavjud.
-Search natijalarida ko'rsatilgan mahsulot hali `Product` jadvalida YO'Q bo'lishi mumkin.
-Track bosilganda FK constraint violation: `Foreign key constraint failed on the field: product_id`.
-
-**Muammo va xavflar:**
-- Race condition: 2 foydalanuvchi bir vaqtda bir mahsulotni track qilsa
-- Uzum API down: fetchProductDetail null qaytarsa track imkonsiz
-- BigInt conversion: search natijasidagi id → BigInt
-
-**Yechim:**
-1. Yangi `trackFromSearch(accountId, uzumProductId)` method:
-   - `Product` jadvalda bor-yo'qligini tekshirish (`findUnique`)
-   - Yo'q bo'lsa: `UzumClient.fetchProductDetail(id)` chaqirish
-   - Product detail dan `Product` jadvalga upsert (title, rating, photoUrl, etc.)
-   - Keyin `TrackedProduct` ga upsert (mavjud logika)
-   - Transaction ichida: `prisma.$transaction([productUpsert, trackUpsert])`
-2. Yangi endpoint: `@Post('search/:id/track')` — search natijasidan track
-   - `:id` = Uzum product ID (number, BigInt emas)
-   - Response: `{ tracked: true, product_id: bigint }`
-3. Error handling:
-   - Uzum API 404/null → `NotFoundException('Product not found on Uzum')`
-   - FK constraint fallback → retry with fresh fetch
-
-**Fayllar:**
-- `apps/api/src/products/products.service.ts` — trackFromSearch method
-- `apps/api/src/products/products.controller.ts` — @Post('search/:id/track')
-
-**Bog'liqlik:** T-412 (searchProducts endpoint kerak)
-
----
-
-### T-414 | P1 | BACKEND | BillingGuard — search endpoint cost model | 30min
-
-**Sana:** 2026-03-08
-**Manba:** kod-audit
-**Topilgan joyda:** `apps/api/src/billing/billing.guard.ts`
-**Mas'ul:** Bekzod
-
-**Tahlil:**
-`BillingGuard` class-level `@UseGuards` da turadi — barcha endpoint larga ta'sir qiladi.
-Search endpoint har so'rovda kredit yechishi NOTO'G'RI — foydalanuvchi 10 marta
-qidirsa 10x kredit ketadi. Search = bepul bo'lishi kerak (Uzum o'zi bepul).
-Track qilish esa kredit olishi mumkin.
-
-**Yechim:**
-1. `BillingGuard` da endpoint-specific skip logic:
-   - `@NoBilling()` custom dekorator yaratish
-   - `products/search` endpoint ga `@NoBilling()` qo'yish
-   - Guard ichida `Reflector` dan metadata o'qish → skip
-2. Yoki: Search endpoint ni BillingGuard dan tashqarida alohida controller ga ko'chirish
-   - Afzallik: oddiyroq, lekin code duplication
-   - Kamchilik: DI context alohida bo'ladi
-3. **Tanlangan yechim:** `@NoBilling()` dekorator — minimal o'zgartirish
-
-**Fayllar:**
-- `apps/api/src/billing/billing.guard.ts` — NoBilling check qo'shish
-- `apps/api/src/common/decorators/no-billing.decorator.ts` — yangi dekorator
-- `apps/api/src/products/products.controller.ts` — @NoBilling() qo'yish
-
-**Bog'liqlik:** T-412 (search endpoint mavjud bo'lishi kerak)
+> ~~T-413~~ DONE (2026-03-08) — trackFromSearch FK safe, commit a6cd581
+> ~~T-414~~ DONE (2026-03-08) — @NoBilling() decorator, commit a6cd581
 
 ---
 
 ## FAZA 2 — FRONTEND SEARCH PAGE (P0)
 
+> ~~T-415~~ DONE (2026-03-08) — SearchPage + route + nav + i18n, commit a6cd581
 > ~~T-416~~ DONE (2026-03-08) — API client + types, commit d155bd9
-
-### T-415 | P0 | FRONTEND | SearchPage — route, nav link, page scaffold | 1h
-
-**Sana:** 2026-03-08
-**Manba:** yangi-feature
-**Topilgan joyda:** `apps/web/src/App.tsx`, `apps/web/src/components/Layout.tsx`
-**Mas'ul:** Bekzod
-
-**Tahlil:**
-Hozirda `/search` route yo'q. App.tsx da lazy route qo'shish,
-Layout.tsx sidebar ga nav link qo'shish, sahifa scaffold yaratish kerak.
-
-**Muammo va xavflar:**
-- Route order: React Router da static/dynamic tartib muhim emas (path matching)
-- Layout.tsx: NavSection tuzilmasi — to'g'ri section ga qo'shish
-- Lazy loading: React.lazy + Suspense (mavjud pattern)
-
-**Yechim:**
-1. `SearchPage.tsx` yaratish — sahifa tuzilmasi:
-   - Search input (debounced, 300ms)
-   - Natijalar grid (ProductSearchCard[])
-   - Loading skeleton
-   - Empty state ("Mahsulot topilmadi")
-   - Error state
-2. `App.tsx` — lazy route qo'shish: `<Route path="search" element={<SearchPage />} />`
-3. `Layout.tsx` — "Main" section ga "Qidiruv" link qo'shish (Search icon)
-   - Dashboard va Analyze orasiga joylashtirish
-
-**Fayllar:**
-- `apps/web/src/pages/SearchPage.tsx` — yangi sahifa
-- `apps/web/src/App.tsx` — route qo'shish
-- `apps/web/src/components/Layout.tsx` — nav link
-
-**Bog'liqlik:** T-412 (backend search endpoint tayyor bo'lishi kerak)
-
----
-
-> ~~T-416~~ DONE (2026-03-08) — API client + SearchProduct type, commit d155bd9
 
 ---
 

@@ -22,6 +22,40 @@
 
 ---
 
+## T-413 + T-414 + T-415 — Search Batch 2: Track + NoBilling + SearchPage (2026-03-08)
+
+### T-413 | BACKEND | trackFromSearch — FK constraint safe track (2026-03-08)
+
+**Manba:** kod-audit
+**Muammo:** Search natijasidagi mahsulotni track qilganda Product jadvalda yo'q bo'lsa FK constraint violation berardi.
+**Yechim:** `trackFromSearch(accountId, uzumProductId)` — Product yo'q bo'lsa Uzum API dan fetch, Shop upsert, Product create, keyin TrackedProduct link.
+**Fayllar:** `apps/api/src/products/products.service.ts`, `apps/api/src/products/products.controller.ts`
+**Commit:** a6cd581
+**Vaqt:** 10min (plan: 1h)
+**Ta'sir:** Foydalanuvchi search natijasidan to'g'ridan-to'g'ri track qila oladi — FK xatosiz.
+
+### T-414 | BACKEND | @NoBilling() decorator — search exempt from billing (2026-03-08)
+
+**Manba:** kod-audit
+**Muammo:** BillingGuard class-level da — search har so'rovda kredit yechardi. Search bepul bo'lishi kerak.
+**Yechim:** `@NoBilling()` decorator (SetMetadata) + BillingGuard da Reflector check. Search endpoint ga qo'yildi.
+**Fayllar:** `apps/api/src/common/decorators/no-billing.decorator.ts`, `apps/api/src/billing/billing.guard.ts`, `apps/api/src/products/products.controller.ts`
+**Commit:** a6cd581
+**Vaqt:** 5min (plan: 30min)
+**Ta'sir:** Search bepul — FREE plan foydalanuvchilari ham limit yemay qidira oladi.
+
+### T-415 | FRONTEND | SearchPage — route, nav, debounced search, product grid (2026-03-08)
+
+**Manba:** yangi-feature
+**Muammo:** Mahsulot qidirish sahifasi yo'q edi — foydalanuvchi faqat URL orqali tahlil qilar edi.
+**Yechim:** SearchPage.tsx (314 qator) — debounced input (300ms), AbortController, responsive grid, track button, loading skeleton, i18n (uz/ru/en), BottomNav + Layout nav link.
+**Fayllar:** `apps/web/src/pages/SearchPage.tsx`, `App.tsx`, `Layout.tsx`, `BottomNav.tsx`, `icons.tsx`, `i18n/{uz,ru,en}.ts`
+**Commit:** a6cd581
+**Vaqt:** 15min (plan: 1h)
+**Ta'sir:** `/search` sahifa tayyor — foydalanuvchi nomi bo'yicha mahsulot topib, 1 bosish bilan kuzatuvga qo'sha oladi.
+
+---
+
 ## T-411 + T-412 + T-416 — Search Backend + Frontend API Client (2026-03-08)
 
 ### T-411 | BACKEND | Route order fix — static routes before :id param (2026-03-08)
