@@ -104,8 +104,8 @@ export function Layout() {
     const initial: Record<string, boolean> = {};
     if (['/', '/analyze', '/discovery', '/sourcing'].some(p => p === '/' ? path === '/' : path.startsWith(p))) initial['asosiy'] = true;
     if (['/shops', '/signals', '/leaderboard'].some(p => path.startsWith(p))) initial['mahsulot'] = true;
-    if (['/calculator', '/elasticity', '/ai-description', '/consultation', '/compare'].some(p => path.startsWith(p))) initial['asboblar'] = true;
-    if (['/enterprise', '/referral', '/api-keys', '/feedback', '/extension'].some(p => path.startsWith(p))) initial['biznes'] = true;
+    if (['/calculator', '/revenue-estimator', '/elasticity', '/ai-description', '/consultation', '/compare'].some(p => path.startsWith(p))) initial['asboblar'] = true;
+    if (['/achievements', '/enterprise', '/referral', '/api-keys', '/feedback', '/extension'].some(p => path.startsWith(p))) initial['biznes'] = true;
     if (path === '/admin') initial['admin'] = true;
     setOpenSections(prev => ({ ...prev, ...initial }));
   }, [location.pathname]);
@@ -214,6 +214,7 @@ export function Layout() {
       label: t('nav.tools'),
       items: [
         { to: '/calculator', icon: CalculatorIcon, label: t('nav.calculator') },
+        { to: '/revenue-estimator', icon: BanknotesIcon, label: t('nav.revenueEstimator') },
         { to: '/elasticity', icon: ScaleIcon, label: t('nav.elasticity') },
         { to: '/compare', icon: ScaleIcon, label: t('nav.compare') },
         { to: '/ai-description', icon: SparklesIcon, label: t('nav.description') },
@@ -223,6 +224,7 @@ export function Layout() {
     {
       label: t('nav.section.business'),
       items: [
+        { to: '/achievements', icon: TrophyIcon, label: t('nav.achievements') },
         { to: '/enterprise', icon: BuildingOfficeIcon, label: t('nav.enterprise') },
         { to: '/referral', icon: UserGroupIcon, label: t('nav.referral') },
         { to: '/api-keys', icon: KeyIcon, label: t('nav.apiKeys') },

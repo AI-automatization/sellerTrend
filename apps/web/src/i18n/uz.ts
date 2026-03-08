@@ -1338,6 +1338,37 @@ export const uz: Record<string, string> = {
     'compare.stock': 'Ombor',
     'compare.inputPlaceholder': 'Mahsulot ID yoki Uzum URL',
 
+    // ── Revenue Estimator ──────────────────────────────────────────────────
+    'nav.revenueEstimator': 'Daromad kalkulyatori',
+    'revenue.title': 'Daromad kalkulyatori',
+    'revenue.enterProduct': 'Mahsulot URL yoki ID kiriting',
+    'revenue.calculate': 'Daromadni hisoblash',
+    'revenue.monthlyRevenue': 'Oylik daromad',
+    'revenue.estimatedMargin': "Taxminiy foyda (30%)",
+    'revenue.weeklySales': 'Haftalik sotuv',
+    'revenue.competition': 'Raqobat',
+    'revenue.low': 'Past',
+    'revenue.medium': "O'rta",
+    'revenue.high': 'Yuqori',
+    'revenue.recommendation': 'Tavsiya',
+
+    // ── Achievements ─────────────────────────────────────────────────────
+    'nav.achievements': 'Yutuqlar',
+    'achievements.title': 'Yutuqlar',
+    'achievements.progress': "{earned}/{total} qo'lga kiritildi",
+    'achievements.earned': "Qo'lga kiritildi",
+    'achievements.locked': 'Qulflangan',
+    'achievement.first_analysis.title': 'Birinchi tahlil',
+    'achievement.first_analysis.desc': 'Birinchi mahsulotni tahlil qiling',
+    'achievement.tracker_10.title': '10 ta kuzatuvchi',
+    'achievement.tracker_10.desc': '10 ta mahsulotni kuzating',
+    'achievement.streak_7.title': 'Haftalik streak',
+    'achievement.streak_7.desc': "7 kun ketma-ket kiring",
+    'achievement.discovery_explorer.title': 'Kashfiyotchi',
+    'achievement.discovery_explorer.desc': "Discovery'ni 5 marta ishlating",
+    'achievement.sourcing_pro.title': 'Sourcing Pro',
+    'achievement.sourcing_pro.desc': '3 ta sourcing hisoblang',
+
     // ── Yangiliklar ──────────────────────────────────────────────────────────
     'whatsNew.title': 'Yangiliklar',
     'whatsNew.dismiss': 'Tushunarli',

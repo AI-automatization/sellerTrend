@@ -83,6 +83,7 @@ model User {
   password_resets   PasswordReset[]
   login_streak      LoginStreak?
   user_achievements UserAchievement[]
+  weekly_digests    WeeklyDigest[]
 
   @@index([account_id])
   @@map("users")
@@ -1229,4 +1230,23 @@ model UserAchievement {
   @@unique([user_id, achievement_id])
   @@index([user_id])
   @@map("user_achievements")
+}
+
+// ============================================================
+// WEEKLY DIGEST (T-384-C)
+// ============================================================
+
+model WeeklyDigest {
+  id         String   @id @default(uuid())
+  user_id    String
+  week_start DateTime @db.Timestamptz
+  week_end   DateTime @db.Timestamptz
+  summary    Json     // { tracked_count, gainers, losers, signals_count, avg_score_change }
+  sent_via   String[] // ['telegram', 'email']
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, week_start])
+  @@map("weekly_digests")
 }

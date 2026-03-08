@@ -99,6 +99,33 @@ export interface TrackedProduct {
   photo_url?: string | null;
 }
 
+// ─── Revenue Estimator Domain ────────────────────────────────────────────────
+
+export type CompetitionLevel = 'low' | 'medium' | 'high';
+
+export interface RevenueEstimate {
+  product_id: string;
+  product_title: string;
+  sell_price: number;
+  weekly_bought: number;
+  estimated_monthly_revenue: number;
+  estimated_margin_30pct: number;
+  competition_level: CompetitionLevel;
+  recommendation: string;
+}
+
+// ─── Achievement Domain ─────────────────────────────────────────────────────
+
+export interface Achievement {
+  id: string;
+  code: string;
+  title_key: string;
+  description_key: string;
+  icon: string;
+  earned: boolean;
+  earned_at: string | null;
+}
+
 // ─── Admin Domain ────────────────────────────────────────────────────────────
 
 export type Role = 'SUPER_ADMIN' | 'ADMIN' | 'MODERATOR' | 'USER';

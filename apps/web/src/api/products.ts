@@ -16,6 +16,14 @@ export const uzumApi = {
   analyzeById: (id: string) => api.get(`/uzum/product/${id}`, { timeout: 60_000 }),
 };
 
+export const revenueApi = {
+  getEstimate: (productId: string) => api.get(`/products/${productId}/revenue-estimate`),
+};
+
+export const achievementsApi = {
+  getAll: () => api.get('/achievements'),
+};
+
 export const billingApi = {
   getBalance: () => api.get('/billing/balance'),
 };

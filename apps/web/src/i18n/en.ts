@@ -1333,6 +1333,37 @@ export const en: Record<string, string> = {
     'compare.stock': 'Stock',
     'compare.inputPlaceholder': 'Product ID or Uzum URL',
 
+    // ── Revenue Estimator ──────────────────────────────────────────────────
+    'nav.revenueEstimator': 'Revenue Estimator',
+    'revenue.title': 'Revenue Estimator',
+    'revenue.enterProduct': 'Enter product URL or ID',
+    'revenue.calculate': 'Calculate Revenue',
+    'revenue.monthlyRevenue': 'Monthly Revenue',
+    'revenue.estimatedMargin': 'Estimated Margin (30%)',
+    'revenue.weeklySales': 'Weekly Sales',
+    'revenue.competition': 'Competition',
+    'revenue.low': 'Low',
+    'revenue.medium': 'Medium',
+    'revenue.high': 'High',
+    'revenue.recommendation': 'Recommendation',
+
+    // ── Achievements ─────────────────────────────────────────────────────
+    'nav.achievements': 'Achievements',
+    'achievements.title': 'Achievements',
+    'achievements.progress': '{earned} of {total} earned',
+    'achievements.earned': 'Earned',
+    'achievements.locked': 'Locked',
+    'achievement.first_analysis.title': 'First Analysis',
+    'achievement.first_analysis.desc': 'Analyze your first product',
+    'achievement.tracker_10.title': 'Tracker Pro',
+    'achievement.tracker_10.desc': 'Track 10 products',
+    'achievement.streak_7.title': 'Week Streak',
+    'achievement.streak_7.desc': 'Login 7 days in a row',
+    'achievement.discovery_explorer.title': 'Explorer',
+    'achievement.discovery_explorer.desc': 'Use Discovery 5 times',
+    'achievement.sourcing_pro.title': 'Sourcing Pro',
+    'achievement.sourcing_pro.desc': 'Calculate 3 sourcing estimates',
+
     // ── What\'s New ──────────────────────────────────────────────────────────
     'whatsNew.title': "What's New",
     'whatsNew.dismiss': 'Got it',
