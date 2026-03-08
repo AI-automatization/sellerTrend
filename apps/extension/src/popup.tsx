@@ -4,14 +4,18 @@ import { sendToBackground } from "@plasmohq/messaging";
 import "./style.css";
 import LoginForm from "~/components/LoginForm";
 import TrackedList from "~/components/TrackedList";
+import QuickAnalyze from "~/components/QuickAnalyze";
 import type { AuthStateResponseBody } from "~/background/messages/get-auth-state";
 import type { LogoutResponseBody } from "~/background/messages/logout";
 
 const DASHBOARD_URL = process.env.PLASMO_PUBLIC_API_URL?.replace("/api/v1", "") ?? "http://localhost:5173";
 
+type Tab = "tracked" | "analyze";
+
 function Popup() {
   const [loading, setLoading] = useState(true);
   const [authState, setAuthState] = useState<AuthStateResponseBody | null>(null);
+  const [activeTab, setActiveTab] = useState<Tab>("tracked");
 
   async function checkAuth() {
     try {
@@ -45,7 +49,7 @@ function Popup() {
 
   if (loading) {
     return (
-      <div className="w-72 p-6 flex justify-center">
+      <div className="w-80 p-6 flex justify-center">
         <span className="loading loading-spinner loading-md text-primary" />
       </div>
     );
@@ -53,7 +57,7 @@ function Popup() {
 
   if (!authState?.isLoggedIn) {
     return (
-      <div className="w-72 p-5">
+      <div className="w-80 p-5">
         <div className="flex items-center gap-2 mb-4">
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
             <span className="text-primary-content font-bold text-sm">V</span>
@@ -69,22 +73,39 @@ function Popup() {
   }
 
   return (
-    <div className="w-72 p-5">
-      <div className="flex items-center gap-2 mb-4">
+    <div className="w-80 p-5">
+      <div className="flex items-center gap-2 mb-3">
         <div className="w-8 h-8 rounded-lg bg-success flex items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-success-content">
             <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
           </svg>
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="font-bold text-base leading-tight">VENTRA</h1>
           <p className="text-xs opacity-60">{authState.email}</p>
         </div>
       </div>
 
-      <div className="divider my-2" />
+      {/* Tabs */}
+      <div role="tablist" className="tabs tabs-boxed tabs-sm mb-3">
+        <button
+          role="tab"
+          className={`tab ${activeTab === "tracked" ? "tab-active" : ""}`}
+          onClick={() => setActiveTab("tracked")}
+        >
+          Kuzatilmoqda
+        </button>
+        <button
+          role="tab"
+          className={`tab ${activeTab === "analyze" ? "tab-active" : ""}`}
+          onClick={() => setActiveTab("analyze")}
+        >
+          Tez Tahlil
+        </button>
+      </div>
 
-      <TrackedList />
+      {/* Tab content */}
+      {activeTab === "tracked" ? <TrackedList /> : <QuickAnalyze />}
 
       <div className="divider my-2" />
 
