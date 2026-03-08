@@ -22,6 +22,27 @@
 
 ---
 
+## T-426 | FRONTEND | Bot fixes — 6 ta bug (2026-03-08)
+
+### T-426 | FRONTEND | Bot fixes (domain, health, /top, logs)
+
+**Manba:** kod-audit (T-360 dan ajratildi)
+**Muammo:** Bot kodi 6 ta P2 bug'ni o'z ichiga olgan: WEB_URL hardcoded, health check faqat bot API, /top command type unsafe, startup logs detail yo'q.
+**Yechim:**
+1. WEB_URL env fallback qo'shildi
+2. Health check Prisma connection ham tekshiradi
+3. /top category_id String() bilan safe qilindi
+4. escapeHtml duplicate tekshirildi (yo'q)
+5. Startup logs detail qo'shildi (rate limit, WEB_URL)
+6. .env.example ga WEB_URL qo'shildi
+
+**Fayllar:** `apps/bot/src/main.ts`, `.env.example`
+**Commit:** d629da6
+**Vaqt:** 45min (plan: 2h)
+**Ta'sir:** Bot production-ready, health check reliable, startup diagnostics, env configuration clear.
+
+---
+
 ## T-413 + T-414 + T-415 — Search Batch 2: Track + NoBilling + SearchPage (2026-03-08)
 
 ### T-413 | BACKEND | trackFromSearch — FK constraint safe track (2026-03-08)
