@@ -1,5 +1,5 @@
 # VENTRA — OCHIQ VAZIFALAR
-# Yangilangan: 2026-03-06
+# Yangilangan: 2026-03-08
 # Developer-specific fayllar:
 #   - Bekzod → docs/Tasks-Bekzod.md
 #   - Sardor → docs/Tasks-Sardor.md
@@ -7,58 +7,164 @@
 
 ---
 
+## STATISTIKA
+
+```
+Ochiq:       ~40 ta
+Bajarilgan:  ~170+ ta (Done.md)
+Oxirgi T-#:  T-425
+Keyingi T-#: T-426 dan boshlash
+```
+
+---
+
 ## QOIDALAR
 
-### Umumiy
-- Yangi bug/error/task topilganda shu faylga qo'shiladi
-- Fix bo'lgandan keyin `docs/Done.md` ga ko'chiriladi
-- Kategoriyalar: BACKEND, FRONTEND, DEVOPS, IKKALASI
-- **GIT-BASED TASK LOCKING:** `pending[Bekzod]` / `pending[Sardor]` status ishlatiladi
+### Task formati v2 (MAJBURIY)
 
-### Task formati (MAJBURIY)
+Har bir task **aynan shu formatda** yozilishi SHART.
+Bu format `scripts/ventra-agent.sh` (autonomous agent) tomonidan parse qilinadi.
 
-Har bir task quyidagi 3 qismdan iborat bo'lishi **SHART**:
-
-**1. Sarlavha qatori:**
+**SARLAVHA (1 qator, ### bilan):**
 ```
-### T-XXX | P(0-3) | KATEGORIYA | Qisqa sarlavha | Vaqt
+### T-XXX | P(0-3) | KATEGORIYA | Qisqa sarlavha | Tahminiy vaqt
 ```
+- `T-XXX` — ketma-ket raqam (T-411, T-412, ...)
+- `P0` = kritik (production bug), `P1` = muhim, `P2` = o'rta, `P3` = past
+- `KATEGORIYA` = `BACKEND` | `FRONTEND` | `DEVOPS` | `IKKALASI`
+- Sarlavha ingliz yoki o'zbek, qisqa (5-10 so'z)
+- Vaqt: `15min` | `30min` | `1h` | `2h` | `4h` | `8h`
 
-**2. Kelib chiqishi (Manba):**
-Task qayerdan paydo bo'lgani — 1 qator yoziladi:
-- `Manba: kod audit (fayl:qator)` — audit paytida topilgan bug
-- `Manba: production bug (sana, error log)` — live da uchragan xato
-- `Manba: ChatGPT/Claude tahlil (sana)` — AI audit natijasi
-- `Manba: foydalanuvchi so'rovi / feature request` — user feedback
-- `Manba: code review PR #N` — PR review da topilgan
-- `Manba: dependency update / security advisory` — lib yangilanishi
+**TANA (sarlavha ostida, bo'sh qator bilan ajratilgan):**
 
-**3. Muammo + Yechim:**
-- **Muammo:** Nima buzilgan / nima etishmaydi — aniq tavsif
-- **Yechim:** Qanday tuzatiladi — fayl nomlari, qaysi qator, qanday o'zgarish
-- **Fayllar:** O'zgartiriladigan fayllar ro'yxati
-
-**Namuna:**
-```
+```markdown
 ### T-999 | P1 | BACKEND | WebSocket disconnect on logout | 30min
 
-Manba: kod audit (useSocket.ts:12-23, 2026-03-04)
+**Sana:** 2026-03-08
+**Manba:** kod-audit | production-bug | ai-tahlil | user-feedback | code-review | dependency-update | sentry-alert | self-improve
+**Topilgan joyda:** `apps/web/src/hooks/useSocket.ts:12-23`
+**Mas'ul:** Bekzod | Sardor | — (ochiq)
 
-**Muammo:** Logout paytida WebSocket connection yopilmaydi — server'da
-stale connection qoladi, memory leak hosil bo'ladi.
+**Tahlil:**
+Logout paytida WebSocket connection yopilmaydi. Server da stale connection
+qoladi, 100+ foydalanuvchida memory leak hosil bo'ladi. Har logout da
+~2MB memory qaytarilmaydi. 24 soatda ~500MB leak.
 
-**Yechim:** `authStore.logout()` ichida `socket.disconnect()` chaqirish.
-`useSocket.ts:23` da cleanup function qo'shish.
+**Muammo:**
+`useSocket.ts:23` da `useEffect` cleanup function yo'q.
+Component unmount bo'lganda socket.disconnect() chaqirilmaydi.
 
-**Fayllar:** `apps/web/src/hooks/useSocket.ts`, `apps/web/src/store/authStore.ts`
+**Yechim:**
+1. `useSocket.ts:23` — useEffect return da `socket.disconnect()` qo'shish
+2. `authStore.ts` — `logout()` ichida `socket.disconnect()` chaqirish
+3. Server: stale connection timeout qo'shish (5 min)
+
+**Fayllar:** `apps/web/src/hooks/useSocket.ts`, `apps/web/src/stores/authStore.ts`
+
+**Qo'shimcha kontekst:** (ixtiyoriy)
+- Bu muammo v5.4 da kiritilgan (weekly-scrape socket qo'shilganda)
+- Sentry da 3 marta uchragan: VENTRA-ERR-1234
+- Screenshot: screenshots/ws-leak-2026-03-08.png
 ```
 
-### Task lifecycle
+### Maydon tushuntirishlari
+
+| Maydon | Majburiy | Nima uchun |
+|--------|----------|------------|
+| `Sana` | HA | Task qachon yaratilgani — tracking uchun |
+| `Manba` | HA | Qayerdan kelgani — qayta tekshirish uchun |
+| `Topilgan joyda` | YO'Q | Aniq fayl:qator — agent tezroq topadi |
+| `Mas'ul` | HA | Kim olgan — lock protocol uchun |
+| `Tahlil` | HA | NEGA bu muammo — root cause, ta'sir ko'lami |
+| `Muammo` | HA | NIMA buzilgan — aniq texnik tavsif |
+| `Yechim` | HA | QANDAY tuzatiladi — qadam-baqadam |
+| `Fayllar` | HA | Qaysi fayllar o'zgaradi — agent zone tekshirish uchun |
+| `Qo'shimcha kontekst` | YO'Q | Screenshot, Sentry link, PR ref, bog'liq task |
+
+### Manba turlari (standardlashtirilgan)
+
+| Manba tegi | Ma'nosi | Misol |
+|------------|---------|-------|
+| `kod-audit` | Qo'lda yoki AI bilan kod tekshirish | `kod-audit (useSocket.ts:12, 2026-03-08)` |
+| `production-bug` | Live da uchragan xato | `production-bug (Sentry VENTRA-1234, 2026-03-08)` |
+| `ai-tahlil` | Claude/ChatGPT audit natijasi | `ai-tahlil (Claude deep-audit, 2026-03-04)` |
+| `user-feedback` | Foydalanuvchi so'rovi/shikoyati | `user-feedback (Telegram @user123, 2026-03-07)` |
+| `code-review` | PR review da topilgan | `code-review (PR #42, 2026-03-06)` |
+| `dependency-update` | Lib yangilanishi, security advisory | `dependency-update (prisma 6.4.0 CVE-2026-XXX)` |
+| `sentry-alert` | Sentry/monitoring alert | `sentry-alert (VENTRA-ERR-567, spike 50/min)` |
+| `self-improve` | Agent self-improvement engine | `self-improve (learning.md: any_type 3+ marta)` |
+| `regression` | Oldingi fix dan qayta paydo bo'lgan bug | `regression (T-375 fix dan keyin, 2026-03-08)` |
+| `performance` | Sekinlik, memory leak, CPU spike | `performance (p95 > 3s, /api/products endpoint)` |
+
+### Locking protocol
+
 ```
-1. Topildi    → Tasks.md ga yoziladi (yuqoridagi format)
-2. Olinadi    → pending[Bekzod/Sardor] status + git push
-3. Ishlanadi  → branch ochib ishlash
-4. Tugadi     → Tasks.md dan o'chiriladi, Done.md ga ko'chiriladi
+Ochiq:              ### T-411 | P1 | BACKEND | ... | 30min
+                    **Mas'ul:** —
+
+Olingan (Bekzod):   ### T-411 | P1 | BACKEND | ... | 30min | pending[Bekzod]
+                    **Mas'ul:** Bekzod
+
+Olingan (Agent):    ### T-411 | P1 | BACKEND | ... | 30min | pending[Claude-Auto]
+                    **Mas'ul:** Claude-Auto
+
+Qoidalar:
+  - pending[X] bor → BOSHQASI TEGMAYDI
+  - 1 soatdan ortiq o'zgarishsiz → "stuck", boshqasi olishi mumkin
+  - Agent: faqat **Mas'ul: —** bo'lgan tasklarni oladi
+```
+
+### Task lifecycle v2
+
+```
+1. YARATILDI   → Tasks.md ga yoziladi (yuqoridagi format)
+                  git commit: "task: add T-XXX [short title]"
+
+2. OLINADI     → pending[Bekzod/Sardor/Claude-Auto] + Mas'ul yangilanadi
+                  git commit: "task: claim T-XXX [Bekzod]"
+                  git push (boshqalar ko'rishi uchun)
+
+3. ISHLANADI   → branch: bekzod/T-XXX-short-title yoki auto/T-XXX-short-title
+                  Agent/developer kod yozadi
+                  tsc + build tekshiradi
+
+4. PR OCHILADI → github: PR title "feat: T-XXX — short title"
+                  QA Agent yoki manual review
+
+5. MERGE       → PR approve → merge to main
+
+6. ARXIV       → Tasks.md dan o'chiriladi
+                  Done.md ga ko'chiriladi (Done format, pastda)
+                  git commit: "task: done T-XXX"
+```
+
+### Done.md format (arxiv)
+
+Task Done.md ga ko'chirilganda quyidagi FORMAT ishlatiladi:
+
+```markdown
+### T-XXX | KATEGORIYA | Sarlavha (sana)
+
+**Manba:** [manba tegi]
+**Muammo:** [1-2 jumla — nima buzilgan edi]
+**Yechim:** [1-2 jumla — nima qilindi]
+**Fayllar:** [o'zgargan fayllar]
+**Commit:** [commit hash yoki PR #]
+**Vaqt:** [haqiqiy sarflangan vaqt] (plan: [planlangan vaqt])
+**Ta'sir:** [nima yaxshilandi — metrika, UX, xavfsizlik]
+```
+
+**Done.md namuna:**
+```markdown
+### T-375 | BACKEND | Worker monitoring jobs (2026-03-05)
+
+**Manba:** ai-tahlil (Claude deep-audit, 2026-03-04)
+**Muammo:** Worker da monitoring cron job yo'q edi — heap/RSS alertlar tekshirilmas edi.
+**Yechim:** `monitoring.job.ts` yaratildi — har 5 min MetricsService.checkAlerts() chaqiradi.
+**Fayllar:** `apps/worker/src/jobs/monitoring.job.ts`, `apps/worker/src/main.ts`
+**Commit:** abc1234 | PR #67
+**Vaqt:** 45min (plan: 30min)
+**Ta'sir:** Production da memory leak 15 min ichida aniqlanadi (oldin hech qachon).
 ```
 
 ---
@@ -451,7 +557,7 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 | # | Muammo | Mas'ul | Vaqt |
 |---|--------|--------|------|
-| T-384 | Engagement features — revenue estimator, comparison, streak, badges | Bekzod | 20h+ |
+| ~~T-384~~ | ~~Engagement features — revenue estimator, comparison, streak, badges~~ | ✅ DONE (2026-03-08) | — |
 
 > Batafsil sabab/yechim: docs/Tasks-Bekzod.md (T-371..T-376), docs/Tasks-Sardor.md (T-377..T-384)
 
@@ -487,20 +593,8 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 ---
 
-### T-390 | P2 | DEVOPS | Docs ↔ Schema auto-sync | 1h
-
-**Muammo:** `schema.prisma` (1116 qator, 49 jadval) va docs mustaqil yashaydi.
-Schema o'zgaradi — docs eskiradi — audit noto'g'ri xulosa chiqaradi (ChatGPT case).
-
-**Yechim:**
-1. Script: `scripts/generate-db-docs.ts` — Prisma schema'dan avtomatik:
-   - Jadval ro'yxati + column'lar + typelar + munosabatlar
-   - Mermaid ER diagram
-   - `docs/DATABASE.md` ga yoziladi
-2. CI check: `schema.prisma` o'zgarganda — `DATABASE.md` yangilanishi **majburiy**
-3. Pre-commit hook yoki GitHub Action
-
-**Fayllar:** `scripts/generate-db-docs.ts` (yangi), `.github/workflows/ci.yml`, `docs/DATABASE.md` (yangi)
+### ~~T-390~~ ✅ DONE (2026-03-08) → Done.md
+Schema auto-sync — `scripts/generate-db-docs.ts` + `docs/DATABASE.md` (53 model, 14 enum, Mermaid ER).
 
 ---
 
@@ -555,6 +649,596 @@ Onboarding reminders — daily 10AM cron, 3-day check for incomplete onboarding.
 
 ---
 
+# SEARCH + BRIGHT DATA SOURCING (T-411..T-425)
+
+> **Maqsad:** Uzum kalit so'z qidiruvi → mahsulot cardlar → track → Bright Data orqali xalqaro narx taqqoslash
+> **Arxitektura:** `docs/BRIGHTDATA-SOURCING-ARCHITECTURE.md`
+> **Boshlang'ich sana:** 2026-03-08
+> **Dependency graph:**
+> ```
+> Faza 1 (Backend infra):    T-411 → T-412 → T-413 → T-414
+> Faza 2 (Frontend search):  T-415 → T-416 → T-417 → T-418
+> Faza 3 (Expand panel):     T-419 (T-413 + T-418 dan keyin)
+> Faza 4 (Bright Data):      T-420 → T-421 → T-422 → T-423
+> Faza 5 (Polish):           T-424, T-425 (hammasi tugagandan keyin)
+> ```
+
+---
+
+## FAZA 1 — BACKEND INFRA (P0)
+
+### T-411 | P0 | BACKEND | Route order fix — static routes before :id param | 15min
+
+**Sana:** 2026-03-08
+**Manba:** kod-audit
+**Topilgan joyda:** `apps/api/src/products/products.controller.ts:22-45`
+**Mas'ul:** Bekzod
+
+**Tahlil:**
+NestJS controller da `@Get(':id')` (line 36) barcha `@Get('xxx')` larni "yutib yuboradi"
+agar ular `:id` dan KEYIN kelsa. Yangi `@Get('search')` endpoint qo'shilsa,
+uni `@Get(':id')` dan OLDIN joylashtirish SHART. Aks holda "search" so'zi
+`:id` parametri sifatida parse bo'lib, `ParseBigIntPipe` da xato beradi.
+
+**Yechim:**
+1. Controller dagi method tartibini o'zgartirish:
+   - `@Get('tracked')` — 1-chi (mavjud)
+   - `@Get('recommendations')` — 2-chi (mavjud)
+   - `@Get('search')` — 3-chi (YANGI — T-412 da yaratiladi)
+   - `@Get(':id')` — 4-chi (mavjud, pastga tushadi)
+   - `@Get(':id/...')` — 5-chi+ (mavjud)
+2. Hozircha faqat method tartibini tekshirish va joyini belgilash
+
+**Fayllar:** `apps/api/src/products/products.controller.ts`
+**Bog'liqlik:** yo'q — birinchi bajariladi
+
+---
+
+### T-412 | P0 | BACKEND | searchProducts endpoint — Uzum search proxy | 1h
+
+**Sana:** 2026-03-08
+**Manba:** yangi-feature
+**Topilgan joyda:** yangi endpoint
+**Mas'ul:** Bekzod
+
+**Tahlil:**
+Frontend dan kalit so'z bo'yicha mahsulot qidirish uchun backend proxy kerak.
+To'g'ridan-to'g'ri Uzum API ga frontend dan so'rov yuborish CORS xatosi beradi.
+Backend proxy orqali: rate limiting, caching (Redis 5min TTL), sanitizatsiya.
+
+**Muammo va xavflar:**
+- Uzum search API ba'zan 500 "Internal service not available" qaytaradi
+- Rate limit: Uzum 429 qaytarishi mumkin — retry + backoff kerak
+- Query injection: foydalanuvchi kiritgan matnni sanitize qilish
+
+**Yechim:**
+1. `UzumClient.searchProducts(query, size, page, sort)` — yangi method
+   - URL: `GET /api/v2/main/search/product?text={query}&size={size}&page={page}&sort={sort}`
+   - Headers: mavjud HEADERS (User-Agent, Origin, Referer)
+   - Response: `UzumSearchProduct[]` (mavjud interface)
+   - Error handling: 429 → 5s wait + retry, 500 → empty array + log
+2. `ProductsService.searchProducts(query, limit)` — service method
+   - Redis cache: `search:{query}:{limit}` → 5 min TTL
+   - Sanitize: trim, max 100 char, special char strip
+3. `ProductsController` — `@Get('search')` endpoint
+   - Query params: `?q=string&limit=number(default 24)`
+   - T-411 bo'yicha `:id` dan OLDIN joylashadi
+   - `@ApiQuery()` dekorator qo'shish
+4. `SearchQueryDto` — class-validator bilan validatsiya
+   - `q: string` — `@IsString()`, `@MinLength(2)`, `@MaxLength(100)`
+   - `limit: number` — `@IsOptional()`, `@IsInt()`, `@Min(1)`, `@Max(48)`, default 24
+
+**Fayllar:**
+- `apps/api/src/uzum/uzum.client.ts` — searchProducts method
+- `apps/api/src/products/products.service.ts` — searchProducts method
+- `apps/api/src/products/products.controller.ts` — @Get('search')
+- `apps/api/src/products/dto/search-query.dto.ts` — yangi DTO
+
+**Bog'liqlik:** T-411 (route order)
+
+---
+
+### T-413 | P0 | BACKEND | trackFromSearch — FK constraint safe track | 1h
+
+**Sana:** 2026-03-08
+**Manba:** kod-audit
+**Topilgan joyda:** `apps/api/src/products/products.service.ts` — trackProduct()
+**Mas'ul:** Bekzod
+
+**Tahlil:**
+Mavjud `trackProduct(accountId, productId)` faqat `TrackedProduct` ga upsert qiladi.
+Lekin `TrackedProduct.product_id → Product.id` foreign key mavjud.
+Search natijalarida ko'rsatilgan mahsulot hali `Product` jadvalida YO'Q bo'lishi mumkin.
+Track bosilganda FK constraint violation: `Foreign key constraint failed on the field: product_id`.
+
+**Muammo va xavflar:**
+- Race condition: 2 foydalanuvchi bir vaqtda bir mahsulotni track qilsa
+- Uzum API down: fetchProductDetail null qaytarsa track imkonsiz
+- BigInt conversion: search natijasidagi id → BigInt
+
+**Yechim:**
+1. Yangi `trackFromSearch(accountId, uzumProductId)` method:
+   - `Product` jadvalda bor-yo'qligini tekshirish (`findUnique`)
+   - Yo'q bo'lsa: `UzumClient.fetchProductDetail(id)` chaqirish
+   - Product detail dan `Product` jadvalga upsert (title, rating, photoUrl, etc.)
+   - Keyin `TrackedProduct` ga upsert (mavjud logika)
+   - Transaction ichida: `prisma.$transaction([productUpsert, trackUpsert])`
+2. Yangi endpoint: `@Post('search/:id/track')` — search natijasidan track
+   - `:id` = Uzum product ID (number, BigInt emas)
+   - Response: `{ tracked: true, product_id: bigint }`
+3. Error handling:
+   - Uzum API 404/null → `NotFoundException('Product not found on Uzum')`
+   - FK constraint fallback → retry with fresh fetch
+
+**Fayllar:**
+- `apps/api/src/products/products.service.ts` — trackFromSearch method
+- `apps/api/src/products/products.controller.ts` — @Post('search/:id/track')
+
+**Bog'liqlik:** T-412 (searchProducts endpoint kerak)
+
+---
+
+### T-414 | P1 | BACKEND | BillingGuard — search endpoint cost model | 30min
+
+**Sana:** 2026-03-08
+**Manba:** kod-audit
+**Topilgan joyda:** `apps/api/src/billing/billing.guard.ts`
+**Mas'ul:** Bekzod
+
+**Tahlil:**
+`BillingGuard` class-level `@UseGuards` da turadi — barcha endpoint larga ta'sir qiladi.
+Search endpoint har so'rovda kredit yechishi NOTO'G'RI — foydalanuvchi 10 marta
+qidirsa 10x kredit ketadi. Search = bepul bo'lishi kerak (Uzum o'zi bepul).
+Track qilish esa kredit olishi mumkin.
+
+**Yechim:**
+1. `BillingGuard` da endpoint-specific skip logic:
+   - `@NoBilling()` custom dekorator yaratish
+   - `products/search` endpoint ga `@NoBilling()` qo'yish
+   - Guard ichida `Reflector` dan metadata o'qish → skip
+2. Yoki: Search endpoint ni BillingGuard dan tashqarida alohida controller ga ko'chirish
+   - Afzallik: oddiyroq, lekin code duplication
+   - Kamchilik: DI context alohida bo'ladi
+3. **Tanlangan yechim:** `@NoBilling()` dekorator — minimal o'zgartirish
+
+**Fayllar:**
+- `apps/api/src/billing/billing.guard.ts` — NoBilling check qo'shish
+- `apps/api/src/common/decorators/no-billing.decorator.ts` — yangi dekorator
+- `apps/api/src/products/products.controller.ts` — @NoBilling() qo'yish
+
+**Bog'liqlik:** T-412 (search endpoint mavjud bo'lishi kerak)
+
+---
+
+## FAZA 2 — FRONTEND SEARCH PAGE (P0)
+
+### T-415 | P0 | FRONTEND | SearchPage — route, nav link, page scaffold | 1h
+
+**Sana:** 2026-03-08
+**Manba:** yangi-feature
+**Topilgan joyda:** `apps/web/src/App.tsx`, `apps/web/src/components/Layout.tsx`
+**Mas'ul:** Bekzod
+
+**Tahlil:**
+Hozirda `/search` route yo'q. App.tsx da lazy route qo'shish,
+Layout.tsx sidebar ga nav link qo'shish, sahifa scaffold yaratish kerak.
+
+**Muammo va xavflar:**
+- Route order: React Router da static/dynamic tartib muhim emas (path matching)
+- Layout.tsx: NavSection tuzilmasi — to'g'ri section ga qo'shish
+- Lazy loading: React.lazy + Suspense (mavjud pattern)
+
+**Yechim:**
+1. `SearchPage.tsx` yaratish — sahifa tuzilmasi:
+   - Search input (debounced, 300ms)
+   - Natijalar grid (ProductSearchCard[])
+   - Loading skeleton
+   - Empty state ("Mahsulot topilmadi")
+   - Error state
+2. `App.tsx` — lazy route qo'shish: `<Route path="search" element={<SearchPage />} />`
+3. `Layout.tsx` — "Main" section ga "Qidiruv" link qo'shish (Search icon)
+   - Dashboard va Analyze orasiga joylashtirish
+
+**Fayllar:**
+- `apps/web/src/pages/SearchPage.tsx` — yangi sahifa
+- `apps/web/src/App.tsx` — route qo'shish
+- `apps/web/src/components/Layout.tsx` — nav link
+
+**Bog'liqlik:** T-412 (backend search endpoint tayyor bo'lishi kerak)
+
+---
+
+### T-416 | P0 | FRONTEND | API client + TypeScript types for search | 30min
+
+**Sana:** 2026-03-08
+**Manba:** yangi-feature
+**Topilgan joyda:** `apps/web/src/api/products.ts`
+**Mas'ul:** Bekzod
+
+**Tahlil:**
+Frontend API client da search method yo'q. Type'lar ham yo'q.
+Backend `UzumSearchProduct` interface ni frontend da mirror qilish kerak.
+
+**Yechim:**
+1. `SearchProduct` type yaratish:
+   ```ts
+   interface SearchProduct {
+     id: number;
+     productId?: number;
+     title: string;
+     minSellPrice?: number;
+     sellPrice?: number;
+     rating: number;
+     ordersQuantity?: number;
+     ordersAmount?: number;
+   }
+   ```
+2. `productsApi` ga qo'shish:
+   - `search(query: string, limit?: number): Promise<SearchProduct[]>`
+   - `trackFromSearch(uzumProductId: number): Promise<{ tracked: boolean }>`
+3. Error handling: 429 → retry toast, 500 → generic error
+
+**Fayllar:**
+- `apps/web/src/api/products.ts` — search, trackFromSearch methods
+- `apps/web/src/types/search.ts` — yangi type fayl (yoki products.ts ichida)
+
+**Bog'liqlik:** T-412 (backend endpoint)
+
+---
+
+### T-417 | P1 | FRONTEND | i18n — search page translations (uz, ru, en) | 30min
+
+**Sana:** 2026-03-08
+**Manba:** yangi-feature
+**Topilgan joyda:** `apps/web/src/i18n/uz.ts`, `ru.ts`, `en.ts`
+**Mas'ul:** Bekzod
+
+**Tahlil:**
+3 ta til faylida `search.*` kalitlari yo'q. Nav link, placeholder,
+button, empty state, error matnlari kerak.
+
+**Yechim:**
+Har 3 til fayliga `search` bo'limi qo'shish:
+```
+search.title = "Mahsulot qidirish" / "Поиск товаров" / "Product Search"
+search.placeholder = "Mahsulot nomi..." / "Название товара..." / "Product name..."
+search.track = "Kuzatish" / "Отслеживать" / "Track"
+search.noResults = "Topilmadi" / "Не найдено" / "No results"
+search.error = "Qidirishda xato" / "Ошибка поиска" / "Search error"
+nav.search = "Qidiruv" / "Поиск" / "Search"
+```
+
+**Fayllar:**
+- `apps/web/src/i18n/uz.ts`
+- `apps/web/src/i18n/ru.ts`
+- `apps/web/src/i18n/en.ts`
+
+**Bog'liqlik:** T-415 (SearchPage kerak)
+
+---
+
+### T-418 | P1 | FRONTEND | ProductSearchCard — rasm, narx, rating, track button | 1h
+
+**Sana:** 2026-03-08
+**Manba:** yangi-feature
+**Topilgan joyda:** yangi component
+**Mas'ul:** Bekzod
+
+**Tahlil:**
+Search natijalarini ko'rsatadigan card component. Uzum search API
+rasm URL bermaydi (faqat id, title, price, rating). Rasm uchun
+Uzum CDN pattern ishlatish mumkin: `https://images.uzum.uz/...`
+
+**Muammo va xavflar:**
+- Rasm URL: Uzum search API da `photoUrl` yo'q — faqat product detail da bor
+- Lazy load: 24 ta card bir vaqtda rasm yuklash — IntersectionObserver kerak
+- Track button: optimistic UI — bosilganda darhol "Kuzatilmoqda" ko'rsatish
+- Narx formati: Uzum narxlari SUM da (tiyin emas)
+
+**Yechim:**
+1. `ProductSearchCard` component:
+   - Rasm: placeholder yoki Uzum CDN URL pattern (`/product/{id}/photo`)
+   - Title: max 2 qator, text-ellipsis
+   - Narx: `Intl.NumberFormat('uz-UZ')` bilan format
+   - Rating: yulduzlar yoki raqam
+   - Buyurtmalar soni: `ordersQuantity` yoki `ordersAmount`
+   - "Kuzatish" button: `trackFromSearch(id)` chaqiradi
+2. Grid layout: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`
+3. Loading skeleton: card shaklidagi pulse animation
+4. Track state: `useState<Set<number>>` — allaqachon track qilinganlarni saqlash
+
+**Fayllar:**
+- `apps/web/src/components/search/ProductSearchCard.tsx` — yangi
+- `apps/web/src/components/search/SearchSkeleton.tsx` — yangi
+
+**Bog'liqlik:** T-416 (API types), T-415 (SearchPage da ishlatiladi)
+
+---
+
+## FAZA 3 — EXPAND PANEL (P1)
+
+### T-419 | P1 | FRONTEND | Inline expand panel — tahlil, sourcing preview | 2h
+
+**Sana:** 2026-03-08
+**Manba:** yangi-feature
+**Topilgan joyda:** yangi component
+**Mas'ul:** Bekzod
+
+**Tahlil:**
+Card bosilganda pastda (modal EMAS) expand panel ochiladi.
+Bu panel da: mahsulot detail, score, va keyinchalik (T-422) Bright Data
+narx taqqoslash paneli ko'rsatiladi.
+
+**Muammo va xavflar:**
+- Grid layout buzilishi: expand panel grid-cols orasiga tushishi kerak
+- `grid-column: 1 / -1` (full-width) CSS trick kerak
+- Animation: height auto → CSS transition qiyin — framer-motion yoki max-height trick
+- Mobile: horizontal scroll yoki stack layout
+
+**Yechim:**
+1. `ExpandPanel` component:
+   - Trigger: card dagi "Tahlil" button
+   - Joylashuv: card row dan keyin, full-width (`col-span-full`)
+   - Content: ScoreRadial, narx/stok, rating
+   - Close button (X)
+   - Smooth open/close animation
+2. Data fetching: `productsApi.getProduct(id)` — real product detail
+   - Loading: skeleton panel
+   - Error: inline error message
+3. Grid integration:
+   - Grid da `auto-rows` ishlatish
+   - Expand panel: `col-span-full` + `order` trick
+
+**Fayllar:**
+- `apps/web/src/components/search/ExpandPanel.tsx` — yangi
+- `apps/web/src/pages/SearchPage.tsx` — expand state management
+
+**Bog'liqlik:** T-413 (track endpoint), T-418 (card component)
+
+---
+
+## FAZA 4 — BRIGHT DATA INTEGRATION (P1)
+
+### T-420 | P1 | BACKEND | BrightData client — Web Scraper API wrapper | 2h
+
+**Sana:** 2026-03-08
+**Manba:** yangi-feature
+**Topilgan joyda:** yangi modul
+**Mas'ul:** Bekzod
+
+**Tahlil:**
+Bright Data Web Scraper API orqali AliExpress, 1688, Taobao mahsulotlarini
+kalit so'z bo'yicha qidirish. API: POST so'rov → async callback yoki polling.
+
+**Muammo va xavflar:**
+- Bright Data API async: natija darhol kelmaydi, webhook yoki polling kerak
+- Rate limit: Bright Data o'z limitlari bor (plan ga bog'liq)
+- API key xavfsizligi: .env dan o'qish, log ga CHIQARMASLIK
+- Response format: har platform (AliExpress vs 1688) boshqa format
+
+**Yechim:**
+1. `BrightDataClient` service (`@Injectable()`):
+   - `searchProducts(platform, query, limit)` — platform-specific search
+   - Supported platforms: `aliexpress`, `1688`, `taobao`
+   - Response normalization: `BrightDataProduct` unified interface
+   - Error handling: timeout, auth failure, quota exceeded
+2. `BrightDataModule` — NestJS module:
+   - ConfigService dan API key olish
+   - `BRIGHT_DATA_API_KEY`, `BRIGHT_DATA_ZONE` env vars
+3. `BrightDataProduct` interface:
+   ```ts
+   interface BrightDataProduct {
+     platform: 'aliexpress' | '1688' | 'taobao';
+     title: string;
+     price: number;
+     currency: string;
+     priceUsd: number;
+     imageUrl: string;
+     productUrl: string;
+     rating?: number;
+     orders?: number;
+     shippingCost?: number;
+   }
+   ```
+4. Redis cache: `bd:{platform}:{query}` → 1 soat TTL
+
+**Fayllar:**
+- `apps/api/src/bright-data/bright-data.client.ts` — yangi
+- `apps/api/src/bright-data/bright-data.module.ts` — yangi
+- `apps/api/src/bright-data/interfaces/bright-data-product.interface.ts` — yangi
+
+**Bog'liqlik:** yo'q (parallel ishlanishi mumkin)
+
+---
+
+### T-421 | P1 | BACKEND | Sourcing search endpoint — multi-platform query | 1h
+
+**Sana:** 2026-03-08
+**Manba:** yangi-feature
+**Topilgan joyda:** `apps/api/src/products/products.controller.ts`
+**Mas'ul:** Bekzod
+
+**Tahlil:**
+Track qilingan mahsulot uchun Bright Data orqali xalqaro narxlarni qidirish.
+Mahsulot title ni query sifatida ishlatib, bir nechta platformadan natija olish.
+
+**Muammo va xavflar:**
+- Parallel so'rovlar: 3 platformaga bir vaqtda → `Promise.allSettled`
+- Timeout: Bright Data sekin bo'lishi mumkin (10-30s) — frontend loading state
+- Credit cost: Bright Data har so'rov pulli — BillingGuard bilan integratsiya
+- AI query generation: title → optimized search query (optional, keyinchalik)
+
+**Yechim:**
+1. Yangi endpoint: `@Get(':id/sourcing-comparison')`
+   - Product detail dan title olish
+   - BrightDataClient.searchProducts() — 3 platformaga parallel
+   - `Promise.allSettled` — har biri mustaqil (biri fail = boshqalari ishlaydi)
+   - Response: `{ aliexpress: BrightDataProduct[], taobao: [...], 1688: [...] }`
+2. Redis cache: `sourcing:{productId}` → 6 soat TTL
+3. BillingGuard: sourcing so'rov = 1 kredit (configurable)
+
+**Fayllar:**
+- `apps/api/src/products/products.controller.ts` — yangi endpoint
+- `apps/api/src/products/products.service.ts` — getSourcingComparison method
+- `apps/api/src/products/products.module.ts` — BrightDataModule import
+
+**Bog'liqlik:** T-420 (BrightData client), T-413 (track kerak — faqat tracked mahsulotlar)
+
+---
+
+### T-422 | P1 | FRONTEND | Source price panel — platform cards in expand | 2h
+
+**Sana:** 2026-03-08
+**Manba:** yangi-feature
+**Topilgan joyda:** `apps/web/src/components/search/ExpandPanel.tsx`
+**Mas'ul:** Bekzod
+
+**Tahlil:**
+Expand panel da Bright Data natijalarini ko'rsatish: har platforma uchun
+rangli card, narx taqqoslash, margin kalkulyator.
+
+**Muammo va xavflar:**
+- Currency conversion: USD/CNY → UZS (CBU kurs)
+- Loading state: Bright Data 10-30s javob beradi — skeleton + progress
+- Empty results: ba'zi platformalarda natija bo'lmasligi mumkin
+- Mobile responsive: 3 ta platform card horizontal scroll
+
+**Yechim:**
+1. `SourcePricePanel` component (expand panel ichida):
+   - Har platform uchun `PlatformCard`:
+     - Logo + rang: AliExpress (qizil), 1688 (ko'k), Taobao (yashil)
+     - Narx: original + UZS converted
+     - Margin: `(uzum_price - source_price - shipping) / uzum_price * 100`
+     - Link: "Saytga o'tish" button
+   - Sorting: narx bo'yicha (cheapest first)
+   - "Batafsil" button → SourcingPage ga navigate
+2. API call: `productsApi.getSourcingComparison(productId)`
+3. Loading: platform-shaped skeleton cards
+
+**Fayllar:**
+- `apps/web/src/components/search/SourcePricePanel.tsx` — yangi
+- `apps/web/src/components/search/PlatformCard.tsx` — yangi
+- `apps/web/src/components/search/ExpandPanel.tsx` — SourcePricePanel qo'shish
+- `apps/web/src/api/products.ts` — getSourcingComparison method
+
+**Bog'liqlik:** T-419 (ExpandPanel), T-421 (backend sourcing endpoint)
+
+---
+
+### T-423 | P2 | BACKEND | Platform seed data + env config | 30min
+
+**Sana:** 2026-03-08
+**Manba:** yangi-feature
+**Topilgan joyda:** `apps/api/prisma/seed.ts`, `.env.example`
+**Mas'ul:** Bekzod
+
+**Tahlil:**
+Bright Data uchun environment o'zgaruvchilar va platform konfiguratsiya.
+Seed data: platform nomlari, logolar, ranglar.
+
+**Yechim:**
+1. `.env.example` ga qo'shish:
+   ```
+   BRIGHT_DATA_API_KEY=
+   BRIGHT_DATA_ZONE=web_scraper
+   BRIGHT_DATA_CALLBACK_URL=
+   ```
+2. Platform config (constant file):
+   ```ts
+   export const PLATFORMS = {
+     aliexpress: { name: 'AliExpress', color: '#E62E04', logo: '...' },
+     '1688': { name: '1688.com', color: '#FF6A00', logo: '...' },
+     taobao: { name: 'Taobao', color: '#FF5000', logo: '...' },
+   };
+   ```
+3. ConfigService validation: Bright Data key mavjud bo'lmasa warn log
+
+**Fayllar:**
+- `.env.example` — yangi env vars
+- `apps/api/src/bright-data/platforms.config.ts` — yangi
+- `apps/api/src/bright-data/bright-data.module.ts` — ConfigModule integration
+
+**Bog'liqlik:** T-420 (BrightData module)
+
+---
+
+## FAZA 5 — POLISH (P2)
+
+### T-424 | P2 | FRONTEND | Track state dedup — prevent double tracking | 30min
+
+**Sana:** 2026-03-08
+**Manba:** kod-audit
+**Topilgan joyda:** yangi logic
+**Mas'ul:** Bekzod
+
+**Tahlil:**
+Foydalanuvchi bir mahsulotni bir necha marta track qilishi mumkin.
+Backend upsert qiladi (xato bermaydi), lekin UX yomon:
+button "Kuzatish" → "Kuzatilmoqda" o'zgarishi kerak, qayta bosilmasligi kerak.
+
+**Muammo va xavflar:**
+- Page refresh: state yo'qoladi — backend dan tracked list olish kerak
+- Multiple tabs: boshqa tab da track qilingan — localStorage sync
+- Optimistic UI: darhol "Kuzatilmoqda" ko'rsatish, backend xato bersa qaytarish
+
+**Yechim:**
+1. `useTrackedProducts()` hook:
+   - Mount da `productsApi.getTracked()` → `Set<number>` — tracked IDs
+   - `trackProduct(id)` — optimistic add to Set → API call → rollback on error
+   - Context/Zustand da global state sifatida saqlash
+2. `ProductSearchCard` da:
+   - `isTracked` prop → button disabled + "Kuzatilmoqda" text
+   - Loading state: button spinning
+
+**Fayllar:**
+- `apps/web/src/hooks/useTrackedProducts.ts` — yangi hook
+- `apps/web/src/components/search/ProductSearchCard.tsx` — tracked state
+- `apps/web/src/pages/SearchPage.tsx` — hook integration
+
+**Bog'liqlik:** T-418 (ProductSearchCard), T-413 (track endpoint)
+
+---
+
+### T-425 | P3 | BACKEND | Search analytics — query logging + popular searches | 1h
+
+**Sana:** 2026-03-08
+**Manba:** self-improve
+**Topilgan joyda:** yangi feature
+**Mas'ul:** Bekzod
+
+**Tahlil:**
+Foydalanuvchilar nima qidirayotganini bilish — popular queries,
+conversion rate (search → track), zero-result queries.
+Admin dashboard da analytics ko'rsatish.
+
+**Yechim:**
+1. `SearchLog` Prisma model:
+   ```prisma
+   model SearchLog {
+     id         String   @id @default(cuid())
+     account_id String
+     query      String
+     results    Int      // natijalar soni
+     tracked    Boolean  @default(false) // track bosilganmi
+     created_at DateTime @default(now())
+     account    Account  @relation(fields: [account_id], references: [id])
+   }
+   ```
+2. Search endpoint da log yozish (async, non-blocking)
+3. Admin endpoint: `GET /admin/search-analytics`
+   - Top 20 queries (last 30 days)
+   - Zero-result queries
+   - Search → track conversion rate
+
+**Fayllar:**
+- `apps/api/prisma/schema.prisma` — SearchLog model
+- `apps/api/src/products/products.service.ts` — logSearch method
+- `apps/api/src/admin/admin.controller.ts` — search analytics endpoint
+
+**Bog'liqlik:** T-412 (search endpoint mavjud bo'lishi kerak), barchadan keyin
+
+---
+
 # LANDING MANUAL TASKLAR
 
 | # | Nima | Vaqt | Holat |
@@ -594,9 +1278,14 @@ Onboarding reminders — daily 10AM cron, 3-day check for incomplete onboarding.
 | ~~Onboarding & Billing P0~~ (T-392..T-393) | ~~2~~ ✅ | ~~2~~ | Bekzod |
 | **Onboarding & Billing P1** (T-394..T-396) | 3 | 3 | Bekzod |
 | **Onboarding & Billing P2** (T-397..T-398) | 2 | 2 | Bekzod |
-| **JAMI task ochiq** | **~60** | | |
+| **Search + Bright Data Faza 1** (T-411..T-414) | 4 | 7 | Bekzod |
+| **Search + Bright Data Faza 2** (T-415..T-418) | 4 | 4 | Bekzod |
+| **Search + Bright Data Faza 3** (T-419) | 1 | 3 | Bekzod |
+| **Search + Bright Data Faza 4** (T-420..T-423) | 4 | 6 | Bekzod |
+| **Search + Bright Data Faza 5** (T-424..T-425) | 2 | 2 | Bekzod |
+| **JAMI task ochiq** | **~75** | | |
 | **JAMI bajarilgan** | **~163** | | → Done.md |
 
 ---
 
-*Tasks.md | VENTRA Analytics Platform | 2026-03-06*
+*Tasks.md | VENTRA Analytics Platform | 2026-03-08*

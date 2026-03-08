@@ -12,6 +12,12 @@
     "typecheck": "pnpm --filter api exec tsc --noEmit && pnpm --filter web exec tsc --noEmit",
     "db:docs": "npx tsx scripts/generate-db-docs.ts",
     "audit:check": "pnpm audit --audit-level=moderate",
+    "agent": "bash scripts/ventra-agent.sh",
+    "agent:dry": "bash scripts/ventra-agent.sh --dry-run --count 10",
+    "agent:run": "bash scripts/ventra-agent.sh --count 3",
+    "agent:backend": "bash scripts/ventra-agent.sh --zone BACKEND --count 3",
+    "agent:frontend": "bash scripts/ventra-agent.sh --zone FRONTEND --count 3",
+    "self-improve": "bash scripts/self-improve.sh",
     "prepare": "husky || true"
   },
   "devDependencies": {

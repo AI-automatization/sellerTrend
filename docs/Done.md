@@ -1,6 +1,37 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
 # Yangilangan: 2026-03-08
-# Ochiq tasklar → docs/Tasks.md, docs/Tasks-Bekzod.md, docs/Tasks-Sardor.md
+# Ochiq tasklar → docs/Tasks.md
+# Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
+
+# ── DONE.MD ENTRY FORMATI ──────────────────────────────────
+#
+# ### T-XXX | KATEGORIYA | Sarlavha (sana)
+#
+# **Manba:** [manba tegi]
+# **Muammo:** [1-2 jumla — nima buzilgan edi]
+# **Yechim:** [1-2 jumla — nima qilindi]
+# **Fayllar:** [o'zgargan fayllar]
+# **Commit:** [hash yoki PR #]
+# **Vaqt:** [haqiqiy] (plan: [plan])
+# **Ta'sir:** [nima yaxshilandi — metrika, UX, xavfsizlik]
+#
+# ── ESLATMA ────────────────────────────────────────────────
+# - Yangi entry lar YUQORIGA qo'shiladi (eng oxirgi birinchi)
+# - **Ta'sir** maydoni MAJBURIY — nima o'zgardi end-user uchun
+# - Sprint/batch ishlar bitta heading ostida guruhlanadi
+
+---
+
+## T-384 + T-390 — Engagement Features + Schema Docs (2026-03-08)
+
+- **T-390**: Schema auto-sync — `scripts/generate-db-docs.ts` + `docs/DATABASE.md` (53 model, 14 enum, Mermaid ER)
+- **T-384**: Engagement features (6 sub-task):
+  1. Revenue estimator: API endpoint + RevenueEstimatorPage
+  2. Product comparison: ComparePage (max 3, winner highlight)
+  3. Login streak: LoginStreak model + API + StreakBadge UI
+  4. Achievement badges: Achievement + UserAchievement models, 5 seed, AchievementsPage
+  5. What's New: WhatsNew changelog modal (auto-show, v5.6/5.5/5.4)
+  6. Weekly digest: WeeklyDigest model, cron Monday 8AM, Telegram notification
 
 ---
 
