@@ -4,6 +4,8 @@ import { sendToBackground } from "@plasmohq/messaging";
 import "./style.css";
 import LoginForm from "~/components/LoginForm";
 import TrackedList from "~/components/TrackedList";
+import QuickAnalysisModal from "~/components/QuickAnalysisModal";
+import { parseProductIdFromUrl, isProductPage } from "~/lib/url-parser";
 import type { AuthStateResponseBody } from "~/background/messages/get-auth-state";
 import type { LogoutResponseBody } from "~/background/messages/logout";
 
@@ -12,6 +14,8 @@ const DASHBOARD_URL = process.env.PLASMO_PUBLIC_API_URL?.replace("/api/v1", "") 
 function Popup() {
   const [loading, setLoading] = useState(true);
   const [authState, setAuthState] = useState<AuthStateResponseBody | null>(null);
+  const [productId, setProductId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   async function checkAuth() {
     try {
@@ -29,6 +33,19 @@ function Popup() {
 
   useEffect(() => {
     checkAuth();
+  }, []);
+
+  // Get current tab's product ID (if on product page)
+  useEffect(() => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const currentTab = tabs[0];
+      if (currentTab?.url && isProductPage(currentTab.url)) {
+        const id = parseProductIdFromUrl(currentTab.url);
+        setProductId(id);
+      } else {
+        setProductId(null);
+      }
+    });
   }, []);
 
   async function handleLogout() {
@@ -88,6 +105,16 @@ function Popup() {
 
       <div className="divider my-2" />
 
+      {/* Quick Analysis Button */}
+      {productId && (
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="btn btn-primary btn-sm w-full mb-2"
+        >
+          📊 Tez Tahlil
+        </button>
+      )}
+
       <div className="flex flex-col gap-2">
         <a
           href={DASHBOARD_URL}
@@ -109,6 +136,13 @@ function Popup() {
           Chiqish
         </button>
       </div>
+
+      {/* Quick Analysis Modal */}
+      <QuickAnalysisModal
+        productId={productId}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   );
 }
