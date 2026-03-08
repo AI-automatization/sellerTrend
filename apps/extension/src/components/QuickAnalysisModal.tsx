@@ -5,6 +5,7 @@ import type { CategoryItem } from "~/lib/api";
 import AdvancedFilters from "./AdvancedFilters";
 import CategoryInsights from "./CategoryInsights";
 import CompetitorAnalysis from "./CompetitorAnalysis";
+import PriceHistory from "./PriceHistory";
 
 interface QuickAnalysisModalProps {
   productId: string | null;
@@ -220,6 +221,11 @@ export default function QuickAnalysisModal({
                       {new Date(product.last_updated).toLocaleString("uz-UZ")}
                     </div>
                   </div>
+                </div>
+
+                {/* Price History */}
+                <div className="border-t pt-3">
+                  <PriceHistory currentPrice={product.sell_price} />
                 </div>
 
                 {/* Actions */}
