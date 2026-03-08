@@ -186,7 +186,7 @@ export default function QuickAnalysisModal({
                   <div className="stat bg-base-200 rounded-lg p-3">
                     <div className="stat-title text-xs">Score</div>
                     <div className="stat-value text-lg text-primary">
-                      {product.score.toFixed(2)}
+                      {product.score != null ? product.score.toFixed(2) : "--"}
                     </div>
                   </div>
 
@@ -202,7 +202,7 @@ export default function QuickAnalysisModal({
                   <div className="stat bg-base-200 rounded-lg p-3 col-span-2">
                     <div className="stat-title text-xs">Narx</div>
                     <div className="stat-value text-lg">
-                      {Math.floor(product.sell_price).toLocaleString()}
+                      {product.sell_price != null ? Math.floor(product.sell_price).toLocaleString() : "--"}
                     </div>
                     <div className="stat-desc text-xs">so'm</div>
                   </div>
@@ -219,7 +219,7 @@ export default function QuickAnalysisModal({
                   <div className="stat bg-base-200 rounded-lg p-3 col-span-2">
                     <div className="stat-title text-xs">So'nggi yangilash</div>
                     <div className="stat-desc text-xs">
-                      {new Date(product.last_updated).toLocaleString("uz-UZ")}
+                      {product.last_updated ? new Date(product.last_updated).toLocaleString("uz-UZ") : "--"}
                     </div>
                   </div>
                 </div>
@@ -316,8 +316,8 @@ export default function QuickAnalysisModal({
                         <div key={prod.product_id} className="bg-base-200 rounded-lg p-2 text-xs">
                           <div className="font-medium line-clamp-2">{prod.title}</div>
                           <div className="text-base-content/70 mt-1 flex justify-between">
-                            <span>⭐ {prod.score.toFixed(1)}</span>
-                            <span>💰 {Math.floor(prod.sell_price).toLocaleString()}so'm</span>
+                            <span>⭐ {prod.score != null ? prod.score.toFixed(1) : "--"}</span>
+                            <span>💰 {prod.sell_price != null ? Math.floor(prod.sell_price).toLocaleString() : "--"}so'm</span>
                           </div>
                         </div>
                       ))
