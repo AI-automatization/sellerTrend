@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════
-# VENTRA Autonomous Agent Runner
-# MAX plan bilan ishlaydi — API key KERAK EMAS
+# VENTRA Autonomous Agent Runner v2
+# Git worktree isolation — parallel xavfsiz ishlaydi!
 #
 # Ishlatish:
 #   bash scripts/ventra-agent.sh                    # 1 ta task
@@ -9,6 +9,10 @@
 #   bash scripts/ventra-agent.sh --dry-run          # faqat ko'rish
 #   bash scripts/ventra-agent.sh --zone BACKEND     # faqat backend
 #   bash scripts/ventra-agent.sh --priority P0      # faqat P0
+#
+# Parallel mode (2 ta terminal):
+#   Terminal 1: bash scripts/ventra-agent.sh --yes --zone BACKEND --count 5
+#   Terminal 2: bash scripts/ventra-agent.sh --yes --zone FRONTEND --count 5
 # ═══════════════════════════════════════════════════════════
 
 set -euo pipefail
@@ -18,6 +22,7 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TASKS_FILE="$PROJECT_DIR/docs/Tasks.md"
 DONE_FILE="$PROJECT_DIR/docs/Done.md"
 LOG_DIR="$PROJECT_DIR/scripts/agent-logs"
+WORKTREE_BASE="$PROJECT_DIR/.agent-worktrees"
 DEVELOPER="Bekzod"
 MAX_RETRIES=2
 TASK_TIMEOUT=600  # 10 min per task
@@ -37,13 +42,18 @@ while [[ $# -gt 0 ]]; do
     --priority) PRIORITY_FILTER="$2"; shift 2 ;;
     --yes|-y)   AUTO_YES=true; shift ;;
     --help)
-      echo "VENTRA Autonomous Agent Runner"
+      echo "VENTRA Autonomous Agent Runner v2 (worktree isolation)"
       echo ""
       echo "  --count N      Nechta task bajarish (default: 1)"
       echo "  --dry-run      Faqat task ro'yxatini ko'rsat, bajarma"
       echo "  --zone ZONE    Faqat shu zone: BACKEND, FRONTEND, DEVOPS"
       echo "  --priority P   Faqat shu priority: P0, P1, P2, P3"
+      echo "  --yes, -y      Tasdiqlashsiz bajarish (kechagi mode)"
       echo "  --help         Shu yordam"
+      echo ""
+      echo "Parallel (2 terminal):"
+      echo "  Terminal 1: bash scripts/ventra-agent.sh --yes --zone BACKEND --count 5"
+      echo "  Terminal 2: bash scripts/ventra-agent.sh --yes --zone FRONTEND --count 5"
       exit 0
       ;;
     *) echo "Noma'lum argument: $1"; exit 1 ;;
@@ -66,12 +76,24 @@ log_task()  { echo -e "${CYAN}[TASK]${NC} $1"; }
 
 # ─── SETUP ─────────────────────────────────────────────────
 mkdir -p "$LOG_DIR"
+mkdir -p "$WORKTREE_BASE"
 cd "$PROJECT_DIR"
 
-log_info "VENTRA Autonomous Agent Runner"
+# Eski qoldiq worktree larni tozalash
+git worktree prune 2>/dev/null || true
+
+# Chiqishda worktree larni tozalash
+cleanup() {
+  log_info "Worktree'larni tozalayapman..."
+  git worktree prune 2>/dev/null || true
+}
+trap cleanup EXIT
+
+log_info "VENTRA Autonomous Agent Runner v2 (worktree isolation)"
 log_info "Project: $PROJECT_DIR"
 log_info "Developer: $DEVELOPER"
 log_info "Tasks to run: $COUNT"
+[[ -n "$ZONE_FILTER" ]] && log_info "Zone filter: $ZONE_FILTER"
 echo ""
 
 # ─── PARSE TASKS ───────────────────────────────────────────
@@ -89,8 +111,25 @@ parse_tasks() {
   local current_description=""
   local current_files=""
   local in_task=false
+  local in_code_block=false
 
   while IFS= read -r line; do
+    # Code block ichidagi tasklarni o'tkazib yuborish (namuna/shablon)
+    if [[ "$line" =~ ^\`\`\` ]]; then
+      if [[ "$in_code_block" == true ]]; then
+        in_code_block=false
+      else
+        in_code_block=true
+      fi
+      continue
+    fi
+    [[ "$in_code_block" == true ]] && continue
+
+    # ~~T-XXX~~ DONE bo'lgan tasklarni o'tkazib yuborish
+    if [[ "$line" =~ ^###[[:space:]]+~~T-[0-9]+~~ ]]; then
+      continue
+    fi
+
     # Format 1: ### T-XXX | P(0-3) | CATEGORY | Title | Time
     # Format 2: ### T-XXX | CATEGORY | Title | Time (P yo'q)
     if [[ "$line" =~ ^###[[:space:]]+(T-[0-9]+)[[:space:]]*\|[[:space:]]*P([0-3])[[:space:]]*\|[[:space:]]*([A-Z]+)[[:space:]]*\|[[:space:]]*(.+)\|[[:space:]]*(.+) ]]; then
@@ -245,7 +284,7 @@ Boshqa papkalarga TEGMA.
 PROMPT
 }
 
-# ─── EXECUTE TASK ──────────────────────────────────────────
+# ─── EXECUTE TASK (WORKTREE ISOLATION) ────────────────────
 
 execute_task() {
   local task_id="$1"
@@ -256,11 +295,13 @@ execute_task() {
 
   local branch_name="auto/${task_id,,}-$(echo "$title" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd 'a-z0-9-' | head -c 30)"
   local log_file="$LOG_DIR/${task_id}-$(date +%Y%m%d-%H%M%S).log"
+  local worktree_dir="$WORKTREE_BASE/${task_id}"
   local prompt
   prompt=$(build_prompt "$task_id" "$category" "$title" "$files" "$description")
 
   log_task "$task_id — $title"
   log_info "Branch: $branch_name"
+  log_info "Worktree: $worktree_dir"
   log_info "Log: $log_file"
 
   if [[ "$DRY_RUN" == true ]]; then
@@ -269,16 +310,30 @@ execute_task() {
     return 0
   fi
 
-  # 1. Branch ochish
-  git checkout main 2>/dev/null
-  git pull origin main 2>/dev/null || true
-  git checkout -b "$branch_name" 2>/dev/null || {
-    log_warn "Branch allaqachon bor, o'chiraman"
-    git branch -D "$branch_name" 2>/dev/null || true
-    git checkout -b "$branch_name"
-  }
+  # ── 1. Eski worktree tozalash ──
+  if [[ -d "$worktree_dir" ]]; then
+    log_warn "Eski worktree topildi, tozalayapman..."
+    git worktree remove "$worktree_dir" --force 2>/dev/null || rm -rf "$worktree_dir"
+  fi
+  git branch -D "$branch_name" 2>/dev/null || true
 
-  # 2. Claude -p bilan task bajarish
+  # ── 2. Worktree yaratish (main dan branch) ──
+  log_info "Worktree yaratilmoqda..."
+  if ! git worktree add "$worktree_dir" -b "$branch_name" main 2>/dev/null; then
+    log_err "Worktree yaratishda xato"
+    return 1
+  fi
+
+  # ── 3. Dependencies o'rnatish (pnpm cache — tez) ──
+  log_info "Dependencies o'rnatilmoqda..."
+  if ! (cd "$worktree_dir" && pnpm install --frozen-lockfile 2>&1 | tail -3); then
+    log_warn "pnpm install xato — davom etyapman"
+  fi
+
+  # Prisma client generate
+  (cd "$worktree_dir" && pnpm --filter api exec prisma generate 2>/dev/null) || true
+
+  # ── 4. Claude agent ishga tushirish ──
   log_info "Claude Agent ishga tushyapti..."
 
   local attempt=0
@@ -288,22 +343,34 @@ execute_task() {
     attempt=$((attempt + 1))
     log_info "Urinish $attempt/$MAX_RETRIES"
 
-    if timeout "$TASK_TIMEOUT" claude -p "$prompt" \
+    if (cd "$worktree_dir" && timeout "$TASK_TIMEOUT" claude -p "$prompt" \
       --allowedTools "Read,Edit,Write,Glob,Grep,Bash" \
-      > "$log_file" 2>&1; then
+      > "$log_file" 2>&1); then
 
-      # 3. Type check
+      # 5. Type check (worktree ichida)
       log_info "Type check..."
-      if pnpm --filter api exec tsc --noEmit 2>/dev/null && \
-         pnpm --filter web exec tsc --noEmit 2>/dev/null; then
+      local tsc_ok=true
+
+      if [[ "$category" == "BACKEND" || "$category" == "IKKALASI" ]]; then
+        if ! (cd "$worktree_dir" && pnpm --filter api exec tsc --noEmit 2>/dev/null); then
+          tsc_ok=false
+        fi
+      fi
+
+      if [[ "$category" == "FRONTEND" || "$category" == "IKKALASI" ]]; then
+        if ! (cd "$worktree_dir" && pnpm --filter web exec tsc --noEmit 2>/dev/null); then
+          tsc_ok=false
+        fi
+      fi
+
+      if [[ "$tsc_ok" == true ]]; then
         log_ok "tsc PASS"
         success=true
         break
       else
         log_warn "tsc FAIL — retry"
-        # tsc xatosini prompt ga qo'shib qayta urinish
         local tsc_error
-        tsc_error=$(pnpm --filter api exec tsc --noEmit 2>&1 | tail -20)
+        tsc_error=$(cd "$worktree_dir" && pnpm --filter api exec tsc --noEmit 2>&1 | tail -20)
         prompt="$prompt
 
 ## TSC XATOLIK (tuzat!)
@@ -315,17 +382,16 @@ $tsc_error"
   done
 
   if [[ "$success" == true ]]; then
-    # 4. O'zgarishlar bormi?
-    if git diff --quiet && git diff --cached --quiet; then
+    # ── 6. O'zgarishlar bormi? ──
+    if (cd "$worktree_dir" && git diff --quiet && git diff --cached --quiet); then
       log_warn "Hech qanday o'zgarish yo'q. Skip."
-      git checkout main 2>/dev/null
+      git worktree remove "$worktree_dir" --force 2>/dev/null || true
       git branch -D "$branch_name" 2>/dev/null || true
       return 0
     fi
 
-    # 5. Commit
-    git add -A
-    git commit -m "$(cat <<EOF
+    # ── 7. Commit (worktree ichida) ──
+    (cd "$worktree_dir" && git add -A && git commit -m "$(cat <<EOF
 feat: $task_id — $title
 
 Autonomous agent tomonidan bajarildi.
@@ -334,18 +400,18 @@ Developer: $DEVELOPER
 
 Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
 EOF
-    )"
+    )")
 
-    # 6. Push
-    git push -u origin "$branch_name" 2>/dev/null || {
+    # ── 8. Push ──
+    if ! (cd "$worktree_dir" && git push -u origin "$branch_name" 2>/dev/null); then
       log_err "Push FAIL"
-      git checkout main 2>/dev/null
+      git worktree remove "$worktree_dir" --force 2>/dev/null || true
       return 1
-    }
+    fi
 
-    # 7. PR ochish
+    # ── 9. PR ochish ──
     if command -v gh &> /dev/null; then
-      gh pr create \
+      (cd "$worktree_dir" && gh pr create \
         --title "auto: $task_id — $title" \
         --body "$(cat <<EOF
 ## Summary
@@ -363,24 +429,25 @@ Autonomous agent ($DEVELOPER zone) tomonidan bajarildi.
 Agent log: \`scripts/agent-logs/${task_id}-*.log\`
 
 ---
-Generated by VENTRA Autonomous Agent
+Generated by VENTRA Autonomous Agent v2 (worktree isolation)
 Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
 EOF
         )" \
         --label "auto-generated" \
-        --base main 2>/dev/null || log_warn "PR yaratishda xato (gh CLI)"
+        --base main 2>/dev/null) || log_warn "PR yaratishda xato (gh CLI)"
 
       log_ok "PR ochildi!"
     else
       log_warn "gh CLI topilmadi — PR qo'lda oching"
     fi
 
-    git checkout main 2>/dev/null
+    # ── 10. Worktree tozalash ──
+    git worktree remove "$worktree_dir" --force 2>/dev/null || true
     log_ok "$task_id TAYYOR!"
     return 0
   else
     log_err "$task_id BAJARILMADI (${MAX_RETRIES} urinish)"
-    git checkout main 2>/dev/null
+    git worktree remove "$worktree_dir" --force 2>/dev/null || true
     git branch -D "$branch_name" 2>/dev/null || true
     return 1
   fi
@@ -389,6 +456,11 @@ EOF
 # ─── MAIN ──────────────────────────────────────────────────
 
 main() {
+  # Eng yangi main ni olish
+  log_info "git pull origin main..."
+  git pull origin main 2>/dev/null || true
+  echo ""
+
   log_info "Tasklarni tahlil qilyapman..."
   echo ""
 
@@ -435,6 +507,8 @@ main() {
   # Tasklar bajarish
   local completed=0
   local failed=0
+  local start_time
+  start_time=$(date +%s)
 
   while IFS='|' read -r priority id category title time files description; do
     [[ -z "$id" ]] && continue
@@ -450,12 +524,17 @@ main() {
   done <<< "$tasks"
 
   # Natija
+  local end_time elapsed_min
+  end_time=$(date +%s)
+  elapsed_min=$(( (end_time - start_time) / 60 ))
+
   echo ""
   echo "═══════════════════════════════════════════════════"
   echo " NATIJA"
   echo "═══════════════════════════════════════════════════"
   log_ok "Bajarildi: $completed"
   [[ $failed -gt 0 ]] && log_err "Bajarilmadi: $failed"
+  log_info "Vaqt: ${elapsed_min} daqiqa"
   echo "═══════════════════════════════════════════════════"
 }
 

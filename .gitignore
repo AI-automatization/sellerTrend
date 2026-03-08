@@ -30,3 +30,6 @@ perm
 
 # Claude multi-agent locks (runtime only)
 .claude/locks/*.lock
+
+# Agent worktrees (parallel task execution)
+.agent-worktrees/

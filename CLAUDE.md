@@ -275,21 +275,26 @@ pnpm --filter web exec tsc --noEmit
 | **Web Agent** | `Agent(subagent_type: "general-purpose", isolation: "worktree")` | apps/web, extension | React, Tailwind, i18n (Bekzod) |
 | **Landing Agent** | `Agent(subagent_type: "general-purpose", isolation: "worktree")` | apps/landing, desktop | Landing + Desktop (Sardor) |
 | **QA Agent** | `Agent(subagent_type: "general-purpose")` | read-only, barcha fayllar | tsc, build, lint, test |
+| **PM Agent** | `Agent(subagent_type: "general-purpose")` | docs/ (read+write) | Sprint planning, velocity, task decomposition |
+| **BA Agent** | `Agent(subagent_type: "general-purpose")` | read-only + admin API | Marketplace analytics, biznes hisobotlar |
 | **Explorer** | `Agent(subagent_type: "Explore")` | read-only | Code research, bug analysis |
 | **Planner** | `Agent(subagent_type: "Plan")` | read-only | Architecture, decomposition |
 
 ### Ishlash tartibi (Mode B)
 
 ```
-1. PLAN   — Orchestrator: Tasks.md o'qish → dependency graph → parallel batch
-2. DISPATCH — Parallel agentlar ishga tushirish (worktree isolation)
+1. PM PLAN  — PM Agent: Tasks.md + Done.md + git log → sprint plan, prioritet, dependency graph
+2. BA CONTEXT — BA Agent: marketplace data tahlili → qaysi tasklar biznesga eng katta ta'sir (ixtiyoriy)
+3. DISPATCH — Parallel agentlar ishga tushirish (worktree isolation)
    ├─ Backend Agent  → backend task (worktree A)
    ├─ Web Agent      → frontend web task (worktree B) — Bekzod
    ├─ Landing Agent  → landing/desktop task (worktree C) — Sardor
    └─ Explorer Agent → research (read-only, agar kerak)
-3. VALIDATE — QA Agent: tsc + build + test (MAJBURIY, har merge dan oldin)
-4. MERGE   — Orchestrator: worktree → main, conflict resolve
-5. ARCHIVE — Tasks.md → Done.md ko'chirish
+4. VALIDATE — QA Agent: tsc + build + test (MAJBURIY, har merge dan oldin)
+5. MERGE   — Orchestrator: worktree → main, conflict resolve
+6. PM RETRO — PM Agent: sprint natijasi, velocity hisoblash, docs/Done.md yangilash
+7. BA MEASURE — BA Agent: o'zgarish ta'sirini o'lchash (ixtiyoriy, katta feature uchun)
+8. ARCHIVE — Tasks.md → Done.md ko'chirish
 ```
 
 ### Zone qoidalari — QATTIQ
@@ -301,6 +306,8 @@ ZONE MATRIX:
   Web Agent:      ❌ tegma   ✅ o'zi    ❌ tegma   🔒 lock   ❌ tegma
   Landing Agent:  ❌ tegma   ❌ tegma   ✅ o'zi    🔒 lock   ❌ tegma
   QA Agent:       👁 read    👁 read    👁 read   👁 read   ❌ tegma
+  PM Agent:       👁 read    👁 read    👁 read   👁 read   ✅ yozadi
+  BA Agent:       👁 read    👁 read    👁 read   👁 read   ✅ yozadi
   Orchestrator:   👁 read    👁 read    👁 read   ✅ merge  ✅ yozadi
 
 ZONE MAP:
@@ -395,6 +402,84 @@ NATIJA:
   ❌ FAIL → Tegishli agent ga error qaytariladi, tuzatish kerak
 ```
 
+### PM Agent — Sprint Planning & Velocity
+
+```
+PM Agent VAZIFASI:
+  Sprint boshlashda va tugashda ishga tushadi.
+  Kod YOZMAYDI — faqat docs/ papkaga yozadi.
+
+KIRISH (o'qiydi):
+  - docs/Tasks.md         → ochiq tasklar, prioritetlar, dependency
+  - docs/Done.md          → bajarilgan ishlar, vaqt, ta'sir
+  - git log --oneline -50 → oxirgi commitlar (velocity hisoblash)
+  - docs/Tasks-Bekzod.md  → developer-specific backlog
+
+CHIQISH (yozadi):
+  - docs/sprint-plan.md   → joriy sprint plani (task ro'yxati, tartib, vaqt)
+
+QOBILIYATLARI:
+  1. Sprint Planning:
+     - Tasks.md dan P0/P1 tasklarni ajratish
+     - Dependency graph: T-418 → T-419 (ketma-ket), T-420 || T-421 (parallel)
+     - Developer yuk taqsimoti: Bekzod 8h, Sardor 4h
+  2. Velocity Tracking:
+     - Done.md dan "Vaqt" maydonini o'qish → actual vs planned
+     - Oxirgi 7 kun: N ta task / X soat = velocity score
+     - Trend: tezlashyapti / sekinlashyapti / barqaror
+  3. Task Decomposition:
+     - Katta task (4h+) → 2-3 kichik sub-task ga bo'lish
+     - Har sub-task: aniq fayllar, deliverable, vaqt
+  4. Sprint Retro:
+     - Nima yaxshi ishladi / nima to'siq bo'ldi
+     - Keyingi sprintga tavsiyalar
+
+CHEKLOVLAR:
+  - Kod fayllarni O'ZGARTIRMAYDI
+  - Tasks.md ga task QO'SHMAYDI (faqat Orchestrator qiladi)
+  - git commit/push QILMAYDI
+```
+
+### BA Agent — Marketplace Analytics & Business Intelligence
+
+```
+BA Agent VAZIFASI:
+  Biznes qarorlar uchun ma'lumot tahlili.
+  Kod YOZMAYDI — faqat docs/ papkaga hisobot yozadi.
+
+KIRISH (o'qiydi):
+  - docs/Done.md           → qanday feature'lar qo'shilgani
+  - apps/api/prisma/schema.prisma → DB model tuzilishi
+  - Admin API endpointlari (read-only):
+      GET /admin/stats              → foydalanuvchi/mahsulot statistikasi
+      GET /admin/monitoring/metrics → tizim holati
+      GET /admin/monitoring/capacity → sig'im baholash
+
+CHIQISH (yozadi):
+  - docs/ba-report.md      → marketplace analytics hisoboti
+
+QOBILIYATLARI:
+  1. Marketplace Intelligence:
+     - Qaysi kategoriyalar o'sish trendida (category_path tahlili)
+     - Top mahsulotlar va ularning score dinamikasi
+     - Niche imkoniyatlari: kam raqobat + yuqori talab
+  2. Feature Impact Assessment:
+     - Yangi feature qo'shilgandan keyin: foydalanuvchi faolligi o'zgardimi?
+     - A/B taqqoslash: oldin vs keyin (Done.md sanalar bo'yicha)
+  3. User Behavior Analysis:
+     - Eng ko'p ishlatiladigan endpointlar
+     - Churn signallari: so'nggi 7 kunda login qilmagan accountlar
+  4. Revenue Forecasting:
+     - Billing tranzaksiyalar trendi
+     - Plan upgrade/downgrade nisbati
+
+CHEKLOVLAR:
+  - Kod fayllarni O'ZGARTIRMAYDI
+  - DB ga to'g'ridan yozmaydi (faqat GET so'rovlar)
+  - Maxfiy ma'lumotlarni (email, password) hisobotga YOZMAYDI
+  - git commit/push QILMAYDI
+```
+
 ### Ikkala developer bir vaqtda ishlasa
 
 ```
@@ -463,4 +548,4 @@ UMUMIY ZONA (ikkalasi, kelishib):
 
 ---
 
-*CLAUDE.md | VENTRA Analytics Platform | 2026-03-03*
+*CLAUDE.md | VENTRA Analytics Platform | 2026-03-08*

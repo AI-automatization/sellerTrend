@@ -15,8 +15,9 @@
     "agent": "bash scripts/ventra-agent.sh",
     "agent:dry": "bash scripts/ventra-agent.sh --dry-run --count 10",
     "agent:run": "bash scripts/ventra-agent.sh --yes --count 3",
-    "agent:backend": "bash scripts/ventra-agent.sh --yes --zone BACKEND --count 3",
-    "agent:frontend": "bash scripts/ventra-agent.sh --yes --zone FRONTEND --count 3",
+    "agent:backend": "bash scripts/ventra-agent.sh --yes --zone BACKEND --count 4",
+    "agent:frontend": "bash scripts/ventra-agent.sh --yes --zone FRONTEND --count 10",
+    "agent:night": "bash scripts/ventra-agent.sh --yes --count 15",
     "self-improve": "bash scripts/self-improve.sh",
     "prepare": "husky || true"
   },
