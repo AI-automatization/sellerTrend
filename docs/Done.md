@@ -22,6 +22,18 @@
 
 ---
 
+## Quick Fix | FRONTEND | Extension modal — null check .toFixed() (2026-03-09)
+
+**Manba:** user-feedback
+**Muammo:** Modal crash: "Uncaught TypeError: Cannot read properties of undefined (reading 'toFixed')". API 404 qaytarganda, product null bo'lib `.toFixed()` call crash qiladi.
+**Yechim:** Null checks qo'shildi: `product.score != null ? .toFixed(2) : "--"`. Modal endi crash bo'lmaydi, undefined data o'rniga `"--"` ko'rinadi.
+**Fayllar:** `apps/extension/src/components/QuickAnalysisModal.tsx`
+**Commit:** 06ae75c
+**Vaqt:** 10min (plan: 1h)
+**Ta'sir:** Modal stable, no crashes. User xatosiz tahlil qo'llanish mumkin.
+
+---
+
 ## T-426 | FRONTEND | Bot fixes — 6 ta bug (2026-03-08)
 
 ### T-426 | FRONTEND | Bot fixes (domain, health, /top, logs)
