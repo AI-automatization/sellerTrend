@@ -6,6 +6,7 @@ import AdvancedFilters from "./AdvancedFilters";
 import CategoryInsights from "./CategoryInsights";
 import CompetitorAnalysis from "./CompetitorAnalysis";
 import PriceHistory from "./PriceHistory";
+import ProductNotes from "./ProductNotes";
 
 interface QuickAnalysisModalProps {
   productId: string | null;
@@ -226,6 +227,11 @@ export default function QuickAnalysisModal({
                 {/* Price History */}
                 <div className="border-t pt-3">
                   <PriceHistory currentPrice={product.sell_price} />
+                </div>
+
+                {/* Favorites & Notes */}
+                <div className="border-t pt-3">
+                  <ProductNotes productId={product.id} />
                 </div>
 
                 {/* Actions */}
