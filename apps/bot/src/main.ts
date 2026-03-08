@@ -7,7 +7,7 @@ import { escapeHtml } from './utils';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const WEB_URL = process.env.WEB_URL ?? 'https://ventra.uz';
+const WEB_URL = process.env.WEB_URL || 'http://localhost:5173';
 
 // ─── Per-user rate limiter (2s cooldown) ─────────────────────────────────────
 
@@ -529,7 +529,7 @@ bot.command('top', async (ctx) => {
     : '--';
 
   await ctx.reply(
-    `<b>Kategoriya #${latestRun.category_id} — Top ${latestRun.winners.length}</b>\n` +
+    `<b>Kategoriya #${String(latestRun.category_id)} — Top ${latestRun.winners.length}</b>\n` +
     `${finishedAt}\n\n` +
     lines.join('\n\n'),
     { parse_mode: 'HTML' },
@@ -586,15 +586,27 @@ async function bootstrap() {
   const healthPort = parseInt(process.env.PORT || '3002', 10);
   const healthServer = http.createServer((req, res) => {
     if (req.url === '/health' && req.method === 'GET') {
-      bot.api.getMe()
-        .then((me) => {
+      Promise.all([
+        bot.api.getMe(),
+        prisma.account.count({ take: 1 }).then(() => 'ok'),
+      ])
+        .then(([me]) => {
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ status: 'ok', bot: me.username, timestamp: new Date().toISOString() }));
+          res.end(JSON.stringify({
+            status: 'healthy',
+            bot: me.username,
+            database: 'connected',
+            timestamp: new Date().toISOString(),
+          }));
         })
         .catch((err) => {
-          logBot('error', 'Health check: bot.api.getMe() failed', err);
+          logBot('error', 'Health check failed', err);
           res.writeHead(503, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ status: 'disconnected', timestamp: new Date().toISOString() }));
+          res.end(JSON.stringify({
+            status: 'unhealthy',
+            error: err instanceof Error ? err.message : String(err),
+            timestamp: new Date().toISOString(),
+          }));
         });
     } else {
       res.writeHead(404);
@@ -607,7 +619,9 @@ async function bootstrap() {
 
   await bot.start({
     onStart: (info) => {
-      logBot('info', `Bot started: @${info.username}`);
+      logBot('info', `Bot started: @${info.username} (${info.first_name})`);
+      logBot('info', `Rate limit: ${RATE_LIMIT_MS}ms, Max entries: ${RATE_LIMIT_MAX_ENTRIES}`);
+      logBot('info', `Web URL: ${WEB_URL}`);
     },
   });
 
