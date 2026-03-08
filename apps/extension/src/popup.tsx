@@ -5,6 +5,7 @@ import "./style.css";
 import LoginForm from "~/components/LoginForm";
 import TrackedList from "~/components/TrackedList";
 import QuickAnalysisModal from "~/components/QuickAnalysisModal";
+import CategoryFilter from "~/components/CategoryFilter";
 import { parseProductIdFromUrl, isProductPage } from "~/lib/url-parser";
 import type { AuthStateResponseBody } from "~/background/messages/get-auth-state";
 import type { LogoutResponseBody } from "~/background/messages/logout";
@@ -16,6 +17,7 @@ function Popup() {
   const [authState, setAuthState] = useState<AuthStateResponseBody | null>(null);
   const [productId, setProductId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<{ id: string; title: string } | null>(null);
 
   async function checkAuth() {
     try {
@@ -105,6 +107,17 @@ function Popup() {
 
       <div className="divider my-2" />
 
+      {/* Category Filter */}
+      <CategoryFilter
+        selectedCategoryId={selectedCategory?.id ?? null}
+        onSelect={(categoryId, categoryTitle) => {
+          setSelectedCategory({ id: categoryId, title: categoryTitle });
+          setIsModalOpen(true);
+        }}
+      />
+
+      <div className="divider my-2" />
+
       {/* Quick Analysis Button */}
       {productId && (
         <button
@@ -140,8 +153,13 @@ function Popup() {
       {/* Quick Analysis Modal */}
       <QuickAnalysisModal
         productId={productId}
+        categoryId={selectedCategory?.id ?? null}
+        categoryTitle={selectedCategory?.title ?? null}
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedCategory(null);
+        }}
       />
     </div>
   );
