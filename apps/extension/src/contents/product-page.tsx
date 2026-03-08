@@ -39,14 +39,27 @@ export default function ProductPageOverlay() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [visible, setVisible] = useState(true)
 
-  // Check auth state once
+  // Check auth state and listen for changes
   useEffect(() => {
-    sendToBackground<Record<string, never>, AuthStateResponseBody>({
-      name: "get-auth-state",
-      body: {},
-    })
-      .then((state) => setIsLoggedIn(state.isLoggedIn))
-      .catch(() => setIsLoggedIn(false))
+    // Check auth immediately
+    function checkAuth() {
+      sendToBackground<Record<string, never>, AuthStateResponseBody>({
+        name: "get-auth-state",
+        body: {},
+      })
+        .then((state) => setIsLoggedIn(state.isLoggedIn))
+        .catch(() => setIsLoggedIn(false))
+    }
+
+    checkAuth()
+
+    // Re-check auth when storage changes (login/logout)
+    const handleStorageChange = () => {
+      checkAuth()
+    }
+
+    window.addEventListener("storage", handleStorageChange)
+    return () => window.removeEventListener("storage", handleStorageChange)
   }, [])
 
   // Watch URL changes for SPA navigation
