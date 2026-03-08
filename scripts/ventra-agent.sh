@@ -31,6 +31,9 @@ DEVELOPER="Bekzod"
 MAX_RETRIES=2
 TASK_TIMEOUT=600  # 10 min per task
 PM_BA_TIMEOUT=180 # 3 min for PM/BA agents
+BATCH_COOLDOWN=30 # 30s cooldown between batches (rate limit himoya)
+MAX_API_CALLS=40  # Budget guard: max API calls per session
+API_CALL_COUNT=0  # Hozirgi sessiyada qilingan call soni
 
 # ─── ARGUMENTS ─────────────────────────────────────────────
 COUNT=1
@@ -99,6 +102,66 @@ log_err()   { echo -e "${RED}[FAIL ]${NC} $1"; }
 log_task()  { echo -e "${CYAN}[TASK ]${NC} $1"; }
 log_pm()    { echo -e "${MAGENTA}[ PM  ]${NC} $1"; }
 log_ba()    { echo -e "${MAGENTA}[ BA  ]${NC} $1"; }
+
+# ─── BUDGET & RATE LIMIT ──────────────────────────────────
+
+# API call counter — faylda saqlash (subshell safe)
+init_budget() {
+  echo "0" > "$RESULT_DIR/api_calls" 2>/dev/null || true
+}
+
+increment_api_call() {
+  local current=0
+  [[ -f "$RESULT_DIR/api_calls" ]] && current=$(cat "$RESULT_DIR/api_calls")
+  echo $((current + 1)) > "$RESULT_DIR/api_calls"
+}
+
+get_api_calls() {
+  [[ -f "$RESULT_DIR/api_calls" ]] && cat "$RESULT_DIR/api_calls" || echo "0"
+}
+
+check_budget() {
+  local current
+  current=$(get_api_calls)
+  if [[ "$current" -ge "$MAX_API_CALLS" ]]; then
+    log_err "BUDGET LIMIT: $current/$MAX_API_CALLS API call ishlatildi. TO'XTATILDI."
+    return 1
+  fi
+  return 0
+}
+
+# Log fayldan rate limit yoki token xatolarni aniqlash
+check_claude_errors() {
+  local log_file="$1"
+  [[ ! -f "$log_file" ]] && return 0
+
+  # Rate limit (429)
+  if grep -qi "rate.limit\|429\|too.many.requests\|overloaded" "$log_file" 2>/dev/null; then
+    log_warn "Rate limit aniqlandi! 60s kutilmoqda..."
+    sleep 60
+    return 2  # 2 = rate limit, retry qilish mumkin
+  fi
+
+  # Token/context limit
+  if grep -qi "context.length\|max.tokens\|token.limit\|context.window" "$log_file" 2>/dev/null; then
+    log_warn "Token limit — prompt juda katta"
+    return 3  # 3 = token limit, prompt kichraytirish kerak
+  fi
+
+  # Auth/billing error (API key yoki kredit tugagan)
+  if grep -qi "invalid.api.key\|authentication\|insufficient.credit\|billing\|payment.required\|credit.balance" "$log_file" 2>/dev/null; then
+    log_err "API KEY yoki KREDIT muammo! BARCHA tasklar to'xtatildi."
+    echo "ABORT" > "$RESULT_DIR/abort_flag"
+    return 4  # 4 = fatal, davom etish mumkin emas
+  fi
+
+  return 0
+}
+
+# Abort flag tekshirish (boshqa process fatal xato bergan bo'lsa)
+is_aborted() {
+  [[ -f "$RESULT_DIR/abort_flag" ]] && return 0 || return 1
+}
 
 # ─── SETUP ─────────────────────────────────────────────────
 mkdir -p "$LOG_DIR"
@@ -562,11 +625,35 @@ execute_task() {
 
   while [[ $attempt -lt $MAX_RETRIES ]]; do
     attempt=$((attempt + 1))
-    log_info "Urinish $attempt/$MAX_RETRIES"
+
+    # Abort flag tekshirish (boshqa task fatal xato bergan bo'lsa)
+    if is_aborted; then
+      log_err "$task_id — ABORT: boshqa task fatal xato berdi"
+      break
+    fi
+
+    # Budget guard tekshirish
+    if ! check_budget; then
+      log_err "$task_id — BUDGET LIMIT yetildi, o'tkazib yuborildi"
+      break
+    fi
+
+    log_info "Urinish $attempt/$MAX_RETRIES (API calls: $(get_api_calls)/$MAX_API_CALLS)"
+
+    # API call hisoblagichni oshirish
+    increment_api_call
 
     if (cd "$worktree_dir" && timeout "$TASK_TIMEOUT" claude -p "$prompt" \
       --allowedTools "Read,Edit,Write,Glob,Grep,Bash" \
       > "$log_file" 2>&1); then
+
+      # Claude xatolarni tekshirish (rate limit, token, auth)
+      check_claude_errors "$log_file"
+      local err_code=$?
+      if [[ $err_code -eq 4 ]]; then
+        # Fatal error (auth/billing) — barcha tasklarni to'xtatish
+        break
+      fi
 
       # 5. Type check (worktree ichida)
       log_info "Type check..."
@@ -598,7 +685,24 @@ execute_task() {
 $tsc_error"
       fi
     else
-      log_warn "Claude timeout yoki xato — retry"
+      # Claude xato — log dan sababini aniqlash
+      check_claude_errors "$log_file"
+      local err_code=$?
+
+      if [[ $err_code -eq 4 ]]; then
+        # Fatal error — to'xtatish
+        break
+      elif [[ $err_code -eq 2 ]]; then
+        # Rate limit — allaqachon 60s kutilgan, retry
+        log_warn "Rate limit — retry qilinadi"
+      elif [[ $err_code -eq 3 ]]; then
+        # Token limit — promptni qisqartirish
+        log_warn "Token limit — description qisqartirildi"
+        description=$(echo "$description" | head -30)
+        prompt=$(build_prompt "$task_id" "$category" "$title" "$files" "$description")
+      else
+        log_warn "Claude timeout yoki noma'lum xato — retry"
+      fi
     fi
   done
 
@@ -687,9 +791,21 @@ execute_batch() {
   local pids=()
   local task_ids=()
 
+  # Abort flag tekshirish
+  if is_aborted; then
+    log_err "Batch $batch_num O'TKAZILDI — fatal xato aniqlangan"
+    return 1
+  fi
+
+  # Budget tekshirish
+  if ! check_budget; then
+    log_err "Batch $batch_num O'TKAZILDI — budget limit"
+    return 1
+  fi
+
   echo ""
   echo "┌─────────────────────────────────────────────────┐"
-  echo "│  BATCH $batch_num (parallel: $PARALLEL)                        │"
+  echo "│  BATCH $batch_num (parallel: $PARALLEL) | API: $(get_api_calls)/$MAX_API_CALLS   │"
   echo "└─────────────────────────────────────────────────┘"
 
   while IFS='|' read -r priority id category title time files description; do
@@ -851,6 +967,7 @@ main() {
   # ── Parallel yoki Sequential? ──
   echo "0" > "$RESULT_DIR/total_ok"
   echo "0" > "$RESULT_DIR/total_fail"
+  init_budget
 
   if [[ "$PARALLEL" -gt 1 ]]; then
     # ── PARALLEL MODE: batch bo'lib ishlash ──
@@ -870,14 +987,27 @@ main() {
       # Batch to'lganda ishga tushirish
       if [[ $batch_count -ge $PARALLEL ]]; then
         batch_num=$((batch_num + 1))
+
+        # Abort tekshirish
+        if is_aborted; then
+          log_err "ABORT — qolgan batchlar o'tkazildi"
+          break
+        fi
+
         execute_batch "$batch_lines" "$batch_num"
         batch_lines=""
         batch_count=0
+
+        # Batchlar orasida cooldown (rate limit himoya)
+        if [[ "$BATCH_COOLDOWN" -gt 0 ]]; then
+          log_info "Batch cooldown: ${BATCH_COOLDOWN}s (rate limit himoya)..."
+          sleep "$BATCH_COOLDOWN"
+        fi
       fi
     done <<< "$tasks"
 
     # Oxirgi to'lmagan batch
-    if [[ -n "$batch_lines" ]]; then
+    if [[ -n "$batch_lines" ]] && ! is_aborted; then
       batch_num=$((batch_num + 1))
       execute_batch "$batch_lines" "$batch_num"
     fi
@@ -886,6 +1016,18 @@ main() {
     # ── SEQUENTIAL MODE (v2 bilan bir xil) ──
     while IFS='|' read -r priority id category title time files description; do
       [[ -z "$id" ]] && continue
+
+      # Abort tekshirish
+      if is_aborted; then
+        log_err "ABORT — qolgan tasklar o'tkazildi"
+        break
+      fi
+
+      # Budget tekshirish
+      if ! check_budget; then
+        log_err "BUDGET LIMIT — qolgan tasklar o'tkazildi"
+        break
+      fi
 
       echo ""
       echo "───────────────────────────────────────────────────"
@@ -956,8 +1098,10 @@ main() {
   log_ok "Bajarildi: $completed"
   [[ "$failed" -gt 0 ]] && log_err "Bajarilmadi: $failed"
   log_info "Parallel: $PARALLEL"
+  log_info "API calls: $(get_api_calls)/$MAX_API_CALLS"
   [[ "$WITH_PM" == true ]] && log_pm "Sprint plan: docs/sprint-plan.md"
   [[ "$WITH_BA" == true ]] && log_ba "Biznes tahlil: docs/ba-report.md"
+  is_aborted && log_err "ABORT: sessiya fatal xato bilan to'xtatildi"
   log_info "Vaqt: ${elapsed_min} daqiqa"
   echo "═══════════════════════════════════════════════════"
 }
