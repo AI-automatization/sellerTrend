@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════
-# VENTRA Autonomous Agent Runner v2
-# Git worktree isolation — parallel xavfsiz ishlaydi!
+# VENTRA Autonomous Agent Runner v3
+# Git worktree isolation + Parallel batches + PM/BA agents
 #
 # Ishlatish:
-#   bash scripts/ventra-agent.sh                    # 1 ta task
-#   bash scripts/ventra-agent.sh --count 5          # 5 ta task
+#   bash scripts/ventra-agent.sh                    # 1 ta task (sequential)
+#   bash scripts/ventra-agent.sh --count 5          # 5 ta task (sequential)
 #   bash scripts/ventra-agent.sh --dry-run          # faqat ko'rish
 #   bash scripts/ventra-agent.sh --zone BACKEND     # faqat backend
 #   bash scripts/ventra-agent.sh --priority P0      # faqat P0
+#   bash scripts/ventra-agent.sh --parallel 3       # 3 ta parallel
+#   bash scripts/ventra-agent.sh --night            # full night mode
+#
+# Night mode = --yes --count 15 --parallel 3 --with-pm --with-ba
 #
 # Parallel mode (2 ta terminal):
 #   Terminal 1: bash scripts/ventra-agent.sh --yes --zone BACKEND --count 5
@@ -26,6 +30,7 @@ WORKTREE_BASE="$PROJECT_DIR/.agent-worktrees"
 DEVELOPER="Bekzod"
 MAX_RETRIES=2
 TASK_TIMEOUT=600  # 10 min per task
+PM_BA_TIMEOUT=180 # 3 min for PM/BA agents
 
 # ─── ARGUMENTS ─────────────────────────────────────────────
 COUNT=1
@@ -33,27 +38,45 @@ DRY_RUN=false
 ZONE_FILTER=""
 PRIORITY_FILTER=""
 AUTO_YES=false
+PARALLEL=1
+WITH_PM=false
+WITH_BA=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --count)    COUNT="$2"; shift 2 ;;
-    --dry-run)  DRY_RUN=true; shift ;;
-    --zone)     ZONE_FILTER="$2"; shift 2 ;;
-    --priority) PRIORITY_FILTER="$2"; shift 2 ;;
-    --yes|-y)   AUTO_YES=true; shift ;;
+    --count)      COUNT="$2"; shift 2 ;;
+    --dry-run)    DRY_RUN=true; shift ;;
+    --zone)       ZONE_FILTER="$2"; shift 2 ;;
+    --priority)   PRIORITY_FILTER="$2"; shift 2 ;;
+    --yes|-y)     AUTO_YES=true; shift ;;
+    --parallel)   PARALLEL="$2"; shift 2 ;;
+    --with-pm)    WITH_PM=true; shift ;;
+    --with-ba)    WITH_BA=true; shift ;;
+    --night)
+      AUTO_YES=true
+      COUNT=15
+      PARALLEL=3
+      WITH_PM=true
+      WITH_BA=true
+      shift
+      ;;
     --help)
-      echo "VENTRA Autonomous Agent Runner v2 (worktree isolation)"
+      echo "VENTRA Autonomous Agent Runner v3 (parallel + PM/BA)"
       echo ""
       echo "  --count N      Nechta task bajarish (default: 1)"
       echo "  --dry-run      Faqat task ro'yxatini ko'rsat, bajarma"
       echo "  --zone ZONE    Faqat shu zone: BACKEND, FRONTEND, DEVOPS"
       echo "  --priority P   Faqat shu priority: P0, P1, P2, P3"
-      echo "  --yes, -y      Tasdiqlashsiz bajarish (kechagi mode)"
+      echo "  --yes, -y      Tasdiqlashsiz bajarish"
+      echo "  --parallel N   N ta task bir vaqtda (default: 1)"
+      echo "  --with-pm      PM Agent: sprint plan + retro"
+      echo "  --with-ba      BA Agent: biznes tahlil"
+      echo "  --night        = --yes --count 15 --parallel 3 --with-pm --with-ba"
       echo "  --help         Shu yordam"
       echo ""
-      echo "Parallel (2 terminal):"
-      echo "  Terminal 1: bash scripts/ventra-agent.sh --yes --zone BACKEND --count 5"
-      echo "  Terminal 2: bash scripts/ventra-agent.sh --yes --zone FRONTEND --count 5"
+      echo "Misollar:"
+      echo "  pnpm agent:night                    # Full night mode"
+      echo "  bash scripts/ventra-agent.sh --parallel 2 --with-pm --count 6"
       exit 0
       ;;
     *) echo "Noma'lum argument: $1"; exit 1 ;;
@@ -66,13 +89,16 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
 NC='\033[0m' # No Color
 
 log_info()  { echo -e "${BLUE}[AGENT]${NC} $1"; }
-log_ok()    { echo -e "${GREEN}[OK]${NC} $1"; }
-log_warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
-log_err()   { echo -e "${RED}[FAIL]${NC} $1"; }
-log_task()  { echo -e "${CYAN}[TASK]${NC} $1"; }
+log_ok()    { echo -e "${GREEN}[  OK ]${NC} $1"; }
+log_warn()  { echo -e "${YELLOW}[WARN ]${NC} $1"; }
+log_err()   { echo -e "${RED}[FAIL ]${NC} $1"; }
+log_task()  { echo -e "${CYAN}[TASK ]${NC} $1"; }
+log_pm()    { echo -e "${MAGENTA}[ PM  ]${NC} $1"; }
+log_ba()    { echo -e "${MAGENTA}[ BA  ]${NC} $1"; }
 
 # ─── SETUP ─────────────────────────────────────────────────
 mkdir -p "$LOG_DIR"
@@ -85,14 +111,16 @@ git worktree prune 2>/dev/null || true
 # Chiqishda worktree larni tozalash
 cleanup() {
   log_info "Worktree'larni tozalayapman..."
+  # Background processlarni to'xtatish
+  jobs -p 2>/dev/null | xargs -r kill 2>/dev/null || true
   git worktree prune 2>/dev/null || true
 }
 trap cleanup EXIT
 
-log_info "VENTRA Autonomous Agent Runner v2 (worktree isolation)"
+log_info "VENTRA Autonomous Agent Runner v3 (parallel + PM/BA)"
 log_info "Project: $PROJECT_DIR"
 log_info "Developer: $DEVELOPER"
-log_info "Tasks to run: $COUNT"
+log_info "Tasks: $COUNT | Parallel: $PARALLEL | PM: $WITH_PM | BA: $WITH_BA"
 [[ -n "$ZONE_FILTER" ]] && log_info "Zone filter: $ZONE_FILTER"
 echo ""
 
@@ -237,7 +265,6 @@ build_prompt() {
   local description="$5"
 
   # Qaysi CLAUDE_*.md yuklash
-  local rules_file="CLAUDE_BACKEND.md"
   local zone_dirs="apps/api/, apps/worker/, apps/bot/, apps/web/, apps/extension/"
   if [[ "$category" == "FRONTEND" ]]; then
     zone_dirs="apps/web/, apps/extension/"
@@ -282,6 +309,200 @@ Boshqa papkalarga TEGMA.
 - Test buzma
 - Agar blocker bo'lsa — STOP, tushuntir, o'zingdan to'qima
 PROMPT
+}
+
+# ─── PM AGENT ─────────────────────────────────────────────
+
+run_pm_plan() {
+  log_pm "Sprint plan tayyorlayapman..."
+  local log_file="$LOG_DIR/pm-plan-$(date +%Y%m%d-%H%M%S).log"
+  local tasks_content done_tail git_log
+
+  tasks_content=$(cat "$TASKS_FILE" 2>/dev/null | head -300)
+  done_tail=$(tail -100 "$DONE_FILE" 2>/dev/null || echo "(bo'sh)")
+  git_log=$(git log --oneline -30 2>/dev/null || echo "(bo'sh)")
+
+  local prompt
+  prompt=$(cat <<PMPROMPT
+Sen VENTRA loyihasining PM (Project Manager) AGENT isan.
+Vazifang: Sprint plan tayyorlash.
+
+## KIRISH MA'LUMOTLARI
+
+### Ochiq tasklar (Tasks.md):
+$tasks_content
+
+### Oxirgi bajarilganlar (Done.md tail):
+$done_tail
+
+### Oxirgi commitlar:
+$git_log
+
+## VAZIFA
+1. Tasks.md dan P0 va P1 tasklarni ajrat
+2. Dependency graph yoz (qaysi task qaysi taskdan oldin bo'lishi kerak)
+3. Parallel batch taqsimotini yoz (bir batch da BIR XIL FAYL o'zgartiruvchi tasklar bo'lmasin)
+4. Har batch da max $PARALLEL ta task
+5. Developer yuk taqsimoti: Bekzod (backend+frontend), Sardor (landing+desktop)
+6. Velocity: oxirgi Done.md yozuvlaridan actual vs planned vaqtni hisobla
+
+## CHIQISH
+docs/sprint-plan.md fayliga yoz. Mavjud templateni to'ldir.
+Faqat docs/ papkaga yoz, kod fayllarni TEGMA.
+PMPROMPT
+  )
+
+  if timeout "$PM_BA_TIMEOUT" claude -p "$prompt" \
+    --allowedTools "Read,Write,Glob,Grep,Bash" \
+    > "$log_file" 2>&1; then
+    log_ok "PM plan tayyor → docs/sprint-plan.md"
+    return 0
+  else
+    log_warn "PM Agent timeout yoki xato (log: $log_file)"
+    return 1
+  fi
+}
+
+run_pm_retro() {
+  log_pm "Sprint retro yozilmoqda..."
+  local log_file="$LOG_DIR/pm-retro-$(date +%Y%m%d-%H%M%S).log"
+  local completed_count="$1"
+  local failed_count="$2"
+  local elapsed_min="$3"
+
+  local prompt
+  prompt=$(cat <<PMRETRO
+Sen VENTRA loyihasining PM (Project Manager) AGENT isan.
+Vazifang: Sprint retro yozish.
+
+## Sprint natijalari
+- Bajarildi: $completed_count ta task
+- Bajarilmadi: $failed_count ta task
+- Sarflangan vaqt: $elapsed_min daqiqa
+- Parallel rejim: $PARALLEL ta bir vaqtda
+
+## VAZIFA
+1. docs/sprint-plan.md ni o'qi (bu sprint uchun plan bor)
+2. scripts/agent-logs/ dagi eng yangi loglarni ko'r (natijalar)
+3. Velocity hisobla: plan vs actual vaqt
+4. Sprint retro bo'limini docs/sprint-plan.md ga qo'sh:
+   - Nima yaxshi ishladi
+   - Nima to'siq bo'ldi
+   - Keyingi sprint uchun tavsiya
+5. Trend: oldingi sprint ga qaraganda tezlashyaptimi yoki sekinlashyaptimi
+
+## CHIQISH
+docs/sprint-plan.md faylining "Sprint Retro" bo'limini yangilang.
+Faqat docs/ papkaga yoz, kod fayllarni TEGMA.
+PMRETRO
+  )
+
+  if timeout "$PM_BA_TIMEOUT" claude -p "$prompt" \
+    --allowedTools "Read,Write,Edit,Glob,Grep,Bash" \
+    > "$log_file" 2>&1; then
+    log_ok "PM retro tayyor → docs/sprint-plan.md"
+    return 0
+  else
+    log_warn "PM Retro timeout yoki xato (log: $log_file)"
+    return 1
+  fi
+}
+
+# ─── BA AGENT ─────────────────────────────────────────────
+
+run_ba_analysis() {
+  log_ba "Biznes tahlil boshlanmoqda..."
+  local log_file="$LOG_DIR/ba-analysis-$(date +%Y%m%d-%H%M%S).log"
+  local done_tail schema_summary
+
+  done_tail=$(tail -150 "$DONE_FILE" 2>/dev/null || echo "(bo'sh)")
+  schema_summary=$(grep -E "^model |^  [a-z]" "$PROJECT_DIR/apps/api/prisma/schema.prisma" 2>/dev/null | head -80 || echo "(bo'sh)")
+
+  local prompt
+  prompt=$(cat <<BAPROMPT
+Sen VENTRA loyihasining BA (Business Analytics) AGENT isan.
+Vazifang: Marketplace tahlili va biznes hisobot.
+
+## KIRISH MA'LUMOTLARI
+
+### Oxirgi bajarilganlar (Done.md):
+$done_tail
+
+### Prisma schema (modellar):
+$schema_summary
+
+## Platform haqida
+VENTRA — uzum.uz marketplace uchun SaaS analytics.
+Asosiy funksiyalar: mahsulot tracking, score hisoblash, niche discovery, sourcing.
+Foydalanuvchilar: Uzum sotuvchilari (sellerlar).
+
+## VAZIFA
+1. Oxirgi Done.md yozuvlaridan qanday feature'lar qo'shilganini tahlil qil
+2. Har feature ning biznesga ta'sirini baholay:
+   - Foydalanuvchi qulayligi (UX)
+   - Daromadga ta'sir (monetization)
+   - Raqobatbardoshlik (competitor advantage)
+3. Qaysi yo'nalishlar ustunlik qilishini tavsiya qil:
+   - Ko'proq mahsulot tracking → retention
+   - Niche discovery yaxshilash → acquisition
+   - Billing/premium feature → revenue
+4. Keyingi sprint uchun biznes nuqtai nazardan prioritetlar tavsiya qil
+
+## CHIQISH
+docs/ba-report.md fayliga yoz. Mavjud templateni to'ldir.
+Faqat docs/ papkaga yoz, kod fayllarni TEGMA.
+Maxfiy ma'lumotlar (email, password) yozma.
+BAPROMPT
+  )
+
+  if timeout "$PM_BA_TIMEOUT" claude -p "$prompt" \
+    --allowedTools "Read,Write,Glob,Grep,Bash" \
+    > "$log_file" 2>&1; then
+    log_ok "BA tahlil tayyor → docs/ba-report.md"
+    return 0
+  else
+    log_warn "BA Agent timeout yoki xato (log: $log_file)"
+    return 1
+  fi
+}
+
+run_ba_measure() {
+  log_ba "Feature ta'sir o'lchash..."
+  local log_file="$LOG_DIR/ba-measure-$(date +%Y%m%d-%H%M%S).log"
+  local completed_count="$1"
+
+  local prompt
+  prompt=$(cat <<BAMEASURE
+Sen VENTRA loyihasining BA (Business Analytics) AGENT isan.
+Vazifang: Sprint da bajarilgan ishlar ta'sirini o'lchash.
+
+## Sprint natijalari
+- Bu sprintda $completed_count ta task bajarildi
+
+## VAZIFA
+1. scripts/agent-logs/ dagi eng yangi loglarni o'qi — nima qilindi
+2. docs/ba-report.md dagi mavjud tahlilni o'qi
+3. "Feature Impact" bo'limini yangilay:
+   - Har bajarilgan task uchun: qanday metrika yaxshilanishi kutiladi
+   - UX, performance, revenue ta'sirlari
+4. "Tavsiyalar" bo'limini yangilay:
+   - Keyingi sprint uchun biznes prioritetlar
+
+## CHIQISH
+docs/ba-report.md faylini yangilang.
+Faqat docs/ papkaga yoz, kod fayllarni TEGMA.
+BAMEASURE
+  )
+
+  if timeout "$PM_BA_TIMEOUT" claude -p "$prompt" \
+    --allowedTools "Read,Write,Edit,Glob,Grep,Bash" \
+    > "$log_file" 2>&1; then
+    log_ok "BA measurement tayyor → docs/ba-report.md"
+    return 0
+  else
+    log_warn "BA Measure timeout yoki xato (log: $log_file)"
+    return 1
+  fi
 }
 
 # ─── EXECUTE TASK (WORKTREE ISOLATION) ────────────────────
@@ -429,7 +650,7 @@ Autonomous agent ($DEVELOPER zone) tomonidan bajarildi.
 Agent log: \`scripts/agent-logs/${task_id}-*.log\`
 
 ---
-Generated by VENTRA Autonomous Agent v2 (worktree isolation)
+Generated by VENTRA Autonomous Agent v3 (parallel + PM/BA)
 Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
 EOF
         )" \
@@ -453,6 +674,77 @@ EOF
   fi
 }
 
+# ─── PARALLEL BATCH EXECUTOR ──────────────────────────────
+
+# Natija fayllar uchun temp dir
+RESULT_DIR=$(mktemp -d)
+trap "rm -rf $RESULT_DIR; cleanup" EXIT
+
+execute_batch() {
+  local batch_tasks="$1"
+  local batch_num="$2"
+  local batch_size=0
+  local pids=()
+  local task_ids=()
+
+  echo ""
+  echo "┌─────────────────────────────────────────────────┐"
+  echo "│  BATCH $batch_num (parallel: $PARALLEL)                        │"
+  echo "└─────────────────────────────────────────────────┘"
+
+  while IFS='|' read -r priority id category title time files description; do
+    [[ -z "$id" ]] && continue
+    batch_size=$((batch_size + 1))
+
+    # Background da ishga tushirish
+    (
+      if execute_task "$id" "$category" "$title" "$files" "$description"; then
+        echo "OK" > "$RESULT_DIR/${id}.result"
+      else
+        echo "FAIL" > "$RESULT_DIR/${id}.result"
+      fi
+    ) &
+    pids+=($!)
+    task_ids+=("$id")
+
+    log_info "$id ishga tushdi (PID: ${pids[-1]})"
+  done <<< "$batch_tasks"
+
+  if [[ $batch_size -eq 0 ]]; then
+    return
+  fi
+
+  # Barcha background processlarni kutish
+  log_info "Batch $batch_num: $batch_size ta task parallel ishlamoqda..."
+  local batch_completed=0
+  local batch_failed=0
+
+  for i in "${!pids[@]}"; do
+    local pid="${pids[$i]}"
+    local tid="${task_ids[$i]}"
+
+    if wait "$pid" 2>/dev/null; then
+      : # exit code 0
+    fi
+
+    # Natija fayldan o'qish
+    if [[ -f "$RESULT_DIR/${tid}.result" && "$(cat "$RESULT_DIR/${tid}.result")" == "OK" ]]; then
+      batch_completed=$((batch_completed + 1))
+    else
+      batch_failed=$((batch_failed + 1))
+    fi
+  done
+
+  log_info "Batch $batch_num natija: ${batch_completed} OK, ${batch_failed} FAIL"
+
+  # Global counters update (fayllar orqali — subshell safe)
+  local prev_ok=0 prev_fail=0
+  [[ -f "$RESULT_DIR/total_ok" ]] && prev_ok=$(cat "$RESULT_DIR/total_ok")
+  [[ -f "$RESULT_DIR/total_fail" ]] && prev_fail=$(cat "$RESULT_DIR/total_fail")
+  echo $((prev_ok + batch_completed)) > "$RESULT_DIR/total_ok"
+  echo $((prev_fail + batch_failed)) > "$RESULT_DIR/total_fail"
+}
+
 # ─── MAIN ──────────────────────────────────────────────────
 
 main() {
@@ -460,6 +752,50 @@ main() {
   log_info "git pull origin main..."
   git pull origin main 2>/dev/null || true
   echo ""
+
+  local start_time
+  start_time=$(date +%s)
+
+  # ═══════════════════════════════════════════════════
+  # FAZA 1: PM + BA TAYYORGARLIK (parallel)
+  # ═══════════════════════════════════════════════════
+  if [[ "$WITH_PM" == true || "$WITH_BA" == true ]]; then
+    echo ""
+    echo "═══════════════════════════════════════════════════"
+    echo " FAZA 1: TAYYORGARLIK (PM + BA)"
+    echo "═══════════════════════════════════════════════════"
+
+    local pm_pid=0
+    local ba_pid=0
+
+    if [[ "$WITH_PM" == true ]]; then
+      run_pm_plan &
+      pm_pid=$!
+      log_info "PM Agent ishga tushdi (PID: $pm_pid)"
+    fi
+
+    if [[ "$WITH_BA" == true ]]; then
+      run_ba_analysis &
+      ba_pid=$!
+      log_info "BA Agent ishga tushdi (PID: $ba_pid)"
+    fi
+
+    # Ikkalasini kutish
+    if [[ $pm_pid -ne 0 ]]; then
+      wait $pm_pid 2>/dev/null && log_ok "PM Agent tugadi" || log_warn "PM Agent xato"
+    fi
+    if [[ $ba_pid -ne 0 ]]; then
+      wait $ba_pid 2>/dev/null && log_ok "BA Agent tugadi" || log_warn "BA Agent xato"
+    fi
+  fi
+
+  # ═══════════════════════════════════════════════════
+  # FAZA 2: KOD TASKLAR
+  # ═══════════════════════════════════════════════════
+  echo ""
+  echo "═══════════════════════════════════════════════════"
+  echo " FAZA 2: KOD TASKLAR"
+  echo "═══════════════════════════════════════════════════"
 
   log_info "Tasklarni tahlil qilyapman..."
   echo ""
@@ -469,14 +805,23 @@ main() {
 
   if [[ -z "$tasks" ]]; then
     log_warn "Ochiq task topilmadi (filter: zone=$ZONE_FILTER, priority=$PRIORITY_FILTER)"
+
+    # PM/BA retro (hatto task bo'lmasa ham)
+    if [[ "$WITH_PM" == true || "$WITH_BA" == true ]]; then
+      echo ""
+      echo "═══════════════════════════════════════════════════"
+      echo " FAZA 3: YAKUNLASH (task yo'q)"
+      echo "═══════════════════════════════════════════════════"
+      log_info "Task topilmadi, retro o'tkazilmaydi."
+    fi
     exit 0
   fi
 
   # Task ro'yxatini ko'rsatish
   local task_count=0
-  echo "═══════════════════════════════════════════════════"
-  echo " TANLANGAN TASKLAR"
-  echo "═══════════════════════════════════════════════════"
+  echo "┌─────────────────────────────────────────────────┐"
+  echo "│  TANLANGAN TASKLAR                              │"
+  echo "└─────────────────────────────────────────────────┘"
 
   while IFS='|' read -r priority id category title time files description; do
     [[ -z "$id" ]] && continue
@@ -484,9 +829,8 @@ main() {
     echo -e "  ${CYAN}$id${NC} | P$priority | $category | $title | $time"
   done <<< "$tasks"
 
-  echo "═══════════════════════════════════════════════════"
   echo ""
-  log_info "Jami: $task_count ta task"
+  log_info "Jami: $task_count ta task | Parallel: $PARALLEL"
 
   if [[ "$DRY_RUN" == true ]]; then
     log_warn "DRY RUN — hech narsa bajarilmaydi"
@@ -504,36 +848,116 @@ main() {
     fi
   fi
 
-  # Tasklar bajarish
-  local completed=0
-  local failed=0
-  local start_time
-  start_time=$(date +%s)
+  # ── Parallel yoki Sequential? ──
+  echo "0" > "$RESULT_DIR/total_ok"
+  echo "0" > "$RESULT_DIR/total_fail"
 
-  while IFS='|' read -r priority id category title time files description; do
-    [[ -z "$id" ]] && continue
+  if [[ "$PARALLEL" -gt 1 ]]; then
+    # ── PARALLEL MODE: batch bo'lib ishlash ──
+    local batch_num=0
+    local batch_lines=""
+    local batch_count=0
 
-    echo ""
-    echo "───────────────────────────────────────────────────"
+    while IFS='|' read -r priority id category title time files description; do
+      [[ -z "$id" ]] && continue
 
-    if execute_task "$id" "$category" "$title" "$files" "$description"; then
-      completed=$((completed + 1))
-    else
-      failed=$((failed + 1))
+      if [[ -n "$batch_lines" ]]; then
+        batch_lines+=$'\n'
+      fi
+      batch_lines+="$priority|$id|$category|$title|$time|$files|$description"
+      batch_count=$((batch_count + 1))
+
+      # Batch to'lganda ishga tushirish
+      if [[ $batch_count -ge $PARALLEL ]]; then
+        batch_num=$((batch_num + 1))
+        execute_batch "$batch_lines" "$batch_num"
+        batch_lines=""
+        batch_count=0
+      fi
+    done <<< "$tasks"
+
+    # Oxirgi to'lmagan batch
+    if [[ -n "$batch_lines" ]]; then
+      batch_num=$((batch_num + 1))
+      execute_batch "$batch_lines" "$batch_num"
     fi
-  done <<< "$tasks"
 
-  # Natija
+  else
+    # ── SEQUENTIAL MODE (v2 bilan bir xil) ──
+    while IFS='|' read -r priority id category title time files description; do
+      [[ -z "$id" ]] && continue
+
+      echo ""
+      echo "───────────────────────────────────────────────────"
+
+      if execute_task "$id" "$category" "$title" "$files" "$description"; then
+        local prev_ok=0
+        [[ -f "$RESULT_DIR/total_ok" ]] && prev_ok=$(cat "$RESULT_DIR/total_ok")
+        echo $((prev_ok + 1)) > "$RESULT_DIR/total_ok"
+      else
+        local prev_fail=0
+        [[ -f "$RESULT_DIR/total_fail" ]] && prev_fail=$(cat "$RESULT_DIR/total_fail")
+        echo $((prev_fail + 1)) > "$RESULT_DIR/total_fail"
+      fi
+    done <<< "$tasks"
+  fi
+
+  local completed failed
+  completed=$(cat "$RESULT_DIR/total_ok" 2>/dev/null || echo 0)
+  failed=$(cat "$RESULT_DIR/total_fail" 2>/dev/null || echo 0)
+
+  # ═══════════════════════════════════════════════════
+  # FAZA 3: YAKUNLASH — PM RETRO + BA MEASURE (parallel)
+  # ═══════════════════════════════════════════════════
   local end_time elapsed_min
+  end_time=$(date +%s)
+  elapsed_min=$(( (end_time - start_time) / 60 ))
+
+  if [[ "$WITH_PM" == true || "$WITH_BA" == true ]]; then
+    echo ""
+    echo "═══════════════════════════════════════════════════"
+    echo " FAZA 3: YAKUNLASH (PM RETRO + BA MEASURE)"
+    echo "═══════════════════════════════════════════════════"
+
+    local pm_retro_pid=0
+    local ba_measure_pid=0
+
+    if [[ "$WITH_PM" == true && "$completed" -gt 0 ]]; then
+      run_pm_retro "$completed" "$failed" "$elapsed_min" &
+      pm_retro_pid=$!
+      log_info "PM Retro ishga tushdi (PID: $pm_retro_pid)"
+    fi
+
+    if [[ "$WITH_BA" == true && "$completed" -gt 0 ]]; then
+      run_ba_measure "$completed" &
+      ba_measure_pid=$!
+      log_info "BA Measure ishga tushdi (PID: $ba_measure_pid)"
+    fi
+
+    # Kutish
+    if [[ $pm_retro_pid -ne 0 ]]; then
+      wait $pm_retro_pid 2>/dev/null && log_ok "PM Retro tugadi" || log_warn "PM Retro xato"
+    fi
+    if [[ $ba_measure_pid -ne 0 ]]; then
+      wait $ba_measure_pid 2>/dev/null && log_ok "BA Measure tugadi" || log_warn "BA Measure xato"
+    fi
+  fi
+
+  # ═══════════════════════════════════════════════════
+  # NATIJA
+  # ═══════════════════════════════════════════════════
   end_time=$(date +%s)
   elapsed_min=$(( (end_time - start_time) / 60 ))
 
   echo ""
   echo "═══════════════════════════════════════════════════"
-  echo " NATIJA"
+  echo " NATIJA (v3)"
   echo "═══════════════════════════════════════════════════"
   log_ok "Bajarildi: $completed"
-  [[ $failed -gt 0 ]] && log_err "Bajarilmadi: $failed"
+  [[ "$failed" -gt 0 ]] && log_err "Bajarilmadi: $failed"
+  log_info "Parallel: $PARALLEL"
+  [[ "$WITH_PM" == true ]] && log_pm "Sprint plan: docs/sprint-plan.md"
+  [[ "$WITH_BA" == true ]] && log_ba "Biznes tahlil: docs/ba-report.md"
   log_info "Vaqt: ${elapsed_min} daqiqa"
   echo "═══════════════════════════════════════════════════"
 }
