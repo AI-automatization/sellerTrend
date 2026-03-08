@@ -276,11 +276,10 @@ Modal'da: "⭐ Sevimlilarga qo'shish" button + text area
 
 ## BUGS & CRITICAL FIXES (P1)
 
-### T-427 | P1 | FRONTEND | Extension — modal auto-closes after ~1 sec | 2h
+### ~~T-427~~ ✅ DONE (2026-03-09)
 
 **Manba:** user-feedback (2026-03-09)
-**Topilgan joyda:** `apps/extension/src/popup.tsx`, `apps/extension/src/components/QuickAnalysisModal.tsx`, background worker
-**Mas'ul:** pending[Sardor]
+**Topilgan joyda:** `apps/extension/src/components/QuickAnalysisModal.tsx`
 
 **Tahlil:**
 User extension popup'da "Tez Tahlil" button bosganda:
