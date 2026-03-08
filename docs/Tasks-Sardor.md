@@ -73,9 +73,44 @@ Manba: T-328 dan ajratildi (2026-03-06)
 > Phase 1 (T-208..T-211) va Phase 2 (T-212..T-215) ✅ DONE → Done.md
 > apps/extension/ — Sardor zonasi (CLAUDE.md, 2026-03-08 dan)
 
+## Phase 3 — Popup Dashboard (P1) ~1.5h
+
+### T-216 | P1 | FRONTEND | Extension popup "Tez Tahlil" modal | 1.5h
+
+**Sana:** 2026-03-08
+**Manba:** yangi-feature
+**Topilgan joyda:** `apps/extension/src/popup.tsx`, `apps/extension/src/components/QuickAnalysisModal.tsx`
+**Mas'ul:** pending[Sardor]
+
+**Tahlil:**
+Phase 1-2'da background + content scripts tayyor. Endi popup'ni yangilash kerak.
+Foydalanuvchi uzum.uz'da mahsulotni ko'rayotib, extension icon'ini bosganda:
+1. Popup ochiladi
+2. "📊 Tez Tahlil" tugmasi bo'radi
+3. Bosilganda → Modal ochiladi
+4. Modal'da mahsulotning tahlili (score, price, stock, rating)
+
+**Yechim:**
+1. `QuickAnalysisModal.tsx` — YANGI component
+   - Score (ScoreRadial)
+   - Weekly bought / Price / Rating / Stock
+   - "Batafsil" → Dashboard link
+2. `popup.tsx` — Button qo'shish + Modal state
+3. API'dan product detail fetch (uzum mahsulot IDsi)
+4. Error handling + loading state
+
+**Fayllar:**
+- `apps/extension/src/popup.tsx` — Yangilash
+- `apps/extension/src/components/QuickAnalysisModal.tsx` — YANGI
+- `apps/extension/src/lib/api.ts` — getProductDetail endpoint
+
+**Bog'liqlik:** Phase 1-2 DONE
+
+---
+
 | Faza | Tasklar | Vaqt | Holat |
 |------|---------|------|-------|
-| 3. Popup Dashboard (P1) | T-216 | ~1.5h | ⬜ |
+| 3. Popup Dashboard (P1) | T-216 | ~1.5h | pending[Sardor] |
 | 4. Category + Advanced (P1) | T-217..T-219 | ~5h | ⬜ |
 | 5. Competitor + Narx (P2) | T-220..T-222 | ~4.5h | ⬜ |
 | 6. AI + Hotkeys (P2) | T-223..T-224 | ~2.5h | ⬜ |
