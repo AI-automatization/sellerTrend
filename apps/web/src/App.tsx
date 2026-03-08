@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import 'react-toastify/dist/ReactToastify.css';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
@@ -10,7 +10,8 @@ import { NotFoundPage } from './pages/NotFoundPage';
 import { Layout } from './components/Layout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PageSkeleton } from './components/skeletons';
-import { isTokenValid, getTokenPayload } from './api/client';
+import { isTokenValid, getTokenPayload, authApi } from './api/client';
+import { useAuthStore } from './stores/authStore';
 
 // Lazy-loaded pages (code splitting)
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
@@ -57,6 +58,27 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function OnboardingGuard({ children }: { children: React.ReactNode }) {
+  const onboardingCompleted = useAuthStore((s) => s.onboardingCompleted);
+  const setOnboardingCompleted = useAuthStore((s) => s.setOnboardingCompleted);
+  const [checking, setChecking] = useState(onboardingCompleted === null);
+
+  useEffect(() => {
+    if (onboardingCompleted !== null) return;
+    authApi.getMe().then((res) => {
+      setOnboardingCompleted(res.data.account.onboarding_completed);
+    }).catch(() => {
+      setOnboardingCompleted(true);
+    }).finally(() => {
+      setChecking(false);
+    });
+  }, [onboardingCompleted, setOnboardingCompleted]);
+
+  if (checking) return <PageSkeleton />;
+  if (onboardingCompleted === false) return <Navigate to="/onboarding" replace />;
+  return <>{children}</>;
+}
+
 function LazyRoute({ children }: { children: React.ReactNode }) {
   return (
     <ErrorBoundary>
@@ -84,7 +106,9 @@ export default function App() {
           path="/"
           element={
             <PrivateRoute>
-              <Layout />
+              <OnboardingGuard>
+                <Layout />
+              </OnboardingGuard>
             </PrivateRoute>
           }
         >

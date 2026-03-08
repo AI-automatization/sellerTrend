@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { uzumApi, productsApi, authApi } from '../api/client';
 import { getErrorMessage } from '../utils/getErrorMessage';
 import { useI18n } from '../i18n/I18nContext';
+import { useAuthStore } from '../stores/authStore';
 import type { AnalyzeResult } from '../api/types';
 
 const STEPS = [1, 2, 3] as const;
@@ -10,6 +11,7 @@ const STEPS = [1, 2, 3] as const;
 export function OnboardingPage() {
   const { t } = useI18n();
   const navigate = useNavigate();
+  const setOnboardingCompleted = useAuthStore((s) => s.setOnboardingCompleted);
 
   const [step, setStep] = useState(1);
   const [url, setUrl] = useState('');
@@ -55,6 +57,7 @@ export function OnboardingPage() {
     } catch {
       // non-critical — proceed anyway
     }
+    setOnboardingCompleted(true);
     navigate('/');
   }
 

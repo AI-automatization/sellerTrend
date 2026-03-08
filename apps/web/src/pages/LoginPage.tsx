@@ -22,6 +22,7 @@ export function LoginPage() {
   ];
 
   const setTokens = useAuthStore((s) => s.setTokens);
+  const setOnboardingCompleted = useAuthStore((s) => s.setOnboardingCompleted);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,7 +33,16 @@ export function LoginPage() {
       // Clear stale cache from previous session/account before setting new tokens
       queryClient.clear();
       setTokens(res.data.access_token, res.data.refresh_token ?? '');
-      navigate('/');
+
+      // Check onboarding status — redirect new users to onboarding
+      try {
+        const me = await authApi.getMe();
+        const completed = me.data.account.onboarding_completed;
+        setOnboardingCompleted(completed);
+        navigate(completed ? '/' : '/onboarding');
+      } catch {
+        navigate('/');
+      }
     } catch (err: unknown) {
       setError(getErrorMessage(err, t('auth.loginError')));
     } finally {

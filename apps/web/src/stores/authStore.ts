@@ -13,7 +13,9 @@ interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   payload: TokenPayload | null;
+  onboardingCompleted: boolean | null;
   setTokens: (access: string, refresh: string) => void;
+  setOnboardingCompleted: (value: boolean) => void;
   clearTokens: () => void;
 }
 
@@ -32,6 +34,7 @@ export const useAuthStore = create<AuthState>((set) => {
     accessToken: stored,
     refreshToken: localStorage.getItem('refresh_token'),
     payload: stored ? decodePayload(stored) : null,
+    onboardingCompleted: null,
 
     setTokens: (access, refresh) => {
       localStorage.setItem('access_token', access);
@@ -43,10 +46,14 @@ export const useAuthStore = create<AuthState>((set) => {
       });
     },
 
+    setOnboardingCompleted: (value) => {
+      set({ onboardingCompleted: value });
+    },
+
     clearTokens: () => {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
-      set({ accessToken: null, refreshToken: null, payload: null });
+      set({ accessToken: null, refreshToken: null, payload: null, onboardingCompleted: null });
     },
   };
 });

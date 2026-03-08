@@ -15,6 +15,7 @@ export function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const { t } = useI18n();
   const setTokens = useAuthStore((s) => s.setTokens);
+  const setOnboardingCompleted = useAuthStore((s) => s.setOnboardingCompleted);
 
   const features = [
     t('auth.regFeature1'),
@@ -38,6 +39,7 @@ export function RegisterPage() {
       const res = await authApi.register(form.email, form.password, form.company_name, form.referral_code || undefined);
       queryClient.clear();
       setTokens(res.data.access_token, res.data.refresh_token ?? '');
+      setOnboardingCompleted(false);
       navigate('/onboarding');
     } catch (err: unknown) {
       setError(getErrorMessage(err, t('auth.registerError')));
