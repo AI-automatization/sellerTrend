@@ -1384,6 +1384,15 @@ export const en: Record<string, string> = {
     'search.noResultsHint': 'Try a different search query',
     'search.initial': 'Search for products',
     'search.initialHint': 'Start typing to find products on Uzum',
+    'search.button': 'Search',
+    'search.tracking': 'Tracking',
+    'search.loading': 'Searching...',
+    'search.results': 'results found',
+    'search.rating': 'rating',
+    'search.price': 'price',
+    'search.analyze': 'Analyze',
+    'search.inStock': 'In stock',
+    'search.outOfStock': 'Out of stock',
     'hints.search': 'Search products by name across the Uzum marketplace. Click Track to add them to your dashboard.',
 
     // ── What\'s New ──────────────────────────────────────────────────────────

@@ -1389,6 +1389,15 @@ export const uz: Record<string, string> = {
     'search.noResultsHint': "Boshqa so'z bilan qidirib ko'ring",
     'search.initial': 'Mahsulot qidiring',
     'search.initialHint': "Uzum'da mahsulot topish uchun yozishni boshlang",
+    'search.button': 'Qidirish',
+    'search.tracking': 'Kuzatilmoqda',
+    'search.loading': 'Qidirilmoqda...',
+    'search.results': 'natija topildi',
+    'search.rating': 'reyting',
+    'search.price': 'narx',
+    'search.analyze': 'Tahlil',
+    'search.inStock': 'Mavjud',
+    'search.outOfStock': 'Tugagan',
     'hints.search': "Uzum marketplace'da mahsulotlarni nomi bo'yicha qidiring. Kuzatish tugmasini bosib dashboardga qo'shing.",
 
     // ── Yangiliklar ──────────────────────────────────────────────────────────

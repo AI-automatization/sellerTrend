@@ -1373,6 +1373,15 @@ export const ru: Record<string, string> = {
     'search.noResultsHint': 'Попробуйте другой запрос',
     'search.initial': 'Поиск товаров',
     'search.initialHint': 'Начните вводить, чтобы найти товары на Uzum',
+    'search.button': 'Искать',
+    'search.tracking': 'Отслеживается',
+    'search.loading': 'Поиск...',
+    'search.results': 'результатов найдено',
+    'search.rating': 'рейтинг',
+    'search.price': 'цена',
+    'search.analyze': 'Анализ',
+    'search.inStock': 'В наличии',
+    'search.outOfStock': 'Нет в наличии',
     'hints.search': 'Ищите товары по названию на маркетплейсе Uzum. Нажмите Отслеживать, чтобы добавить их на дашборд.',
 
     // ── What\'s New ──────────────────────────────────────────────────────────
