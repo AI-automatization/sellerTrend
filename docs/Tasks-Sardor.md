@@ -181,11 +181,104 @@ Modal'da category mode'da:
 
 ---
 
+## Phase 5 — Competitor + Price Tracking (P2) ~4.5h
+
+### T-220 | P2 | FRONTEND | Extension — Competitor analysis tab | 1.5h
+
+**Manba:** yangi-feature
+**Topilgan joyda:** `apps/extension/src/components/CompetitorAnalysis.tsx`
+**Mas'ul:** pending[Sardor]
+
+**Tahlil:**
+Mahsulot tahlilida — raqobatchi tahlili qo'shish.
+Modal'da tab: "Tez Tahlil" + "Raqobatchilar"
+
+Raqobatchi tab'da:
+- Top 3 competitor (same category, high score)
+- Price comparison (narx vs competitors)
+- Score comparison (score vs competitors)
+
+**Yechim:**
+1. `CompetitorAnalysis.tsx` — YANGI component
+   - Competitors list (simulated/backend data)
+   - Price bar comparison
+   - Score badges
+2. `QuickAnalysisModal.tsx` — Tabs
+   - Tab 1: Product analysis
+   - Tab 2: Competitors (if productId + categoryId)
+3. API (future): `GET /products/{id}/competitors`
+
+**Fayllar:**
+- `apps/extension/src/components/CompetitorAnalysis.tsx` — YANGI
+- `apps/extension/src/components/QuickAnalysisModal.tsx` — Tabs qo'shish
+
+**Bog'liqlik:** T-217 DONE
+
+---
+
+### T-221 | P2 | FRONTEND | Extension — Price history chart | 1.5h
+
+**Manba:** yangi-feature
+**Topilgan joyda:** `apps/extension/src/components/PriceHistory.tsx`
+**Mas'ul:** pending[Sardor]
+
+**Tahlil:**
+Mahsulot narxining haftalik o'zgarishi (7 ta oxirgi hafta).
+Simple line chart yoki bar chart (React Chart Library: recharts yoki chart.js).
+
+Modal'da: "Narx Tarixi" section mahsulot tab'da
+
+**Yechim:**
+1. `PriceHistory.tsx` — YANGI component
+   - Data source: ProductSnapshot (backend)
+   - Chart: recharts LineChart (7 days)
+   - Min/Max/Avg narx ko'rsatish
+2. `QuickAnalysisModal.tsx` — Integrate in product mode
+3. API: `GET /products/{id}/price-history?days=7`
+
+**Fayllar:**
+- `apps/extension/src/components/PriceHistory.tsx` — YANGI
+- `apps/extension/src/components/QuickAnalysisModal.tsx` — Integrate
+- `package.json` — recharts dependency
+
+**Bog'liqlik:** T-217 DONE
+
+---
+
+### T-222 | P2 | FRONTEND | Extension — Favorites & notes | 1.5h
+
+**Manba:** yangi-feature
+**Topilgan joyda:** `apps/extension/src/background/messages/save-note.ts`
+**Mas'ul:** pending[Sardor]
+
+**Tahlil:**
+Mahsulot/kategoriyani "Sevimli"ga qo'shish va shaxsiy eslatma yozish.
+ChromeStorage'da saqlash (local, sync).
+
+Modal'da: "⭐ Sevimlilarga qo'shish" button + text area
+
+**Yechim:**
+1. Storage qo'shimchalar: `favorites: string[]`, `notes: {productId: string; text: string}[]`
+2. `save-note.ts` background message handler
+3. QuickAnalysisModal'da:
+   - Favorite button (toggle)
+   - Notes textarea (collapse/expand)
+4. TrackedList: favorites filter yoki indicator
+
+**Fayllar:**
+- `apps/extension/src/lib/storage.ts` — UPDATED (favorites, notes)
+- `apps/extension/src/background/messages/save-note.ts` — YANGI
+- `apps/extension/src/components/QuickAnalysisModal.tsx` — Buttons + textarea
+
+**Bog'liqlik:** T-217 DONE
+
+---
+
 | Faza | Tasklar | Vaqt | Holat |
 |------|---------|------|-------|
 | 3. Popup Dashboard (P1) | ~~T-216~~ | ~1.5h | ✅ DONE (2026-03-08) |
-| 4. Category + Advanced (P1) | ~~T-217~~, T-218, T-219 | ~5h | pending[Sardor] — **T-218** |
-| 5. Competitor + Narx (P2) | T-220..T-222 | ~4.5h | ⬜ |
+| 4. Category + Advanced (P1) | ~~T-217, T-218, T-219~~ | ~5h | ✅ DONE (2026-03-08) |
+| 5. Competitor + Narx (P2) | T-220..T-222 | ~4.5h | pending[Sardor] — **T-220** |
 | 6. AI + Hotkeys (P2) | T-223..T-224 | ~2.5h | ⬜ |
 | 7. i18n + Testing (P2) | T-225..T-227 | ~4.5h | ⬜ |
 | 8. Build + Publish (P1) | T-228..T-229 | ~3h | ⬜ |
