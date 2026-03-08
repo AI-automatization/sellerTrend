@@ -10,7 +10,7 @@
 ## STATISTIKA
 
 ```
-Ochiq:       ~40 ta
+Ochiq:       ~37 ta
 Bajarilgan:  ~170+ ta (Done.md)
 Oxirgi T-#:  T-425
 Keyingi T-#: T-426 dan boshlash
@@ -656,8 +656,8 @@ Onboarding reminders — daily 10AM cron, 3-day check for incomplete onboarding.
 > **Boshlang'ich sana:** 2026-03-08
 > **Dependency graph:**
 > ```
-> Faza 1 (Backend infra):    T-411 → T-412 → T-413 → T-414
-> Faza 2 (Frontend search):  T-415 → T-416 → T-417 → T-418
+> Faza 1 (Backend infra):    ~~T-411~~ → ~~T-412~~ → T-413 → T-414
+> Faza 2 (Frontend search):  T-415 → ~~T-416~~ → T-417 → T-418
 > Faza 3 (Expand panel):     T-419 (T-413 + T-418 dan keyin)
 > Faza 4 (Bright Data):      T-420 → T-421 → T-422 → T-423
 > Faza 5 (Polish):           T-424, T-425 (hammasi tugagandan keyin)
@@ -667,76 +667,8 @@ Onboarding reminders — daily 10AM cron, 3-day check for incomplete onboarding.
 
 ## FAZA 1 — BACKEND INFRA (P0)
 
-### T-411 | P0 | BACKEND | Route order fix — static routes before :id param | 15min
-
-**Sana:** 2026-03-08
-**Manba:** kod-audit
-**Topilgan joyda:** `apps/api/src/products/products.controller.ts:22-45`
-**Mas'ul:** Bekzod
-
-**Tahlil:**
-NestJS controller da `@Get(':id')` (line 36) barcha `@Get('xxx')` larni "yutib yuboradi"
-agar ular `:id` dan KEYIN kelsa. Yangi `@Get('search')` endpoint qo'shilsa,
-uni `@Get(':id')` dan OLDIN joylashtirish SHART. Aks holda "search" so'zi
-`:id` parametri sifatida parse bo'lib, `ParseBigIntPipe` da xato beradi.
-
-**Yechim:**
-1. Controller dagi method tartibini o'zgartirish:
-   - `@Get('tracked')` — 1-chi (mavjud)
-   - `@Get('recommendations')` — 2-chi (mavjud)
-   - `@Get('search')` — 3-chi (YANGI — T-412 da yaratiladi)
-   - `@Get(':id')` — 4-chi (mavjud, pastga tushadi)
-   - `@Get(':id/...')` — 5-chi+ (mavjud)
-2. Hozircha faqat method tartibini tekshirish va joyini belgilash
-
-**Fayllar:** `apps/api/src/products/products.controller.ts`
-**Bog'liqlik:** yo'q — birinchi bajariladi
-
----
-
-### T-412 | P0 | BACKEND | searchProducts endpoint — Uzum search proxy | 1h
-
-**Sana:** 2026-03-08
-**Manba:** yangi-feature
-**Topilgan joyda:** yangi endpoint
-**Mas'ul:** Bekzod
-
-**Tahlil:**
-Frontend dan kalit so'z bo'yicha mahsulot qidirish uchun backend proxy kerak.
-To'g'ridan-to'g'ri Uzum API ga frontend dan so'rov yuborish CORS xatosi beradi.
-Backend proxy orqali: rate limiting, caching (Redis 5min TTL), sanitizatsiya.
-
-**Muammo va xavflar:**
-- Uzum search API ba'zan 500 "Internal service not available" qaytaradi
-- Rate limit: Uzum 429 qaytarishi mumkin — retry + backoff kerak
-- Query injection: foydalanuvchi kiritgan matnni sanitize qilish
-
-**Yechim:**
-1. `UzumClient.searchProducts(query, size, page, sort)` — yangi method
-   - URL: `GET /api/v2/main/search/product?text={query}&size={size}&page={page}&sort={sort}`
-   - Headers: mavjud HEADERS (User-Agent, Origin, Referer)
-   - Response: `UzumSearchProduct[]` (mavjud interface)
-   - Error handling: 429 → 5s wait + retry, 500 → empty array + log
-2. `ProductsService.searchProducts(query, limit)` — service method
-   - Redis cache: `search:{query}:{limit}` → 5 min TTL
-   - Sanitize: trim, max 100 char, special char strip
-3. `ProductsController` — `@Get('search')` endpoint
-   - Query params: `?q=string&limit=number(default 24)`
-   - T-411 bo'yicha `:id` dan OLDIN joylashadi
-   - `@ApiQuery()` dekorator qo'shish
-4. `SearchQueryDto` — class-validator bilan validatsiya
-   - `q: string` — `@IsString()`, `@MinLength(2)`, `@MaxLength(100)`
-   - `limit: number` — `@IsOptional()`, `@IsInt()`, `@Min(1)`, `@Max(48)`, default 24
-
-**Fayllar:**
-- `apps/api/src/uzum/uzum.client.ts` — searchProducts method
-- `apps/api/src/products/products.service.ts` — searchProducts method
-- `apps/api/src/products/products.controller.ts` — @Get('search')
-- `apps/api/src/products/dto/search-query.dto.ts` — yangi DTO
-
-**Bog'liqlik:** T-411 (route order)
-
----
+> ~~T-411~~ DONE (2026-03-08) — Route order fix, commit e464044
+> ~~T-412~~ DONE (2026-03-08) — searchProducts endpoint, commit e464044
 
 ### T-413 | P0 | BACKEND | trackFromSearch — FK constraint safe track | 1h
 
@@ -812,6 +744,8 @@ Track qilish esa kredit olishi mumkin.
 
 ## FAZA 2 — FRONTEND SEARCH PAGE (P0)
 
+> ~~T-416~~ DONE (2026-03-08) — API client + types, commit d155bd9
+
 ### T-415 | P0 | FRONTEND | SearchPage — route, nav link, page scaffold | 1h
 
 **Sana:** 2026-03-08
@@ -848,41 +782,7 @@ Layout.tsx sidebar ga nav link qo'shish, sahifa scaffold yaratish kerak.
 
 ---
 
-### T-416 | P0 | FRONTEND | API client + TypeScript types for search | 30min
-
-**Sana:** 2026-03-08
-**Manba:** yangi-feature
-**Topilgan joyda:** `apps/web/src/api/products.ts`
-**Mas'ul:** Bekzod
-
-**Tahlil:**
-Frontend API client da search method yo'q. Type'lar ham yo'q.
-Backend `UzumSearchProduct` interface ni frontend da mirror qilish kerak.
-
-**Yechim:**
-1. `SearchProduct` type yaratish:
-   ```ts
-   interface SearchProduct {
-     id: number;
-     productId?: number;
-     title: string;
-     minSellPrice?: number;
-     sellPrice?: number;
-     rating: number;
-     ordersQuantity?: number;
-     ordersAmount?: number;
-   }
-   ```
-2. `productsApi` ga qo'shish:
-   - `search(query: string, limit?: number): Promise<SearchProduct[]>`
-   - `trackFromSearch(uzumProductId: number): Promise<{ tracked: boolean }>`
-3. Error handling: 429 → retry toast, 500 → generic error
-
-**Fayllar:**
-- `apps/web/src/api/products.ts` — search, trackFromSearch methods
-- `apps/web/src/types/search.ts` — yangi type fayl (yoki products.ts ichida)
-
-**Bog'liqlik:** T-412 (backend endpoint)
+> ~~T-416~~ DONE (2026-03-08) — API client + SearchProduct type, commit d155bd9
 
 ---
 

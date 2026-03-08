@@ -22,6 +22,40 @@
 
 ---
 
+## T-411 + T-412 + T-416 — Search Backend + Frontend API Client (2026-03-08)
+
+### T-411 | BACKEND | Route order fix — static routes before :id param (2026-03-08)
+
+**Manba:** kod-audit
+**Muammo:** NestJS controller da `@Get(':id')` barcha statik routelarni "yutib yuborar" edi — yangi `@Get('search')` endpoint `:id` sifatida parse bo'lib xato berar edi.
+**Yechim:** `@Get('search')` ni `@Get(':id')` dan OLDIN joylashtirish — tracked → recommendations → search → :id tartib.
+**Fayllar:** `apps/api/src/products/products.controller.ts`
+**Commit:** e464044
+**Vaqt:** 5min (plan: 15min)
+**Ta'sir:** Yangi search endpoint to'g'ri ishlaydi, mavjud routelar buzilmaydi.
+
+### T-412 | BACKEND | searchProducts endpoint — Uzum search proxy (2026-03-08)
+
+**Manba:** yangi-feature
+**Muammo:** Frontend dan Uzum da mahsulot qidirish imkoniyati yo'q edi — CORS tufayli to'g'ridan-to'g'ri API chaqirish ishlamaydi.
+**Yechim:** `UzumClient.searchProducts()` + `ProductsService.searchProducts()` + Redis cache (5min TTL) + `SearchQueryDto` validation (q: 2-100 char, limit: 1-48).
+**Fayllar:** `apps/api/src/uzum/uzum.client.ts`, `apps/api/src/products/products.service.ts`, `apps/api/src/products/products.controller.ts`, `apps/api/src/products/dto/search-query.dto.ts`
+**Commit:** e464044
+**Vaqt:** 20min (plan: 1h)
+**Ta'sir:** `GET /products/search?q=telefon&limit=24` endpoint ishlaydi — 5 min cache, rate limit himoya.
+
+### T-416 | FRONTEND | API client + TypeScript types for search (2026-03-08)
+
+**Manba:** yangi-feature
+**Muammo:** Frontend da search API types va methodlar yo'q edi.
+**Yechim:** `SearchProduct` interface + `productsApi.searchProducts()` + `productsApi.trackFromSearch()` methodlari.
+**Fayllar:** `apps/web/src/api/types.ts`, `apps/web/src/api/products.ts`
+**Commit:** d155bd9
+**Vaqt:** 10min (plan: 30min)
+**Ta'sir:** Frontend search sahifasi uchun API client tayyor — type-safe, auto-complete bilan.
+
+---
+
 ## T-384 + T-390 — Engagement Features + Schema Docs (2026-03-08)
 
 - **T-390**: Schema auto-sync — `scripts/generate-db-docs.ts` + `docs/DATABASE.md` (53 model, 14 enum, Mermaid ER)
