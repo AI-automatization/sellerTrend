@@ -695,6 +695,45 @@ _Remote commit orqali bajarilgan, Bekzod tomonidan verified 2026-03-03_
 
 ---
 
+## T-216 | P1 | FRONTEND | Chrome Extension Faza 3 — Popup "Tez Tahlil" Modal (2026-03-08)
+
+**Status:** ✅ DONE
+
+**Tahlil:**
+Faza 1-2'da background service + content script'lar tayyor edi. Faza 3'da popup'ni yangilash.
+Foydalanuvchi uzum.uz'da mahsulotni ko'rayotib, extension icon'ini bosilganda "📊 Tez Tahlil" tugmasi ko'rinadi.
+Tugma bosilganda modal ochiladi va mahsulotning tez tahlili ko'rsatiladi.
+
+**Yechim:**
+1. **QuickAnalysisModal.tsx** (NEW) — React component
+   - `ProductDetail` interface: id, score, weekly_bought, trend, sell_price, last_updated
+   - `useEffect` hook: `sendToBackground('quick-score', { productId })`
+   - DaisyUI modal dialog: score, weekly bought, price, trend, last updated
+   - "Batafsil" button → dashboard `/analyze?productId={id}`
+   - Loading state (spinner), error handling, null display
+
+2. **popup.tsx** (UPDATED)
+   - Import: `QuickAnalysisModal`, `parseProductIdFromUrl`, `isProductPage`
+   - State: `productId`, `isModalOpen`
+   - `useEffect`: `chrome.tabs.query()` — avtomatik tab URL'dan product ID aniqlash
+   - Conditional button: "📊 Tez Tahlil" faqat product page'da
+   - Modal integration: `<QuickAnalysisModal productId={productId} isOpen={isModalOpen} onClose={...} />`
+
+**Fayllar:**
+- `apps/extension/src/components/QuickAnalysisModal.tsx` — NEW
+- `apps/extension/src/popup.tsx` — UPDATED (imports, state, effects, JSX)
+
+**Testlash:**
+```bash
+pnpm build --filter extension
+# Chrome: chrome://extensions → Load unpacked → dist folder
+# uzum.uz mahsulot sahifasida extension icon → "Tez Tahlil" tugmasi → Modal
+```
+
+**TypeScript:** tsc --noEmit — ✅ PASS
+
+---
+
 ## T-208..T-211 | P0 | FRONTEND | Chrome Extension Faza 1 — Scaffold + Auth (2026-03-03)
 
 Plasmo scaffold, popup login/logout, background service worker (token refresh alarm),

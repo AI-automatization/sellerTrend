@@ -75,43 +75,53 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 ## Phase 3 — Popup Dashboard (P1) ~1.5h
 
-### T-216 | P1 | FRONTEND | Extension popup "Tez Tahlil" modal | 1.5h
+~~### T-216 | P1 | FRONTEND | Extension popup "Tez Tahlil" modal | 1.5h~~ ✅ DONE (2026-03-08)
 
-**Sana:** 2026-03-08
+---
+
+## Phase 4 — Category + Advanced (P1) ~5h
+
+### T-217 | P1 | FRONTEND | Extension — Category filter sidebar | 2h
+
 **Manba:** yangi-feature
-**Topilgan joyda:** `apps/extension/src/popup.tsx`, `apps/extension/src/components/QuickAnalysisModal.tsx`
+**Topilgan joyda:** `apps/extension/src/popup.tsx`, `apps/extension/src/components/CategoryFilter.tsx`
 **Mas'ul:** pending[Sardor]
 
 **Tahlil:**
-Phase 1-2'da background + content scripts tayyor. Endi popup'ni yangilash kerak.
-Foydalanuvchi uzum.uz'da mahsulotni ko'rayotib, extension icon'ini bosganda:
-1. Popup ochiladi
-2. "📊 Tez Tahlil" tugmasi bo'radi
-3. Bosilganda → Modal ochiladi
-4. Modal'da mahsulotning tahlili (score, price, stock, rating)
+Hozir "Tez Tahlil" modal faqat joriy mahsulotning tahlilini ko'rsatadi.
+Keyingi qadam: foydalanuvchi uzum.uz'dagi **kategorialar bo'yicha** tahlillarni ko'rishi kerak.
+
+Sidebar'da kategoriyalar ro'yxati:
+- Top categories — VENTRA'dan (API)
+- Har kategoriya uchun: ranking, trending products, average price, competition level
+- Click → modal'da kategoriya tahlili
 
 **Yechim:**
-1. `QuickAnalysisModal.tsx` — YANGI component
-   - Score (ScoreRadial)
-   - Weekly bought / Price / Rating / Stock
-   - "Batafsil" → Dashboard link
-2. `popup.tsx` — Button qo'shish + Modal state
-3. API'dan product detail fetch (uzum mahsulot IDsi)
-4. Error handling + loading state
+1. `CategoryFilter.tsx` — YANGI component
+   - Kategoriyalar dropdown/sidebar
+   - Top 10 kategoriya (score bo'yicha)
+   - Click handler → `setSelectedCategory(id)`
+2. `popup.tsx` — state: `selectedCategory`
+   - Agar `productId` bo'lsa → product analysis
+   - Agar `selectedCategory` bo'lsa → category analysis
+   - Ikkala tab button
+3. API endpoint: `GET /categories/top?limit=10`
+4. Modal'ni flexible qilish (product yoki category data)
 
 **Fayllar:**
-- `apps/extension/src/popup.tsx` — Yangilash
-- `apps/extension/src/components/QuickAnalysisModal.tsx` — YANGI
-- `apps/extension/src/lib/api.ts` — getProductDetail endpoint
+- `apps/extension/src/popup.tsx` — state + tabs
+- `apps/extension/src/components/CategoryFilter.tsx` — YANGI
+- `apps/extension/src/components/QuickAnalysisModal.tsx` — flexible qilish (product/category)
+- `apps/extension/src/lib/api.ts` — `getTopCategories()` endpoint
 
-**Bog'liqlik:** Phase 1-2 DONE
+**Bog'liqlik:** T-216 DONE
 
 ---
 
 | Faza | Tasklar | Vaqt | Holat |
 |------|---------|------|-------|
-| 3. Popup Dashboard (P1) | T-216 | ~1.5h | pending[Sardor] |
-| 4. Category + Advanced (P1) | T-217..T-219 | ~5h | ⬜ |
+| 3. Popup Dashboard (P1) | ~~T-216~~ | ~1.5h | ✅ DONE (2026-03-08) |
+| 4. Category + Advanced (P1) | T-217..T-219 | ~5h | pending[Sardor] — **T-217** |
 | 5. Competitor + Narx (P2) | T-220..T-222 | ~4.5h | ⬜ |
 | 6. AI + Hotkeys (P2) | T-223..T-224 | ~2.5h | ⬜ |
 | 7. i18n + Testing (P2) | T-225..T-227 | ~4.5h | ⬜ |
