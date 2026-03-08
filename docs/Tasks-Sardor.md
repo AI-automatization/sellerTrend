@@ -79,19 +79,29 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 ---
 
-## ~~Phase 4 — Category + Advanced (P1) ~5h~~ ✅ DONE (2026-03-08)
+## Phase 4 — Category + Advanced (P1) ~5h — TAHLIL JARAYONIDA
 
-~~### T-217 | P1 | FRONTEND | Extension — Category filter sidebar~~
-~~### T-218 | P1 | FRONTEND | Extension — Advanced filters~~
-~~### T-219 | P1 | FRONTEND | Extension — Category trends & insights~~
+### T-217 | P1 | FRONTEND | Extension — Category filter sidebar | 1.5h
+**Mas'ul:** pending[Sardor] — **Tahlil jarayonida (2026-03-09)**
+
+### T-218 | P1 | FRONTEND | Extension — Advanced filters | 1.5h
+**Mas'ul:** pending[Sardor] — **Tahlil jarayonida**
+
+### T-219 | P1 | FRONTEND | Extension — Category trends & insights | 2h
+**Mas'ul:** pending[Sardor] — **Tahlil jarayonida**
 
 ---
 
-## ~~Phase 5 — Competitor + Price Tracking (P2) ~4.5h~~ ✅ DONE (2026-03-08)
+## Phase 5 — Competitor + Price Tracking (P2) ~4.5h — TAHLIL JARAYONIDA
 
-~~### T-220 | P2 | FRONTEND | Extension — Competitor analysis tab~~
-~~### T-221 | P2 | FRONTEND | Extension — Price history chart~~
-~~### T-222 | P2 | FRONTEND | Extension — Favorites & notes~~
+### T-220 | P2 | FRONTEND | Extension — Competitor analysis tab | 1.5h
+**Mas'ul:** pending[Sardor] — **Tahlil jarayonida (2026-03-09)**
+
+### T-221 | P2 | FRONTEND | Extension — Price history chart | 1.5h
+**Mas'ul:** pending[Sardor] — **Tahlil jarayonida**
+
+### T-222 | P2 | FRONTEND | Extension — Favorites & notes | 1.5h
+**Mas'ul:** pending[Sardor] — **Tahlil jarayonida**
 
 ---
 
@@ -235,8 +245,8 @@ Content script orqali keyboard events.
 | Faza | Tasklar | Vaqt | Holat |
 |------|---------|------|-------|
 | 3. Popup Dashboard (P1) | ~~T-216~~ | ~1.5h | ✅ DONE (2026-03-08) |
-| 4. Category + Advanced (P1) | ~~T-217, T-218, T-219~~ | ~5h | ✅ DONE (2026-03-08) |
-| 5. Competitor + Narx (P2) | ~~T-220, T-221, T-222~~ | ~4.5h | ✅ DONE (2026-03-08) |
+| 4. Category + Advanced (P1) | T-217, T-218, T-219 | ~5h | 🔍 TAHLIL — pending[Sardor] (2026-03-09) |
+| 5. Competitor + Narx (P2) | T-220, T-221, T-222 | ~4.5h | 🔍 TAHLIL — pending[Sardor] (2026-03-09) |
 | 6. AI + Hotkeys (P2) | T-223..T-224 | ~2.5h | pending[Sardor] — **T-223** |
 | 7. i18n + Testing (P2) | T-225..T-227 | ~4.5h | ⬜ |
 | 8. Build + Publish (P1) | T-228..T-229 | ~3h | ⬜ |
