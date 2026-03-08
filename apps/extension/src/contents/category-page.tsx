@@ -1,15 +1,23 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import type { PlasmoCSConfig, PlasmoGetStyle } from "plasmo"
 import { sendToBackground } from "@plasmohq/messaging"
 
-import { parseProductIdFromHref, isCategoryPage } from "~/lib/url-parser"
+import {
+  parseProductIdFromHref,
+  isCategoryPage,
+  parseCategoryIdFromUrl,
+} from "~/lib/url-parser"
 import { onUrlChange, onProductCardsAdded } from "~/lib/spa-observer"
 import { createBadgeElement, removeBadges, BADGE_ATTR } from "~/components/ScoreBadge"
+import CategoryTopWidget from "~/components/CategoryTopWidget"
+import type { TopProductItem } from "~/components/CategoryTopWidget"
 import type { AuthStateResponseBody } from "~/background/messages/get-auth-state"
 import type {
   BatchQuickScoreRequestBody,
   BatchQuickScoreResponseBody,
 } from "~/background/messages/batch-quick-score"
+
+import styleText from "data-text:./plasmo-overlay.css"
 
 // ── Plasmo CSUI Config ──────────────────────────────────────
 
@@ -20,19 +28,62 @@ export const config: PlasmoCSConfig = {
 
 export const getStyle: PlasmoGetStyle = () => {
   const style = document.createElement("style")
-  style.textContent = `:host { display: none !important; }`
+  style.textContent = styleText
   return style
 }
 
 // ── Score Cache ─────────────────────────────────────────────
 
-const scoreCache = new Map<string, { score: number; weeklyBought: number | null }>()
+interface CachedProduct {
+  score: number
+  weeklyBought: number | null
+  title: string
+  photoUrl: string | null
+}
+
+const scoreCache = new Map<string, CachedProduct>()
+
+// ── Helpers ─────────────────────────────────────────────────
+
+const MAX_TOP = 10
+
+function parseCategoryNameFromDOM(): string {
+  const h1 = document.querySelector("h1")
+  if (h1?.textContent?.trim()) return h1.textContent.trim()
+  const breadcrumb = document.querySelector(
+    '[data-test-id="breadcrumb"] span:last-child, .breadcrumbs span:last-child'
+  )
+  if (breadcrumb?.textContent?.trim()) return breadcrumb.textContent.trim()
+  return "Kategoriya"
+}
+
+function buildTopProducts(categoryProductIds: Set<string>): TopProductItem[] {
+  const items: TopProductItem[] = []
+  for (const id of categoryProductIds) {
+    const cached = scoreCache.get(id)
+    if (!cached || !cached.title) continue
+    items.push({
+      productId: id,
+      title: cached.title,
+      score: cached.score,
+      weeklyBought: cached.weeklyBought,
+      photoUrl: cached.photoUrl,
+    })
+  }
+  items.sort((a, b) => b.score - a.score)
+  return items.slice(0, MAX_TOP)
+}
 
 // ── Component ───────────────────────────────────────────────
 
 export default function CategoryPageOverlay() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [topProducts, setTopProducts] = useState<TopProductItem[]>([])
+  const [categoryName, setCategoryName] = useState("")
+  const [widgetVisible, setWidgetVisible] = useState(true)
+  const [onCategoryPage, setOnCategoryPage] = useState(false)
   const processingRef = useRef(false)
+  const categoryProductIdsRef = useRef(new Set<string>())
 
   // Check auth state once
   useEffect(() => {
@@ -44,7 +95,12 @@ export default function CategoryPageOverlay() {
       .catch(() => setIsLoggedIn(false))
   }, [])
 
-  // Main badge injection logic
+  const refreshTopProducts = useCallback(() => {
+    const items = buildTopProducts(categoryProductIdsRef.current)
+    setTopProducts(items)
+  }, [])
+
+  // Main badge injection + data collection logic
   useEffect(() => {
     if (!isLoggedIn) return
 
@@ -62,10 +118,11 @@ export default function CategoryPageOverlay() {
         // Extract product IDs from card links
         const cardIdMap = new Map<string, Element>()
         for (const card of targetCards) {
-          // Skip cards that already have a badge
           if (card.querySelector(`[${BADGE_ATTR}]`)) continue
 
-          const link = card.querySelector('a[href*="/product/"]') as HTMLAnchorElement | null
+          const link = card.querySelector(
+            'a[href*="/product/"]'
+          ) as HTMLAnchorElement | null
           if (!link) continue
           const href = link.getAttribute("href")
           if (!href) continue
@@ -74,6 +131,11 @@ export default function CategoryPageOverlay() {
         }
 
         if (cardIdMap.size === 0) return
+
+        // Track IDs for this category page
+        for (const id of cardIdMap.keys()) {
+          categoryProductIdsRef.current.add(id)
+        }
 
         // Find IDs not in cache
         const uncachedIds = Array.from(cardIdMap.keys()).filter(
@@ -97,12 +159,14 @@ export default function CategoryPageOverlay() {
                   scoreCache.set(item.product_id, {
                     score: item.score,
                     weeklyBought: item.weekly_bought ?? null,
+                    title: item.title ?? "",
+                    photoUrl: item.photo_url ?? null,
                   })
                 }
               }
             }
           } catch {
-            // Batch fetch failed — skip badge injection for uncached
+            // Batch fetch failed — skip
           }
         }
 
@@ -110,13 +174,14 @@ export default function CategoryPageOverlay() {
         for (const [id, card] of cardIdMap) {
           const cached = scoreCache.get(id)
           if (!cached) continue
-
-          // Double-check no badge exists (race condition guard)
           if (card.querySelector(`[${BADGE_ATTR}]`)) continue
 
           const badge = createBadgeElement(cached.score, cached.weeklyBought)
           card.appendChild(badge)
         }
+
+        // Update top products widget
+        refreshTopProducts()
       } finally {
         processingRef.current = false
       }
@@ -124,9 +189,18 @@ export default function CategoryPageOverlay() {
 
     function handleUrl(url: string) {
       removeBadges()
+      categoryProductIdsRef.current.clear()
+      setTopProducts([])
+
       if (isCategoryPage(url)) {
-        // Small delay to let Vue render the DOM
-        setTimeout(() => processCards(), 500)
+        setOnCategoryPage(true)
+        setWidgetVisible(true)
+        setTimeout(() => {
+          setCategoryName(parseCategoryNameFromDOM())
+          processCards()
+        }, 500)
+      } else {
+        setOnCategoryPage(false)
       }
     }
 
@@ -144,8 +218,18 @@ export default function CategoryPageOverlay() {
       cleanupCards()
       removeBadges()
     }
-  }, [isLoggedIn])
+  }, [isLoggedIn, refreshTopProducts])
 
-  // This component renders nothing — it manages badges via DOM manipulation
-  return null
+  // ── Render ──────────────────────────────────────────────
+
+  if (!onCategoryPage || !isLoggedIn || !widgetVisible) return null
+  if (topProducts.length === 0) return null
+
+  return (
+    <CategoryTopWidget
+      categoryName={categoryName}
+      products={topProducts}
+      onClose={() => setWidgetVisible(false)}
+    />
+  )
 }
