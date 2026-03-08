@@ -274,6 +274,47 @@ Modal'da: "⭐ Sevimlilarga qo'shish" button + text area
 
 ---
 
+## BUGS & CRITICAL FIXES (P1)
+
+### T-427 | P1 | FRONTEND | Extension — modal auto-closes after ~1 sec | 2h
+
+**Manba:** user-feedback (2026-03-09)
+**Topilgan joyda:** `apps/extension/src/popup.tsx`, `apps/extension/src/components/QuickAnalysisModal.tsx`, background worker
+**Mas'ul:** pending[Sardor]
+
+**Tahlil:**
+User extension popup'da "Tez Tahlil" button bosganda:
+1. Modal ochiladi ✅
+2. Loading spinner ko'rsatadi ✅
+3. **~1 sekund o'tib MODAL AUTO-CLOSE bo'layapti** ❌
+4. API response hali kelishiga to'liqmasa → "Product not found" error
+5. Agar user 1 sekund ichida "Batafsil" button bosmasa → modal yopiladi
+
+**Root causes (tekshirish kerak):**
+1. **Chrome popup auto-timeout** — popup window o'z-o'zidan yopilishi (1-2 sec)
+2. **Plasmo messaging timeout** — sendToBackground() default timeout
+3. **API slow response** — backend 1+ sec turib qolishi
+4. **Content script event** — modal state reset qiluvchi event
+5. **Modal backdrop click** — har qanday click'da yopilishi
+
+**Yechim (implementation plan):**
+1. Modal backdrop click'da auto-close disable qilish
+2. Popup timeout'ni increase qilish (message options'da)
+3. Modal state'ni persistent qilish
+4. API timeout xatosini better handle qilish
+5. Service Worker logs'ni enable qilish debugging uchun
+6. Timing investigation — qaysi joyda 1 sec delay chiqayotganini aniqlab fix qilish
+
+**Fayllar:**
+- `apps/extension/src/components/QuickAnalysisModal.tsx` — modal lifecycle
+- `apps/extension/src/popup.tsx` — state management
+- `apps/extension/src/background/index.ts` (service worker) — message handlers
+- `apps/extension/src/background/messages/quick-score.ts` — response timing
+
+**Bog'liqlik:** T-216, T-217..T-222 (barcha modal tasks)
+
+---
+
 ## Phase 6 — AI + Hotkeys (P2) ~2.5h
 
 ### T-223 | P2 | FRONTEND | Extension — AI recommendations (Claude) | 1.5h
