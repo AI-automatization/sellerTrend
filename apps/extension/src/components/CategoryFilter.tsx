@@ -3,7 +3,7 @@ import type { CategoryItem } from "~/lib/api";
 import { getTopCategories } from "~/lib/api";
 
 interface CategoryFilterProps {
-  onSelect: (categoryId: string, categoryTitle: string) => void;
+  onSelect: (category: CategoryItem) => void;
   selectedCategoryId: string | null;
 }
 
@@ -53,7 +53,7 @@ export default function CategoryFilter({ onSelect, selectedCategoryId }: Categor
         {categories.map((cat) => (
           <button
             key={cat.category_id}
-            onClick={() => onSelect(cat.category_id, cat.category_title)}
+            onClick={() => onSelect(cat)}
             className={`w-full text-left p-2 rounded-lg text-xs transition-colors ${
               selectedCategoryId === cat.category_id
                 ? "bg-primary text-primary-content"

@@ -9,6 +9,7 @@ import CategoryFilter from "~/components/CategoryFilter";
 import { parseProductIdFromUrl, isProductPage } from "~/lib/url-parser";
 import type { AuthStateResponseBody } from "~/background/messages/get-auth-state";
 import type { LogoutResponseBody } from "~/background/messages/logout";
+import type { CategoryItem } from "~/lib/api";
 
 const DASHBOARD_URL = process.env.PLASMO_PUBLIC_API_URL?.replace("/api/v1", "") ?? "http://localhost:5173";
 
@@ -17,7 +18,7 @@ function Popup() {
   const [authState, setAuthState] = useState<AuthStateResponseBody | null>(null);
   const [productId, setProductId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<{ id: string; title: string } | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryItem | null>(null);
 
   async function checkAuth() {
     try {
@@ -109,9 +110,9 @@ function Popup() {
 
       {/* Category Filter */}
       <CategoryFilter
-        selectedCategoryId={selectedCategory?.id ?? null}
-        onSelect={(categoryId, categoryTitle) => {
-          setSelectedCategory({ id: categoryId, title: categoryTitle });
+        selectedCategoryId={selectedCategory?.category_id ?? null}
+        onSelect={(category) => {
+          setSelectedCategory(category);
           setIsModalOpen(true);
         }}
       />
@@ -153,8 +154,7 @@ function Popup() {
       {/* Quick Analysis Modal */}
       <QuickAnalysisModal
         productId={productId}
-        categoryId={selectedCategory?.id ?? null}
-        categoryTitle={selectedCategory?.title ?? null}
+        categoryData={selectedCategory}
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);

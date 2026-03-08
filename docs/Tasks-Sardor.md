@@ -118,10 +118,73 @@ Sidebar'da kategoriyalar ro'yxati:
 
 ---
 
+### T-218 | P1 | FRONTEND | Extension — Advanced filters (search + sorting) | 1.5h
+
+**Manba:** yangi-feature
+**Topilgan joyda:** `apps/extension/src/components/AdvancedFilters.tsx`, `apps/extension/src/popup.tsx`
+**Mas'ul:** pending[Sardor]
+
+**Tahlil:**
+Kategoriya filtri tayyor bo'lgach, endi qidiruv va saralash qo'shamiz.
+- **Search**: kategoriyadagi mahsulotlar bo'yicha qidiruv
+- **Sort**: score, price, weekly_bought bo'yicha saralash
+
+Modal'da har kategoriya uchun top products ro'yxati ko'rsatiladi (1-5 ta).
+
+**Yechim:**
+1. `AdvancedFilters.tsx` — YANGI component
+   - Search input (real-time filter)
+   - Sort dropdown: Score ↓, Price ↑↓, Weekly ↓
+2. `CategoryFilter.tsx` — Updated
+   - Top products show in modal'da (existing CategoryItem.top_products)
+3. `QuickAnalysisModal.tsx` — Updated
+   - Category mode'da top products grid
+   - Click product → product analysis
+4. Filter logic: client-side (CategoryItem.top_products already filtered)
+
+**Fayllar:**
+- `apps/extension/src/components/AdvancedFilters.tsx` — YANGI
+- `apps/extension/src/components/CategoryFilter.tsx` — UPDATED (show results count)
+- `apps/extension/src/components/QuickAnalysisModal.tsx` — UPDATED (top products list)
+
+**Bog'liqlik:** T-217 DONE
+
+---
+
+### T-219 | P1 | FRONTEND | Extension — Category trends & insights | 1.5h
+
+**Manba:** yangi-feature
+**Topilgan joyda:** `apps/extension/src/components/CategoryInsights.tsx`
+**Mas'ul:** pending[Sardor]
+
+**Tahlil:**
+Kategoriya tahlilini chuqurlashtiramiz — trend, o'sish, raqobat darajasi.
+Modal'da category mode'da:
+- Average score (kategoriya bo'yicha)
+- Product count trending (ko'p/kam sotilayotgani)
+- Competition level (HIGH/MEDIUM/LOW)
+- Price range (min-max)
+
+**Yechim:**
+1. `CategoryInsights.tsx` — YANGI component
+   - Stats display: avg_score, competition, price_range, product_count
+   - Color-coded competition (red/yellow/green)
+2. `QuickAnalysisModal.tsx` — Updated
+   - Category mode: CategoryInsights + top products
+3. Data source: CategoryItem (backend `getPublicCategories()` orqali)
+
+**Fayllar:**
+- `apps/extension/src/components/CategoryInsights.tsx` — YANGI
+- `apps/extension/src/components/QuickAnalysisModal.tsx` — UPDATED (integrate insights)
+
+**Bog'liqlik:** T-217, T-218 DONE
+
+---
+
 | Faza | Tasklar | Vaqt | Holat |
 |------|---------|------|-------|
 | 3. Popup Dashboard (P1) | ~~T-216~~ | ~1.5h | ✅ DONE (2026-03-08) |
-| 4. Category + Advanced (P1) | T-217..T-219 | ~5h | pending[Sardor] — **T-217** |
+| 4. Category + Advanced (P1) | ~~T-217~~, T-218, T-219 | ~5h | pending[Sardor] — **T-218** |
 | 5. Competitor + Narx (P2) | T-220..T-222 | ~4.5h | ⬜ |
 | 6. AI + Hotkeys (P2) | T-223..T-224 | ~2.5h | ⬜ |
 | 7. i18n + Testing (P2) | T-225..T-227 | ~4.5h | ⬜ |

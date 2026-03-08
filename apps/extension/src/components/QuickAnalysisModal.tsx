@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { sendToBackground } from "@plasmohq/messaging";
 import type { QuickScoreResponseBody } from "~/background/messages/quick-score";
+import type { CategoryItem } from "~/lib/api";
+import AdvancedFilters from "./AdvancedFilters";
 
 interface QuickAnalysisModalProps {
   productId: string | null;
-  categoryId: string | null;
-  categoryTitle: string | null;
+  categoryData: CategoryItem | null;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -19,20 +20,57 @@ interface ProductDetail {
   last_updated: string;
 }
 
+// Helper to filter and sort products
+function filterAndSortProducts(
+  products: Array<{ product_id: string; title: string; score: number; weekly_bought: number | null; sell_price: number }>,
+  searchQuery: string,
+  sortBy: "score" | "price-asc" | "price-desc" | "weekly"
+) {
+  let filtered = products;
+
+  // Search filter
+  if (searchQuery.trim()) {
+    const query = searchQuery.toLowerCase();
+    filtered = filtered.filter((p) => p.title.toLowerCase().includes(query));
+  }
+
+  // Sort
+  const sorted = [...filtered];
+  switch (sortBy) {
+    case "score":
+      sorted.sort((a, b) => b.score - a.score);
+      break;
+    case "price-asc":
+      sorted.sort((a, b) => a.sell_price - b.sell_price);
+      break;
+    case "price-desc":
+      sorted.sort((a, b) => b.sell_price - a.sell_price);
+      break;
+    case "weekly":
+      sorted.sort((a, b) => (b.weekly_bought ?? 0) - (a.weekly_bought ?? 0));
+      break;
+  }
+
+  return sorted;
+}
+
 export default function QuickAnalysisModal({
   productId,
-  categoryId,
-  categoryTitle,
+  categoryData,
   isOpen,
   onClose,
 }: QuickAnalysisModalProps) {
   const [loading, setLoading] = useState(false);
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"score" | "price-asc" | "price-desc" | "weekly">("score");
 
   useEffect(() => {
     if (!isOpen) {
       setProduct(null);
+      setSearchQuery("");
+      setSortBy("score");
       return;
     }
 
@@ -66,17 +104,20 @@ export default function QuickAnalysisModal({
           setLoading(false);
         });
     }
-    // Category analysis mode — for now, just show category title
-    else if (categoryId && categoryTitle) {
+    // Category analysis mode
+    else if (categoryData) {
       setProduct(null);
       setLoading(false);
       setError(null);
     }
-  }, [productId, categoryId, isOpen]);
+  }, [productId, categoryData, isOpen]);
 
   if (!isOpen) return null;
 
-  const isCategory = !!categoryId && !productId;
+  const isCategory = !!categoryData && !productId;
+  const filteredProducts = isCategory
+    ? filterAndSortProducts(categoryData?.top_products || [], searchQuery, sortBy)
+    : [];
 
   return (
     <dialog className="modal modal-open">
@@ -179,13 +220,41 @@ export default function QuickAnalysisModal({
             )}
 
             {/* Category Analysis */}
-            {isCategory && categoryTitle && (
+            {isCategory && categoryData && (
               <div className="space-y-4">
-                <div className="bg-base-200 rounded-lg p-4">
-                  <div className="text-sm font-semibold mb-2">{categoryTitle}</div>
-                  <div className="text-xs text-base-content/70">
-                    Kategoriya tahlili hozir tayyarlanmoqda. Tez orada batafsil statistika ko'rish mumkin bo'ladi.
+                {/* Category Header */}
+                <div className="bg-base-200 rounded-lg p-3">
+                  <div className="text-sm font-semibold mb-1">{categoryData.category_title}</div>
+                  <div className="text-xs text-base-content/70 flex justify-between">
+                    <span>⭐ {categoryData.avg_score.toFixed(1)}</span>
+                    <span>📦 {categoryData.product_count} mahsulot</span>
                   </div>
+                </div>
+
+                {/* Advanced Filters */}
+                <AdvancedFilters
+                  onSearchChange={setSearchQuery}
+                  onSortChange={setSortBy}
+                  resultCount={filteredProducts.length}
+                />
+
+                {/* Top Products Grid */}
+                <div className="space-y-2 max-h-72 overflow-y-auto">
+                  {filteredProducts.length > 0 ? (
+                    filteredProducts.map((prod) => (
+                      <div key={prod.product_id} className="bg-base-200 rounded-lg p-2 text-xs">
+                        <div className="font-medium line-clamp-2">{prod.title}</div>
+                        <div className="text-base-content/70 mt-1 flex justify-between">
+                          <span>⭐ {prod.score.toFixed(1)}</span>
+                          <span>💰 {Math.floor(prod.sell_price).toLocaleString()}so'm</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-xs text-base-content/60">
+                      Mahsulot topilmadi
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions */}
@@ -196,7 +265,7 @@ export default function QuickAnalysisModal({
                     rel="noreferrer"
                     className="btn btn-primary btn-sm flex-1"
                   >
-                    Katagoriyani ko'rish
+                    Batafsil
                   </a>
                   <button
                     onClick={onClose}
