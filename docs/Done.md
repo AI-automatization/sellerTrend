@@ -22,18 +22,6 @@
 
 ---
 
-## T-427 | FRONTEND | Extension — Modal auto-close bug FIX (2026-03-09)
-
-**Manba:** user-feedback
-**Muammo:** Extension modal 1 sekund ichida auto-close bo'lib qolardi, API response loading paytida. User product tahlili ko'ra olmaydi.
-**Yechim:** Modal backdrop `<form method="dialog">` HTML5 dialog auto-close trigger qilardi. Form'ni div'ga o'zgartirildi, proper event target checking qo'shildi. Modal endi loading state'da qayta qoladi.
-**Fayllar:** `apps/extension/src/components/QuickAnalysisModal.tsx`
-**Commit:** 977a63b
-**Vaqt:** 15min (plan: 2h)
-**Ta'sir:** Modal stable, loading/error states ko'rinadi, user product data access mumkin. Form auto-close bug fixed.
-
----
-
 ## T-426 | FRONTEND | Bot fixes — 6 ta bug (2026-03-08)
 
 ### T-426 | FRONTEND | Bot fixes (domain, health, /top, logs)

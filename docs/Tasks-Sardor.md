@@ -276,10 +276,40 @@ Modal'da: "⭐ Sevimlilarga qo'shish" button + text area
 
 ## BUGS & CRITICAL FIXES (P1)
 
-### ~~T-427~~ ✅ DONE (2026-03-09)
+### T-427 | P1 | FRONTEND | Extension — Modal closes after API response | 2h
 
 **Manba:** user-feedback (2026-03-09)
-**Topilgan joyda:** `apps/extension/src/components/QuickAnalysisModal.tsx`
+**Topilgan joyda:** `apps/extension/src/popup.tsx`, `apps/extension/src/components/QuickAnalysisModal.tsx`
+**Mas'ul:** pending[Sardor]
+
+**Tahlil:**
+User found exact pattern:
+1. Login paytida modal ochiladi — **QAYTA QOLADI** ✅ (yopilmaydi)
+2. Login tugaganda (API response) → modal **AUTO-CLOSE** bo'ladi ❌
+3. Agar yana "📊 Tez Tahlil" bosilsa → **~1 sec paytida yopiladi**
+
+Pattern:
+- **First open:** Modal stays (yopilmaydi) — login processing
+- **After login:** Modal closes when auth state changes
+- **Second open:** Modal closes after 1 sec (API response)
+
+**Root cause (tahlil):**
+- Login success → auth state change → maybe modal close trigger?
+- OR: Modal closes when API response comes (404 "Product not found")
+- OR: Popup lifecycle issue after auth change
+
+**Yechim (test qilish kerak):**
+1. Check if `onClose()` is triggered somewhere after API response
+2. Check if auth state change triggers modal close
+3. Check popup lifetime/keepalive settings
+4. Maybe prevent auto-close after successful auth
+
+**Fayllar:**
+- `apps/extension/src/popup.tsx` — modal state, auth state
+- `apps/extension/src/components/QuickAnalysisModal.tsx` — close logic
+- `apps/extension/src/background/messages/quick-score.ts` — response handling
+
+**Bog'liqlik:** T-216, T-425 (modal fixes)
 
 **Tahlil:**
 User extension popup'da "Tez Tahlil" button bosganda:
