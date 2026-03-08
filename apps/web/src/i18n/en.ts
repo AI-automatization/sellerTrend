@@ -1320,4 +1320,24 @@ export const en: Record<string, string> = {
     'hints.discovery': 'Find top products by category',
     'hints.sourcing': 'Calculate import costs from China',
     'hints.dismiss': 'Got it',
+
+    // ── Compare ─────────────────────────────────────────────────────────────
+    'nav.compare': 'Compare',
+    'compare.title': 'Product Comparison',
+    'compare.addProduct': 'Add product',
+    'compare.empty': 'Select products to compare',
+    'compare.winner': 'Best',
+    'compare.max': 'Maximum 3 products',
+    'compare.field': 'Field',
+    'compare.products': 'products',
+    'compare.stock': 'Stock',
+    'compare.inputPlaceholder': 'Product ID or Uzum URL',
+
+    // ── What\'s New ──────────────────────────────────────────────────────────
+    'whatsNew.title': "What's New",
+    'whatsNew.dismiss': 'Got it',
+
+    // ── Streak ──────────────────────────────────────────────────────────────
+    'streak.days': '{n} day streak',
+    'streak.tooltip': 'Login streak',
 };

@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
+import { StreakService } from './streak.service';
 import { ReferralModule } from '../referral/referral.module';
 
 @Module({
@@ -20,8 +21,8 @@ import { ReferralModule } from '../referral/referral.module';
       }),
     }),
   ],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, StreakService],
   controllers: [AuthController],
-  exports: [AuthService],
+  exports: [AuthService, StreakService],
 })
 export class AuthModule {}

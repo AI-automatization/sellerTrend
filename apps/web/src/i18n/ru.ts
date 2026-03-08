@@ -1309,4 +1309,24 @@ export const ru: Record<string, string> = {
     'hints.discovery': 'Найдите топ товары по категориям',
     'hints.sourcing': 'Рассчитайте стоимость импорта из Китая',
     'hints.dismiss': 'Понятно',
+
+    // ── Compare ─────────────────────────────────────────────────────────────
+    'nav.compare': 'Сравнение',
+    'compare.title': 'Сравнение товаров',
+    'compare.addProduct': 'Добавить товар',
+    'compare.empty': 'Выберите товары для сравнения',
+    'compare.winner': 'Лучший',
+    'compare.max': 'Максимум 3 товара',
+    'compare.field': 'Поле',
+    'compare.products': 'товаров',
+    'compare.stock': 'Остаток',
+    'compare.inputPlaceholder': 'ID товара или URL Uzum',
+
+    // ── What\'s New ──────────────────────────────────────────────────────────
+    'whatsNew.title': 'Что нового',
+    'whatsNew.dismiss': 'Понятно',
+
+    // ── Streak ──────────────────────────────────────────────────────────────
+    'streak.days': '{n} дней подряд',
+    'streak.tooltip': 'Серия входов',
 };

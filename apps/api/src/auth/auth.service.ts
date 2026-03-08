@@ -15,6 +15,7 @@ import { ReferralService } from '../referral/referral.service';
 import { REDIS_CLIENT } from '../common/redis/redis.module';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { StreakService } from './streak.service';
 
 const ACCESS_TOKEN_TTL = '15m';
 const REFRESH_TOKEN_DAYS = 30;
@@ -33,6 +34,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly referralService: ReferralService,
+    private readonly streakService: StreakService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
 
@@ -98,6 +100,11 @@ export class AuthService {
 
     // Successful login — reset attempts
     await this.resetAttempts(key);
+
+    // Record login streak (fire-and-forget, non-blocking)
+    this.streakService.recordLogin(user.id).catch((err: unknown) => {
+      this.logger.warn(`Failed to record login streak: ${err instanceof Error ? err.message : String(err)}`);
+    });
 
     const access_token = this.signAccessToken(user.id, user.account_id, user.role, user.email);
     const refresh_token = await this.createRefreshToken(user.id);

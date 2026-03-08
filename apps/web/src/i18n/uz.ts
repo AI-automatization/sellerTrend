@@ -1325,4 +1325,24 @@ export const uz: Record<string, string> = {
     'hints.discovery': "Kategoriyalar bo'yicha top mahsulotlarni toping",
     'hints.sourcing': "Xitoydan import narxini hisoblang",
     'hints.dismiss': 'Tushunarli',
+
+    // ── Compare ─────────────────────────────────────────────────────────────
+    'nav.compare': 'Taqqoslash',
+    'compare.title': 'Mahsulot taqqoslash',
+    'compare.addProduct': "Mahsulot qo'shish",
+    'compare.empty': 'Taqqoslash uchun mahsulot tanlang',
+    'compare.winner': 'Eng yaxshi',
+    'compare.max': 'Maksimum 3 ta mahsulot',
+    'compare.field': 'Maydon',
+    'compare.products': 'mahsulot',
+    'compare.stock': 'Ombor',
+    'compare.inputPlaceholder': 'Mahsulot ID yoki Uzum URL',
+
+    // ── Yangiliklar ──────────────────────────────────────────────────────────
+    'whatsNew.title': 'Yangiliklar',
+    'whatsNew.dismiss': 'Tushunarli',
+
+    // ── Streak ──────────────────────────────────────────────────────────────
+    'streak.days': '{n} kun streak',
+    'streak.tooltip': 'Kirish streak',
 };

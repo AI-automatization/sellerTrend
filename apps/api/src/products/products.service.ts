@@ -2,6 +2,7 @@ import { Injectable, Inject, Logger, NotFoundException, forwardRef } from '@nest
 import { PrismaService } from '../prisma/prisma.service';
 import { UzumClient } from '../uzum/uzum.client';
 import { forecastEnsemble, calcWeeklyBought } from '@uzum/utils';
+import { RevenueEstimateResponse } from './dto/revenue-estimate.dto';
 
 /** Map niche keyword to Uzum category IDs */
 const NICHE_CATEGORY_MAP: Record<string, number[]> = {
@@ -611,6 +612,155 @@ export class ProductsService {
         message,
       })),
     });
+  }
+
+  /**
+   * Revenue estimator: calculates potential monthly revenue, margin, competition level.
+   */
+  async getRevenueEstimate(productId: bigint, accountId: string): Promise<RevenueEstimateResponse> {
+    await this.assertProductOwnership(productId, accountId);
+
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      include: {
+        snapshots: {
+          orderBy: { snapshot_at: 'desc' },
+          take: 10,
+          select: {
+            score: true,
+            weekly_bought: true,
+            weekly_bought_source: true,
+            orders_quantity: true,
+            snapshot_at: true,
+          },
+        },
+        skus: {
+          where: { is_available: true },
+          orderBy: { min_sell_price: 'asc' },
+          take: 1,
+        },
+      },
+    });
+
+    if (!product) throw new NotFoundException('Product not found');
+
+    const DEFAULT_MARGIN_RATE = 0.3;
+    const latest = product.snapshots[0];
+    const sku = product.skus[0];
+    const sellPrice = sku?.min_sell_price ? Number(sku.min_sell_price) : null;
+    const score = latest?.score ? Number(latest.score) : null;
+
+    // Determine weekly_bought with the same fallback logic
+    let weeklyBought: number | null = null;
+    const scrapedSnap = product.snapshots.find(
+      (s) => s.weekly_bought_source === 'scraped' && s.weekly_bought != null,
+    );
+    if (scrapedSnap) {
+      weeklyBought = scrapedSnap.weekly_bought;
+    } else {
+      const anyWbSnap = product.snapshots.find(
+        (s) => s.weekly_bought != null && s.weekly_bought > 0,
+      );
+      if (anyWbSnap) {
+        weeklyBought = anyWbSnap.weekly_bought;
+      } else {
+        const currentOrders = Number(latest?.orders_quantity ?? product.orders_quantity ?? 0);
+        const currentTime = latest?.snapshot_at?.getTime() ?? Date.now();
+        weeklyBought = calcWeeklyBought(product.snapshots, currentOrders, currentTime);
+      }
+    }
+
+    // Revenue calculations
+    const WEEKS_PER_MONTH = 4;
+    const estimatedMonthlyRevenue =
+      sellPrice !== null && weeklyBought !== null
+        ? sellPrice * weeklyBought * WEEKS_PER_MONTH
+        : null;
+    const estimatedMargin =
+      estimatedMonthlyRevenue !== null
+        ? Math.round(estimatedMonthlyRevenue * DEFAULT_MARGIN_RATE)
+        : null;
+
+    // Competition level: count active products in the same category
+    let competitorsInCategory = 0;
+    let competitionLevel: 'low' | 'medium' | 'high' = 'medium';
+
+    if (product.category_id) {
+      competitorsInCategory = await this.prisma.product.count({
+        where: {
+          category_id: product.category_id,
+          is_active: true,
+          id: { not: productId },
+        },
+      });
+
+      const LOW_THRESHOLD = 50;
+      const HIGH_THRESHOLD = 500;
+      if (competitorsInCategory < LOW_THRESHOLD) {
+        competitionLevel = 'low';
+      } else if (competitorsInCategory >= HIGH_THRESHOLD) {
+        competitionLevel = 'high';
+      }
+    }
+
+    // Recommendation text
+    const recommendation = this.generateRevenueRecommendation(
+      score,
+      estimatedMonthlyRevenue,
+      competitionLevel,
+      weeklyBought,
+    );
+
+    return {
+      product_id: product.id.toString(),
+      title: product.title,
+      sell_price: sellPrice,
+      weekly_bought: weeklyBought,
+      estimated_monthly_revenue: estimatedMonthlyRevenue,
+      estimated_margin: estimatedMargin,
+      margin_rate: DEFAULT_MARGIN_RATE,
+      competition_level: competitionLevel,
+      competitors_in_category: competitorsInCategory,
+      recommendation,
+      score,
+    };
+  }
+
+  private generateRevenueRecommendation(
+    score: number | null,
+    monthlyRevenue: number | null,
+    competition: 'low' | 'medium' | 'high',
+    weeklyBought: number | null,
+  ): string {
+    const HIGH_REVENUE_THRESHOLD = 10_000_000; // 10M so'm
+    const GOOD_SCORE_THRESHOLD = 5;
+    const HIGH_WEEKLY_BOUGHT = 50;
+
+    if (score === null || monthlyRevenue === null || weeklyBought === null) {
+      return "Yetarli ma'lumot yo'q. Mahsulotni kuzatishda qoldiring — 24 soatdan keyin aniqroq tahlil chiqadi.";
+    }
+
+    if (score >= GOOD_SCORE_THRESHOLD && monthlyRevenue >= HIGH_REVENUE_THRESHOLD && competition === 'low') {
+      return "Ajoyib imkoniyat! Yuqori daromad, past raqobat, yaxshi skor. Bu nishani egallash uchun ideal vaqt. Stok va reklamaga sarflang.";
+    }
+
+    if (score >= GOOD_SCORE_THRESHOLD && monthlyRevenue >= HIGH_REVENUE_THRESHOLD) {
+      return "Kuchli mahsulot — daromad yuqori va skor yaxshi. Raqobatga e'tibor bering va narxni barqaror tuting.";
+    }
+
+    if (competition === 'high' && weeklyBought < HIGH_WEEKLY_BOUGHT) {
+      return "Raqobat yuqori, sotuv past. Narxni tushiring, rasm/tavsifni yaxshilang, yoki kamroq raqobatli niche toping.";
+    }
+
+    if (competition === 'low' && weeklyBought >= HIGH_WEEKLY_BOUGHT) {
+      return "Kam raqobatli bozor, sotuv yaxshi. Stokni ko'paytiring va narxni biroz oshirishni ko'rib chiqing.";
+    }
+
+    if (monthlyRevenue < HIGH_REVENUE_THRESHOLD && score < GOOD_SCORE_THRESHOLD) {
+      return "Daromad va skor past. Mahsulot strategiyasini qayta ko'rib chiqing: narx, SEO, rasm sifati, va kategoriya tanlovini tekshiring.";
+    }
+
+    return "O'rtacha natija. Doimiy kuzatishda qoldiring va raqobatchilarni tahlil qiling. Narx va reklama optimizatsiyasi bilan yaxshilash mumkin.";
   }
 
   /**

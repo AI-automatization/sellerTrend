@@ -40,6 +40,8 @@ import { FeedbackModule } from './feedback/feedback.module';
 import { NotificationModule } from './notification/notification.module';
 // v6.0 Multi-marketplace
 import { PlatformsModule } from './platforms/platforms.module';
+// v7.0 Engagement
+import { AchievementsModule } from './achievements/achievements.module';
 
 @Module({
   imports: [
@@ -84,6 +86,8 @@ import { PlatformsModule } from './platforms/platforms.module';
     NotificationModule,
     // v6.0 Multi-marketplace
     PlatformsModule,
+    // v7.0 Engagement
+    AchievementsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: CustomThrottlerGuard }],
   controllers: [HealthController],

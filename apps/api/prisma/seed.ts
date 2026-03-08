@@ -220,6 +220,54 @@ async function main() {
   }
   console.log('\n✅ Platformalar yaratildi (4 ta)');
 
+  // 8. Achievement badges (Engagement features)
+  const achievementSeeds = [
+    {
+      code: 'first_analysis',
+      title_key: 'achievement.first_analysis.title',
+      description_key: 'achievement.first_analysis.desc',
+      icon: 'search',
+      condition: { type: 'analysis_count', threshold: 1 },
+    },
+    {
+      code: 'tracker_10',
+      title_key: 'achievement.tracker_10.title',
+      description_key: 'achievement.tracker_10.desc',
+      icon: 'eye',
+      condition: { type: 'track_count', threshold: 10 },
+    },
+    {
+      code: 'streak_7',
+      title_key: 'achievement.streak_7.title',
+      description_key: 'achievement.streak_7.desc',
+      icon: 'flame',
+      condition: { type: 'streak_days', threshold: 7 },
+    },
+    {
+      code: 'discovery_explorer',
+      title_key: 'achievement.discovery_explorer.title',
+      description_key: 'achievement.discovery_explorer.desc',
+      icon: 'compass',
+      condition: { type: 'discovery_count', threshold: 5 },
+    },
+    {
+      code: 'sourcing_pro',
+      title_key: 'achievement.sourcing_pro.title',
+      description_key: 'achievement.sourcing_pro.desc',
+      icon: 'truck',
+      condition: { type: 'sourcing_count', threshold: 3 },
+    },
+  ];
+
+  for (const a of achievementSeeds) {
+    await prisma.achievement.upsert({
+      where: { code: a.code },
+      update: {},
+      create: a,
+    });
+  }
+  console.log('\n✅ Achievement badges yaratildi (5 ta)');
+
   console.log('\n🎉 Seed yakunlandi!');
 }
 

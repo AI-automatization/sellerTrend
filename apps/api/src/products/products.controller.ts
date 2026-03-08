@@ -52,6 +52,15 @@ export class ProductsController {
     return this.productsService.trackProduct(accountId, productId);
   }
 
+  /** Revenue estimator: monthly revenue, margin, competition level */
+  @Get(':id/revenue-estimate')
+  revenueEstimate(
+    @Param('id', ParseBigIntPipe) productId: bigint,
+    @CurrentUser('account_id') accountId: string,
+  ) {
+    return this.productsService.getRevenueEstimate(productId, accountId);
+  }
+
   @Get(':id/snapshots')
   snapshots(
     @Param('id', ParseBigIntPipe) productId: bigint,

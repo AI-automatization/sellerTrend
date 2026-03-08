@@ -81,6 +81,8 @@ model User {
   feedback_tickets  FeedbackTicket[]
   feedback_messages FeedbackMessage[]
   password_resets   PasswordReset[]
+  login_streak      LoginStreak?
+  user_achievements UserAchievement[]
 
   @@index([account_id])
   @@map("users")
@@ -1178,4 +1180,53 @@ model Platform {
   created_at  DateTime @default(now())
 
   @@map("platforms")
+}
+
+// ============================================================
+// LOGIN STREAK (Engagement)
+// ============================================================
+
+model LoginStreak {
+  id              String    @id @default(uuid())
+  user_id         String    @unique
+  current_streak  Int       @default(0)
+  longest_streak  Int       @default(0)
+  last_login_date DateTime? @db.Date
+  updated_at      DateTime  @updatedAt @db.Timestamptz
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("login_streaks")
+}
+
+// ============================================================
+// ACHIEVEMENTS (Engagement)
+// ============================================================
+
+model Achievement {
+  id              String   @id @default(uuid())
+  code            String   @unique @db.VarChar(50)
+  title_key       String   @db.VarChar(100)  // i18n key
+  description_key String   @db.VarChar(100)  // i18n key
+  icon            String   @db.VarChar(50)   // icon name
+  condition       Json                        // { type: 'analysis_count', threshold: 1 }
+  created_at      DateTime @default(now()) @db.Timestamptz
+
+  user_achievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id             String   @id @default(uuid())
+  user_id        String
+  achievement_id String
+  earned_at      DateTime @default(now()) @db.Timestamptz
+
+  user        User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievement_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, achievement_id])
+  @@index([user_id])
+  @@map("user_achievements")
 }

@@ -38,6 +38,8 @@ import { useNotificationRefresh } from '../hooks/useSocket';
 import { useI18n } from '../i18n/I18nContext';
 import { useTheme } from '../hooks/useTheme';
 import type { Lang } from '../i18n/translations';
+import { WhatsNew, useHasUnseenUpdates } from './WhatsNew';
+import { StreakBadge } from './StreakBadge';
 
 const LANGS: { code: Lang; label: string }[] = [
   { code: 'uz', label: "O'z" },
@@ -86,6 +88,8 @@ export function Layout() {
   const isSuperAdmin = payload?.role === 'SUPER_ADMIN';
   const userEmail = payload?.email || 'user@ventra.uz';
   const location = useLocation();
+  const hasUnseenUpdates = useHasUnseenUpdates();
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [sp] = useSearchParams();
 
   const adminLinkClass = (tab?: string) => {
@@ -100,7 +104,7 @@ export function Layout() {
     const initial: Record<string, boolean> = {};
     if (['/', '/analyze', '/discovery', '/sourcing'].some(p => p === '/' ? path === '/' : path.startsWith(p))) initial['asosiy'] = true;
     if (['/shops', '/signals', '/leaderboard'].some(p => path.startsWith(p))) initial['mahsulot'] = true;
-    if (['/calculator', '/elasticity', '/ai-description', '/consultation'].some(p => path.startsWith(p))) initial['asboblar'] = true;
+    if (['/calculator', '/elasticity', '/ai-description', '/consultation', '/compare'].some(p => path.startsWith(p))) initial['asboblar'] = true;
     if (['/enterprise', '/referral', '/api-keys', '/feedback', '/extension'].some(p => path.startsWith(p))) initial['biznes'] = true;
     if (path === '/admin') initial['admin'] = true;
     setOpenSections(prev => ({ ...prev, ...initial }));
@@ -211,6 +215,7 @@ export function Layout() {
       items: [
         { to: '/calculator', icon: CalculatorIcon, label: t('nav.calculator') },
         { to: '/elasticity', icon: ScaleIcon, label: t('nav.elasticity') },
+        { to: '/compare', icon: ScaleIcon, label: t('nav.compare') },
         { to: '/ai-description', icon: SparklesIcon, label: t('nav.description') },
         { to: '/consultation', icon: ChatBubbleLeftRightIcon, label: t('nav.consultation') },
       ],
@@ -415,7 +420,7 @@ export function Layout() {
 
           {/* ── Footer ── */}
           <div className="border-t border-base-300/40 p-3 space-y-3">
-            {/* Theme + Language */}
+            {/* Theme + Language + What's New */}
             <div className="flex items-center gap-1 px-1">
               <button
                 onClick={toggle}
@@ -434,9 +439,20 @@ export function Layout() {
                   {l.label}
                 </button>
               ))}
+              <div className="flex-1" />
+              <button
+                onClick={() => setShowWhatsNew(true)}
+                className="btn btn-ghost btn-xs btn-square rounded-lg relative tooltip tooltip-top"
+                data-tip={t('whatsNew.title')}
+              >
+                <SparklesIcon className="w-3.5 h-3.5" />
+                {hasUnseenUpdates && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary animate-pulse" />
+                )}
+              </button>
             </div>
 
-            {/* User + Logout */}
+            {/* User + Streak + Logout */}
             <div className="flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl bg-base-content/4 border border-base-300/30 hover:border-base-300/60 transition-colors duration-200">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/30 via-primary/15 to-secondary/10 flex items-center justify-center shrink-0 ring-1 ring-primary/15">
                 <span className="text-primary font-bold text-xs font-heading">
@@ -449,6 +465,7 @@ export function Layout() {
                   {isSuperAdmin ? 'admin@ventra' : t('layout.proPlan')}
                 </p>
               </div>
+              <StreakBadge />
               <button
                 onClick={logout}
                 className="btn btn-ghost btn-xs btn-square rounded-lg text-base-content/25 hover:text-error hover:bg-error/8 transition-all duration-150 tooltip tooltip-top"
@@ -463,6 +480,7 @@ export function Layout() {
 
       <BottomNav />
       <ScrollToTop />
+      <WhatsNew externalOpen={showWhatsNew} onClose={() => setShowWhatsNew(false)} />
     </div>
   );
 }

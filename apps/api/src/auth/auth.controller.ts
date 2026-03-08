@@ -12,11 +12,15 @@ import { UpdateOnboardingDto } from './dto/update-onboarding.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtPayload } from './jwt.strategy';
+import { StreakService } from './streak.service';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly streakService: StreakService,
+  ) {}
 
   @Post('register')
   @Throttle({ default: { ttl: 60000, limit: 5 } })
@@ -83,5 +87,13 @@ export class AuthController {
     @Body() dto: UpdateOnboardingDto,
   ) {
     return this.authService.updateOnboarding(accountId, dto);
+  }
+
+  /** Get current user's login streak */
+  @Get('streak')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  getStreak(@CurrentUser() user: JwtPayload & { id: string }) {
+    return this.streakService.getStreak(user.id);
   }
 }
