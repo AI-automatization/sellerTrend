@@ -105,73 +105,9 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 ---
 
-## BUGS & CRITICAL FIXES (P1)
+## BUGS & CRITICAL FIXES
 
-### T-427 | P1 | FRONTEND | Extension — Modal closes after API response | 2h
-
-**Manba:** user-feedback (2026-03-09)
-**Topilgan joyda:** `apps/extension/src/popup.tsx`, `apps/extension/src/components/QuickAnalysisModal.tsx`
-**Mas'ul:** pending[Sardor]
-
-**Tahlil:**
-User found exact pattern:
-1. Login paytida modal ochiladi — **QAYTA QOLADI** ✅ (yopilmaydi)
-2. Login tugaganda (API response) → modal **AUTO-CLOSE** bo'ladi ❌
-3. Agar yana "📊 Tez Tahlil" bosilsa → **~1 sec paytida yopiladi**
-
-Pattern:
-- **First open:** Modal stays (yopilmaydi) — login processing
-- **After login:** Modal closes when auth state changes
-- **Second open:** Modal closes after 1 sec (API response)
-
-**Root cause (tahlil):**
-- Login success → auth state change → maybe modal close trigger?
-- OR: Modal closes when API response comes (404 "Product not found")
-- OR: Popup lifecycle issue after auth change
-
-**Yechim (test qilish kerak):**
-1. Check if `onClose()` is triggered somewhere after API response
-2. Check if auth state change triggers modal close
-3. Check popup lifetime/keepalive settings
-4. Maybe prevent auto-close after successful auth
-
-**Fayllar:**
-- `apps/extension/src/popup.tsx` — modal state, auth state
-- `apps/extension/src/components/QuickAnalysisModal.tsx` — close logic
-- `apps/extension/src/background/messages/quick-score.ts` — response handling
-
-**Bog'liqlik:** T-216, T-425 (modal fixes)
-
-**Tahlil:**
-User extension popup'da "Tez Tahlil" button bosganda:
-1. Modal ochiladi ✅
-2. Loading spinner ko'rsatadi ✅
-3. **~1 sekund o'tib MODAL AUTO-CLOSE bo'layapti** ❌
-4. API response hali kelishiga to'liqmasa → "Product not found" error
-5. Agar user 1 sekund ichida "Batafsil" button bosmasa → modal yopiladi
-
-**Root causes (tekshirish kerak):**
-1. **Chrome popup auto-timeout** — popup window o'z-o'zidan yopilishi (1-2 sec)
-2. **Plasmo messaging timeout** — sendToBackground() default timeout
-3. **API slow response** — backend 1+ sec turib qolishi
-4. **Content script event** — modal state reset qiluvchi event
-5. **Modal backdrop click** — har qanday click'da yopilishi
-
-**Yechim (implementation plan):**
-1. Modal backdrop click'da auto-close disable qilish
-2. Popup timeout'ni increase qilish (message options'da)
-3. Modal state'ni persistent qilish
-4. API timeout xatosini better handle qilish
-5. Service Worker logs'ni enable qilish debugging uchun
-6. Timing investigation — qaysi joyda 1 sec delay chiqayotganini aniqlab fix qilish
-
-**Fayllar:**
-- `apps/extension/src/components/QuickAnalysisModal.tsx` — modal lifecycle
-- `apps/extension/src/popup.tsx` — state management
-- `apps/extension/src/background/index.ts` (service worker) — message handlers
-- `apps/extension/src/background/messages/quick-score.ts` — response timing
-
-**Bog'liqlik:** T-216, T-217..T-222 (barcha modal tasks)
+> ~~T-427~~ ✅ DONE (2026-03-09) → Done.md — Modal auto-close fix (Escape + loading backdrop)
 
 ---
 

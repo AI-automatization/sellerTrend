@@ -22,6 +22,18 @@
 
 ---
 
+### T-427 | FRONTEND | Extension — Modal auto-close fix (2026-03-09)
+
+**Manba:** user-feedback (2026-03-09)
+**Muammo:** "Tez Tahlil" modal ochilgandan ~1 sekund o'tib auto-close bo'lardi. Ikki sabab: (1) `<dialog>` element natively Escape tugmasini eshitib yopiladi — `onCancel` handler yo'q edi. (2) Backdrop `role="button"` + `tabIndex={0}` keyboard trigger xavfi, loading paytida ham yopilishi mumkin edi.
+**Yechim:** `onCancel={(e) => e.preventDefault()}` qo'shildi — Escape native close oldini oladi. Backdrop click loading paytida disabled. `role`/`tabIndex` backdrop dan olib tashlandi. `ProductNotes.tsx` dan `console.error` tozalandi (CLAUDE.md violation).
+**Fayllar:** `apps/extension/src/components/QuickAnalysisModal.tsx`, `apps/extension/src/components/ProductNotes.tsx`
+**Commit:** 47ad151
+**Vaqt:** 30min (plan: 2h)
+**Ta'sir:** Modal endi Escape tugmasi yoki loading paytida aksidental yopilmaydi. Foydalanuvchi tahlil natijasini ko'ra oladi.
+
+---
+
 ## Quick Fix | FRONTEND | Extension modal — null check .toFixed() (2026-03-09)
 
 **Manba:** user-feedback
