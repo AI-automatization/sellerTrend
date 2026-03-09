@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { sendToBackground } from "@plasmohq/messaging";
 import type { QuickScoreResponseBody } from "~/background/messages/quick-score";
+import type { UzumProductData } from "~/lib/uzum-api";
 import type { CategoryItem } from "~/lib/api";
 import AdvancedFilters from "./AdvancedFilters";
 import CategoryInsights from "./CategoryInsights";
@@ -17,11 +18,35 @@ interface QuickAnalysisModalProps {
 
 interface ProductDetail {
   id: string;
-  score: number;
+  score: number | null;
   weekly_bought: number | null;
   trend: string | null;
   sell_price: number;
-  last_updated: string;
+  last_updated: string | null;
+  // uzum.uz fallback fields
+  title?: string;
+  rating?: number;
+  reviewsAmount?: number;
+  ordersAmount?: number;
+  totalAvailableAmount?: number;
+  sellerTitle?: string;
+  categoryTitle?: string;
+  photoUrl?: string | null;
+  fromUzum?: boolean;
+}
+
+// Extract uzum.uz fields for ProductDetail
+function uzumFields(u: UzumProductData) {
+  return {
+    title: u.title,
+    rating: u.rating,
+    reviewsAmount: u.reviewsAmount,
+    ordersAmount: u.ordersAmount,
+    totalAvailableAmount: u.totalAvailableAmount,
+    sellerTitle: u.sellerTitle,
+    categoryTitle: u.categoryTitle,
+    photoUrl: u.photoUrl,
+  };
 }
 
 // Helper to filter and sort products
@@ -91,6 +116,7 @@ export default function QuickAnalysisModal({
       })
         .then((res) => {
           if (res.success && res.data) {
+            // VENTRA has full data
             setProduct({
               id: productId,
               score: res.data.score,
@@ -98,6 +124,20 @@ export default function QuickAnalysisModal({
               trend: res.data.trend,
               sell_price: res.data.sell_price,
               last_updated: res.data.last_updated,
+              ...(res.uzumData ? uzumFields(res.uzumData) : {}),
+            });
+          } else if (res.success && res.uzumData) {
+            // Only uzum.uz data available (VENTRA doesn't have this product yet)
+            const u = res.uzumData;
+            setProduct({
+              id: productId,
+              score: null,
+              weekly_bought: null,
+              trend: null,
+              sell_price: u.purchasePrice,
+              last_updated: null,
+              ...uzumFields(u),
+              fromUzum: true,
             });
           } else {
             setError("Ma'lumot yuklanmadi");
@@ -183,6 +223,20 @@ export default function QuickAnalysisModal({
                 {/* Analysis Tab Content */}
                 {activeTab === "analysis" && (
                   <>
+                    {/* uzum.uz fallback notice */}
+                    {product.fromUzum && (
+                      <div className="alert alert-info py-2 text-xs">
+                        <span>⚠️ VENTRA bazasida yo'q — uzum.uz ma'lumotlari ko'rsatilmoqda</span>
+                      </div>
+                    )}
+
+                    {/* Product title (from uzum) */}
+                    {product.title && (
+                      <div className="text-sm font-medium line-clamp-2 bg-base-200 rounded-lg p-2">
+                        {product.title}
+                      </div>
+                    )}
+
                     {/* Stats Grid */}
                     <div className="grid grid-cols-2 gap-3">
                   {/* Score */}
@@ -193,11 +247,17 @@ export default function QuickAnalysisModal({
                     </div>
                   </div>
 
-                  {/* Weekly Bought */}
+                  {/* Weekly Bought or Total Orders */}
                   <div className="stat bg-base-200 rounded-lg p-3">
-                    <div className="stat-title text-xs">Haftalik</div>
+                    <div className="stat-title text-xs">
+                      {product.fromUzum ? "Buyurtmalar" : "Haftalik"}
+                    </div>
                     <div className="stat-value text-lg text-success">
-                      {product.weekly_bought != null ? product.weekly_bought.toLocaleString() : "--"}
+                      {product.fromUzum
+                        ? (product.ordersAmount ?? 0).toLocaleString()
+                        : product.weekly_bought != null
+                          ? product.weekly_bought.toLocaleString()
+                          : "--"}
                     </div>
                   </div>
 
@@ -210,21 +270,47 @@ export default function QuickAnalysisModal({
                     <div className="stat-desc text-xs">so'm</div>
                   </div>
 
-                  {/* Trend */}
-                  <div className="stat bg-base-200 rounded-lg p-3 col-span-2">
-                    <div className="stat-title text-xs">Trend</div>
-                    <div className="stat-value text-lg">
-                      {product.trend || "—"}
+                  {/* Rating (uzum) or Trend (ventra) */}
+                  {product.fromUzum ? (
+                    <>
+                      <div className="stat bg-base-200 rounded-lg p-3">
+                        <div className="stat-title text-xs">Reyting</div>
+                        <div className="stat-value text-lg text-warning">
+                          ⭐ {product.rating?.toFixed(1) ?? "--"}
+                        </div>
+                        <div className="stat-desc text-xs">{product.reviewsAmount ?? 0} sharh</div>
+                      </div>
+                      <div className="stat bg-base-200 rounded-lg p-3">
+                        <div className="stat-title text-xs">Ombor</div>
+                        <div className="stat-value text-lg">
+                          {(product.totalAvailableAmount ?? 0).toLocaleString()}
+                        </div>
+                        <div className="stat-desc text-xs">dona</div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="stat bg-base-200 rounded-lg p-3 col-span-2">
+                      <div className="stat-title text-xs">Trend</div>
+                      <div className="stat-value text-lg">
+                        {product.trend || "—"}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Last Updated */}
-                  <div className="stat bg-base-200 rounded-lg p-3 col-span-2">
-                    <div className="stat-title text-xs">So'nggi yangilash</div>
-                    <div className="stat-desc text-xs">
-                      {product.last_updated ? new Date(product.last_updated).toLocaleString("uz-UZ") : "--"}
+                  {/* Seller (uzum) or Last Updated (ventra) */}
+                  {product.fromUzum ? (
+                    <div className="stat bg-base-200 rounded-lg p-3 col-span-2">
+                      <div className="stat-title text-xs">Sotuvchi</div>
+                      <div className="stat-desc text-xs">{product.sellerTitle || "--"}</div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="stat bg-base-200 rounded-lg p-3 col-span-2">
+                      <div className="stat-title text-xs">So'nggi yangilash</div>
+                      <div className="stat-desc text-xs">
+                        {product.last_updated ? new Date(product.last_updated).toLocaleString("uz-UZ") : "--"}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Price History */}

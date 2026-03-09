@@ -1,10 +1,10 @@
 interface ProductDetail {
   id: string;
-  score: number;
+  score: number | null;
   weekly_bought: number | null;
   trend: string | null;
   sell_price: number;
-  last_updated: string;
+  last_updated: string | null;
   title?: string;
   seller_name?: string;
 }
@@ -26,13 +26,14 @@ interface CompetitorAnalysisProps {
 // Generate simulated competitors for demo
 function generateCompetitors(
   basePrice: number,
-  baseScore: number
+  baseScore: number | null
 ): CompetitorItem[] {
+  const score = baseScore ?? 3.0;
   const competitors: CompetitorItem[] = [
     {
       product_id: "comp_001",
       title: "Raqobatchi #1 — O'xshash mahsulot (Yuqori narx)",
-      score: Math.max(baseScore - 0.3, 0),
+      score: Math.max(score - 0.3, 0),
       sell_price: basePrice * 1.15,
       weekly_bought: Math.floor(Math.random() * 50 + 20),
       seller_name: "Seller Pro",
@@ -40,7 +41,7 @@ function generateCompetitors(
     {
       product_id: "comp_002",
       title: "Raqobatchi #2 — O'xshash mahsulot (Pastroq narx)",
-      score: Math.max(baseScore - 0.5, 0),
+      score: Math.max(score - 0.5, 0),
       sell_price: basePrice * 0.85,
       weekly_bought: Math.floor(Math.random() * 60 + 30),
       seller_name: "Budget Store",
@@ -48,7 +49,7 @@ function generateCompetitors(
     {
       product_id: "comp_003",
       title: "Raqobatchi #3 — O'xshash mahsulot (Orta narx)",
-      score: Math.max(baseScore - 0.2, 0),
+      score: Math.max(score - 0.2, 0),
       sell_price: basePrice * 0.95,
       weekly_bought: Math.floor(Math.random() * 40 + 15),
       seller_name: "Quality Seller",
@@ -74,7 +75,7 @@ export default function CompetitorAnalysis({
           {product.title || "Mahsulot"}
         </div>
         <div className="text-xs text-base-content/70 mt-2 flex justify-between">
-          <span>⭐ {product.score.toFixed(1)}</span>
+          <span>⭐ {product.score != null ? product.score.toFixed(1) : "--"}</span>
           <span>💰 {Math.floor(product.sell_price).toLocaleString()}so'm</span>
         </div>
       </div>
@@ -137,7 +138,7 @@ export default function CompetitorAnalysis({
               : "Ko'proq ekanligini tekshiring"}
           </li>
           <li>
-            • Rating: {product.score > 3.5 ? "Yaxshi ✓" : "Takomlashtirish kerak"}
+            • Rating: {(product.score ?? 0) > 3.5 ? "Yaxshi ✓" : "Takomlashtirish kerak"}
           </li>
           <li>• Raqobatchilarni kuzatib vosita qilib oling</li>
         </ul>
