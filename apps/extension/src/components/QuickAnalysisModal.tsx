@@ -126,7 +126,10 @@ export default function QuickAnalysisModal({
     : [];
 
   return (
-    <dialog className="modal modal-open">
+    <dialog
+      className="modal modal-open"
+      onCancel={(e) => e.preventDefault()}
+    >
       <div className="modal-box w-full max-w-sm">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
@@ -352,17 +355,14 @@ export default function QuickAnalysisModal({
         )}
       </div>
 
-      {/* Modal Backdrop */}
+      {/* Modal Backdrop — only closes when not loading */}
       <div
-        className="modal-backdrop cursor-pointer"
+        className="modal-backdrop"
         onClick={(e) => {
-          // Only close if clicking directly on backdrop, not on modal-box
-          if (e.target === e.currentTarget) {
+          if (!loading && e.target === e.currentTarget) {
             onClose();
           }
         }}
-        role="button"
-        tabIndex={0}
       />
     </dialog>
   );

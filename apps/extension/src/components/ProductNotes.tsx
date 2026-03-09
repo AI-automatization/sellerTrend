@@ -34,8 +34,7 @@ export default function ProductNotes({ productId, onNotesChange }: ProductNotesP
       } else {
         await removeFavorite(productId);
       }
-    } catch (err) {
-      console.error("Failed to update favorite:", err);
+    } catch {
       setIsFav(!newIsFav); // Revert on error
     }
   };
@@ -52,8 +51,8 @@ export default function ProductNotes({ productId, onNotesChange }: ProductNotesP
       }
       setIsEditing(false);
       onNotesChange?.();
-    } catch (err) {
-      console.error("Failed to save note:", err);
+    } catch {
+      // Note save failed silently — state remains unchanged
     }
   };
 
