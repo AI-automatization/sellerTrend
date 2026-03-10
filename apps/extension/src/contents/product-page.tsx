@@ -5,8 +5,10 @@ import { sendToBackground } from "@plasmohq/messaging"
 import { parseProductIdFromUrl, isProductPage } from "~/lib/url-parser"
 import { onUrlChange } from "~/lib/spa-observer"
 import ScoreCard from "~/components/ScoreCard"
+import UzumCard from "~/components/UzumCard"
 import type { AuthStateResponseBody } from "~/background/messages/get-auth-state"
 import type { QuickScoreResponseBody } from "~/background/messages/quick-score"
+import type { UzumProductData } from "~/lib/uzum-api"
 
 import styleText from "data-text:./plasmo-overlay.css"
 
@@ -36,12 +38,12 @@ interface QuickScoreData {
 export default function ProductPageOverlay() {
   const [productId, setProductId] = useState<string | null>(null)
   const [scoreData, setScoreData] = useState<QuickScoreData | null>(null)
+  const [uzumData, setUzumData] = useState<UzumProductData | null>(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [visible, setVisible] = useState(true)
 
   // Check auth state and listen for changes
   useEffect(() => {
-    // Check auth immediately
     function checkAuth() {
       sendToBackground<Record<string, never>, AuthStateResponseBody>({
         name: "get-auth-state",
@@ -53,11 +55,7 @@ export default function ProductPageOverlay() {
 
     checkAuth()
 
-    // Re-check auth when storage changes (login/logout)
-    const handleStorageChange = () => {
-      checkAuth()
-    }
-
+    const handleStorageChange = () => { checkAuth() }
     window.addEventListener("storage", handleStorageChange)
     return () => window.removeEventListener("storage", handleStorageChange)
   }, [])
@@ -69,6 +67,7 @@ export default function ProductPageOverlay() {
         const id = parseProductIdFromUrl(url)
         setProductId(id)
         setScoreData(null)
+        setUzumData(null)
         setVisible(true)
       } else {
         setProductId(null)
@@ -90,15 +89,18 @@ export default function ProductPageOverlay() {
       body: { productId },
     })
       .then((res) => {
-        if (!cancelled && res.success && res.data) {
+        if (cancelled) return
+        if (res.success && res.data) {
           setScoreData(res.data)
+          if (res.uzumData) setUzumData(res.uzumData)
+        } else if (res.success && res.uzumData) {
+          // VENTRA has no score — show uzum.uz data instead
+          setUzumData(res.uzumData)
         }
       })
       .catch(() => {})
 
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [productId, isLoggedIn])
 
   // ── Render ──────────────────────────────────────────────
@@ -114,16 +116,30 @@ export default function ProductPageOverlay() {
     )
   }
 
-  if (!scoreData) return null
+  // VENTRA score available
+  if (scoreData) {
+    return (
+      <ScoreCard
+        productId={productId}
+        score={scoreData.score}
+        weeklyBought={scoreData.weekly_bought}
+        sellPrice={scoreData.sell_price}
+        trend={scoreData.trend}
+        onClose={() => setVisible(false)}
+      />
+    )
+  }
 
-  return (
-    <ScoreCard
-      productId={productId}
-      score={scoreData.score}
-      weeklyBought={scoreData.weekly_bought}
-      sellPrice={scoreData.sell_price}
-      trend={scoreData.trend}
-      onClose={() => setVisible(false)}
-    />
-  )
+  // Uzum.uz fallback — VENTRA score not yet available
+  if (uzumData) {
+    return (
+      <UzumCard
+        productId={productId}
+        uzumData={uzumData}
+        onClose={() => setVisible(false)}
+      />
+    )
+  }
+
+  return null
 }
