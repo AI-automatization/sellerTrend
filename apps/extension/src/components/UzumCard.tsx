@@ -1,48 +1,11 @@
-import { useState, useCallback } from "react"
-import { sendToBackground } from "@plasmohq/messaging"
 import type { UzumProductData } from "~/lib/uzum-api"
 
 interface UzumCardProps {
-  productId: string
   uzumData: UzumProductData
   onClose: () => void
 }
 
-export default function UzumCard({ productId, uzumData, onClose }: UzumCardProps) {
-  const [trackState, setTrackState] = useState<"idle" | "loading" | "tracked" | "error">("idle")
-
-  const handleTrack = useCallback(async () => {
-    if (trackState === "tracked" || trackState === "loading") return
-    setTrackState("loading")
-    try {
-      const res = await sendToBackground({
-        name: "track-product",
-        body: { productId },
-      })
-      setTrackState(res.success ? "tracked" : "error")
-    } catch {
-      setTrackState("error")
-    }
-  }, [productId, trackState])
-
-  const trackLabel =
-    trackState === "loading"
-      ? "Yuklanmoqda..."
-      : trackState === "tracked"
-        ? "✓ Kuzatilmoqda"
-        : trackState === "error"
-          ? "Xatolik — qayta urinish"
-          : "Kuzatishga qo'shish"
-
-  const trackBtnClass =
-    trackState === "loading"
-      ? "ventra-track-btn ventra-track-loading"
-      : trackState === "tracked"
-        ? "ventra-track-btn ventra-track-tracked"
-        : trackState === "error"
-          ? "ventra-track-btn ventra-track-error"
-          : "ventra-track-btn ventra-track-default"
-
+export default function UzumCard({ uzumData, onClose }: UzumCardProps) {
   return (
     <div className="ventra-score-card">
       <div className="ventra-card-header">
@@ -105,13 +68,6 @@ export default function UzumCard({ productId, uzumData, onClose }: UzumCardProps
           VENTRA score hali mavjud emas
         </div>
 
-        <button
-          className={trackBtnClass}
-          onClick={trackState === "error" ? () => setTrackState("idle") : handleTrack}
-          disabled={trackState === "tracked" || trackState === "loading"}
-        >
-          {trackLabel}
-        </button>
       </div>
     </div>
   )

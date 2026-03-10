@@ -116,12 +116,17 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 **Sabab:** `quick-score` background handler VENTRA API 404 qaytarsa `success: false` yuboradi. Modal error ko'rsatib qolishi kerak edi, lekin yopilib ketmoqda — bu T-427 bilan bog'liq bo'lishi mumkin yoki uzum fallback bo'lmagan eski buildda.
 
-**Fix (2026-03-10):** `uzum-api.ts` qo'shildi — VENTRA da ma'lumot bo'lmasa `api.uzum.uz/api/v2/product/{id}` dan narx/reyting/buyurtmalar ko'rsatadi.
+**Fix (2026-03-10):** `uzum-api.ts` qo'shildi — VENTRA da ma'lumot bo'lmasa `api.uzum.uz/api/v2/product/{id}` dan narx/reyting/buyurtmalar ko'rsatadi. UzumCard content script overlay sifatida ko'rsatiladi (popup-independent).
 
 **Fayllar:**
 - `apps/extension/src/lib/uzum-api.ts` — YANGI
 - `apps/extension/src/background/messages/quick-score.ts` — parallel fetch
 - `apps/extension/src/components/QuickAnalysisModal.tsx` — uzumData render
+- `apps/extension/src/components/UzumCard.tsx` — YANGI content script overlay
+- `apps/extension/src/contents/product-page.tsx` — UzumCard integratsiyasi
+
+
+> T-429 → **Bekzod ga o'tkazildi** (2026-03-11) — Tasks-Bekzod.md da
 
 ---
 

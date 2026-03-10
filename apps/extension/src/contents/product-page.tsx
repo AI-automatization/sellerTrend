@@ -134,7 +134,6 @@ export default function ProductPageOverlay() {
   if (uzumData) {
     return (
       <UzumCard
-        productId={productId}
         uzumData={uzumData}
         onClose={() => setVisible(false)}
       />
