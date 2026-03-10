@@ -14,6 +14,7 @@ interface QuickAnalysisModalProps {
   categoryData: CategoryItem | null;
   isOpen: boolean;
   onClose: () => void;
+  prefetchedData?: QuickScoreResponseBody | null;
 }
 
 interface ProductDetail {
@@ -83,11 +84,45 @@ function filterAndSortProducts(
   return sorted;
 }
 
+function applyResponse(
+  res: QuickScoreResponseBody,
+  productId: string,
+  setProduct: (p: ProductDetail) => void,
+  setError: (e: string) => void
+) {
+  if (res.success && res.data) {
+    setProduct({
+      id: productId,
+      score: res.data.score,
+      weekly_bought: res.data.weekly_bought,
+      trend: res.data.trend,
+      sell_price: res.data.sell_price,
+      last_updated: res.data.last_updated,
+      ...(res.uzumData ? uzumFields(res.uzumData) : {}),
+    });
+  } else if (res.success && res.uzumData) {
+    const u = res.uzumData;
+    setProduct({
+      id: productId,
+      score: null,
+      weekly_bought: null,
+      trend: null,
+      sell_price: u.purchasePrice,
+      last_updated: null,
+      ...uzumFields(u),
+      fromUzum: true,
+    });
+  } else {
+    setError("Ma'lumot yuklanmadi");
+  }
+}
+
 export default function QuickAnalysisModal({
   productId,
   categoryData,
   isOpen,
   onClose,
+  prefetchedData,
 }: QuickAnalysisModalProps) {
   const [loading, setLoading] = useState(false);
   const [product, setProduct] = useState<ProductDetail | null>(null);
@@ -107,6 +142,15 @@ export default function QuickAnalysisModal({
 
     // Product analysis mode
     if (productId) {
+      // Use pre-fetched data if available (avoids popup focus-loss timing issue)
+      if (prefetchedData) {
+        setLoading(false);
+        setError(null);
+        applyResponse(prefetchedData, productId, setProduct, setError);
+        return;
+      }
+
+      // Fallback: fetch directly (pre-fetch not ready yet)
       setLoading(true);
       setError(null);
 
@@ -114,35 +158,7 @@ export default function QuickAnalysisModal({
         name: "quick-score",
         body: { productId },
       })
-        .then((res) => {
-          if (res.success && res.data) {
-            // VENTRA has full data
-            setProduct({
-              id: productId,
-              score: res.data.score,
-              weekly_bought: res.data.weekly_bought,
-              trend: res.data.trend,
-              sell_price: res.data.sell_price,
-              last_updated: res.data.last_updated,
-              ...(res.uzumData ? uzumFields(res.uzumData) : {}),
-            });
-          } else if (res.success && res.uzumData) {
-            // Only uzum.uz data available (VENTRA doesn't have this product yet)
-            const u = res.uzumData;
-            setProduct({
-              id: productId,
-              score: null,
-              weekly_bought: null,
-              trend: null,
-              sell_price: u.purchasePrice,
-              last_updated: null,
-              ...uzumFields(u),
-              fromUzum: true,
-            });
-          } else {
-            setError("Ma'lumot yuklanmadi");
-          }
-        })
+        .then((res) => applyResponse(res, productId, setProduct, setError))
         .catch((err) => {
           setError(err instanceof Error ? err.message : "Xatolik yuz berdi");
         })
@@ -156,7 +172,7 @@ export default function QuickAnalysisModal({
       setLoading(false);
       setError(null);
     }
-  }, [productId, categoryData, isOpen]);
+  }, [productId, categoryData, isOpen, prefetchedData]);
 
   if (!isOpen) return null;
 
@@ -445,6 +461,8 @@ export default function QuickAnalysisModal({
       <div
         className="modal-backdrop"
         onClick={(e) => {
+          // DEBUG — remove after fix
+          console.log("[VENTRA] backdrop click — loading:", loading, "target===current:", e.target === e.currentTarget);
           if (!loading && e.target === e.currentTarget) {
             onClose();
           }

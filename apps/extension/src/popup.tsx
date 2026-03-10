@@ -9,6 +9,7 @@ import CategoryFilter from "~/components/CategoryFilter";
 import { parseProductIdFromUrl, isProductPage } from "~/lib/url-parser";
 import type { AuthStateResponseBody } from "~/background/messages/get-auth-state";
 import type { LogoutResponseBody } from "~/background/messages/logout";
+import type { QuickScoreResponseBody } from "~/background/messages/quick-score";
 import type { CategoryItem } from "~/lib/api";
 
 const DASHBOARD_URL = process.env.PLASMO_PUBLIC_API_URL?.replace("/api/v1", "") ?? "http://localhost:5173";
@@ -19,6 +20,8 @@ function Popup() {
   const [productId, setProductId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<CategoryItem | null>(null);
+  const [prefetchedData, setPrefetchedData] = useState<QuickScoreResponseBody | null>(null);
+  const [prefetching, setPrefetching] = useState(false);
 
   async function checkAuth() {
     try {
@@ -50,6 +53,25 @@ function Popup() {
       }
     });
   }, []);
+
+  // Pre-fetch product data as soon as productId + auth are ready
+  // This prevents popup focus loss from interrupting the API call
+  useEffect(() => {
+    if (!productId || !authState?.isLoggedIn) return;
+
+    setPrefetching(true);
+    setPrefetchedData(null);
+
+    sendToBackground<{ productId: string }, QuickScoreResponseBody>({
+      name: "quick-score",
+      body: { productId },
+    })
+      .then((res) => setPrefetchedData(res))
+      .catch(() => {
+        // Pre-fetch failed silently — modal will show error state
+      })
+      .finally(() => setPrefetching(false));
+  }, [productId, authState?.isLoggedIn]);
 
   async function handleLogout() {
     await sendToBackground<Record<string, never>, LogoutResponseBody>({
@@ -123,9 +145,17 @@ function Popup() {
       {productId && (
         <button
           onClick={() => setIsModalOpen(true)}
+          disabled={prefetching}
           className="btn btn-primary btn-sm w-full mb-2"
         >
-          📊 Tez Tahlil
+          {prefetching ? (
+            <>
+              <span className="loading loading-spinner loading-xs" />
+              Yuklanmoqda...
+            </>
+          ) : (
+            "📊 Tez Tahlil"
+          )}
         </button>
       )}
 
@@ -156,6 +186,7 @@ function Popup() {
         productId={productId}
         categoryData={selectedCategory}
         isOpen={isModalOpen}
+        prefetchedData={prefetchedData}
         onClose={() => {
           setIsModalOpen(false);
           setSelectedCategory(null);
