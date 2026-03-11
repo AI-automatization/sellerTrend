@@ -1,3 +1,5 @@
+import { useState, useCallback } from "react"
+import { sendToBackground } from "@plasmohq/messaging"
 import type { UzumProductData } from "~/lib/uzum-api"
 
 interface UzumCardProps {
@@ -6,6 +8,21 @@ interface UzumCardProps {
 }
 
 export default function UzumCard({ uzumData, onClose }: UzumCardProps) {
+  const [trackState, setTrackState] = useState<"idle" | "loading" | "tracked" | "error">("idle")
+
+  const handleTrack = useCallback(async () => {
+    if (trackState === "tracked" || trackState === "loading") return
+    setTrackState("loading")
+    try {
+      const res = await sendToBackground({
+        name: "track-product",
+        body: { productId: uzumData.id.toString() },
+      })
+      setTrackState(res.success ? "tracked" : "error")
+    } catch {
+      setTrackState("error")
+    }
+  }, [uzumData.id, trackState])
   return (
     <div className="ventra-score-card">
       <div className="ventra-card-header">
@@ -56,17 +73,28 @@ export default function UzumCard({ uzumData, onClose }: UzumCardProps) {
           </div>
         </div>
 
-        {/* VENTRA score not yet available notice */}
-        <div style={{
-          fontSize: "11px",
-          color: "#9ca3af",
-          textAlign: "center",
-          padding: "4px 0",
-          borderTop: "1px solid #f3f4f6",
-          marginTop: "4px"
-        }}>
-          VENTRA score hali mavjud emas
-        </div>
+        {/* Track button */}
+        <button
+          className={
+            trackState === "loading"
+              ? "ventra-track-btn ventra-track-loading"
+              : trackState === "tracked"
+                ? "ventra-track-btn ventra-track-tracked"
+                : trackState === "error"
+                  ? "ventra-track-btn ventra-track-error"
+                  : "ventra-track-btn ventra-track-default"
+          }
+          onClick={trackState === "error" ? () => setTrackState("idle") : handleTrack}
+          disabled={trackState === "tracked" || trackState === "loading"}
+        >
+          {trackState === "loading"
+            ? "Yuklanmoqda..."
+            : trackState === "tracked"
+              ? "✓ Kuzatilmoqda"
+              : trackState === "error"
+                ? "Xatolik — qayta urinish"
+                : "Kuzatishga qo'shish"}
+        </button>
 
       </div>
     </div>
