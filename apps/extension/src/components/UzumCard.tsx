@@ -9,17 +9,26 @@ interface UzumCardProps {
 
 export default function UzumCard({ uzumData, onClose }: UzumCardProps) {
   const [trackState, setTrackState] = useState<"idle" | "loading" | "tracked" | "error">("idle")
+  const [errorMsg, setErrorMsg] = useState<string>("")
 
   const handleTrack = useCallback(async () => {
     if (trackState === "tracked" || trackState === "loading") return
     setTrackState("loading")
+    setErrorMsg("")
     try {
       const res = await sendToBackground({
         name: "track-product",
         body: { productId: uzumData.id.toString() },
       })
-      setTrackState(res.success ? "tracked" : "error")
-    } catch {
+      if (res.success) {
+        setTrackState("tracked")
+      } else {
+        setErrorMsg(res.error ?? "Noma'lum xato")
+        setTrackState("error")
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setErrorMsg(msg)
       setTrackState("error")
     }
   }, [uzumData.id, trackState])
@@ -86,6 +95,20 @@ export default function UzumCard({ uzumData, onClose }: UzumCardProps) {
             : "VENTRA score hali mavjud emas"}
         </div>
 
+        {/* Error detail */}
+        {trackState === "error" && errorMsg && (
+          <div style={{
+            fontSize: "11px",
+            color: "#dc2626",
+            background: "#fee2e2",
+            borderRadius: "6px",
+            padding: "4px 8px",
+            wordBreak: "break-all",
+          }}>
+            {errorMsg}
+          </div>
+        )}
+
         {/* Track button */}
         <button
           className={
@@ -97,7 +120,7 @@ export default function UzumCard({ uzumData, onClose }: UzumCardProps) {
                   ? "ventra-track-btn ventra-track-error"
                   : "ventra-track-btn ventra-track-default"
           }
-          onClick={trackState === "error" ? () => setTrackState("idle") : handleTrack}
+          onClick={trackState === "error" ? () => { setTrackState("idle"); setErrorMsg("") } : handleTrack}
           disabled={trackState === "tracked" || trackState === "loading"}
         >
           {trackState === "loading"
