@@ -55,6 +55,7 @@ model Account {
   feedback_tickets       FeedbackTicket[]
   user_activities        UserActivity[]
   telegram_links         TelegramLink[]
+  search_logs            SearchLog[]
 
   @@map("accounts")
 }
@@ -1249,4 +1250,24 @@ model WeeklyDigest {
 
   @@index([user_id, week_start])
   @@map("weekly_digests")
+}
+
+// ============================================================
+// SEARCH ANALYTICS (T-425)
+// ============================================================
+
+model SearchLog {
+  id          String   @id @default(cuid())
+  account_id  String
+  query       String
+  results     Int      // number of results returned
+  tracked     Boolean  @default(false) // did user track a product from this search?
+  created_at  DateTime @default(now()) @db.Timestamptz
+
+  account Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
+
+  @@index([account_id])
+  @@index([created_at])
+  @@index([query])
+  @@map("search_logs")
 }

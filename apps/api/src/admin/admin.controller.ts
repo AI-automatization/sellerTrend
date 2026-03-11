@@ -355,6 +355,12 @@ export class AdminController {
   // STATS ENDPOINTS
   // ============================================================
 
+  /** Search Analytics — top queries, zero-result, conversion rate */
+  @Get('search-analytics')
+  getSearchAnalytics() {
+    return this.statsService.getSearchAnalytics();
+  }
+
   /** A1 — Stats Overview */
   @Get('stats/overview')
   getStatsOverview() {

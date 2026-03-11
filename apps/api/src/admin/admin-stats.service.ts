@@ -632,6 +632,44 @@ export class AdminStatsService {
     };
   }
 
+  /** Search analytics: top queries, zero-result queries, conversion rate */
+  async getSearchAnalytics() {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const [topQueries, zeroResults] = await Promise.all([
+      this.prisma.searchLog.groupBy({
+        by: ['query'],
+        where: { created_at: { gte: thirtyDaysAgo } },
+        _count: { id: true },
+        orderBy: { _count: { id: 'desc' } },
+        take: 20,
+      }),
+      this.prisma.searchLog.groupBy({
+        by: ['query'],
+        where: { created_at: { gte: thirtyDaysAgo }, results: 0 },
+        _count: { id: true },
+        orderBy: { _count: { id: 'desc' } },
+        take: 20,
+      }),
+    ]);
+
+    const [totalSearches, trackedSearches] = await Promise.all([
+      this.prisma.searchLog.count({ where: { created_at: { gte: thirtyDaysAgo } } }),
+      this.prisma.searchLog.count({ where: { created_at: { gte: thirtyDaysAgo }, tracked: true } }),
+    ]);
+
+    return {
+      top_queries: topQueries.map((q) => ({ query: q.query, count: q._count.id })),
+      zero_result_queries: zeroResults.map((q) => ({ query: q.query, count: q._count.id })),
+      total_searches: totalSearches,
+      tracked_searches: trackedSearches,
+      conversion_rate: totalSearches > 0
+        ? Number(((trackedSearches / totalSearches) * 100).toFixed(1))
+        : 0,
+      period: '30d',
+    };
+  }
+
   /** System errors for error tracking */
   async getSystemErrors(opts: {
     page?: number;

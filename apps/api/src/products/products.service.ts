@@ -234,6 +234,32 @@ export class ProductsService {
   }
 
   /** Search Uzum products by text query with 5-min Redis cache */
+  /** Log a search query (fire-and-forget, non-blocking) */
+  logSearch(accountId: string, query: string, resultsCount: number): void {
+    this.prisma.searchLog.create({
+      data: {
+        account_id: accountId,
+        query: query.trim().toLowerCase(),
+        results: resultsCount,
+      },
+    }).catch((err: unknown) => {
+      this.logger.warn(`Failed to log search: ${err instanceof Error ? err.message : String(err)}`);
+    });
+  }
+
+  /** Mark the latest untracked search for this account as converted (fire-and-forget) */
+  markSearchTracked(accountId: string): void {
+    this.prisma.searchLog.updateMany({
+      where: {
+        account_id: accountId,
+        tracked: false,
+      },
+      data: { tracked: true },
+    }).catch((err: unknown) => {
+      this.logger.warn(`Failed to mark search tracked: ${err instanceof Error ? err.message : String(err)}`);
+    });
+  }
+
   async searchProducts(query: string, limit = 24): Promise<UzumSearchProduct[]> {
     const CACHE_TTL_SECONDS = 300; // 5 minutes
     const sanitized = query.trim().slice(0, 100);

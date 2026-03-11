@@ -39,21 +39,25 @@ export class ProductsController {
   /** Uzum search proxy with 5-min Redis cache */
   @Get('search')
   @NoBilling()
-  searchProducts(
-    @CurrentUser('account_id') _accountId: string,
+  async searchProducts(
+    @CurrentUser('account_id') accountId: string,
     @Query() query: SearchQueryDto,
   ) {
-    return this.productsService.searchProducts(query.q, query.limit);
+    const results = await this.productsService.searchProducts(query.q, query.limit);
+    this.productsService.logSearch(accountId, query.q, results.length);
+    return results;
   }
 
   /** Track a product from search results — creates Product if missing */
   @Post('search/:uzumId/track')
   @ActivityAction('PRODUCT_TRACK')
-  trackFromSearch(
+  async trackFromSearch(
     @CurrentUser('account_id') accountId: string,
     @Param('uzumId', ParseBigIntPipe) uzumId: bigint,
   ) {
-    return this.productsService.trackFromSearch(accountId, Number(uzumId));
+    const result = await this.productsService.trackFromSearch(accountId, Number(uzumId));
+    this.productsService.markSearchTracked(accountId);
+    return result;
   }
 
   /** Sourcing comparison: search AliExpress, 1688, Taobao for similar products */
