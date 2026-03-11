@@ -1,7 +1,8 @@
-import { Injectable, Inject, Logger, NotFoundException, forwardRef } from '@nestjs/common';
+import { Injectable, Inject, Logger, NotFoundException, BadRequestException, forwardRef } from '@nestjs/common';
 import Redis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
 import { UzumClient, UzumSearchProduct } from '../uzum/uzum.client';
+import { BrightDataClient } from '../bright-data/bright-data.client';
 import { REDIS_CLIENT } from '../common/redis/redis.module';
 import { forecastEnsemble, calcWeeklyBought } from '@uzum/utils';
 import { RevenueEstimateResponse } from './dto/revenue-estimate.dto';
@@ -49,6 +50,7 @@ export class ProductsService {
     private readonly uzumClient: UzumClient,
     @Inject(REDIS_CLIENT)
     private readonly redis: Redis,
+    private readonly brightDataClient: BrightDataClient,
   ) {}
 
   /**
@@ -262,6 +264,45 @@ export class ProductsService {
     }
 
     return results;
+  }
+
+  /**
+   * Sourcing comparison: search AliExpress, 1688, and Taobao for similar products
+   * using the tracked product's title as the search query.
+   */
+  async getSourcingComparison(productId: bigint, accountId: string) {
+    // Verify product belongs to this account
+    const tracked = await this.prisma.trackedProduct.findFirst({
+      where: {
+        product_id: productId,
+        account_id: accountId,
+        is_active: true,
+      },
+      include: {
+        product: {
+          select: { title: true, title_uz: true },
+        },
+      },
+    });
+
+    if (!tracked) {
+      throw new NotFoundException('Product not found or not tracked');
+    }
+
+    const query = tracked.product.title ?? tracked.product.title_uz ?? '';
+    if (!query) {
+      throw new BadRequestException('Product has no title for sourcing search');
+    }
+
+    const SOURCING_LIMIT = 10;
+    const platforms = await this.brightDataClient.searchAllPlatforms(query, SOURCING_LIMIT);
+
+    return {
+      productId: productId.toString(),
+      query,
+      platforms,
+      searchedAt: new Date().toISOString(),
+    };
   }
 
   async getTrackedProducts(accountId: string) {

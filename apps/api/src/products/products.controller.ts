@@ -10,6 +10,7 @@ import { ProductsService } from './products.service';
 import { AiService } from '../ai/ai.service';
 import { RecommendationsQueryDto } from './dto/recommendations-query.dto';
 import { SearchQueryDto } from './dto/search-query.dto';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('products')
 @ApiBearerAuth()
@@ -53,6 +54,17 @@ export class ProductsController {
     @Param('uzumId', ParseBigIntPipe) uzumId: bigint,
   ) {
     return this.productsService.trackFromSearch(accountId, Number(uzumId));
+  }
+
+  /** Sourcing comparison: search AliExpress, 1688, Taobao for similar products */
+  @Get(':id/sourcing-comparison')
+  @ActivityAction('PRODUCT_SOURCING_COMPARISON')
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
+  getSourcingComparison(
+    @Param('id', ParseBigIntPipe) productId: bigint,
+    @CurrentUser('account_id') accountId: string,
+  ) {
+    return this.productsService.getSourcingComparison(productId, accountId);
   }
 
   @Get(':id')

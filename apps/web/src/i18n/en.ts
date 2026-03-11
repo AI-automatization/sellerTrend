@@ -1384,15 +1384,23 @@ export const en: Record<string, string> = {
     'search.noResultsHint': 'Try a different search query',
     'search.initial': 'Search for products',
     'search.initialHint': 'Start typing to find products on Uzum',
-    'search.button': 'Search',
-    'search.tracking': 'Tracking',
-    'search.loading': 'Searching...',
-    'search.results': 'results found',
-    'search.rating': 'rating',
-    'search.price': 'price',
     'search.analyze': 'Analyze',
-    'search.inStock': 'In stock',
-    'search.outOfStock': 'Out of stock',
+
+    // ── Expand Panel ────────────────────────────────────────────────────────
+    'expand.loading': 'Loading data...',
+    'expand.error': 'Failed to load data',
+    'expand.retry': 'Retry',
+    'expand.detailLink': 'View details',
+    'expand.price': 'Price',
+    'expand.rating': 'Rating',
+    'expand.orders': 'Orders',
+    'expand.stock': 'Stock',
+    'expand.score': 'Score',
+    'expand.weeklyBought': '{count} sold this week',
+    'expand.fullAnalysis': 'Full analysis',
+    'expand.sourcingPreview': 'International price comparison',
+    'expand.comingSoon': 'Coming soon',
+
     'hints.search': 'Search products by name across the Uzum marketplace. Click Track to add them to your dashboard.',
 
     // ── What\'s New ──────────────────────────────────────────────────────────

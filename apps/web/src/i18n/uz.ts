@@ -1389,15 +1389,23 @@ export const uz: Record<string, string> = {
     'search.noResultsHint': "Boshqa so'z bilan qidirib ko'ring",
     'search.initial': 'Mahsulot qidiring',
     'search.initialHint': "Uzum'da mahsulot topish uchun yozishni boshlang",
-    'search.button': 'Qidirish',
-    'search.tracking': 'Kuzatilmoqda',
-    'search.loading': 'Qidirilmoqda...',
-    'search.results': 'natija topildi',
-    'search.rating': 'reyting',
-    'search.price': 'narx',
     'search.analyze': 'Tahlil',
-    'search.inStock': 'Mavjud',
-    'search.outOfStock': 'Tugagan',
+
+    // ── Expand Panel ────────────────────────────────────────────────────────
+    'expand.loading': "Ma'lumotlar yuklanmoqda...",
+    'expand.error': "Ma'lumotlarni yuklashda xato",
+    'expand.retry': 'Qayta urinish',
+    'expand.detailLink': "Batafsil ko'rish",
+    'expand.price': 'Narx',
+    'expand.rating': 'Reyting',
+    'expand.orders': 'Buyurtmalar',
+    'expand.stock': 'Ombor',
+    'expand.score': 'Ball',
+    'expand.weeklyBought': "Haftalik {count} ta sotilgan",
+    'expand.fullAnalysis': "To'liq tahlil",
+    'expand.sourcingPreview': 'Xalqaro narx taqqoslash',
+    'expand.comingSoon': 'Tez kunda',
+
     'hints.search': "Uzum marketplace'da mahsulotlarni nomi bo'yicha qidiring. Kuzatish tugmasini bosib dashboardga qo'shing.",
 
     // ── Yangiliklar ──────────────────────────────────────────────────────────
