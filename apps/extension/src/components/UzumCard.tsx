@@ -73,6 +73,19 @@ export default function UzumCard({ uzumData, onClose }: UzumCardProps) {
           </div>
         </div>
 
+        {/* Status notice */}
+        <div style={{
+          fontSize: "11px",
+          color: trackState === "tracked" ? "#16a34a" : "#9ca3af",
+          textAlign: "center",
+          padding: "4px 0",
+          borderTop: "1px solid #f3f4f6",
+        }}>
+          {trackState === "tracked"
+            ? "VENTRA tez orada tahlil qiladi"
+            : "VENTRA score hali mavjud emas"}
+        </div>
+
         {/* Track button */}
         <button
           className={

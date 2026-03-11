@@ -8,6 +8,7 @@ interface ScoreCardProps {
   sellPrice: number | null
   trend: string | null
   onClose: () => void
+  initialTracked?: boolean
 }
 
 function getScoreColorClass(score: number): string {
@@ -40,8 +41,11 @@ export default function ScoreCard({
   sellPrice,
   trend,
   onClose,
+  initialTracked = false,
 }: ScoreCardProps) {
-  const [trackState, setTrackState] = useState<"idle" | "loading" | "tracked" | "error">("idle")
+  const [trackState, setTrackState] = useState<"idle" | "loading" | "tracked" | "error">(
+    initialTracked ? "tracked" : "idle"
+  )
 
   const handleTrack = useCallback(async () => {
     if (trackState === "tracked" || trackState === "loading") return

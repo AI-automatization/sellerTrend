@@ -116,7 +116,7 @@ export default function ProductPageOverlay() {
     )
   }
 
-  // VENTRA score available
+  // VENTRA score available — product is already tracked by this user
   if (scoreData) {
     return (
       <ScoreCard
@@ -126,6 +126,7 @@ export default function ProductPageOverlay() {
         sellPrice={scoreData.sell_price}
         trend={scoreData.trend}
         onClose={() => setVisible(false)}
+        initialTracked={true}
       />
     )
   }
