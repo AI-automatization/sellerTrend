@@ -8,6 +8,7 @@ import ScoreCard from "~/components/ScoreCard"
 import UzumCard from "~/components/UzumCard"
 import type { AuthStateResponseBody } from "~/background/messages/get-auth-state"
 import type { QuickScoreResponseBody } from "~/background/messages/quick-score"
+import type { GetTrackedProductsResponseBody } from "~/background/messages/get-tracked-products"
 import type { UzumProductData } from "~/lib/uzum-api"
 
 import styleText from "data-text:./plasmo-overlay.css"
@@ -41,6 +42,7 @@ export default function ProductPageOverlay() {
   const [uzumData, setUzumData] = useState<UzumProductData | null>(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [visible, setVisible] = useState(true)
+  const [isTracked, setIsTracked] = useState(false)
 
   // Check auth state and listen for changes
   useEffect(() => {
@@ -78,24 +80,37 @@ export default function ProductPageOverlay() {
     return onUrlChange(handleUrl)
   }, [])
 
-  // Fetch score when productId changes
+  // Fetch score + tracked state in parallel when productId changes
   useEffect(() => {
     if (!productId || !isLoggedIn) return
 
     let cancelled = false
 
-    sendToBackground<{ productId: string }, QuickScoreResponseBody>({
-      name: "quick-score",
-      body: { productId },
-    })
-      .then((res) => {
+    // Parallel: quick-score + tracked products list
+    Promise.all([
+      sendToBackground<{ productId: string }, QuickScoreResponseBody>({
+        name: "quick-score",
+        body: { productId },
+      }),
+      sendToBackground<Record<string, never>, GetTrackedProductsResponseBody>({
+        name: "get-tracked-products",
+        body: {},
+      }),
+    ])
+      .then(([scoreRes, trackedRes]) => {
         if (cancelled) return
-        if (res.success && res.data) {
-          setScoreData(res.data)
-          if (res.uzumData) setUzumData(res.uzumData)
-        } else if (res.success && res.uzumData) {
-          // VENTRA has no score — show uzum.uz data instead
-          setUzumData(res.uzumData)
+
+        // Check if current product is tracked by this user
+        const trackedIds = new Set(
+          (trackedRes.success ? trackedRes.data ?? [] : []).map((p) => p.product_id)
+        )
+        setIsTracked(trackedIds.has(productId))
+
+        if (scoreRes.success && scoreRes.data) {
+          setScoreData(scoreRes.data)
+          if (scoreRes.uzumData) setUzumData(scoreRes.uzumData)
+        } else if (scoreRes.success && scoreRes.uzumData) {
+          setUzumData(scoreRes.uzumData)
         }
       })
       .catch(() => {})
@@ -116,7 +131,6 @@ export default function ProductPageOverlay() {
     )
   }
 
-  // VENTRA score available — product is already tracked by this user
   if (scoreData) {
     return (
       <ScoreCard
@@ -126,7 +140,7 @@ export default function ProductPageOverlay() {
         sellPrice={scoreData.sell_price}
         trend={scoreData.trend}
         onClose={() => setVisible(false)}
-        initialTracked={true}
+        initialTracked={isTracked}
       />
     )
   }
