@@ -461,8 +461,6 @@ export default function QuickAnalysisModal({
       <div
         className="modal-backdrop"
         onClick={(e) => {
-          // DEBUG — remove after fix
-          console.log("[VENTRA] backdrop click — loading:", loading, "target===current:", e.target === e.currentTarget);
           if (!loading && e.target === e.currentTarget) {
             onClose();
           }

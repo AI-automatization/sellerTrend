@@ -32,7 +32,9 @@
     "permissions": [
       "storage",
       "alarms",
-      "notifications"
+      "notifications",
+      "activeTab",
+      "tabs"
     ],
     "host_permissions": [
       "https://uzum.uz/*",
