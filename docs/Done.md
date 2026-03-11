@@ -22,6 +22,18 @@
 
 ---
 
+### T-430 | FRONTEND | Extension — UzumCard track button restored (2026-03-11)
+
+**Manba:** regression (T-429 fix dan keyin backend ishlaydi, lekin UI dan tugma olingan edi)
+**Muammo:** `UzumCard` (kuzatilmagan mahsulot overlay) da "Kuzatishga qo'shish" tugmasi yo'q edi — backend endpoint yo'q deb olib tashlangan, lekin Bekzod T-429 da auto-create qo'shgandan keyin endi 500 xatosi bo'lmaydi.
+**Yechim:** `UzumCard.tsx` ga `ScoreCard` dagi kabi `useState` + `sendToBackground("track-product")` qo'shildi. 4 holat: idle/loading/tracked/error.
+**Fayllar:** `apps/extension/src/components/UzumCard.tsx`
+**Commit:** 724caf1
+**Vaqt:** 15min (plan: 15min)
+**Ta'sir:** Kuzatilmagan mahsulot sahifasida overlay dan to'g'ridan track qilish mumkin — popup ochmasdan.
+
+---
+
 ### T-427 | FRONTEND | Extension — Modal auto-close fix (2026-03-09)
 
 **Manba:** user-feedback (2026-03-09)

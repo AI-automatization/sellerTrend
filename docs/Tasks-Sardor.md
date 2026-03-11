@@ -107,22 +107,7 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 ## BUGS & CRITICAL FIXES
 
-### T-430 | P1 | FRONTEND | Extension — UzumCard ga Track tugmasini qaytarish | 15min | pending[Sardor]
-
-**Sana:** 2026-03-11
-**Manba:** regression (T-429 fix dan keyin backend ishlaydi, lekin UI dan tugma olingan)
-**Mas'ul:** Sardor
-
-**Tahlil:**
-`fix(extension): remove track button from UzumCard` commitida backend endpoint yo'q deb tugma olib tashlangan.
-Bekzod T-429 da `trackProduct` backendni auto-create qilishga o'tkazdi — endi 500 xatosi bo'lmaydi.
-UzumCard (kuzatilmagan mahsulot overlay) da track tugmasi qaytarilishi kerak.
-
-**Yechim:**
-`UzumCard.tsx` ga ScoreCard dagi kabi `useState` + `sendToBackground("track-product")` qo'shish.
-`productId = uzumData.id.toString()`
-
-**Fayllar:** `apps/extension/src/components/UzumCard.tsx`
+> ~~T-430~~ ✅ DONE (2026-03-11) → Done.md — UzumCard track button qaytarildi (commit 724caf1)
 
 > ~~T-427~~ ✅ DONE (2026-03-09) → Done.md — Modal auto-close fix (Escape + loading backdrop)
 
