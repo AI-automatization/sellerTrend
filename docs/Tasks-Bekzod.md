@@ -104,6 +104,30 @@ Bot domain placeholder, /top numeric ID, bot rate limiting, escapeHtml duplicate
 
 ---
 
+### T-429 | P1 | BACKEND | Extension — VENTRA bazasida yo'q mahsulotni kuzatuvga qo'shish | 2h
+
+**Manba:** Sardor (2026-03-11) — extension tomonida aniqlandi
+
+**Muammo:** Extension orqali VENTRA bazasida bo'lmagan mahsulotni "Kuzatishga qo'shish" bosilganda 2 xil xatolik:
+1. `POST /products/{id}/track` — 500 (mahsulot Product jadvalida yo'q, foreign key constraint)
+2. `POST /products/search/{id}/track` — 404 (endpoint production serverda yo'q)
+
+**Sabab:** `trackFromSearch()` metodi `products.service.ts` da to'g'ri yozilgan (Uzum API dan ma'lumot olib, Product DB ga yaratadi, keyin track qiladi). Lekin production ga deploy qilinmagan yoki route conflict bor.
+
+**Yechim:**
+1. `POST /products/search/:uzumId/track` endpointini production ga deploy qilish / route ni tekshirish
+2. Yangi track qilingan mahsulotga `next_scrape_at = NOW()` belgilash — worker 15 daqiqa ichida scrape qilsin
+3. `POST /products/:id/track` da mahsulot DB da yo'q bo'lsa 500 o'rniga 404 qaytarish
+
+**Fayllar:**
+- `apps/api/src/products/products.controller.ts`
+- `apps/api/src/products/products.service.ts` — `trackFromSearch()`, `trackProduct()`
+- `apps/worker/src/processors/weekly-scrape.processor.ts` — `next_scrape_at` logikasi
+
+**Eslatma:** Backend fix bo'lgach Sardor extension da track tugmasini qayta yoqadi.
+
+---
+
 # ENV (qo'lda)
 
 | # | Nima | Holat |

@@ -75,45 +75,134 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 ## Phase 3 — Popup Dashboard (P1) ~1.5h
 
-### T-216 | P1 | FRONTEND | Extension popup "Tez Tahlil" modal | 1.5h
+~~### T-216 | P1 | FRONTEND | Extension popup "Tez Tahlil" modal | 1.5h~~ ✅ DONE (2026-03-08)
 
-**Sana:** 2026-03-08
+---
+
+## Phase 4 — Category + Advanced (P1) ~5h — TAHLIL JARAYONIDA
+
+### T-217 | P1 | FRONTEND | Extension — Category filter sidebar | 1.5h
+**Mas'ul:** pending[Sardor] — **Tahlil jarayonida (2026-03-09)**
+
+### T-218 | P1 | FRONTEND | Extension — Advanced filters | 1.5h
+**Mas'ul:** pending[Sardor] — **Tahlil jarayonida**
+
+### T-219 | P1 | FRONTEND | Extension — Category trends & insights | 2h
+**Mas'ul:** pending[Sardor] — **Tahlil jarayonida**
+
+---
+
+## Phase 5 — Competitor + Price Tracking (P2) ~4.5h — TAHLIL JARAYONIDA
+
+### T-220 | P2 | FRONTEND | Extension — Competitor analysis tab | 1.5h
+**Mas'ul:** pending[Sardor] — **Tahlil jarayonida (2026-03-09)**
+
+### T-221 | P2 | FRONTEND | Extension — Price history chart | 1.5h
+**Mas'ul:** pending[Sardor] — **Tahlil jarayonida**
+
+### T-222 | P2 | FRONTEND | Extension — Favorites & notes | 1.5h
+**Mas'ul:** pending[Sardor] — **Tahlil jarayonida**
+
+---
+
+## BUGS & CRITICAL FIXES
+
+> ~~T-427~~ ✅ DONE (2026-03-09) → Done.md — Modal auto-close fix (Escape + loading backdrop)
+
+### T-428 | P0 | FRONTEND | Extension — VENTRA bazasida yo'q mahsulotda modal yopilib qoladi | 30min
+**Mas'ul:** pending[Sardor] — **Fix tayyor, tekshiruv kutilmoqda (2026-03-10)**
+
+**Muammo:** VENTRA bazasida kuzatilmagan mahsulot sahifasida extension icon bosilganda modal ochiladi va yopilib ketadi. Kuzatuvga qo'shilgan mahsulotda esa ishlaydi.
+
+**Sabab:** `quick-score` background handler VENTRA API 404 qaytarsa `success: false` yuboradi. Modal error ko'rsatib qolishi kerak edi, lekin yopilib ketmoqda — bu T-427 bilan bog'liq bo'lishi mumkin yoki uzum fallback bo'lmagan eski buildda.
+
+**Fix (2026-03-10):** `uzum-api.ts` qo'shildi — VENTRA da ma'lumot bo'lmasa `api.uzum.uz/api/v2/product/{id}` dan narx/reyting/buyurtmalar ko'rsatadi. UzumCard content script overlay sifatida ko'rsatiladi (popup-independent).
+
+**Fayllar:**
+- `apps/extension/src/lib/uzum-api.ts` — YANGI
+- `apps/extension/src/background/messages/quick-score.ts` — parallel fetch
+- `apps/extension/src/components/QuickAnalysisModal.tsx` — uzumData render
+- `apps/extension/src/components/UzumCard.tsx` — YANGI content script overlay
+- `apps/extension/src/contents/product-page.tsx` — UzumCard integratsiyasi
+
+
+> T-429 → **Bekzod ga o'tkazildi** (2026-03-11) — Tasks-Bekzod.md da
+
+---
+
+## Phase 6 — AI + Hotkeys (P2) ~2.5h
+
+### T-223 | P2 | FRONTEND | Extension — AI recommendations (Claude) | 1.5h
+
 **Manba:** yangi-feature
-**Topilgan joyda:** `apps/extension/src/popup.tsx`, `apps/extension/src/components/QuickAnalysisModal.tsx`
+**Topilgan joyda:** `apps/extension/src/components/AIRecommendations.tsx`
 **Mas'ul:** pending[Sardor]
 
 **Tahlil:**
-Phase 1-2'da background + content scripts tayyor. Endi popup'ni yangilash kerak.
-Foydalanuvchi uzum.uz'da mahsulotni ko'rayotib, extension icon'ini bosganda:
-1. Popup ochiladi
-2. "📊 Tez Tahlil" tugmasi bo'radi
-3. Bosilganda → Modal ochiladi
-4. Modal'da mahsulotning tahlili (score, price, stock, rating)
+Mahsulot tahlilida AI ko'rsatmalari — Claude API orqali.
+Modal'da: "💡 AI Ko'rsatma" section
+
+AI'dan:
+- Mahsulot tavsiyalari (narxi, reyting, raqobat)
+- Yaxshilash bo'yicha maslahatlar
+- Risk analiz (qoshimcha tafsirlar)
 
 **Yechim:**
-1. `QuickAnalysisModal.tsx` — YANGI component
-   - Score (ScoreRadial)
-   - Weekly bought / Price / Rating / Stock
-   - "Batafsil" → Dashboard link
-2. `popup.tsx` — Button qo'shish + Modal state
-3. API'dan product detail fetch (uzum mahsulot IDsi)
-4. Error handling + loading state
+1. `AIRecommendations.tsx` — YANGI component
+   - Prompt: product score, price, competitors, weekly_bought → analysis
+   - Streaming yoki regular response
+   - Markdown formatting
+2. `QuickAnalysisModal.tsx` — Integrate in analysis tab (collapse/expand)
+3. Rate limiting: localStorage key + 1-hour cache
+4. Backend: `/api/v1/ai/analyze-product` endpoint (future)
 
 **Fayllar:**
-- `apps/extension/src/popup.tsx` — Yangilash
-- `apps/extension/src/components/QuickAnalysisModal.tsx` — YANGI
-- `apps/extension/src/lib/api.ts` — getProductDetail endpoint
+- `apps/extension/src/components/AIRecommendations.tsx` — YANGI
+- `apps/extension/src/components/QuickAnalysisModal.tsx` — Integrate
+- `apps/extension/src/lib/api.ts` — `getAIRecommendations()` (future)
 
-**Bog'liqlik:** Phase 1-2 DONE
+**Bog'liqlik:** T-220 DONE
+
+---
+
+### T-224 | P2 | FRONTEND | Extension — Hotkeys & shortcuts | 1h
+
+**Manba:** yangi-feature
+**Topilgan joyda:** `apps/extension/src/lib/hotkeys.ts`
+**Mas'ul:** pending[Sardor]
+
+**Tahlil:**
+Extension'da hotkey'lar:
+- `Ctrl+Shift+V` — Open/close popup
+- `Ctrl+Shift+T` — Toggle quick analysis modal
+- `Ctrl+Shift+S` — Save to favorites (product page'da)
+- `Ctrl+Shift+N` — Open notes editor
+
+Content script orqali keyboard events.
+
+**Yechim:**
+1. `hotkeys.ts` — YANGI helper
+   - Register hotkeys
+   - Global listeners (content script)
+2. `contents/product-page.tsx` — Add hotkey listeners
+3. `popup.tsx` — Hotkey hints (small tooltips)
+4. Settings page (future): customizable hotkeys
+
+**Fayllar:**
+- `apps/extension/src/lib/hotkeys.ts` — YANGI
+- `apps/extension/src/contents/product-page.tsx` — UPDATED
+- `apps/extension/src/popup.tsx` — UPDATED (hints)
+
+**Bog'liqlik:** T-217 DONE
 
 ---
 
 | Faza | Tasklar | Vaqt | Holat |
 |------|---------|------|-------|
-| 3. Popup Dashboard (P1) | T-216 | ~1.5h | pending[Sardor] |
-| 4. Category + Advanced (P1) | T-217..T-219 | ~5h | ⬜ |
-| 5. Competitor + Narx (P2) | T-220..T-222 | ~4.5h | ⬜ |
-| 6. AI + Hotkeys (P2) | T-223..T-224 | ~2.5h | ⬜ |
+| 3. Popup Dashboard (P1) | ~~T-216~~ | ~1.5h | ✅ DONE (2026-03-08) |
+| 4. Category + Advanced (P1) | T-217, T-218, T-219 | ~5h | 🔍 TAHLIL — pending[Sardor] (2026-03-09) |
+| 5. Competitor + Narx (P2) | T-220, T-221, T-222 | ~4.5h | 🔍 TAHLIL — pending[Sardor] (2026-03-09) |
+| 6. AI + Hotkeys (P2) | T-223..T-224 | ~2.5h | pending[Sardor] — **T-223** |
 | 7. i18n + Testing (P2) | T-225..T-227 | ~4.5h | ⬜ |
 | 8. Build + Publish (P1) | T-228..T-229 | ~3h | ⬜ |
 | 9. Security + Polish (P1) | T-230..T-233 | ~3.5h | ⬜ |

@@ -214,4 +214,24 @@ export async function getTrackedProducts(): Promise<TrackedProductItem[]> {
   return apiFetch<TrackedProductItem[]>("/products");
 }
 
+// ── Categories ───────────────────────────────────────────────
+
+export interface CategoryItem {
+  category_id: string;
+  category_title: string;
+  product_count: number;
+  avg_score: number;
+  top_products: Array<{
+    product_id: string;
+    title: string;
+    score: number;
+    weekly_bought: number | null;
+    sell_price: number;
+  }>;
+}
+
+export async function getTopCategories(): Promise<CategoryItem[]> {
+  return apiFetch<CategoryItem[]>("/leaderboard/public/categories");
+}
+
 export { tryRefreshToken, isTokenExpired, BASE_URL };

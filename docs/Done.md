@@ -1,5 +1,5 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
-# Yangilangan: 2026-03-08
+# Yangilangan: 2026-03-09
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
 
@@ -19,6 +19,30 @@
 # - Yangi entry lar YUQORIGA qo'shiladi (eng oxirgi birinchi)
 # - **Ta'sir** maydoni MAJBURIY — nima o'zgardi end-user uchun
 # - Sprint/batch ishlar bitta heading ostida guruhlanadi
+
+---
+
+### T-427 | FRONTEND | Extension — Modal auto-close fix (2026-03-09)
+
+**Manba:** user-feedback (2026-03-09)
+**Muammo:** "Tez Tahlil" modal ochilgandan ~1 sekund o'tib auto-close bo'lardi. Ikki sabab: (1) `<dialog>` element natively Escape tugmasini eshitib yopiladi — `onCancel` handler yo'q edi. (2) Backdrop `role="button"` + `tabIndex={0}` keyboard trigger xavfi, loading paytida ham yopilishi mumkin edi.
+**Yechim:** `onCancel={(e) => e.preventDefault()}` qo'shildi — Escape native close oldini oladi. Backdrop click loading paytida disabled. `role`/`tabIndex` backdrop dan olib tashlandi. `ProductNotes.tsx` dan `console.error` tozalandi (CLAUDE.md violation).
+**Fayllar:** `apps/extension/src/components/QuickAnalysisModal.tsx`, `apps/extension/src/components/ProductNotes.tsx`
+**Commit:** 47ad151
+**Vaqt:** 30min (plan: 2h)
+**Ta'sir:** Modal endi Escape tugmasi yoki loading paytida aksidental yopilmaydi. Foydalanuvchi tahlil natijasini ko'ra oladi.
+
+---
+
+## Quick Fix | FRONTEND | Extension modal — null check .toFixed() (2026-03-09)
+
+**Manba:** user-feedback
+**Muammo:** Modal crash: "Uncaught TypeError: Cannot read properties of undefined (reading 'toFixed')". API 404 qaytarganda, product null bo'lib `.toFixed()` call crash qiladi.
+**Yechim:** Null checks qo'shildi: `product.score != null ? .toFixed(2) : "--"`. Modal endi crash bo'lmaydi, undefined data o'rniga `"--"` ko'rinadi.
+**Fayllar:** `apps/extension/src/components/QuickAnalysisModal.tsx`
+**Commit:** 06ae75c
+**Vaqt:** 10min (plan: 1h)
+**Ta'sir:** Modal stable, no crashes. User xatosiz tahlil qo'llanish mumkin.
 
 ---
 
@@ -692,6 +716,45 @@ _Remote commit orqali bajarilgan, Bekzod tomonidan verified 2026-03-03_
 `background/messages/batch-quick-score.ts`, `background/messages/track-product.ts`,
 `background/messages/get-tracked-products.ts`, `lib/url-parser.ts`, `lib/spa-observer.ts`,
 `lib/api.ts` (edited), `popup.tsx` (edited)
+
+---
+
+## T-216 | P1 | FRONTEND | Chrome Extension Faza 3 — Popup "Tez Tahlil" Modal (2026-03-08)
+
+**Status:** ✅ DONE
+
+**Tahlil:**
+Faza 1-2'da background service + content script'lar tayyor edi. Faza 3'da popup'ni yangilash.
+Foydalanuvchi uzum.uz'da mahsulotni ko'rayotib, extension icon'ini bosilganda "📊 Tez Tahlil" tugmasi ko'rinadi.
+Tugma bosilganda modal ochiladi va mahsulotning tez tahlili ko'rsatiladi.
+
+**Yechim:**
+1. **QuickAnalysisModal.tsx** (NEW) — React component
+   - `ProductDetail` interface: id, score, weekly_bought, trend, sell_price, last_updated
+   - `useEffect` hook: `sendToBackground('quick-score', { productId })`
+   - DaisyUI modal dialog: score, weekly bought, price, trend, last updated
+   - "Batafsil" button → dashboard `/analyze?productId={id}`
+   - Loading state (spinner), error handling, null display
+
+2. **popup.tsx** (UPDATED)
+   - Import: `QuickAnalysisModal`, `parseProductIdFromUrl`, `isProductPage`
+   - State: `productId`, `isModalOpen`
+   - `useEffect`: `chrome.tabs.query()` — avtomatik tab URL'dan product ID aniqlash
+   - Conditional button: "📊 Tez Tahlil" faqat product page'da
+   - Modal integration: `<QuickAnalysisModal productId={productId} isOpen={isModalOpen} onClose={...} />`
+
+**Fayllar:**
+- `apps/extension/src/components/QuickAnalysisModal.tsx` — NEW
+- `apps/extension/src/popup.tsx` — UPDATED (imports, state, effects, JSX)
+
+**Testlash:**
+```bash
+pnpm build --filter extension
+# Chrome: chrome://extensions → Load unpacked → dist folder
+# uzum.uz mahsulot sahifasida extension icon → "Tez Tahlil" tugmasi → Modal
+```
+
+**TypeScript:** tsc --noEmit — ✅ PASS
 
 ---
 

@@ -34,14 +34,27 @@ export default function CategoryPageOverlay() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const processingRef = useRef(false)
 
-  // Check auth state once
+  // Check auth state and listen for changes
   useEffect(() => {
-    sendToBackground<Record<string, never>, AuthStateResponseBody>({
-      name: "get-auth-state",
-      body: {},
-    })
-      .then((state) => setIsLoggedIn(state.isLoggedIn))
-      .catch(() => setIsLoggedIn(false))
+    // Check auth immediately
+    function checkAuth() {
+      sendToBackground<Record<string, never>, AuthStateResponseBody>({
+        name: "get-auth-state",
+        body: {},
+      })
+        .then((state) => setIsLoggedIn(state.isLoggedIn))
+        .catch(() => setIsLoggedIn(false))
+    }
+
+    checkAuth()
+
+    // Re-check auth when storage changes (login/logout)
+    const handleStorageChange = () => {
+      checkAuth()
+    }
+
+    window.addEventListener("storage", handleStorageChange)
+    return () => window.removeEventListener("storage", handleStorageChange)
   }, [])
 
   // Main badge injection logic
