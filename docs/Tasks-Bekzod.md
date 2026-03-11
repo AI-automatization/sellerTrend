@@ -9,6 +9,40 @@
 
 ---
 
+# KRITIK BUG — Extension track 500
+
+### T-431 | P0 | BACKEND | trackProduct shop.orders_quantity BigInt mismatch → 500 | 10min
+
+**Sana:** 2026-03-11
+**Manba:** production-bug (extension UzumCard track button → "500: Internal server error")
+**Mas'ul:** Bekzod
+
+**Tahlil:**
+Extension da kuzatilmagan mahsulot uchun "Kuzatishga qo'shish" bosilganda backend 500 qaytaradi.
+Sabab: `products.service.ts` da `shop.upsert` `orders_quantity` ga plain `number` berilayapti,
+lekin Prisma schema `BigInt?` kutadi → `PrismaClientValidationError` → unhandled 500.
+
+**Muammo:**
+`trackProduct` va `trackFromSearch` ikki joyda:
+```ts
+// XATO:
+orders_quantity: detail.shop.ordersQuantity       // number
+
+// TO'G'RI:
+orders_quantity: BigInt(detail.shop.ordersQuantity ?? 0)
+```
+
+**Yechim:**
+`apps/api/src/products/products.service.ts` da ikki joyni tuzatish:
+1. `trackProduct` → `shop.upsert` → `update` va `create` da `BigInt(detail.shop.ordersQuantity ?? 0)`
+2. `trackFromSearch` → `shop.upsert` → `update` va `create` da `BigInt(detail.shop.ordersQuantity ?? 0)`
+
+**Fayllar:** `apps/api/src/products/products.service.ts` (2 ta upsert, 4 ta qator)
+
+**Topilgan joyda:** Sardor extension debug qilishda (2026-03-11)
+
+---
+
 # BACKEND KOD AUDIT — P1 MUHIM
 
 ### ~~T-354~~ ✅ DONE (2026-03-04) → Done.md
