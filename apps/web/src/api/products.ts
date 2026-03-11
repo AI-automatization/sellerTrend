@@ -1,5 +1,5 @@
 import { api } from './base';
-import type { SearchProduct } from './types';
+import type { SearchProduct, SourcingComparison } from './types';
 
 export const productsApi = {
   getTracked: () => api.get('/products/tracked'),
@@ -14,6 +14,8 @@ export const productsApi = {
     api.get<SearchProduct[]>('/products/search', { params: { q: query, limit } }),
   trackFromSearch: (uzumProductId: number) =>
     api.post<{ tracked: boolean }>(`/products/search/${uzumProductId}/track`),
+  getSourcingComparison: (productId: string) =>
+    api.get<SourcingComparison>(`/products/${productId}/sourcing-comparison`),
 };
 
 export const uzumApi = {

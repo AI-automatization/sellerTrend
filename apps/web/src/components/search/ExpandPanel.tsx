@@ -4,10 +4,12 @@ import { uzumApi } from '../../api/client';
 import { useI18n } from '../../i18n/I18nContext';
 import type { AnalyzeResult } from '../../api/types';
 import { getErrorMessage } from '../../utils/getErrorMessage';
+import { SourcePricePanel } from './SourcePricePanel';
 
 interface ExpandPanelProps {
   productId: number;
   onClose: () => void;
+  isTracked?: boolean;
 }
 
 const SCORE_THRESHOLDS = {
@@ -33,7 +35,7 @@ function getScoreProgressColor(score: number): string {
 
 const MAX_SCORE = 10;
 
-export function ExpandPanel({ productId, onClose }: ExpandPanelProps) {
+export function ExpandPanel({ productId, onClose, isTracked = false }: ExpandPanelProps) {
   const { t } = useI18n();
   const navigate = useNavigate();
   const [data, setData] = useState<AnalyzeResult | null>(null);
@@ -94,7 +96,7 @@ export function ExpandPanel({ productId, onClose }: ExpandPanelProps) {
     <div
       ref={panelRef}
       className={`col-span-full overflow-hidden transition-all duration-200 ease-out ${
-        visible ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+        visible ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'
       }`}
     >
       <div className="rounded-2xl border border-base-300/50 bg-base-200/80 backdrop-blur-sm shadow-lg p-4 lg:p-6 relative">
@@ -261,15 +263,24 @@ export function ExpandPanel({ productId, onClose }: ExpandPanelProps) {
                 {t('expand.fullAnalysis')}
               </button>
 
-              {/* Sourcing preview placeholder (T-422) */}
-              <div className="flex items-center gap-1.5 text-xs text-base-content/40 ml-auto">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
-                </svg>
-                <span>{t('expand.sourcingPreview')}</span>
-                <span className="badge badge-xs badge-outline">{t('expand.comingSoon')}</span>
-              </div>
+              {/* Sourcing preview — only for tracked products */}
+              {!isTracked && (
+                <div className="flex items-center gap-1.5 text-xs text-base-content/40 ml-auto">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+                  </svg>
+                  <span>{t('expand.sourcingPreview')}</span>
+                </div>
+              )}
             </div>
+
+            {/* Sourcing comparison — only for tracked products */}
+            {isTracked && (
+              <SourcePricePanel
+                productId={String(data.product_id)}
+                uzumPrice={data.sell_price}
+              />
+            )}
           </div>
         )}
       </div>

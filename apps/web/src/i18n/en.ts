@@ -1401,6 +1401,14 @@ export const en: Record<string, string> = {
     'expand.sourcingPreview': 'International price comparison',
     'expand.comingSoon': 'Coming soon',
 
+    'sourcing.panel.title': 'International Prices',
+    'sourcing.panel.loading': 'Searching prices...',
+    'sourcing.panel.noResults': 'No international prices found',
+    'sourcing.panel.margin': 'Margin',
+    'sourcing.panel.visitSite': 'Visit site',
+    'sourcing.panel.error': 'Error loading prices',
+    'sourcing.panel.cheapest': 'Cheapest',
+
     'hints.search': 'Search products by name across the Uzum marketplace. Click Track to add them to your dashboard.',
 
     // ── What\'s New ──────────────────────────────────────────────────────────

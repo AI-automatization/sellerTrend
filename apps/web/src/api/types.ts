@@ -227,6 +227,34 @@ export interface TicketMessage {
   created_at: string;
 }
 
+// ─── Sourcing Domain ─────────────────────────────────────────────────────────
+
+export type SourcingPlatform = 'aliexpress' | '1688' | 'taobao';
+
+export interface BrightDataProduct {
+  platform: SourcingPlatform;
+  title: string;
+  price: number;
+  currency: string;
+  priceUsd: number;
+  imageUrl: string;
+  productUrl: string;
+  rating?: number;
+  orders?: number;
+  shippingCost?: number;
+}
+
+export interface SourcingComparison {
+  productId: string;
+  query: string;
+  platforms: {
+    aliexpress: BrightDataProduct[];
+    taobao: BrightDataProduct[];
+    '1688': BrightDataProduct[];
+  };
+  searchedAt: string;
+}
+
 // ─── Consultation Domain ─────────────────────────────────────────────────────
 
 export interface ConsultationItem {

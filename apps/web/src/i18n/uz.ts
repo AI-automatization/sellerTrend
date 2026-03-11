@@ -1406,6 +1406,14 @@ export const uz: Record<string, string> = {
     'expand.sourcingPreview': 'Xalqaro narx taqqoslash',
     'expand.comingSoon': 'Tez kunda',
 
+    'sourcing.panel.title': 'Xalqaro narxlar',
+    'sourcing.panel.loading': 'Narxlar qidirilmoqda...',
+    'sourcing.panel.noResults': 'Xalqaro narxlar topilmadi',
+    'sourcing.panel.margin': 'Margin',
+    'sourcing.panel.visitSite': "Saytga o'tish",
+    'sourcing.panel.error': 'Narxlarni yuklashda xato',
+    'sourcing.panel.cheapest': 'Eng arzon',
+
     'hints.search': "Uzum marketplace'da mahsulotlarni nomi bo'yicha qidiring. Kuzatish tugmasini bosib dashboardga qo'shing.",
 
     // ── Yangiliklar ──────────────────────────────────────────────────────────

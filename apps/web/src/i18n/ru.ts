@@ -1390,6 +1390,14 @@ export const ru: Record<string, string> = {
     'expand.sourcingPreview': 'Сравнение международных цен',
     'expand.comingSoon': 'Скоро',
 
+    'sourcing.panel.title': 'Международные цены',
+    'sourcing.panel.loading': 'Поиск цен...',
+    'sourcing.panel.noResults': 'Международные цены не найдены',
+    'sourcing.panel.margin': 'Маржа',
+    'sourcing.panel.visitSite': 'Перейти на сайт',
+    'sourcing.panel.error': 'Ошибка загрузки цен',
+    'sourcing.panel.cheapest': 'Самый дешевый',
+
     'hints.search': 'Ищите товары по названию на маркетплейсе Uzum. Нажмите Отслеживать, чтобы добавить их на дашборд.',
 
     // ── What\'s New ──────────────────────────────────────────────────────────

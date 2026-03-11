@@ -6,6 +6,7 @@ import { MagnifyingGlassIcon } from '../components/icons';
 import { useI18n } from '../i18n/I18nContext';
 import { PageHint } from '../components/PageHint';
 import { ExpandPanel } from '../components/search/ExpandPanel';
+import { useTrackedProducts } from '../hooks/useTrackedProducts';
 import type { SearchProduct } from '../api/types';
 import { toast } from 'react-toastify';
 
@@ -26,7 +27,7 @@ export function SearchPage() {
   const [error, setError] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const [trackingIds, setTrackingIds] = useState<Set<number>>(new Set());
-  const [trackedIds, setTrackedIds] = useState<Set<number>>(new Set());
+  const { isTracked, trackProduct } = useTrackedProducts();
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -88,12 +89,11 @@ export function SearchPage() {
 
   async function handleTrack(product: SearchProduct) {
     const uzumId = product.productId ?? product.id;
-    if (trackedIds.has(uzumId) || trackingIds.has(uzumId)) return;
+    if (isTracked(uzumId) || trackingIds.has(uzumId)) return;
 
     setTrackingIds(prev => new Set(prev).add(uzumId));
     try {
-      await productsApi.trackFromSearch(uzumId);
-      setTrackedIds(prev => new Set(prev).add(uzumId));
+      await trackProduct(uzumId);
       toast.success(t('search.trackSuccess'));
     } catch {
       toast.error(t('search.trackError'));
@@ -183,7 +183,7 @@ export function SearchPage() {
             {results.map((product) => {
               const uzumId = product.productId ?? product.id;
               const isTracking = trackingIds.has(uzumId);
-              const isTracked = trackedIds.has(uzumId);
+              const tracked = isTracked(uzumId);
               const isExpanded = expandedId === uzumId;
 
               return (
@@ -278,16 +278,16 @@ export function SearchPage() {
                           {/* Track button */}
                           <button
                             onClick={() => handleTrack(product)}
-                            disabled={isTracking || isTracked}
+                            disabled={isTracking || tracked}
                             className={`btn btn-sm gap-1 ${
-                              isTracked
+                              tracked
                                 ? 'btn-success'
                                 : 'btn-outline btn-primary'
                             }`}
                           >
                             {isTracking ? (
                               <span className="loading loading-spinner loading-xs" />
-                            ) : isTracked ? (
+                            ) : tracked ? (
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                               </svg>
@@ -296,7 +296,7 @@ export function SearchPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                               </svg>
                             )}
-                            {isTracked ? t('search.tracked') : t('search.track')}
+                            {tracked ? t('search.tracked') : t('search.track')}
                           </button>
                         </div>
                       </div>
@@ -307,6 +307,7 @@ export function SearchPage() {
                     <ExpandPanel
                       productId={uzumId}
                       onClose={() => setExpandedId(null)}
+                      isTracked={isTracked}
                     />
                   )}
                 </Fragment>

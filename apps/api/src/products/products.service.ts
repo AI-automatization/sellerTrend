@@ -597,6 +597,61 @@ export class ProductsService {
   }
 
   async trackProduct(accountId: string, productId: bigint) {
+    // Ensure the Product record exists in our DB before creating TrackedProduct (FK constraint)
+    const existing = await this.prisma.product.findUnique({
+      where: { id: productId },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      // Product not in DB — fetch from Uzum API and create it
+      const detail = await this.uzumClient.fetchProductDetail(Number(productId));
+      if (!detail) {
+        throw new NotFoundException(
+          `Product ${productId.toString()} not found on Uzum`,
+        );
+      }
+
+      // Upsert shop first (FK constraint on Product → Shop)
+      if (detail.shop) {
+        await this.prisma.shop.upsert({
+          where: { id: BigInt(detail.shop.id) },
+          update: {
+            title: detail.shop.title,
+            rating: detail.shop.rating,
+            orders_quantity: detail.shop.ordersQuantity,
+          },
+          create: {
+            id: BigInt(detail.shop.id),
+            title: detail.shop.title,
+            rating: detail.shop.rating,
+            orders_quantity: detail.shop.ordersQuantity,
+          },
+        });
+      }
+
+      // Create Product record
+      const totalAvailable = detail.totalAvailableAmount != null
+        ? BigInt(detail.totalAvailableAmount)
+        : null;
+
+      await this.prisma.product.create({
+        data: {
+          id: productId,
+          title: detail.title,
+          rating: detail.rating,
+          feedback_quantity: detail.feedbackQuantity,
+          orders_quantity: BigInt(detail.ordersQuantity ?? 0),
+          total_available_amount: totalAvailable,
+          photo_url: detail.photoUrl ?? undefined,
+          shop_id: detail.shop ? BigInt(detail.shop.id) : undefined,
+        },
+      });
+
+      this.logger.log(`Created product ${productId.toString()} from track endpoint`);
+    }
+
+    // Create/reactivate TrackedProduct with immediate scrape scheduling
     const tp = await this.prisma.trackedProduct.upsert({
       where: {
         account_id_product_id: {
@@ -604,10 +659,14 @@ export class ProductsService {
           product_id: productId,
         },
       },
-      update: { is_active: true },
+      update: {
+        is_active: true,
+        next_scrape_at: new Date(),
+      },
       create: {
         account_id: accountId,
         product_id: productId,
+        next_scrape_at: new Date(),
       },
     });
     return { ...tp, product_id: tp.product_id.toString() };
