@@ -10,10 +10,10 @@
 ## STATISTIKA
 
 ```
-Ochiq:       ~34 ta
-Bajarilgan:  ~170+ ta (Done.md)
-Oxirgi T-#:  T-425
-Keyingi T-#: T-426 dan boshlash
+Ochiq:       ~25 ta
+Bajarilgan:  ~180+ ta (Done.md)
+Oxirgi T-#:  T-431
+Keyingi T-#: T-432 dan boshlash
 ```
 
 ---
@@ -656,12 +656,13 @@ Onboarding reminders — daily 10AM cron, 3-day check for incomplete onboarding.
 > **Boshlang'ich sana:** 2026-03-08
 > **Dependency graph:**
 > ```
-> Faza 1 (Backend infra):    ~~T-411~~ → ~~T-412~~ → T-413 → T-414
-> Faza 2 (Frontend search):  T-415 → ~~T-416~~ → T-417 → T-418
-> Faza 3 (Expand panel):     T-419 (T-413 + T-418 dan keyin)
-> Faza 4 (Bright Data):      T-420 → T-421 → T-422 → T-423
-> Faza 5 (Polish):           T-424, T-425 (hammasi tugagandan keyin)
+> Faza 1 (Backend infra):    ~~T-411~~ → ~~T-412~~ → ~~T-413~~ → ~~T-414~~ ✅ ALL DONE
+> Faza 2 (Frontend search):  ~~T-415~~ → ~~T-416~~ → ~~T-417~~ → ~~T-418~~ ✅ ALL DONE
+> Faza 3 (Expand panel):     ~~T-419~~ ✅ DONE
+> Faza 4 (Bright Data):      ~~T-420~~ → ~~T-421~~ → ~~T-422~~ → ~~T-423~~ ✅ ALL DONE
+> Faza 5 (Polish):           ~~T-424~~, ~~T-425~~ ✅ ALL DONE
 > ```
+> **SEARCH + BRIGHT DATA: BUTUNLAY TUGALLANGAN (T-411..T-425)** ✅
 
 ---
 
@@ -678,359 +679,38 @@ Onboarding reminders — daily 10AM cron, 3-day check for incomplete onboarding.
 
 > ~~T-415~~ DONE (2026-03-08) — SearchPage + route + nav + i18n, commit a6cd581
 > ~~T-416~~ DONE (2026-03-08) — API client + types, commit d155bd9
+> ~~T-417~~ DONE (2026-03-09) — i18n search translations uz/ru/en, commit 48cec40
+> ~~T-418~~ DONE (2026-03-09) — ProductSearchCard, commit 48cec40
 
 ---
 
-### T-417 | P1 | FRONTEND | i18n — search page translations (uz, ru, en) | 30min | pending[Bekzod]
-
-**Sana:** 2026-03-08
-**Manba:** yangi-feature
-**Topilgan joyda:** `apps/web/src/i18n/uz.ts`, `ru.ts`, `en.ts`
-**Mas'ul:** Bekzod
-
-**Tahlil:**
-3 ta til faylida `search.*` kalitlari yo'q. Nav link, placeholder,
-button, empty state, error matnlari kerak.
-
-**Yechim:**
-Har 3 til fayliga `search` bo'limi qo'shish:
-```
-search.title = "Mahsulot qidirish" / "Поиск товаров" / "Product Search"
-search.placeholder = "Mahsulot nomi..." / "Название товара..." / "Product name..."
-search.track = "Kuzatish" / "Отслеживать" / "Track"
-search.noResults = "Topilmadi" / "Не найдено" / "No results"
-search.error = "Qidirishda xato" / "Ошибка поиска" / "Search error"
-nav.search = "Qidiruv" / "Поиск" / "Search"
-```
-
-**Fayllar:**
-- `apps/web/src/i18n/uz.ts`
-- `apps/web/src/i18n/ru.ts`
-- `apps/web/src/i18n/en.ts`
-
-**Bog'liqlik:** T-415 (SearchPage kerak)
+### ~~T-417~~ ✅ DONE (2026-03-09, 48cec40) → Done.md
 
 ---
 
-### T-418 | P1 | FRONTEND | ProductSearchCard — rasm, narx, rating, track button | 1h | pending[Bekzod]
-
-**Sana:** 2026-03-08
-**Manba:** yangi-feature
-**Topilgan joyda:** yangi component
-**Mas'ul:** Bekzod
-
-**Tahlil:**
-Search natijalarini ko'rsatadigan card component. Uzum search API
-rasm URL bermaydi (faqat id, title, price, rating). Rasm uchun
-Uzum CDN pattern ishlatish mumkin: `https://images.uzum.uz/...`
-
-**Muammo va xavflar:**
-- Rasm URL: Uzum search API da `photoUrl` yo'q — faqat product detail da bor
-- Lazy load: 24 ta card bir vaqtda rasm yuklash — IntersectionObserver kerak
-- Track button: optimistic UI — bosilganda darhol "Kuzatilmoqda" ko'rsatish
-- Narx formati: Uzum narxlari SUM da (tiyin emas)
-
-**Yechim:**
-1. `ProductSearchCard` component:
-   - Rasm: placeholder yoki Uzum CDN URL pattern (`/product/{id}/photo`)
-   - Title: max 2 qator, text-ellipsis
-   - Narx: `Intl.NumberFormat('uz-UZ')` bilan format
-   - Rating: yulduzlar yoki raqam
-   - Buyurtmalar soni: `ordersQuantity` yoki `ordersAmount`
-   - "Kuzatish" button: `trackFromSearch(id)` chaqiradi
-2. Grid layout: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`
-3. Loading skeleton: card shaklidagi pulse animation
-4. Track state: `useState<Set<number>>` — allaqachon track qilinganlarni saqlash
-
-**Fayllar:**
-- `apps/web/src/components/search/ProductSearchCard.tsx` — yangi
-- `apps/web/src/components/search/SearchSkeleton.tsx` — yangi
-
-**Bog'liqlik:** T-416 (API types), T-415 (SearchPage da ishlatiladi)
+### ~~T-418~~ ✅ DONE (2026-03-09, 48cec40) → Done.md
 
 ---
 
 ## FAZA 3 — EXPAND PANEL (P1)
 
-### T-419 | P1 | FRONTEND | Inline expand panel — tahlil, sourcing preview | 2h | pending[Bekzod]
-
-**Sana:** 2026-03-08
-**Manba:** yangi-feature
-**Topilgan joyda:** yangi component
-**Mas'ul:** Bekzod
-
-**Tahlil:**
-Card bosilganda pastda (modal EMAS) expand panel ochiladi.
-Bu panel da: mahsulot detail, score, va keyinchalik (T-422) Bright Data
-narx taqqoslash paneli ko'rsatiladi.
-
-**Muammo va xavflar:**
-- Grid layout buzilishi: expand panel grid-cols orasiga tushishi kerak
-- `grid-column: 1 / -1` (full-width) CSS trick kerak
-- Animation: height auto → CSS transition qiyin — framer-motion yoki max-height trick
-- Mobile: horizontal scroll yoki stack layout
-
-**Yechim:**
-1. `ExpandPanel` component:
-   - Trigger: card dagi "Tahlil" button
-   - Joylashuv: card row dan keyin, full-width (`col-span-full`)
-   - Content: ScoreRadial, narx/stok, rating
-   - Close button (X)
-   - Smooth open/close animation
-2. Data fetching: `productsApi.getProduct(id)` — real product detail
-   - Loading: skeleton panel
-   - Error: inline error message
-3. Grid integration:
-   - Grid da `auto-rows` ishlatish
-   - Expand panel: `col-span-full` + `order` trick
-
-**Fayllar:**
-- `apps/web/src/components/search/ExpandPanel.tsx` — yangi
-- `apps/web/src/pages/SearchPage.tsx` — expand state management
-
-**Bog'liqlik:** T-413 (track endpoint), T-418 (card component)
+> ~~T-419~~ DONE (2026-03-09) — ExpandPanel inline analysis, commit 67d62c9
 
 ---
 
 ## FAZA 4 — BRIGHT DATA INTEGRATION (P1)
 
-### T-420 | P1 | BACKEND | BrightData client — Web Scraper API wrapper | 2h | pending[Bekzod]
-
-**Sana:** 2026-03-08
-**Manba:** yangi-feature
-**Topilgan joyda:** yangi modul
-**Mas'ul:** Bekzod
-
-**Tahlil:**
-Bright Data Web Scraper API orqali AliExpress, 1688, Taobao mahsulotlarini
-kalit so'z bo'yicha qidirish. API: POST so'rov → async callback yoki polling.
-
-**Muammo va xavflar:**
-- Bright Data API async: natija darhol kelmaydi, webhook yoki polling kerak
-- Rate limit: Bright Data o'z limitlari bor (plan ga bog'liq)
-- API key xavfsizligi: .env dan o'qish, log ga CHIQARMASLIK
-- Response format: har platform (AliExpress vs 1688) boshqa format
-
-**Yechim:**
-1. `BrightDataClient` service (`@Injectable()`):
-   - `searchProducts(platform, query, limit)` — platform-specific search
-   - Supported platforms: `aliexpress`, `1688`, `taobao`
-   - Response normalization: `BrightDataProduct` unified interface
-   - Error handling: timeout, auth failure, quota exceeded
-2. `BrightDataModule` — NestJS module:
-   - ConfigService dan API key olish
-   - `BRIGHT_DATA_API_KEY`, `BRIGHT_DATA_ZONE` env vars
-3. `BrightDataProduct` interface:
-   ```ts
-   interface BrightDataProduct {
-     platform: 'aliexpress' | '1688' | 'taobao';
-     title: string;
-     price: number;
-     currency: string;
-     priceUsd: number;
-     imageUrl: string;
-     productUrl: string;
-     rating?: number;
-     orders?: number;
-     shippingCost?: number;
-   }
-   ```
-4. Redis cache: `bd:{platform}:{query}` → 1 soat TTL
-
-**Fayllar:**
-- `apps/api/src/bright-data/bright-data.client.ts` — yangi
-- `apps/api/src/bright-data/bright-data.module.ts` — yangi
-- `apps/api/src/bright-data/interfaces/bright-data-product.interface.ts` — yangi
-
-**Bog'liqlik:** yo'q (parallel ishlanishi mumkin)
-
----
-
-### T-421 | P1 | BACKEND | Sourcing search endpoint — multi-platform query | 1h | pending[Bekzod]
-
-**Sana:** 2026-03-08
-**Manba:** yangi-feature
-**Topilgan joyda:** `apps/api/src/products/products.controller.ts`
-**Mas'ul:** Bekzod
-
-**Tahlil:**
-Track qilingan mahsulot uchun Bright Data orqali xalqaro narxlarni qidirish.
-Mahsulot title ni query sifatida ishlatib, bir nechta platformadan natija olish.
-
-**Muammo va xavflar:**
-- Parallel so'rovlar: 3 platformaga bir vaqtda → `Promise.allSettled`
-- Timeout: Bright Data sekin bo'lishi mumkin (10-30s) — frontend loading state
-- Credit cost: Bright Data har so'rov pulli — BillingGuard bilan integratsiya
-- AI query generation: title → optimized search query (optional, keyinchalik)
-
-**Yechim:**
-1. Yangi endpoint: `@Get(':id/sourcing-comparison')`
-   - Product detail dan title olish
-   - BrightDataClient.searchProducts() — 3 platformaga parallel
-   - `Promise.allSettled` — har biri mustaqil (biri fail = boshqalari ishlaydi)
-   - Response: `{ aliexpress: BrightDataProduct[], taobao: [...], 1688: [...] }`
-2. Redis cache: `sourcing:{productId}` → 6 soat TTL
-3. BillingGuard: sourcing so'rov = 1 kredit (configurable)
-
-**Fayllar:**
-- `apps/api/src/products/products.controller.ts` — yangi endpoint
-- `apps/api/src/products/products.service.ts` — getSourcingComparison method
-- `apps/api/src/products/products.module.ts` — BrightDataModule import
-
-**Bog'liqlik:** T-420 (BrightData client), T-413 (track kerak — faqat tracked mahsulotlar)
-
----
-
-### T-422 | P1 | FRONTEND | Source price panel — platform cards in expand | 2h | pending[Bekzod]
-
-**Sana:** 2026-03-08
-**Manba:** yangi-feature
-**Topilgan joyda:** `apps/web/src/components/search/ExpandPanel.tsx`
-**Mas'ul:** Bekzod
-
-**Tahlil:**
-Expand panel da Bright Data natijalarini ko'rsatish: har platforma uchun
-rangli card, narx taqqoslash, margin kalkulyator.
-
-**Muammo va xavflar:**
-- Currency conversion: USD/CNY → UZS (CBU kurs)
-- Loading state: Bright Data 10-30s javob beradi — skeleton + progress
-- Empty results: ba'zi platformalarda natija bo'lmasligi mumkin
-- Mobile responsive: 3 ta platform card horizontal scroll
-
-**Yechim:**
-1. `SourcePricePanel` component (expand panel ichida):
-   - Har platform uchun `PlatformCard`:
-     - Logo + rang: AliExpress (qizil), 1688 (ko'k), Taobao (yashil)
-     - Narx: original + UZS converted
-     - Margin: `(uzum_price - source_price - shipping) / uzum_price * 100`
-     - Link: "Saytga o'tish" button
-   - Sorting: narx bo'yicha (cheapest first)
-   - "Batafsil" button → SourcingPage ga navigate
-2. API call: `productsApi.getSourcingComparison(productId)`
-3. Loading: platform-shaped skeleton cards
-
-**Fayllar:**
-- `apps/web/src/components/search/SourcePricePanel.tsx` — yangi
-- `apps/web/src/components/search/PlatformCard.tsx` — yangi
-- `apps/web/src/components/search/ExpandPanel.tsx` — SourcePricePanel qo'shish
-- `apps/web/src/api/products.ts` — getSourcingComparison method
-
-**Bog'liqlik:** T-419 (ExpandPanel), T-421 (backend sourcing endpoint)
-
----
-
-### T-423 | P2 | BACKEND | Platform seed data + env config | 30min
-
-**Sana:** 2026-03-08
-**Manba:** yangi-feature
-**Topilgan joyda:** `apps/api/prisma/seed.ts`, `.env.example`
-**Mas'ul:** Bekzod
-
-**Tahlil:**
-Bright Data uchun environment o'zgaruvchilar va platform konfiguratsiya.
-Seed data: platform nomlari, logolar, ranglar.
-
-**Yechim:**
-1. `.env.example` ga qo'shish:
-   ```
-   BRIGHT_DATA_API_KEY=
-   BRIGHT_DATA_ZONE=web_scraper
-   BRIGHT_DATA_CALLBACK_URL=
-   ```
-2. Platform config (constant file):
-   ```ts
-   export const PLATFORMS = {
-     aliexpress: { name: 'AliExpress', color: '#E62E04', logo: '...' },
-     '1688': { name: '1688.com', color: '#FF6A00', logo: '...' },
-     taobao: { name: 'Taobao', color: '#FF5000', logo: '...' },
-   };
-   ```
-3. ConfigService validation: Bright Data key mavjud bo'lmasa warn log
-
-**Fayllar:**
-- `.env.example` — yangi env vars
-- `apps/api/src/bright-data/platforms.config.ts` — yangi
-- `apps/api/src/bright-data/bright-data.module.ts` — ConfigModule integration
-
-**Bog'liqlik:** T-420 (BrightData module)
+> ~~T-420~~ DONE (2026-03-09) — BrightDataClient, commit 48cec40
+> ~~T-421~~ DONE (2026-03-09) — sourcing-comparison endpoint, commit 67d62c9
+> ~~T-422~~ DONE (2026-03-09) — SourcePricePanel, commit 9d47b75
+> ~~T-423~~ DONE (2026-03-09) — platforms.config.ts, commit 48cec40
 
 ---
 
 ## FAZA 5 — POLISH (P2)
 
-### T-424 | P2 | FRONTEND | Track state dedup — prevent double tracking | 30min
-
-**Sana:** 2026-03-08
-**Manba:** kod-audit
-**Topilgan joyda:** yangi logic
-**Mas'ul:** Bekzod
-
-**Tahlil:**
-Foydalanuvchi bir mahsulotni bir necha marta track qilishi mumkin.
-Backend upsert qiladi (xato bermaydi), lekin UX yomon:
-button "Kuzatish" → "Kuzatilmoqda" o'zgarishi kerak, qayta bosilmasligi kerak.
-
-**Muammo va xavflar:**
-- Page refresh: state yo'qoladi — backend dan tracked list olish kerak
-- Multiple tabs: boshqa tab da track qilingan — localStorage sync
-- Optimistic UI: darhol "Kuzatilmoqda" ko'rsatish, backend xato bersa qaytarish
-
-**Yechim:**
-1. `useTrackedProducts()` hook:
-   - Mount da `productsApi.getTracked()` → `Set<number>` — tracked IDs
-   - `trackProduct(id)` — optimistic add to Set → API call → rollback on error
-   - Context/Zustand da global state sifatida saqlash
-2. `ProductSearchCard` da:
-   - `isTracked` prop → button disabled + "Kuzatilmoqda" text
-   - Loading state: button spinning
-
-**Fayllar:**
-- `apps/web/src/hooks/useTrackedProducts.ts` — yangi hook
-- `apps/web/src/components/search/ProductSearchCard.tsx` — tracked state
-- `apps/web/src/pages/SearchPage.tsx` — hook integration
-
-**Bog'liqlik:** T-418 (ProductSearchCard), T-413 (track endpoint)
-
----
-
-### T-425 | P3 | BACKEND | Search analytics — query logging + popular searches | 1h
-
-**Sana:** 2026-03-08
-**Manba:** self-improve
-**Topilgan joyda:** yangi feature
-**Mas'ul:** Bekzod
-
-**Tahlil:**
-Foydalanuvchilar nima qidirayotganini bilish — popular queries,
-conversion rate (search → track), zero-result queries.
-Admin dashboard da analytics ko'rsatish.
-
-**Yechim:**
-1. `SearchLog` Prisma model:
-   ```prisma
-   model SearchLog {
-     id         String   @id @default(cuid())
-     account_id String
-     query      String
-     results    Int      // natijalar soni
-     tracked    Boolean  @default(false) // track bosilganmi
-     created_at DateTime @default(now())
-     account    Account  @relation(fields: [account_id], references: [id])
-   }
-   ```
-2. Search endpoint da log yozish (async, non-blocking)
-3. Admin endpoint: `GET /admin/search-analytics`
-   - Top 20 queries (last 30 days)
-   - Zero-result queries
-   - Search → track conversion rate
-
-**Fayllar:**
-- `apps/api/prisma/schema.prisma` — SearchLog model
-- `apps/api/src/products/products.service.ts` — logSearch method
-- `apps/api/src/admin/admin.controller.ts` — search analytics endpoint
-
-**Bog'liqlik:** T-412 (search endpoint mavjud bo'lishi kerak), barchadan keyin
+> ~~T-424~~ DONE (2026-03-09) — useTrackedProducts hook, commit 9d47b75
+> ~~T-425~~ DONE (2026-03-09) — SearchLog model + admin endpoint, commit 0268999
 
 ---
 
@@ -1073,13 +753,13 @@ Admin dashboard da analytics ko'rsatish.
 | ~~Onboarding & Billing P0~~ (T-392..T-393) | ~~2~~ ✅ | ~~2~~ | Bekzod |
 | **Onboarding & Billing P1** (T-394..T-396) | 3 | 3 | Bekzod |
 | **Onboarding & Billing P2** (T-397..T-398) | 2 | 2 | Bekzod |
-| **Search + Bright Data Faza 1** (T-411..T-414) | 4 | 7 | Bekzod |
-| **Search + Bright Data Faza 2** (T-415..T-418) | 4 | 4 | Bekzod |
-| **Search + Bright Data Faza 3** (T-419) | 1 | 3 | Bekzod |
-| **Search + Bright Data Faza 4** (T-420..T-423) | 4 | 6 | Bekzod |
-| **Search + Bright Data Faza 5** (T-424..T-425) | 2 | 2 | Bekzod |
-| **JAMI task ochiq** | **~75** | | |
-| **JAMI bajarilgan** | **~163** | | → Done.md |
+| ~~Search + Bright Data Faza 1~~ (T-411..T-414) | ~~4~~ ✅ | ~~7~~ | Bekzod |
+| ~~Search + Bright Data Faza 2~~ (T-415..T-418) | ~~4~~ ✅ | ~~4~~ | Bekzod |
+| ~~Search + Bright Data Faza 3~~ (T-419) | ~~1~~ ✅ | ~~3~~ | Bekzod |
+| ~~Search + Bright Data Faza 4~~ (T-420..T-423) | ~~4~~ ✅ | ~~6~~ | Bekzod |
+| ~~Search + Bright Data Faza 5~~ (T-424..T-425) | ~~2~~ ✅ | ~~2~~ | Bekzod |
+| **JAMI task ochiq** | **~25** | | |
+| **JAMI bajarilgan** | **~180+** | | → Done.md |
 
 ---
 

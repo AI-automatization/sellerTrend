@@ -1,15 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ProxyAgent } from 'undici';
-import type { Dispatcher } from 'undici';
 import { parseUzumCategoryId, sleep } from '@uzum/utils';
 
 /**
  * Node.js 18+ global fetch accepts `dispatcher` from undici,
- * but it's not part of the standard RequestInit type.
- * This interface extends RequestInit with the undici-specific property.
+ * but undici@7 / undici-types@6 have incompatible Dispatcher shapes.
+ * We use a standalone interface to avoid the type conflict entirely.
  */
-interface UndiciRequestInit extends RequestInit {
-  dispatcher?: Dispatcher;
+interface UndiciRequestInit {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string;
+  signal?: AbortSignal;
+  dispatcher?: unknown;
 }
 
 /** Minimal Uzum SKU shape returned from REST API */
@@ -115,7 +118,8 @@ export interface UzumNormalizedProduct {
 
 const REST_BASE = 'https://api.uzum.uz/api/v2';
 
-const proxyDispatcher = process.env.PROXY_URL
+// Cast to `unknown` to avoid undici@7 vs undici-types@6 Dispatcher mismatch
+const proxyDispatcher: unknown = process.env.PROXY_URL
   ? new ProxyAgent(process.env.PROXY_URL)
   : undefined;
 const HEADERS = {

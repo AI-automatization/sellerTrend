@@ -22,6 +22,114 @@
 
 ---
 
+### T-423 | BACKEND | Platform seed data + env config (2026-03-09)
+
+**Manba:** yangi-feature
+**Muammo:** BrightData platform konfiguratsiyasi yo'q edi.
+**Yechim:** `platforms.config.ts` yaratildi — AliExpress/1688/Taobao config (name, color, datasetId). BrightDataClient env fallback bilan ishlaydi.
+**Fayllar:** `apps/api/src/bright-data/platforms.config.ts`
+**Commit:** 48cec40
+**Vaqt:** 10min (plan: 30min)
+**Ta'sir:** BrightData modul konfiguratsiya bilan to'liq ishlaydi.
+
+---
+
+### T-424 | FRONTEND | Track state dedup — prevent double tracking (2026-03-09)
+
+**Manba:** kod-audit
+**Muammo:** Foydalanuvchi bir mahsulotni qayta track qilishi mumkin edi.
+**Yechim:** `useTrackedProducts()` hook — mount da tracked IDs oladi, optimistic UI, rollback on error.
+**Fayllar:** `apps/web/src/hooks/useTrackedProducts.ts`, `SearchPage.tsx`, `ProductSearchCard.tsx`
+**Commit:** 9d47b75
+**Vaqt:** 20min (plan: 30min)
+**Ta'sir:** Duplicate tracking oldini olingan, UX yaxshilangan.
+
+---
+
+### T-425 | BACKEND | Search analytics — query logging + admin endpoint (2026-03-09)
+
+**Manba:** self-improve
+**Muammo:** Foydalanuvchilar nima qidirayotgani noma'lum edi.
+**Yechim:** `SearchLog` Prisma model + `logSearch()` async method + `GET /admin/search-analytics` endpoint (top queries, zero-result, conversion rate).
+**Fayllar:** `apps/api/prisma/schema.prisma`, `products.service.ts`, `admin.controller.ts`
+**Commit:** 0268999
+**Vaqt:** 40min (plan: 1h)
+**Ta'sir:** Admin dashboard da qidiruv analitikasi ko'rsatiladi.
+
+---
+
+### T-417 | FRONTEND | i18n search page translations uz/ru/en (2026-03-09)
+
+**Manba:** yangi-feature
+**Muammo:** SearchPage uchun i18n kalitlari yo'q edi — UI matnlari tarjima qilinmagan.
+**Yechim:** 3 til fayliga `search.*` bo'limi qo'shildi — title, placeholder, track, noResults, inStock, outOfStock va boshqa kalitlar.
+**Fayllar:** `apps/web/src/i18n/uz.ts`, `ru.ts`, `en.ts`
+**Commit:** 48cec40
+**Vaqt:** 15min (plan: 30min)
+**Ta'sir:** Search sahifasi to'liq 3 tilda ishlaydi.
+
+---
+
+### T-418 | FRONTEND | ProductSearchCard — rasm, narx, rating, track button (2026-03-09)
+
+**Manba:** yangi-feature
+**Muammo:** Search natijalarini ko'rsatadigan card component yo'q edi.
+**Yechim:** `ProductSearchCard` yaratildi — rasm (lazy load + fallback SVG), narx (Intl format + discount%), rating (yulduz), orders, stock badge, track button (optimistic UI + loading spinner).
+**Fayllar:** `apps/web/src/components/search/ProductSearchCard.tsx`
+**Commit:** 48cec40
+**Vaqt:** 40min (plan: 1h)
+**Ta'sir:** Foydalanuvchi search natijalarini vizual card formatida ko'radi, track/tahlil qila oladi.
+
+---
+
+### T-419 | FRONTEND | Inline expand panel — tahlil, sourcing preview (2026-03-09)
+
+**Manba:** yangi-feature
+**Muammo:** Mahsulotni bosganда batafsil ma'lumot ko'rish imkoni yo'q edi.
+**Yechim:** `ExpandPanel` component — col-span-full inline panel, animate in/out, stats grid (narx/rating/orders/stok), score progress bar, weekly bought, SourcePricePanel integratsiya.
+**Fayllar:** `apps/web/src/components/search/ExpandPanel.tsx`, `apps/web/src/pages/SearchPage.tsx`
+**Commit:** 67d62c9
+**Vaqt:** 1h (plan: 2h)
+**Ta'sir:** Foydalanuvchi search dan chiqmasdan mahsulot tahlilini ko'ra oladi.
+
+---
+
+### T-420 | BACKEND | BrightData client — Web Scraper API wrapper (2026-03-09)
+
+**Manba:** yangi-feature
+**Muammo:** Xalqaro narx taqqoslash uchun AliExpress/1688/Taobao ma'lumoti yo'q edi.
+**Yechim:** `BrightDataClient` service — trigger scrape → poll snapshot → normalize to common schema. 3 platform parallel (`Promise.allSettled`). API key yo'q bo'lsa graceful empty return.
+**Fayllar:** `apps/api/src/bright-data/bright-data.client.ts`, `bright-data.module.ts`, `interfaces/`, `platforms.config.ts`
+**Commit:** 48cec40
+**Vaqt:** 1.5h (plan: 2h)
+**Ta'sir:** Backend xalqaro narxlarni 3 platformadan olishi mumkin.
+
+---
+
+### T-421 | BACKEND | Sourcing search endpoint — multi-platform query (2026-03-09)
+
+**Manba:** yangi-feature
+**Muammo:** Frontend dan Bright Data natijalarini olish uchun endpoint yo'q edi.
+**Yechim:** `GET /products/:id/sourcing-comparison` endpoint — product title oladi, BrightDataClient.searchAllPlatforms() chaqiradi, natijalarni platformalar bo'yicha guruhlab qaytaradi.
+**Fayllar:** `apps/api/src/products/products.controller.ts`, `products.service.ts`, `products.module.ts`
+**Commit:** 67d62c9
+**Vaqt:** 30min (plan: 1h)
+**Ta'sir:** Frontend tracked mahsulotlar uchun xalqaro narx taqqoslash ko'rsata oladi.
+
+---
+
+### T-422 | FRONTEND | Source price panel — platform cards in expand (2026-03-09)
+
+**Manba:** yangi-feature
+**Muammo:** Expand panel da xalqaro narxlar ko'rsatilmas edi.
+**Yechim:** `SourcePricePanel` component — AliExpress (qizil), 1688 (ko'k), Taobao (yashil) platform cardlar. Narx USD + original, margin %, rating, orders, "cheapest" badge. Mobile horizontal scroll, desktop 3-column grid.
+**Fayllar:** `apps/web/src/components/search/SourcePricePanel.tsx`
+**Commit:** 9d47b75
+**Vaqt:** 1h (plan: 2h)
+**Ta'sir:** Tracked mahsulotlar uchun xalqaro narx taqqoslash vizualizatsiya qilingan.
+
+---
+
 ### T-430 | FRONTEND | Extension — UzumCard track button restored (2026-03-11)
 
 **Manba:** regression (T-429 fix dan keyin backend ishlaydi, lekin UI dan tugma olingan edi)
