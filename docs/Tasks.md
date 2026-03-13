@@ -681,7 +681,7 @@ Onboarding reminders — daily 10AM cron, 3-day check for incomplete onboarding.
 
 ---
 
-### T-417 | P1 | FRONTEND | i18n — search page translations (uz, ru, en) | 30min
+### T-417 | P1 | FRONTEND | i18n — search page translations (uz, ru, en) | 30min | pending[Bekzod]
 
 **Sana:** 2026-03-08
 **Manba:** yangi-feature
@@ -712,7 +712,7 @@ nav.search = "Qidiruv" / "Поиск" / "Search"
 
 ---
 
-### T-418 | P1 | FRONTEND | ProductSearchCard — rasm, narx, rating, track button | 1h
+### T-418 | P1 | FRONTEND | ProductSearchCard — rasm, narx, rating, track button | 1h | pending[Bekzod]
 
 **Sana:** 2026-03-08
 **Manba:** yangi-feature
@@ -752,7 +752,7 @@ Uzum CDN pattern ishlatish mumkin: `https://images.uzum.uz/...`
 
 ## FAZA 3 — EXPAND PANEL (P1)
 
-### T-419 | P1 | FRONTEND | Inline expand panel — tahlil, sourcing preview | 2h
+### T-419 | P1 | FRONTEND | Inline expand panel — tahlil, sourcing preview | 2h | pending[Bekzod]
 
 **Sana:** 2026-03-08
 **Manba:** yangi-feature
@@ -794,7 +794,7 @@ narx taqqoslash paneli ko'rsatiladi.
 
 ## FAZA 4 — BRIGHT DATA INTEGRATION (P1)
 
-### T-420 | P1 | BACKEND | BrightData client — Web Scraper API wrapper | 2h
+### T-420 | P1 | BACKEND | BrightData client — Web Scraper API wrapper | 2h | pending[Bekzod]
 
 **Sana:** 2026-03-08
 **Manba:** yangi-feature
@@ -846,7 +846,7 @@ kalit so'z bo'yicha qidirish. API: POST so'rov → async callback yoki polling.
 
 ---
 
-### T-421 | P1 | BACKEND | Sourcing search endpoint — multi-platform query | 1h
+### T-421 | P1 | BACKEND | Sourcing search endpoint — multi-platform query | 1h | pending[Bekzod]
 
 **Sana:** 2026-03-08
 **Manba:** yangi-feature
@@ -881,7 +881,7 @@ Mahsulot title ni query sifatida ishlatib, bir nechta platformadan natija olish.
 
 ---
 
-### T-422 | P1 | FRONTEND | Source price panel — platform cards in expand | 2h
+### T-422 | P1 | FRONTEND | Source price panel — platform cards in expand | 2h | pending[Bekzod]
 
 **Sana:** 2026-03-08
 **Manba:** yangi-feature
