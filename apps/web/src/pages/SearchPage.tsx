@@ -307,7 +307,7 @@ export function SearchPage() {
                     <ExpandPanel
                       productId={uzumId}
                       onClose={() => setExpandedId(null)}
-                      isTracked={isTracked}
+                      isTracked={tracked}
                     />
                   )}
                 </Fragment>
