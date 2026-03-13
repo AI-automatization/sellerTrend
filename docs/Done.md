@@ -22,6 +22,30 @@
 
 ---
 
+### T-431 | BACKEND | trackProduct shop.orders_quantity BigInt mismatch → 500 (2026-03-13)
+
+**Manba:** production-bug (extension UzumCard track button → "500: Internal server error")
+**Muammo:** `trackProduct` va `trackFromSearch` metodlarida `shop.upsert` da `orders_quantity: detail.shop.ordersQuantity` — plain `number` berilgan, Prisma `BigInt?` kutadi → `PrismaClientValidationError` → 500. Kuzatilmagan mahsulotni track qilib bo'lmasdi.
+**Yechim:** Ikki metodda, to'rtta qatorda `BigInt(detail.shop.ordersQuantity ?? 0)` bilan wrap qilindi.
+**Fayllar:** `apps/api/src/products/products.service.ts`
+**Commit:** 5016e7e
+**Vaqt:** 15min (plan: 10min)
+**Ta'sir:** Kuzatilmagan har qanday mahsulotni extensiondan to'g'ridan track qilish mumkin.
+
+---
+
+### T-432 | FRONTEND | Extension — tabs permission + per-user track state fix (2026-03-13)
+
+**Manba:** production-bug (debug session 2026-03-11)
+**Muammo:** 3 ta bug bitta debug sessiyada topildi: (1) `manifest.permissions` da `"activeTab"/"tabs"` yo'q → popup `chrome.tabs.query()` da `tab.url = undefined` → productId null → "Tez Tahlil" chiqmasdi. (2) ScoreCard `initialTracked={true}` har doim berilgan — boshqa user track qilgan mahsulot ham "Kuzatilmoqda" ko'rsatardi. (3) UzumCard da xato xabari ko'rinmasdi — foydalanuvchi qaysi xato ekanini bilmasdi.
+**Yechim:** (1) `package.json` manifest ga `"activeTab"` va `"tabs"` qo'shildi. (2) `product-page.tsx` da `quick-score` + `get-tracked-products` parallel fetch — joriy user uchun aniq tekshirish. (3) UzumCard da `errorMsg` state — xato matni UI da ko'rsatiladi.
+**Fayllar:** `apps/extension/package.json`, `apps/extension/src/contents/product-page.tsx`, `apps/extension/src/components/UzumCard.tsx`, `apps/extension/src/components/ScoreCard.tsx`, `apps/extension/src/components/QuickAnalysisModal.tsx`
+**Commit:** ef13464, ee96d92, e16acaf, 7b5b386
+**Vaqt:** 2h (plan: —)
+**Ta'sir:** Popup da "Tez Tahlil" ishlaydi. Track holati foydalanuvchiga to'g'ri ko'rsatiladi. Xato xabari aniq ko'rinadi.
+
+---
+
 ### T-423 | BACKEND | Platform seed data + env config (2026-03-09)
 
 **Manba:** yangi-feature
