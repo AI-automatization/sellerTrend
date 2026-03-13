@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { sendToBackground } from "@plasmohq/messaging";
 import type { CategoryItem } from "~/lib/api";
-import { getTopCategories } from "~/lib/api";
+import type { GetCategoriesResponseBody } from "~/background/messages/get-categories";
 
 interface CategoryFilterProps {
   onSelect: (category: CategoryItem) => void;
@@ -16,11 +17,17 @@ export default function CategoryFilter({ onSelect, selectedCategoryId }: Categor
     setLoading(true);
     setError(null);
 
-    getTopCategories()
-      .then((data) => {
-        // Take top 10 by average score
-        const sorted = data.sort((a, b) => b.avg_score - a.avg_score).slice(0, 10);
-        setCategories(sorted);
+    sendToBackground<Record<string, never>, GetCategoriesResponseBody>({
+      name: "get-categories",
+      body: {},
+    })
+      .then((res) => {
+        if (res.success && res.data) {
+          const sorted = res.data.sort((a, b) => b.avg_score - a.avg_score).slice(0, 10);
+          setCategories(sorted);
+        } else {
+          setError(res.error ?? "Kategoriyalar yuklanmadi");
+        }
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : "Kategoriyalar yuklanmadi");
