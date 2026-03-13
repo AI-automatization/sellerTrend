@@ -1102,7 +1102,7 @@ real-time sinxronizatsiya qiladi. Hech qanday conflict yo'q.
              │                                   │
              └──────────────┬────────────────────┘
                             │
-              ┌─────────────▼─────────────┐
+              ┌─────────────▼────────────-─┐
               │     COORDINATION LAYER     │
               │                            │
               │  Option A: File-based      │

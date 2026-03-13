@@ -579,13 +579,13 @@ export class ProductsService {
           update: {
             title: detail.shop.title,
             rating: detail.shop.rating,
-            orders_quantity: detail.shop.ordersQuantity,
+            orders_quantity: BigInt(detail.shop.ordersQuantity ?? 0),
           },
           create: {
             id: BigInt(detail.shop.id),
             title: detail.shop.title,
             rating: detail.shop.rating,
-            orders_quantity: detail.shop.ordersQuantity,
+            orders_quantity: BigInt(detail.shop.ordersQuantity ?? 0),
           },
         });
       }
@@ -645,13 +645,13 @@ export class ProductsService {
           update: {
             title: detail.shop.title,
             rating: detail.shop.rating,
-            orders_quantity: detail.shop.ordersQuantity,
+            orders_quantity: BigInt(detail.shop.ordersQuantity ?? 0),
           },
           create: {
             id: BigInt(detail.shop.id),
             title: detail.shop.title,
             rating: detail.shop.rating,
-            orders_quantity: detail.shop.ordersQuantity,
+            orders_quantity: BigInt(detail.shop.ordersQuantity ?? 0),
           },
         });
       }
