@@ -94,8 +94,8 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 ## Phase 5 — Competitor + Price Tracking (P2) ~4.5h — TAHLIL JARAYONIDA
 
-### T-220 | P2 | FRONTEND | Extension — Competitor analysis tab | 1.5h
-**Mas'ul:** pending[Sardor] — **Tahlil jarayonida (2026-03-09)**
+### T-220 | P2 | FRONTEND | Extension — Competitor analysis tab | 1.5h | pending[Sardor]
+**Mas'ul:** Sardor
 
 ### T-221 | P2 | FRONTEND | Extension — Price history chart | 1.5h
 **Mas'ul:** pending[Sardor] — **Tahlil jarayonida**
