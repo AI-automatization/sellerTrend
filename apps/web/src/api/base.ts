@@ -14,9 +14,8 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
   // Prevent browser HTTP cache from serving stale API responses
-  if (config.method === 'get') {
-    config.params = { ...config.params, _t: Date.now() };
-  }
+  config.headers['Cache-Control'] = 'no-cache, no-store';
+  config.headers['Pragma'] = 'no-cache';
   return config;
 });
 
