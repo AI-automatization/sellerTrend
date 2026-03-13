@@ -22,6 +22,39 @@
 
 ---
 
+### T-440 | FRONTEND | Search — limit 24 → 100 (2026-03-14)
+
+**Manba:** user-feedback
+**Muammo:** Qidiruv faqat 24 ta natija qaytarardi.
+**Yechim:** `DEFAULT_LIMIT` olib tashlandi, `products.ts` da default `100` ga o'zgartirildi.
+**Fayllar:** `apps/web/src/pages/SearchPage.tsx`, `apps/web/src/api/products.ts`
+**Vaqt:** 10min
+**Ta'sir:** Qidiruv natijalarida 100 tagacha mahsulot ko'rinadi.
+
+---
+
+### T-438 | FRONTEND | Search page — qidiruv button va manual trigger (2026-03-14)
+
+**Manba:** user-feedback
+**Muammo:** Search sahifasida debounce bilan avtomatik qidiruv ishlardi — aniq "Qidirish" button yo'q edi. Foydalanuvchi button bosib qidirmoqchi edi.
+**Yechim:** Debounce useEffect olib tashlandi. Input + button `<form>` ichiga o'raldi. Enter yoki button click `handleSubmit` ni chaqiradi. Loading spinner button ichida ko'rinadi.
+**Fayllar:** `apps/web/src/pages/SearchPage.tsx`
+**Vaqt:** 20min
+**Ta'sir:** Foydalanuvchi qachon qidirish boshlashini o'zi nazorat qiladi. Keraksiz API so'rovlar yo'qoldi.
+
+---
+
+### T-437 | FRONTEND | Web dashboard — ProductsTable overflow-y-auto fix (2026-03-14)
+
+**Manba:** user-feedback
+**Muammo:** Ko'p mahsulot kuzatilganda asosiy dashboard sahifasi butunlay scroll bo'lib ketardi. `ProductsTable` da height cheklov yo'q edi.
+**Yechim:** `overflow-x-auto` div ga `overflow-y-auto max-h-[480px]` qo'shildi. `thead tr` ga `sticky top-0 z-10` qo'shildi — scroll paytida sarlavhalar ko'rinib turadi.
+**Fayllar:** `apps/web/src/components/dashboard/ProductsTable.tsx`
+**Vaqt:** 15min
+**Ta'sir:** Dashboard sahifasi layout buzilmaydi. Jadval ichida scroll bo'ladi, ustun sarlavhalari doim ko'rinadi.
+
+---
+
 ### T-436 | FRONTEND | Extension TrackedList — "Kuzatilayotgan mahsulotlar yo'q" fix (2026-03-14)
 
 **Manba:** production-bug

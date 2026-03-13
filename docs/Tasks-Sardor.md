@@ -106,6 +106,27 @@ Manba: T-328 dan ajratildi (2026-03-06)
 > ~~T-435~~ ✅ DONE (2026-03-14) → Done.md — toFixed/toLocaleString null crash fix
 > ~~T-436~~ ✅ DONE (2026-03-14) → Done.md — TrackedList flat format fix
 
+> ~~T-437~~ ✅ DONE (2026-03-14) → Done.md — Web dashboard ProductsTable overflow-y fix
+
+> ~~T-438~~ ✅ DONE (2026-03-14) → Done.md — Search page button + Enter qo'shildi
+
+---
+
+> ~~T-440~~ ✅ DONE (2026-03-14) → Done.md — Search limit 24 → 100 ga oshirildi
+
+---
+
+### T-439 | P1 | BACKEND | Search — DB fallback photo_url mapga qo'shilmagan | 15min
+
+**Manba:** kod-audit (2026-03-14)
+**Mas'ul:** pending[Bekzod]
+
+**Muammo:** `products.service.ts` `searchProductsDB()` da `photo_url: true` select qilinadi lekin return map da `photoUrl` maydoni yo'q. DB fallback ishlaganda barcha product rasmlari ko'rinmaydi.
+
+**Yechim:** `searchProductsDB` return map ga `photoUrl: p.photo_url ?? undefined` qo'shish.
+
+**Fayllar:** `apps/api/src/products/products.service.ts` — `searchProductsDB()` metodi (~line 335)
+
 ---
 
 > ~~T-430~~ ✅ DONE (2026-03-11) → Done.md — UzumCard track button qaytarildi (commit 724caf1)
