@@ -42,6 +42,7 @@ async function apiFetch<T>(path: string, opts: FetchOptions = {}): Promise<T> {
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(10000),
   });
 
   if (res.status === 401 && !skipAuth && !path.includes("/auth/")) {
@@ -211,7 +212,7 @@ export interface TrackedProductItem {
 }
 
 export async function getTrackedProducts(): Promise<TrackedProductItem[]> {
-  return apiFetch<TrackedProductItem[]>("/products");
+  return apiFetch<TrackedProductItem[]>("/products/tracked");
 }
 
 // ── Categories ───────────────────────────────────────────────

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { getTopCategories } from "~/lib/api";
+import { sendToBackground } from "@plasmohq/messaging";
+import type { GetCategoriesResponseBody } from "~/background/messages/get-categories";
 
 interface ProductDetail {
   id: string;
@@ -36,9 +37,13 @@ export default function CompetitorAnalysis({ product }: CompetitorAnalysisProps)
     setLoading(true);
     setEmpty(false);
 
-    getTopCategories()
-      .then((categories) => {
+    sendToBackground<Record<string, never>, GetCategoriesResponseBody>({
+      name: "get-categories",
+      body: {},
+    })
+      .then((res) => {
         if (cancelled) return;
+        const categories = res.success && res.data ? res.data : [];
 
         // Kategoriya ichida shu product bormi tekshiramiz
         for (const cat of categories) {
@@ -153,7 +158,7 @@ export default function CompetitorAnalysis({ product }: CompetitorAnalysisProps)
                           isStronger ? "text-error" : "text-success"
                         }`}
                       >
-                        ⭐ {comp.score.toFixed(1)}
+                        ⭐ {(comp.score ?? 0).toFixed(1)}
                       </div>
                       {scoreDiff != null && (
                         <div className="text-base-content/50 text-xs">

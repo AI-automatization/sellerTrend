@@ -93,7 +93,7 @@ export default function TrackedList() {
             textAlign: "left",
           }}
         >
-          {p.score !== null && (
+          {p.score != null && (
             <span
               style={{
                 fontSize: "11px",

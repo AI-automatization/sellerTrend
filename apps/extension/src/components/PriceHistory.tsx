@@ -99,7 +99,7 @@ export default function PriceHistory({ productId, currentPrice }: PriceHistoryPr
                     height: `${Math.max(displayNormalized[idx], 10)}%`,
                     minHeight: "8px",
                   }}
-                  title={`${date.toLocaleDateString("uz-UZ")}: ${snap.price.toLocaleString()}so'm`}
+                  title={`${date.toLocaleDateString("uz-UZ")}: ${(snap.price ?? 0).toLocaleString()}so'm`}
                 />
                 <div className="text-xs text-base-content/60 mt-1">{dayLabel}</div>
               </div>

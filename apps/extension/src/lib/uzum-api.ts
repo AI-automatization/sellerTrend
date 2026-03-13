@@ -24,7 +24,7 @@ export async function fetchUzumProduct(
   try {
     const res = await fetch(
       `https://api.uzum.uz/api/v2/product/${productId}`,
-      { headers: { Accept: "application/json" } }
+      { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(8000) }
     );
     if (!res.ok) return null;
 

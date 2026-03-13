@@ -34,7 +34,7 @@ export default function CategoryInsights({ category }: CategoryInsightsProps) {
       {/* Average Score Card */}
       <div className="bg-primary/10 rounded-lg p-3 border border-primary/20">
         <div className="text-xs text-base-content/70 mb-1">O'rtacha Score</div>
-        <div className="text-2xl font-bold text-primary">{category.avg_score.toFixed(1)}</div>
+        <div className="text-2xl font-bold text-primary">{(category.avg_score ?? 0).toFixed(1)}</div>
         <div className="text-xs text-base-content/60 mt-1">
           {category.product_count} ta mahsulot asosida
         </div>

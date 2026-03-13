@@ -22,6 +22,36 @@
 
 ---
 
+### T-436 | FRONTEND | Extension TrackedList — noto'g'ri API endpoint fix (2026-03-14)
+
+**Manba:** production-bug
+**Muammo:** Popup da "Kuzatilayotgan mahsulotlar yo'q" chiqardi — foydalanuvchining tracked mahsulotlari bo'lishiga qaramay. `getTrackedProducts()` `/products` ga so'rov yuborardi (search endpoint), lekin backend da to'g'ri endpoint `/products/tracked`.
+**Yechim:** `api.ts` da `apiFetch("/products")` → `apiFetch("/products/tracked")` tuzatildi.
+**Fayllar:** `apps/extension/src/lib/api.ts`
+**Commit:** (bugungi batch commit)
+**Vaqt:** 15min
+**Ta'sir:** Popup da kuzatilayotgan mahsulotlar to'g'ri ko'rinadi.
+
+---
+
+### T-435 | FRONTEND | Extension popup crash — toFixed/toLocaleString null/undefined xatoliklar (2026-03-14)
+
+**Manba:** production-bug
+**Muammo:** Popup ochilishi bilan yoki tracked mahsulot modal da bir nechta "Cannot read properties of null/undefined (reading 'toFixed'/'toLocaleString')" crash xatoliklari. `avg_score`, `comp.score`, `snap.price` kabi qiymatlar runtime da null/undefined bo'lgan holda xavfsiz guard yo'q edi.
+**Yechim:**
+- `CategoryFilter`: `avg_score.toFixed(1)` → `(avg_score ?? 0).toFixed(1)`
+- `TrackedList`: `score !== null` → `score != null` (undefined ham ushlaydi)
+- `CategoryInsights`: `avg_score.toFixed(1)` → `(avg_score ?? 0).toFixed(1)`
+- `CompetitorAnalysis`: `comp.score.toFixed(1)` → `(comp.score ?? 0).toFixed(1)`, `sendToBackground` ga o'tkazildi
+- `PriceHistory`: `snap.price.toLocaleString()` → `(snap.price ?? 0).toLocaleString()`
+- `storage.ts`: `recordPriceSnapshot` da null/NaN narx saqlanmasligi uchun guard qo'shildi
+**Fayllar:** `CategoryFilter.tsx`, `TrackedList.tsx`, `CategoryInsights.tsx`, `CompetitorAnalysis.tsx`, `PriceHistory.tsx`, `storage.ts`, `popup.tsx` (debug logs cleaned)
+**Commit:** (bugungi batch commit)
+**Vaqt:** 2h
+**Ta'sir:** Popup barqaror ishlaydi. Tracked mahsulot modali crash qilmaydi. Narx tarixi null narxlarni saqlamaydi.
+
+---
+
 ### T-434 | FRONTEND | Extension popup — CategoryFilter popup yopilishi fix (2026-03-13)
 
 **Manba:** production-bug

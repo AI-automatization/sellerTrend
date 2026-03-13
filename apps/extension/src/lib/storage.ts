@@ -161,6 +161,7 @@ export async function getPriceHistory(productId: string): Promise<PriceSnapshot[
 }
 
 export async function recordPriceSnapshot(productId: string, price: number): Promise<void> {
+  if (price == null || isNaN(price) || price <= 0) return;
   const all = await getAllPriceHistory();
   const history = all[productId] ?? [];
 

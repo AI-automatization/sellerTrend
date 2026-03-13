@@ -59,6 +59,7 @@ function Popup() {
   useEffect(() => {
     if (!productId || !authState?.isLoggedIn) return;
 
+    console.log("[VENTRA DEBUG] prefetch start for productId:", productId);
     setPrefetching(true);
     setPrefetchedData(null);
 
@@ -67,9 +68,7 @@ function Popup() {
       body: { productId },
     })
       .then((res) => setPrefetchedData(res))
-      .catch(() => {
-        // Pre-fetch failed silently — modal will show error state
-      })
+      .catch(() => {})
       .finally(() => setPrefetching(false));
   }, [productId, authState?.isLoggedIn]);
 
