@@ -101,23 +101,6 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 ## BUGS & CRITICAL FIXES
 
-### T-434 | P0 | FRONTEND | Extension popup — CategoryFilter to'g'ridan fetch qilishi popupni yopib qo'yadi | 30min
-
-**Manba:** production-bug (2026-03-13)
-**Mas'ul:** pending[Sardor]
-
-**Muammo:** `CategoryFilter` komponentida `getTopCategories()` popup kontekstidan to'g'ridan `fetch()` qilmoqda. Chrome MV3 da popup kontekstidan to'g'ridan network request qilinganda popup focus yo'qotishi mumkin → popup 1 sek da yopiladi. Boshqa barcha komponentlar (`TrackedList`, `QuickAnalysisModal`) `sendToBackground` pattern ishlatadi.
-
-**Yechim:**
-1. `apps/extension/src/background/messages/get-categories.ts` — yangi handler yaratish (`get-tracked-products` patterniga o'xshash)
-2. `apps/extension/src/components/CategoryFilter.tsx` — `getTopCategories()` o'rniga `sendToBackground("get-categories")` ishlatish
-
-**Fayllar:**
-- `apps/extension/src/background/messages/get-categories.ts` — YANGI
-- `apps/extension/src/components/CategoryFilter.tsx` — update
-
----
-
 ### T-433 | P0 | FRONTEND | Extension — SW message channel timeout fix | 30min
 
 **Manba:** production-bug (2026-03-13)

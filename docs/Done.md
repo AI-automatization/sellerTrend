@@ -22,6 +22,18 @@
 
 ---
 
+### T-434 | FRONTEND | Extension popup — CategoryFilter popup yopilishi fix (2026-03-13)
+
+**Manba:** production-bug
+**Muammo:** Popup extension icon bosilganda loading spinnерlar ko'rinib, 1 sek da yopilardi. `CategoryFilter` popup kontekstidan to'g'ridan `fetch()` qilardi → Chrome MV3 da popup focus yo'qotishiga sabab bo'lardi.
+**Yechim:** `get-categories.ts` background handler yaratildi. `CategoryFilter` `getTopCategories()` o'rniga `sendToBackground("get-categories")` ishlatadigan bo'ldi — `TrackedList` bilan bir xil arxitektura.
+**Fayllar:** `apps/extension/src/background/messages/get-categories.ts` (yangi), `apps/extension/src/components/CategoryFilter.tsx`
+**Commit:** 06ad2f5
+**Vaqt:** 30min (plan: 30min)
+**Ta'sir:** Popup endi yopilmaydi. Kategoriyalar to'g'ri yuklanadi.
+
+---
+
 ### T-224 | FRONTEND | Extension — Hotkeys (Ctrl+Shift+T/S) (2026-03-13)
 
 **Manba:** yangi-feature
