@@ -7,6 +7,7 @@ const KEYS = {
   REFRESH_TOKEN: "ventra_refresh_token",
   FAVORITES: "ventra_favorites",
   NOTES: "ventra_notes",
+  PRICE_HISTORY: "ventra_price_history",
 } as const;
 
 export async function getAccessToken(): Promise<string | null> {
@@ -136,6 +137,47 @@ export async function deleteNote(productId: string): Promise<void> {
   const notes = await getNotes();
   const updated = notes.filter((n) => n.product_id !== productId);
   await storage.set(KEYS.NOTES, JSON.stringify(updated));
+}
+
+// ── Price History ─────────────────────────────────────────
+
+export interface PriceSnapshot {
+  price: number;
+  timestamp: string; // ISO string
+}
+
+async function getAllPriceHistory(): Promise<Record<string, PriceSnapshot[]>> {
+  const raw = (await storage.get(KEYS.PRICE_HISTORY)) ?? "{}";
+  try {
+    return JSON.parse(raw) as Record<string, PriceSnapshot[]>;
+  } catch {
+    return {};
+  }
+}
+
+export async function getPriceHistory(productId: string): Promise<PriceSnapshot[]> {
+  const all = await getAllPriceHistory();
+  return all[productId] ?? [];
+}
+
+export async function recordPriceSnapshot(productId: string, price: number): Promise<void> {
+  const all = await getAllPriceHistory();
+  const history = all[productId] ?? [];
+
+  // Skip if same day and same price already recorded
+  const lastEntry = history[history.length - 1];
+  const today = new Date().toDateString();
+  if (lastEntry && new Date(lastEntry.timestamp).toDateString() === today && lastEntry.price === price) {
+    return;
+  }
+
+  history.push({ price, timestamp: new Date().toISOString() });
+
+  // Keep last 30 entries
+  if (history.length > 30) history.splice(0, history.length - 30);
+
+  all[productId] = history;
+  await storage.set(KEYS.PRICE_HISTORY, JSON.stringify(all));
 }
 
 export { KEYS, storage };

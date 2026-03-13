@@ -81,27 +81,21 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 ## Phase 4 — Category + Advanced (P1) ~5h — TAHLIL JARAYONIDA
 
-### T-217 | P1 | FRONTEND | Extension — Category filter sidebar | 1.5h
-**Mas'ul:** pending[Sardor] — **Tahlil jarayonida (2026-03-09)**
+~~### T-217~~ ✅ DONE (2026-03-13) → Done.md
 
-### T-218 | P1 | FRONTEND | Extension — Advanced filters | 1.5h
-**Mas'ul:** pending[Sardor] — **Tahlil jarayonida**
+~~### T-218~~ ✅ DONE (2026-03-13) → Done.md
 
-### T-219 | P1 | FRONTEND | Extension — Category trends & insights | 2h
-**Mas'ul:** pending[Sardor] — **Tahlil jarayonida**
+~~### T-219~~ ✅ DONE (2026-03-13) → Done.md
 
 ---
 
 ## Phase 5 — Competitor + Price Tracking (P2) ~4.5h — TAHLIL JARAYONIDA
 
-### T-220 | P2 | FRONTEND | Extension — Competitor analysis tab | 1.5h | pending[Sardor]
-**Mas'ul:** Sardor
+> ~~T-220~~ ✅ DONE (2026-03-13) → Done.md
 
-### T-221 | P2 | FRONTEND | Extension — Price history chart | 1.5h
-**Mas'ul:** pending[Sardor] — **Tahlil jarayonida**
+> ~~T-221~~ ✅ DONE (2026-03-13) → Done.md
 
-### T-222 | P2 | FRONTEND | Extension — Favorites & notes | 1.5h
-**Mas'ul:** pending[Sardor] — **Tahlil jarayonida**
+> ~~T-222~~ ✅ DONE (2026-03-13) → Done.md
 
 ---
 
@@ -111,21 +105,7 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 > ~~T-427~~ ✅ DONE (2026-03-09) → Done.md — Modal auto-close fix (Escape + loading backdrop)
 
-### T-428 | P0 | FRONTEND | Extension — VENTRA bazasida yo'q mahsulotda modal yopilib qoladi | 30min
-**Mas'ul:** pending[Sardor] — **Fix tayyor, tekshiruv kutilmoqda (2026-03-10)**
-
-**Muammo:** VENTRA bazasida kuzatilmagan mahsulot sahifasida extension icon bosilganda modal ochiladi va yopilib ketadi. Kuzatuvga qo'shilgan mahsulotda esa ishlaydi.
-
-**Sabab:** `quick-score` background handler VENTRA API 404 qaytarsa `success: false` yuboradi. Modal error ko'rsatib qolishi kerak edi, lekin yopilib ketmoqda — bu T-427 bilan bog'liq bo'lishi mumkin yoki uzum fallback bo'lmagan eski buildda.
-
-**Fix (2026-03-10):** `uzum-api.ts` qo'shildi — VENTRA da ma'lumot bo'lmasa `api.uzum.uz/api/v2/product/{id}` dan narx/reyting/buyurtmalar ko'rsatadi. UzumCard content script overlay sifatida ko'rsatiladi (popup-independent).
-
-**Fayllar:**
-- `apps/extension/src/lib/uzum-api.ts` — YANGI
-- `apps/extension/src/background/messages/quick-score.ts` — parallel fetch
-- `apps/extension/src/components/QuickAnalysisModal.tsx` — uzumData render
-- `apps/extension/src/components/UzumCard.tsx` — YANGI content script overlay
-- `apps/extension/src/contents/product-page.tsx` — UzumCard integratsiyasi
+> ~~T-428~~ ✅ DONE (2026-03-13) → Done.md
 
 
 > T-429 → **Bekzod ga o'tkazildi** (2026-03-11) — Tasks-Bekzod.md da
@@ -133,6 +113,10 @@ Manba: T-328 dan ajratildi (2026-03-06)
 ---
 
 ## Phase 6 — AI + Hotkeys (P2) ~2.5h
+
+~~### T-224~~ ✅ DONE (2026-03-13) → Done.md
+
+---
 
 ### T-223 | P2 | FRONTEND | Extension — AI recommendations (Claude) | 1.5h
 
@@ -167,35 +151,6 @@ AI'dan:
 
 ---
 
-### T-224 | P2 | FRONTEND | Extension — Hotkeys & shortcuts | 1h
-
-**Manba:** yangi-feature
-**Topilgan joyda:** `apps/extension/src/lib/hotkeys.ts`
-**Mas'ul:** pending[Sardor]
-
-**Tahlil:**
-Extension'da hotkey'lar:
-- `Ctrl+Shift+V` — Open/close popup
-- `Ctrl+Shift+T` — Toggle quick analysis modal
-- `Ctrl+Shift+S` — Save to favorites (product page'da)
-- `Ctrl+Shift+N` — Open notes editor
-
-Content script orqali keyboard events.
-
-**Yechim:**
-1. `hotkeys.ts` — YANGI helper
-   - Register hotkeys
-   - Global listeners (content script)
-2. `contents/product-page.tsx` — Add hotkey listeners
-3. `popup.tsx` — Hotkey hints (small tooltips)
-4. Settings page (future): customizable hotkeys
-
-**Fayllar:**
-- `apps/extension/src/lib/hotkeys.ts` — YANGI
-- `apps/extension/src/contents/product-page.tsx` — UPDATED
-- `apps/extension/src/popup.tsx` — UPDATED (hints)
-
-**Bog'liqlik:** T-217 DONE
 
 ---
 

@@ -22,6 +22,102 @@
 
 ---
 
+### T-224 | FRONTEND | Extension — Hotkeys (Ctrl+Shift+T/S) (2026-03-13)
+
+**Manba:** yangi-feature
+**Muammo:** Extension overlay bilan faqat sichqon orqali ishlash mumkin edi — keyboard shortcut yo'q edi.
+**Yechim:** `hotkeys.ts` yaratildi: `Ctrl+Shift+T` overlay ko'rsatish/yashirish, `Ctrl+Shift+S` sevimlilarga qo'shish/olib tashlash. `product-page.tsx` da `registerHotkeys` hook ulantirildi. Favorite toggle uchun 2 soniya toast xabar qo'shildi.
+**Fayllar:** `apps/extension/src/lib/hotkeys.ts` (yangi), `apps/extension/src/contents/product-page.tsx`, `apps/extension/src/contents/plasmo-overlay.css`
+**Commit:** keyingi
+**Vaqt:** 45min (plan: 1h)
+**Ta'sir:** Foydalanuvchi klaviaturadan overlay boshqarishi va mahsulotni sevimlilarga qo'sha oladi.
+
+---
+
+### T-221 | FRONTEND | Extension — Price history chart (2026-03-13)
+
+**Manba:** yangi-feature
+**Muammo:** `PriceHistory.tsx` `Math.random()` bilan soxta narx tarixi ko'rsatardi — har modal ochilganda farq qilardi.
+**Yechim:** `storage.ts` ga `recordPriceSnapshot` / `getPriceHistory` qo'shildi. Modal ochilganda joriy narx localStorage ga saqlanadi (kuniga 1 marta, faqat o'zgarsa). 2+ kuzatuv bo'lganda real bar chart; kam bo'lsa "narx tarixi to'planmoqda" xabari.
+**Fayllar:** `apps/extension/src/lib/storage.ts`, `apps/extension/src/components/PriceHistory.tsx`, `apps/extension/src/components/QuickAnalysisModal.tsx`
+**Commit:** keyingi
+**Vaqt:** 1h (plan: 1.5h)
+**Ta'sir:** Narx tarixi endi foydalanuvchi kuzatishi asosida real ma'lumot ko'rsatadi.
+
+---
+
+### T-428 | FRONTEND | Extension — VENTRA bazasida yo'q mahsulotda modal yopilishi (2026-03-11)
+
+**Manba:** production-bug
+**Muammo:** Kuzatilmagan mahsulot sahifasida extension icon bosilganda modal ochilardi va darhol yopilib ketardi (VENTRA API 404 → success:false → modal error state emas, yopilib ketardi).
+**Yechim:** `uzum-api.ts` yaratildi — VENTRA bazasida bo'lmasa `api.uzum.uz` fallback. `product-page.tsx` da parallel fetch + `UzumCard` overlay content script sifatida ko'rsatiladi (popup-independent). Kuzatilmagan mahsulotlarda ham to'liq narx/reyting/buyurtmalar ko'rinadi.
+**Fayllar:** `apps/extension/src/lib/uzum-api.ts`, `apps/extension/src/background/messages/quick-score.ts`, `apps/extension/src/components/UzumCard.tsx`, `apps/extension/src/contents/product-page.tsx`
+**Commit:** a6374a7, 91cd6b4
+**Vaqt:** 2h (plan: 30min)
+**Ta'sir:** Extension har qanday uzum.uz mahsulotida ishlaydi — VENTRA bazasida bo'lmasa ham.
+
+---
+
+### T-222 | FRONTEND | Extension — Favorites & notes (2026-03-13)
+
+**Manba:** yangi-feature
+**Muammo:** Mahsulotga eslatma yoki sevimli belgi qo'yish imkoni yo'q edi.
+**Yechim:** `ProductNotes.tsx` yaratildi — sevimli toggle + matnli eslatma. `storage.ts` ga `favorites`/`notes` CRUD qo'shildi. `QuickAnalysisModal.tsx` ga Tahlil tabida integratsiya qilindi.
+**Fayllar:** `apps/extension/src/components/ProductNotes.tsx`, `apps/extension/src/lib/storage.ts`, `apps/extension/src/components/QuickAnalysisModal.tsx`
+**Commit:** avvalgi sessiyada
+**Vaqt:** 1h (plan: 1.5h)
+**Ta'sir:** Foydalanuvchi mahsulotlarga eslatma yozib, sevimlilarga qo'sha oladi.
+
+---
+
+### T-219 | FRONTEND | Extension — Category trends & insights (2026-03-13)
+
+**Manba:** yangi-feature
+**Muammo:** Kategoriya tanlanganda faqat mahsulot ro'yxati ko'rinardi — trend, raqobat darajasi, narx diapazoni yo'q edi.
+**Yechim:** `CategoryInsights.tsx` yaratildi — avg score, raqobat darajasi (past/o'rta/yuqori), narx diapazoni, ijobiy belgilar. `QuickAnalysisModal.tsx` ga Kategoriya Tahlili modalida integratsiya qilindi.
+**Fayllar:** `apps/extension/src/components/CategoryInsights.tsx`, `apps/extension/src/components/QuickAnalysisModal.tsx`
+**Commit:** avvalgi sessiyada
+**Vaqt:** 1.5h (plan: 2h)
+**Ta'sir:** Kategoriya tanlanganda to'liq analytics ko'rinadi.
+
+---
+
+### T-218 | FRONTEND | Extension — Advanced filters (2026-03-13)
+
+**Manba:** yangi-feature
+**Muammo:** Kategoriya top mahsulotlari ro'yxatida qidirish/saralash imkoni yo'q edi.
+**Yechim:** `AdvancedFilters.tsx` — matn qidirish + sort (score, narx asc/desc, haftalik). `QuickAnalysisModal.tsx` da Kategoriya Tahlili bo'limiga integratsiya.
+**Fayllar:** `apps/extension/src/components/AdvancedFilters.tsx`, `apps/extension/src/components/QuickAnalysisModal.tsx`
+**Commit:** avvalgi sessiyada
+**Vaqt:** 1h (plan: 1.5h)
+**Ta'sir:** Kategoriya top mahsulotlarini qidirish va saralash mumkin.
+
+---
+
+### T-217 | FRONTEND | Extension — Category filter sidebar (2026-03-13)
+
+**Manba:** yangi-feature
+**Muammo:** Popup da kategoriyalar ko'rsatilmasdi — faqat kuzatilayotgan mahsulotlar ro'yxati bor edi.
+**Yechim:** `CategoryFilter.tsx` — `getTopCategories()` orqali avg_score bo'yicha top 10 kategoriya. `popup.tsx` ga integratsiya: kategoriyani bosish `QuickAnalysisModal` ni kategoriya tahlili rejimida ochadi.
+**Fayllar:** `apps/extension/src/components/CategoryFilter.tsx`, `apps/extension/src/popup.tsx`
+**Commit:** avvalgi sessiyada
+**Vaqt:** 1h (plan: 1.5h)
+**Ta'sir:** Foydalanuvchi popupdan kategoriya tahlilini ochishi mumkin.
+
+---
+
+### T-220 | FRONTEND | Extension — Competitor analysis tab (2026-03-13)
+
+**Manba:** yangi-feature
+**Muammo:** `CompetitorAnalysis.tsx` da `generateCompetitors()` random/fake data ishlatardi — foydalanuvchiga haqiqiy raqobatchilar ko'rinmasdi.
+**Yechim:** `getTopCategories()` chaqiriladi → `product.id` qaysi kategoriyaning `top_products` da ekanini topadi → o'sha kategoriyaning boshqa top mahsulotlari ko'rsatiladi. Score farqi, narx farqi, haftalik savdo, kategoriyada o'rin va tahlil xulosasi qo'shildi.
+**Fayllar:** `apps/extension/src/components/CompetitorAnalysis.tsx`
+**Commit:** keyingi
+**Vaqt:** 1h (plan: 1.5h)
+**Ta'sir:** "Raqobatchilar" tabida endi real VENTRA ma'lumotlari — kategoriyada necha-o'rin, narx va score taqqoslama ko'rsatiladi.
+
+---
+
 ### T-431 | BACKEND | trackProduct shop.orders_quantity BigInt mismatch → 500 (2026-03-13)
 
 **Manba:** production-bug (extension UzumCard track button → "500: Internal server error")

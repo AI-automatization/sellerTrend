@@ -8,6 +8,7 @@ import CategoryInsights from "./CategoryInsights";
 import CompetitorAnalysis from "./CompetitorAnalysis";
 import PriceHistory from "./PriceHistory";
 import ProductNotes from "./ProductNotes";
+import { recordPriceSnapshot } from "~/lib/storage";
 
 interface QuickAnalysisModalProps {
   productId: string | null;
@@ -91,17 +92,20 @@ function applyResponse(
   setError: (e: string) => void
 ) {
   if (res.success && res.data) {
+    const price = res.data.sell_price;
+    recordPriceSnapshot(productId, price).catch(() => {});
     setProduct({
       id: productId,
       score: res.data.score,
       weekly_bought: res.data.weekly_bought,
       trend: res.data.trend,
-      sell_price: res.data.sell_price,
+      sell_price: price,
       last_updated: res.data.last_updated,
       ...(res.uzumData ? uzumFields(res.uzumData) : {}),
     });
   } else if (res.success && res.uzumData) {
     const u = res.uzumData;
+    recordPriceSnapshot(productId, u.purchasePrice).catch(() => {});
     setProduct({
       id: productId,
       score: null,
@@ -331,7 +335,7 @@ export default function QuickAnalysisModal({
 
                 {/* Price History */}
                 <div className="border-t pt-3">
-                  <PriceHistory currentPrice={product.sell_price} />
+                  <PriceHistory productId={product.id} currentPrice={product.sell_price} />
                 </div>
 
                 {/* Favorites & Notes */}

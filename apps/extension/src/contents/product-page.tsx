@@ -4,6 +4,8 @@ import { sendToBackground } from "@plasmohq/messaging"
 
 import { parseProductIdFromUrl, isProductPage } from "~/lib/url-parser"
 import { onUrlChange } from "~/lib/spa-observer"
+import { registerHotkeys } from "~/lib/hotkeys"
+import { addFavorite, removeFavorite, isFavorite } from "~/lib/storage"
 import ScoreCard from "~/components/ScoreCard"
 import UzumCard from "~/components/UzumCard"
 import type { AuthStateResponseBody } from "~/background/messages/get-auth-state"
@@ -43,6 +45,7 @@ export default function ProductPageOverlay() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [visible, setVisible] = useState(true)
   const [isTracked, setIsTracked] = useState(false)
+  const [favToast, setFavToast] = useState<string | null>(null)
 
   // Check auth state and listen for changes
   useEffect(() => {
@@ -61,6 +64,25 @@ export default function ProductPageOverlay() {
     window.addEventListener("storage", handleStorageChange)
     return () => window.removeEventListener("storage", handleStorageChange)
   }, [])
+
+  // Hotkeys: Ctrl+Shift+T = toggle overlay, Ctrl+Shift+S = toggle favorite
+  useEffect(() => {
+    if (!productId) return;
+
+    return registerHotkeys((action) => {
+      if (action === "toggle-overlay") {
+        setVisible((v) => !v);
+      } else if (action === "toggle-favorite") {
+        isFavorite(productId).then((fav) => {
+          const next = !fav;
+          const fn = next ? addFavorite : removeFavorite;
+          fn(productId).catch(() => {});
+          setFavToast(next ? "⭐ Sevimlilarga qo'shildi" : "☆ Sevimlilardan olib tashlandi");
+          setTimeout(() => setFavToast(null), 2000);
+        }).catch(() => {});
+      }
+    });
+  }, [productId]);
 
   // Watch URL changes for SPA navigation
   useEffect(() => {
@@ -120,40 +142,53 @@ export default function ProductPageOverlay() {
 
   // ── Render ──────────────────────────────────────────────
 
-  if (!productId || !visible) return null
+  if (!productId) return null;
+
+  const toast = favToast ? <div className="ventra-toast">{favToast}</div> : null;
+
+  if (!visible) return toast;
 
   if (!isLoggedIn) {
     return (
-      <div className="ventra-login-hint">
-        <div className="ventra-login-logo">V</div>
-        VENTRA ga kiring
-      </div>
+      <>
+        {toast}
+        <div className="ventra-login-hint">
+          <div className="ventra-login-logo">V</div>
+          VENTRA ga kiring
+        </div>
+      </>
     )
   }
 
   if (scoreData) {
     return (
-      <ScoreCard
-        productId={productId}
-        score={scoreData.score}
-        weeklyBought={scoreData.weekly_bought}
-        sellPrice={scoreData.sell_price}
-        trend={scoreData.trend}
-        onClose={() => setVisible(false)}
-        initialTracked={isTracked}
-      />
+      <>
+        {toast}
+        <ScoreCard
+          productId={productId}
+          score={scoreData.score}
+          weeklyBought={scoreData.weekly_bought}
+          sellPrice={scoreData.sell_price}
+          trend={scoreData.trend}
+          onClose={() => setVisible(false)}
+          initialTracked={isTracked}
+        />
+      </>
     )
   }
 
   // Uzum.uz fallback — VENTRA score not yet available
   if (uzumData) {
     return (
-      <UzumCard
-        uzumData={uzumData}
-        onClose={() => setVisible(false)}
-      />
+      <>
+        {toast}
+        <UzumCard
+          uzumData={uzumData}
+          onClose={() => setVisible(false)}
+        />
+      </>
     )
   }
 
-  return null
+  return toast;
 }

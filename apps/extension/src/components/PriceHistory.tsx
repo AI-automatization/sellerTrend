@@ -1,48 +1,62 @@
-interface PriceHistoryData {
-  date: string;
-  price: number;
-  day: string;
-}
+import { useEffect, useState } from "react";
+import { getPriceHistory } from "~/lib/storage";
+import type { PriceSnapshot } from "~/lib/storage";
 
 interface PriceHistoryProps {
+  productId: string;
   currentPrice: number;
 }
 
-// Generate simulated 7-day price history
-function generatePriceHistory(basePrice: number): PriceHistoryData[] {
-  const data: PriceHistoryData[] = [];
-  const days = ["Yak", "Dush", "Sesh", "Chor", "Pay", "Jum", "Shan"];
+const DAYS_UZ = ["Yak", "Dush", "Sesh", "Chor", "Pay", "Jum", "Shan"];
 
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
+export default function PriceHistory({ productId, currentPrice }: PriceHistoryProps) {
+  const [history, setHistory] = useState<PriceSnapshot[]>([]);
+  const [loading, setLoading] = useState(true);
 
-    // Simulate price fluctuation
-    const variation = (Math.random() - 0.5) * basePrice * 0.1; // ±5% variation
-    const price = Math.floor(basePrice + variation);
+  useEffect(() => {
+    getPriceHistory(productId)
+      .then((data) => setHistory(data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [productId]);
 
-    data.push({
-      date: date.toLocaleDateString("uz-UZ", { month: "2-digit", day: "2-digit" }),
-      price,
-      day: days[6 - i],
-    });
+  if (loading) {
+    return (
+      <div className="flex justify-center py-3">
+        <span className="loading loading-spinner loading-xs text-primary" />
+      </div>
+    );
   }
 
-  return data;
-}
+  // Need at least 2 data points for a meaningful chart
+  if (history.length < 2) {
+    return (
+      <div className="bg-base-200 rounded-lg p-3 text-xs text-center text-base-content/60">
+        <div className="text-lg mb-1">📊</div>
+        <div>Narx tarixi to'planmoqda</div>
+        <div className="mt-1 text-base-content/40">
+          Joriy narx: {Math.floor(currentPrice).toLocaleString()} so'm
+        </div>
+      </div>
+    );
+  }
 
-export default function PriceHistory({ currentPrice }: PriceHistoryProps) {
-  const history = generatePriceHistory(currentPrice);
   const prices = history.map((h) => h.price);
   const minPrice = Math.min(...prices);
   const maxPrice = Math.max(...prices);
   const avgPrice = Math.floor(prices.reduce((a, b) => a + b, 0) / prices.length);
   const priceRange = maxPrice - minPrice;
 
-  // Normalize prices for bar height (0-100%)
-  const normalizedPrices = prices.map((p) =>
+  const normalized = prices.map((p) =>
     priceRange === 0 ? 50 : ((p - minPrice) / priceRange) * 100
   );
+
+  // Last 7 entries for display
+  const displayHistory = history.slice(-7);
+  const displayNormalized = normalized.slice(-7);
+
+  const firstPrice = displayHistory[0].price;
+  const lastPrice = displayHistory[displayHistory.length - 1].price;
 
   return (
     <div className="space-y-3">
@@ -50,51 +64,53 @@ export default function PriceHistory({ currentPrice }: PriceHistoryProps) {
       <div className="grid grid-cols-3 gap-2">
         <div className="bg-info/10 rounded-lg p-2 text-center">
           <div className="text-xs text-base-content/70">Min</div>
-          <div className="font-semibold text-sm">{minPrice.toLocaleString()}so'm</div>
+          <div className="font-semibold text-xs">{minPrice.toLocaleString()}so'm</div>
         </div>
         <div className="bg-success/10 rounded-lg p-2 text-center">
           <div className="text-xs text-base-content/70">O'rta</div>
-          <div className="font-semibold text-sm">{avgPrice.toLocaleString()}so'm</div>
+          <div className="font-semibold text-xs">{avgPrice.toLocaleString()}so'm</div>
         </div>
         <div className="bg-warning/10 rounded-lg p-2 text-center">
           <div className="text-xs text-base-content/70">Max</div>
-          <div className="font-semibold text-sm">{maxPrice.toLocaleString()}so'm</div>
+          <div className="font-semibold text-xs">{maxPrice.toLocaleString()}so'm</div>
         </div>
       </div>
 
-      {/* Chart */}
+      {/* Bar Chart */}
       <div className="bg-base-200 rounded-lg p-3">
-        <div className="text-xs font-semibold mb-2">7 kunlik narx trend</div>
+        <div className="text-xs font-semibold mb-2">
+          Narx tarixi ({history.length} ta kuzatuv)
+        </div>
 
-        {/* Bar Chart */}
-        <div className="flex items-end gap-1 h-32 bg-base-100 rounded p-2">
-          {history.map((data, idx) => (
-            <div key={idx} className="flex-1 flex flex-col items-center justify-end">
-              {/* Bar */}
-              <div
-                className={`w-full rounded-t transition-colors ${
-                  idx === history.length - 1
-                    ? "bg-primary"
-                    : data.price > avgPrice
-                      ? "bg-warning"
-                      : "bg-info"
-                }`}
-                style={{
-                  height: `${Math.max(normalizedPrices[idx], 10)}%`,
-                  minHeight: "8px",
-                }}
-                title={`${data.date}: ${data.price.toLocaleString()}so'm`}
-              />
-              {/* Label */}
-              <div className="text-xs text-base-content/60 mt-1">{data.day}</div>
-            </div>
-          ))}
+        <div className="flex items-end gap-1 h-24 bg-base-100 rounded p-2">
+          {displayHistory.map((snap, idx) => {
+            const date = new Date(snap.timestamp);
+            const dayLabel = DAYS_UZ[date.getDay()];
+            const isLast = idx === displayHistory.length - 1;
+            const isAboveAvg = snap.price > avgPrice;
+
+            return (
+              <div key={snap.timestamp} className="flex-1 flex flex-col items-center justify-end">
+                <div
+                  className={`w-full rounded-t transition-colors ${
+                    isLast ? "bg-primary" : isAboveAvg ? "bg-warning" : "bg-info"
+                  }`}
+                  style={{
+                    height: `${Math.max(displayNormalized[idx], 10)}%`,
+                    minHeight: "8px",
+                  }}
+                  title={`${date.toLocaleDateString("uz-UZ")}: ${snap.price.toLocaleString()}so'm`}
+                />
+                <div className="text-xs text-base-content/60 mt-1">{dayLabel}</div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Legend */}
         <div className="text-xs text-base-content/70 mt-2 flex gap-2">
           <span className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-primary rounded" /> Bugun
+            <div className="w-2 h-2 bg-primary rounded" /> Oxirgi
           </span>
           <span className="flex items-center gap-1">
             <div className="w-2 h-2 bg-warning rounded" /> Yuqori
@@ -105,14 +121,14 @@ export default function PriceHistory({ currentPrice }: PriceHistoryProps) {
         </div>
       </div>
 
-      {/* Trend Analysis */}
+      {/* Trend */}
       <div className="bg-base-200 rounded-lg p-2 text-xs">
         <div className="font-semibold mb-1">📊 Trend</div>
         <div className="text-base-content/70">
-          {history[history.length - 1].price > history[0].price
-            ? "📈 Narx o'sishmoqda (+)"
-            : history[history.length - 1].price < history[0].price
-              ? "📉 Narx kamaymoqda (-)"
+          {lastPrice > firstPrice
+            ? `📈 Narx o'sishmoqda (+${Math.floor(lastPrice - firstPrice).toLocaleString()})`
+            : lastPrice < firstPrice
+              ? `📉 Narx kamaymoqda (-${Math.floor(firstPrice - lastPrice).toLocaleString()})`
               : "➡️ Narx o'zgarmasdi"}
         </div>
       </div>
