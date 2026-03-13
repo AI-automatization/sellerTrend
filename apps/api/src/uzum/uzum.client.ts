@@ -88,6 +88,7 @@ export interface UzumSearchProduct {
   rating?: number;
   ordersQuantity?: number;
   ordersAmount?: number;
+  feedbackQuantity?: number;
 }
 
 /** Normalized product shape returned by fetchProductDetail */
@@ -117,6 +118,8 @@ export interface UzumNormalizedProduct {
 }
 
 const REST_BASE = 'https://api.uzum.uz/api/v2';
+const GRAPHQL_URL = 'https://graphql.uzum.uz/';
+const AUTH_TOKEN_URL = 'https://id.uzum.uz/api/auth/token';
 
 // Cast to `unknown` to avoid undici@7 vs undici-types@6 Dispatcher mismatch
 const proxyDispatcher: unknown = process.env.PROXY_URL
@@ -130,6 +133,61 @@ const HEADERS = {
   'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',
   Accept: 'application/json',
 };
+
+/** GraphQL search query — minimal fields for search results */
+const SEARCH_GRAPHQL_QUERY = `
+query getMakeSearch($queryInput: MakeSearchQueryInput!) {
+  makeSearch(query: $queryInput) {
+    total
+    items {
+      catalogCard {
+        __typename
+        ...DefaultCardFragment
+      }
+      __typename
+    }
+    __typename
+  }
+}
+
+fragment DefaultCardFragment on CatalogCard {
+  feedbackQuantity
+  id
+  minFullPrice
+  minSellPrice
+  ordersQuantity
+  productId
+  rating
+  title
+  __typename
+}
+`;
+
+/** GraphQL response types */
+interface GqlSearchResponse {
+  data?: {
+    makeSearch?: {
+      total?: number;
+      items?: Array<{
+        catalogCard?: {
+          productId?: number;
+          id?: number;
+          title?: string;
+          minSellPrice?: number;
+          minFullPrice?: number;
+          ordersQuantity?: number;
+          rating?: number;
+          feedbackQuantity?: number;
+        };
+      }>;
+    };
+  };
+  errors?: Array<{ message: string }>;
+}
+
+/** Cached anonymous token */
+let cachedAnonToken: string | null = null;
+let cachedAnonTokenExpiry = 0;
 
 const HTML_HEADERS = {
   'User-Agent':
@@ -305,18 +363,185 @@ export class UzumClient {
   }
 
   /**
-   * Search Uzum products by text query.
+   * Get anonymous Uzum token for GraphQL API access.
+   * Token is cached for 5 hours (actual expiry is 6h).
+   */
+  private async getAnonymousToken(): Promise<string | null> {
+    const now = Date.now();
+    if (cachedAnonToken && cachedAnonTokenExpiry > now) {
+      return cachedAnonToken;
+    }
+
+    try {
+      const res = await fetchWithTimeout(AUTH_TOKEN_URL, {
+        method: 'POST',
+        headers: {
+          ...HEADERS,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+        dispatcher: proxyDispatcher,
+      });
+
+      if (!res.ok) {
+        this.logger.warn(`getAnonymousToken HTTP ${res.status}`);
+        return null;
+      }
+
+      // Token comes in Set-Cookie header as access_token=...
+      const setCookies = res.headers.getSetCookie?.() ?? [];
+      let token: string | null = null;
+      for (const cookie of setCookies) {
+        const match = cookie.match(/access_token=([^;]+)/);
+        if (match) {
+          token = match[1];
+          break;
+        }
+      }
+
+      // Also try response body
+      if (!token) {
+        const body = (await res.json()) as Record<string, unknown>;
+        token = (body.access_token as string) ?? null;
+      }
+
+      if (token) {
+        cachedAnonToken = token;
+        // Cache for 5 hours (actual expiry is 6h)
+        cachedAnonTokenExpiry = now + 5 * 60 * 60 * 1000;
+        this.logger.log('Anonymous Uzum token acquired');
+      }
+
+      return token;
+    } catch (err: unknown) {
+      this.logger.error(`getAnonymousToken failed: ${err instanceof Error ? err.message : String(err)}`);
+      return null;
+    }
+  }
+
+  /**
+   * Search Uzum products by text query via GraphQL API.
+   * Falls back to REST if GraphQL fails.
    * Returns items array from the search endpoint.
    * On error / rate-limit returns empty array.
    */
   async searchProducts(
     query: string,
     size: number,
-    page: number,
+    _page: number,
+  ): Promise<UzumSearchProduct[]> {
+    // Try GraphQL first
+    const gqlResult = await this.searchProductsGraphQL(query, size);
+    if (gqlResult.length > 0) return gqlResult;
+
+    // Fallback to REST (may still work for some queries)
+    this.logger.warn('GraphQL search returned empty, trying REST fallback');
+    return this.searchProductsREST(query, size);
+  }
+
+  /** GraphQL-based product search */
+  private async searchProductsGraphQL(
+    query: string,
+    limit: number,
+  ): Promise<UzumSearchProduct[]> {
+    try {
+      const token = await this.getAnonymousToken();
+      if (!token) {
+        this.logger.warn('No anonymous token — skipping GraphQL search');
+        return [];
+      }
+
+      const variables = {
+        queryInput: {
+          text: query,
+          showAdultContent: 'NONE',
+          filters: [],
+          sort: 'BY_RELEVANCE_DESC',
+          pagination: { offset: 0, limit },
+          correctQuery: false,
+          getFastCategories: false,
+          getPromotionItems: false,
+          getFastFacets: false,
+          fastFacetsLimit: 0,
+        },
+      };
+
+      const res = await fetchWithTimeout(
+        GRAPHQL_URL,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+            'apollographql-client-name': 'web-customers',
+            'apollographql-client-version': '1.63.2',
+            Origin: 'https://uzum.uz',
+            Referer: 'https://uzum.uz/',
+            'User-Agent': HEADERS['User-Agent'],
+          },
+          body: JSON.stringify({
+            operationName: 'getMakeSearch',
+            variables,
+            query: SEARCH_GRAPHQL_QUERY,
+          }),
+          dispatcher: proxyDispatcher,
+        },
+        20_000,
+      );
+
+      if (res.status === 401) {
+        // Token expired — clear cache and retry once
+        cachedAnonToken = null;
+        cachedAnonTokenExpiry = 0;
+        this.logger.warn('GraphQL 401 — token expired, will retry on next call');
+        return [];
+      }
+
+      if (!res.ok) {
+        this.logger.warn(`searchProductsGraphQL HTTP ${res.status}`);
+        return [];
+      }
+
+      const data = (await res.json()) as GqlSearchResponse;
+
+      if (data.errors?.length) {
+        this.logger.warn(`GraphQL errors: ${data.errors.map((e) => e.message).join(', ')}`);
+        return [];
+      }
+
+      const items = data.data?.makeSearch?.items ?? [];
+      return items
+        .map((item) => {
+          const card = item.catalogCard;
+          if (!card) return null;
+          return {
+            id: card.id ?? card.productId,
+            productId: card.productId,
+            title: card.title,
+            minSellPrice: card.minSellPrice,
+            sellPrice: card.minSellPrice,
+            rating: card.rating,
+            ordersQuantity: card.ordersQuantity,
+            feedbackQuantity: card.feedbackQuantity,
+          } as UzumSearchProduct;
+        })
+        .filter((p): p is UzumSearchProduct => p !== null);
+    } catch (err: unknown) {
+      this.logger.warn(
+        `searchProductsGraphQL failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return [];
+    }
+  }
+
+  /** Legacy REST-based product search (fallback) */
+  private async searchProductsREST(
+    query: string,
+    size: number,
   ): Promise<UzumSearchProduct[]> {
     const url =
       `${REST_BASE}/main/search/product` +
-      `?text=${encodeURIComponent(query)}&size=${size}&page=${page}&sort=BY_RELEVANCE_DESC&showAdultContent=HIDE`;
+      `?text=${encodeURIComponent(query)}&size=${size}&page=0&sort=BY_RELEVANCE_DESC&showAdultContent=HIDE`;
 
     try {
       const response = await fetchWithTimeout(url, {
@@ -325,12 +550,12 @@ export class UzumClient {
       });
 
       if (response.status === 429) {
-        this.logger.warn('searchProducts rate limited (429)');
+        this.logger.warn('searchProducts REST rate limited (429)');
         return [];
       }
 
       if (!response.ok) {
-        this.logger.warn(`searchProducts HTTP ${response.status}`);
+        this.logger.warn(`searchProducts REST HTTP ${response.status}`);
         return [];
       }
 
@@ -340,7 +565,7 @@ export class UzumClient {
       return products;
     } catch (err: unknown) {
       this.logger.warn(
-        `searchProducts failed: ${err instanceof Error ? err.message : String(err)}`,
+        `searchProducts REST failed: ${err instanceof Error ? err.message : String(err)}`,
       );
       return [];
     }
