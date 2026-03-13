@@ -34,8 +34,8 @@ COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
 RUN pnpm install --no-frozen-lockfile --prod --filter api --filter @uzum/types --filter @uzum/utils
 
-# Prisma CLI needed at runtime for db push in entrypoint
-RUN pnpm add -D prisma --filter api
+# Prisma CLI needed at runtime for db push in entrypoint — install globally to avoid pnpm conflict
+RUN npm install -g prisma
 
 # Ensure swagger-ui-dist top-level symlink exists for NestJS Swagger static serving
 RUN ln -sf /app/node_modules/.pnpm/swagger-ui-dist@5.17.14/node_modules/swagger-ui-dist \
@@ -46,8 +46,8 @@ COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 
 WORKDIR /app/apps/api
 
-# Generate Prisma Client in runner (prisma CLI now available)
-RUN pnpm exec prisma generate
+# Generate Prisma Client using globally installed prisma CLI
+RUN prisma generate
 
 # Migration entrypoint — uses DIRECT_DATABASE_URL for DDL (bypasses PgBouncer)
 COPY apps/api/entrypoint.sh /app/entrypoint.sh
