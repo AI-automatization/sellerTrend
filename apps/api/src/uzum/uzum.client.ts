@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Impit } from 'impit';
 import { ProxyAgent } from 'undici';
 import { parseUzumCategoryId, sleep } from '@uzum/utils';
 
@@ -125,6 +126,15 @@ const AUTH_TOKEN_URL = 'https://id.uzum.uz/api/auth/token';
 const proxyDispatcher: unknown = process.env.PROXY_URL
   ? new ProxyAgent(process.env.PROXY_URL)
   : undefined;
+
+/** Impit instance — Chrome TLS fingerprint to bypass Uzum 429 */
+let impitInstance: Impit | null = null;
+function getImpit(): Impit {
+  if (!impitInstance) {
+    impitInstance = new Impit({ browser: 'chrome' });
+  }
+  return impitInstance;
+}
 const HEADERS = {
   'User-Agent':
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -185,8 +195,9 @@ interface GqlSearchResponse {
   errors?: Array<{ message: string }>;
 }
 
-/** Cached anonymous token */
+/** Cached anonymous token + cookies */
 let cachedAnonToken: string | null = null;
+let cachedAnonCookies: string | null = null;
 let cachedAnonTokenExpiry = 0;
 
 const HTML_HEADERS = {
@@ -364,6 +375,8 @@ export class UzumClient {
 
   /**
    * Get anonymous Uzum token for GraphQL API access.
+   * Uses impit (Chrome TLS) to bypass fingerprinting.
+   * Also caches Set-Cookie values — search-gateway requires them.
    * Token is cached for 5 hours (actual expiry is 6h).
    */
   private async getAnonymousToken(): Promise<string | null> {
@@ -372,6 +385,47 @@ export class UzumClient {
       return cachedAnonToken;
     }
 
+    // Try impit first (Chrome TLS fingerprint), then fall back to native fetch
+    const result = await this.acquireTokenViaImpit()
+      ?? await this.acquireTokenViaFetch();
+
+    if (result) {
+      cachedAnonToken = result.token;
+      cachedAnonCookies = result.cookies;
+      cachedAnonTokenExpiry = now + 5 * 60 * 60 * 1000;
+      this.logger.log('Anonymous Uzum token acquired (cookies: ' + (result.cookies ? 'yes' : 'no') + ')');
+    }
+
+    return result?.token ?? null;
+  }
+
+  /** Acquire token + cookies via impit (Chrome TLS fingerprint) */
+  private async acquireTokenViaImpit(): Promise<{ token: string; cookies: string | null } | null> {
+    try {
+      const impit = getImpit();
+      const res = await impit.fetch(AUTH_TOKEN_URL, {
+        method: 'POST',
+        headers: {
+          ...HEADERS,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+
+      if (!res.ok && res.status !== 204) {
+        this.logger.warn(`acquireTokenViaImpit HTTP ${res.status}`);
+        return null;
+      }
+
+      return this.extractTokenAndCookies(res);
+    } catch (err: unknown) {
+      this.logger.warn(`acquireTokenViaImpit failed: ${err instanceof Error ? err.message : String(err)}`);
+      return null;
+    }
+  }
+
+  /** Acquire token + cookies via native fetch (fallback) */
+  private async acquireTokenViaFetch(): Promise<{ token: string; cookies: string | null } | null> {
     try {
       const res = await fetchWithTimeout(AUTH_TOKEN_URL, {
         method: 'POST',
@@ -383,40 +437,50 @@ export class UzumClient {
         dispatcher: proxyDispatcher,
       });
 
-      if (!res.ok) {
-        this.logger.warn(`getAnonymousToken HTTP ${res.status}`);
+      if (!res.ok && res.status !== 204) {
+        this.logger.warn(`acquireTokenViaFetch HTTP ${res.status}`);
         return null;
       }
 
-      // Token comes in Set-Cookie header as access_token=...
-      const setCookies = res.headers.getSetCookie?.() ?? [];
-      let token: string | null = null;
-      for (const cookie of setCookies) {
-        const match = cookie.match(/access_token=([^;]+)/);
-        if (match) {
-          token = match[1];
-          break;
-        }
-      }
-
-      // Also try response body
-      if (!token) {
-        const body = (await res.json()) as Record<string, unknown>;
-        token = (body.access_token as string) ?? null;
-      }
-
-      if (token) {
-        cachedAnonToken = token;
-        // Cache for 5 hours (actual expiry is 6h)
-        cachedAnonTokenExpiry = now + 5 * 60 * 60 * 1000;
-        this.logger.log('Anonymous Uzum token acquired');
-      }
-
-      return token;
+      return this.extractTokenAndCookies(res);
     } catch (err: unknown) {
-      this.logger.error(`getAnonymousToken failed: ${err instanceof Error ? err.message : String(err)}`);
+      this.logger.error(`acquireTokenViaFetch failed: ${err instanceof Error ? err.message : String(err)}`);
       return null;
     }
+  }
+
+  /** Extract access_token and full cookie string from response */
+  private async extractTokenAndCookies(res: {
+    headers: { getSetCookie?: () => string[] };
+    json: () => Promise<unknown>;
+  }): Promise<{ token: string; cookies: string | null } | null> {
+    const setCookies = res.headers.getSetCookie?.() ?? [];
+    let token: string | null = null;
+    const cookieParts: string[] = [];
+
+    for (const cookie of setCookies) {
+      // Collect name=value part for Cookie header
+      const nameValue = cookie.split(';')[0].trim();
+      if (nameValue) cookieParts.push(nameValue);
+
+      const match = cookie.match(/access_token=([^;]+)/);
+      if (match) token = match[1];
+    }
+
+    // Fallback: try response body for token
+    if (!token) {
+      try {
+        const body = (await res.json()) as Record<string, unknown>;
+        token = (body.access_token as string) ?? null;
+      } catch {
+        // 204 responses have no body
+      }
+    }
+
+    if (!token) return null;
+
+    const cookies = cookieParts.length > 0 ? cookieParts.join('; ') : null;
+    return { token, cookies };
   }
 
   /**
@@ -439,7 +503,147 @@ export class UzumClient {
     return this.searchProductsREST(query, size);
   }
 
-  /** GraphQL-based product search */
+  /** Build GraphQL request body and headers (includes cookies if available) */
+  private buildGraphQLRequest(query: string, limit: number, token: string) {
+    const variables = {
+      queryInput: {
+        text: query,
+        showAdultContent: 'NONE',
+        filters: [],
+        sort: 'BY_RELEVANCE_DESC',
+        pagination: { offset: 0, limit },
+        correctQuery: false,
+        getFastCategories: false,
+        getPromotionItems: false,
+        getFastFacets: false,
+        fastFacetsLimit: 0,
+      },
+    };
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      'apollographql-client-name': 'web-customers',
+      'apollographql-client-version': '1.63.2',
+      Origin: 'https://uzum.uz',
+      Referer: 'https://uzum.uz/',
+      'User-Agent': HEADERS['User-Agent'],
+      'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+      Accept: '*/*',
+    };
+
+    // search-gateway requires cookies from token endpoint
+    if (cachedAnonCookies) {
+      headers.Cookie = cachedAnonCookies;
+    }
+
+    const body = JSON.stringify({
+      operationName: 'getMakeSearch',
+      variables,
+      query: SEARCH_GRAPHQL_QUERY,
+    });
+
+    return { headers, body };
+  }
+
+  /** Parse GraphQL search response into UzumSearchProduct[] */
+  private parseGraphQLResponse(data: GqlSearchResponse): UzumSearchProduct[] {
+    if (data.errors?.length) {
+      this.logger.warn(`GraphQL errors: ${data.errors.map((e) => e.message).join(', ')}`);
+      return [];
+    }
+
+    const items = data.data?.makeSearch?.items ?? [];
+    return items
+      .map((item) => {
+        const card = item.catalogCard;
+        if (!card) return null;
+        return {
+          id: card.id ?? card.productId,
+          productId: card.productId,
+          title: card.title,
+          minSellPrice: card.minSellPrice,
+          sellPrice: card.minSellPrice,
+          rating: card.rating,
+          ordersQuantity: card.ordersQuantity,
+          feedbackQuantity: card.feedbackQuantity,
+        } as UzumSearchProduct;
+      })
+      .filter((p): p is UzumSearchProduct => p !== null);
+  }
+
+  /** GraphQL search via impit (Chrome TLS fingerprint) */
+  private async searchGraphQLViaImpit(
+    query: string,
+    limit: number,
+    token: string,
+  ): Promise<UzumSearchProduct[]> {
+    const { headers, body } = this.buildGraphQLRequest(query, limit, token);
+    const impit = getImpit();
+
+    const res = await impit.fetch(GRAPHQL_URL, {
+      method: 'POST',
+      headers,
+      body,
+    });
+
+    if (res.status === 401) {
+      cachedAnonToken = null;
+      cachedAnonCookies = null;
+      cachedAnonTokenExpiry = 0;
+      this.logger.warn('GraphQL 401 via impit — token expired');
+      return [];
+    }
+
+    if (!res.ok) {
+      this.logger.warn(`searchGraphQLViaImpit HTTP ${res.status}`);
+      return [];
+    }
+
+    const data = (await res.json()) as GqlSearchResponse;
+    return this.parseGraphQLResponse(data);
+  }
+
+  /** GraphQL search via native fetch (fallback) */
+  private async searchGraphQLViaFetch(
+    query: string,
+    limit: number,
+    token: string,
+  ): Promise<UzumSearchProduct[]> {
+    const { headers, body } = this.buildGraphQLRequest(query, limit, token);
+
+    const res = await fetchWithTimeout(
+      GRAPHQL_URL,
+      {
+        method: 'POST',
+        headers,
+        body,
+        dispatcher: proxyDispatcher,
+      },
+      20_000,
+    );
+
+    if (res.status === 401) {
+      cachedAnonToken = null;
+      cachedAnonCookies = null;
+      cachedAnonTokenExpiry = 0;
+      this.logger.warn('GraphQL 401 via fetch — token expired');
+      return [];
+    }
+
+    if (!res.ok) {
+      this.logger.warn(`searchGraphQLViaFetch HTTP ${res.status}`);
+      return [];
+    }
+
+    const data = (await res.json()) as GqlSearchResponse;
+    return this.parseGraphQLResponse(data);
+  }
+
+  /**
+   * GraphQL-based product search.
+   * Tries impit (Chrome TLS) first, falls back to native fetch.
+   */
   private async searchProductsGraphQL(
     query: string,
     limit: number,
@@ -451,81 +655,16 @@ export class UzumClient {
         return [];
       }
 
-      const variables = {
-        queryInput: {
-          text: query,
-          showAdultContent: 'NONE',
-          filters: [],
-          sort: 'BY_RELEVANCE_DESC',
-          pagination: { offset: 0, limit },
-          correctQuery: false,
-          getFastCategories: false,
-          getPromotionItems: false,
-          getFastFacets: false,
-          fastFacetsLimit: 0,
-        },
-      };
-
-      const res = await fetchWithTimeout(
-        GRAPHQL_URL,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-            'apollographql-client-name': 'web-customers',
-            'apollographql-client-version': '1.63.2',
-            Origin: 'https://uzum.uz',
-            Referer: 'https://uzum.uz/',
-            'User-Agent': HEADERS['User-Agent'],
-          },
-          body: JSON.stringify({
-            operationName: 'getMakeSearch',
-            variables,
-            query: SEARCH_GRAPHQL_QUERY,
-          }),
-          dispatcher: proxyDispatcher,
-        },
-        20_000,
-      );
-
-      if (res.status === 401) {
-        // Token expired — clear cache and retry once
-        cachedAnonToken = null;
-        cachedAnonTokenExpiry = 0;
-        this.logger.warn('GraphQL 401 — token expired, will retry on next call');
-        return [];
+      // impit first (Chrome TLS fingerprint bypasses 429)
+      const impitResult = await this.searchGraphQLViaImpit(query, limit, token);
+      if (impitResult.length > 0) {
+        this.logger.log(`GraphQL search via impit: ${impitResult.length} results`);
+        return impitResult;
       }
 
-      if (!res.ok) {
-        this.logger.warn(`searchProductsGraphQL HTTP ${res.status}`);
-        return [];
-      }
-
-      const data = (await res.json()) as GqlSearchResponse;
-
-      if (data.errors?.length) {
-        this.logger.warn(`GraphQL errors: ${data.errors.map((e) => e.message).join(', ')}`);
-        return [];
-      }
-
-      const items = data.data?.makeSearch?.items ?? [];
-      return items
-        .map((item) => {
-          const card = item.catalogCard;
-          if (!card) return null;
-          return {
-            id: card.id ?? card.productId,
-            productId: card.productId,
-            title: card.title,
-            minSellPrice: card.minSellPrice,
-            sellPrice: card.minSellPrice,
-            rating: card.rating,
-            ordersQuantity: card.ordersQuantity,
-            feedbackQuantity: card.feedbackQuantity,
-          } as UzumSearchProduct;
-        })
-        .filter((p): p is UzumSearchProduct => p !== null);
+      // Fallback to native fetch (works if PROXY_URL is set)
+      this.logger.warn('impit returned empty, trying native fetch fallback');
+      return this.searchGraphQLViaFetch(query, limit, token);
     } catch (err: unknown) {
       this.logger.warn(
         `searchProductsGraphQL failed: ${err instanceof Error ? err.message : String(err)}`,
