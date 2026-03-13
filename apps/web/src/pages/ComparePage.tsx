@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { productsApi, uzumApi } from '../api/client';
+import { uzumApi } from '../api/client';
 import { useI18n } from '../i18n/I18nContext';
 import { getErrorMessage } from '../utils/getErrorMessage';
 import { MagnifyingGlassIcon, ScaleIcon } from '../components/icons';

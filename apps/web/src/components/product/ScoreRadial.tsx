@@ -11,12 +11,6 @@ interface ScoreRadialProps {
   score: number;
 }
 
-/** DaisyUI radial-progress CSS custom properties */
-type RadialStyle = React.CSSProperties & {
-  '--value': number;
-  '--size': string;
-  '--thickness': string;
-};
 
 export function ScoreRadial({ score }: ScoreRadialProps) {
   const pct = Math.min((score / MAX_SCORE) * 100, 100);

@@ -51,7 +51,7 @@ function formatPrice(price: number): string {
 export function BillingPage() {
   const { t } = useI18n();
   const payload = useAuthStore((s) => s.payload);
-  const currentPlan: PlanTier = ((payload as Record<string, unknown>)?.plan as PlanTier) || 'FREE';
+  const currentPlan: PlanTier = ((payload as unknown as Record<string, unknown>)?.plan as PlanTier) || 'FREE';
 
   function handleSelectPlan(plan: PlanTier) {
     if (plan === currentPlan) return;
