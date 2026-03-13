@@ -101,20 +101,10 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 ## BUGS & CRITICAL FIXES
 
-### T-433 | P0 | FRONTEND | Extension — SW message channel timeout fix | 30min
-
-**Manba:** production-bug (2026-03-13)
-**Mas'ul:** pending[Sardor]
-
-**Muammo:** Modal ochilganda "A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received" xatosi. Chrome MV3 service worker ~30 soniya inaktiv bo'lsa o'ldiriladi. `quick-score.ts` handler ikkita parallel HTTP so'rov yuboradi (VENTRA API + Uzum API) — timeout yo'q. Server sekin javob bersa SW o'ldiriladi → message channel yopiladi → xato.
-
-**Yechim:**
-- `apps/extension/src/lib/api.ts` → `apiFetch()` ga `signal: AbortSignal.timeout(10000)` qo'shish
-- `apps/extension/src/lib/uzum-api.ts` → `fetchUzumProduct()` ga `signal: AbortSignal.timeout(8000)` qo'shish
-
-**Fayllar:**
-- `apps/extension/src/lib/api.ts`
-- `apps/extension/src/lib/uzum-api.ts`
+> ~~T-433~~ ✅ DONE (2026-03-14) → Done.md — SW timeout fix (AbortSignal)
+> ~~T-434~~ ✅ DONE (2026-03-14) → Done.md — CategoryFilter sendToBackground fix
+> ~~T-435~~ ✅ DONE (2026-03-14) → Done.md — toFixed/toLocaleString null crash fix
+> ~~T-436~~ ✅ DONE (2026-03-14) → Done.md — TrackedList flat format fix
 
 ---
 

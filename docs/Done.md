@@ -22,15 +22,27 @@
 
 ---
 
-### T-436 | FRONTEND | Extension TrackedList — noto'g'ri API endpoint fix (2026-03-14)
+### T-436 | FRONTEND | Extension TrackedList — "Kuzatilayotgan mahsulotlar yo'q" fix (2026-03-14)
 
 **Manba:** production-bug
-**Muammo:** Popup da "Kuzatilayotgan mahsulotlar yo'q" chiqardi — foydalanuvchining tracked mahsulotlari bo'lishiga qaramay. `getTrackedProducts()` `/products` ga so'rov yuborardi (search endpoint), lekin backend da to'g'ri endpoint `/products/tracked`.
-**Yechim:** `api.ts` da `apiFetch("/products")` → `apiFetch("/products/tracked")` tuzatildi.
-**Fayllar:** `apps/extension/src/lib/api.ts`
-**Commit:** (bugungi batch commit)
-**Vaqt:** 15min
-**Ta'sir:** Popup da kuzatilayotgan mahsulotlar to'g'ri ko'rinadi.
+**Muammo:** TrackedList har doim "Kuzatilayotgan mahsulotlar yo'q" ko'rsatardi. `get-tracked-products.ts` handler backend javobini noto'g'ri o'qirdi: `.filter((p) => p.is_active)` — backend bu maydonni qaytarmasdi (undefined → barcha mahsulot filtrlanib ketardi); `p.product?.title` — backend flat format qaytaradi, nested emas.
+**Yechim:** `get-tracked-products.ts` handler to'liq qayta yozildi — `.filter((p) => p.is_active)` olib tashlandi, `p.product?.title/score/weekly_bought` → `p.title/score/weekly_bought` flat o'qishga o'tkazildi. `api.ts` dagi `TrackedProductItem` interface ham backend haqiqiy javobiga moslashtirildi (nested `product` ob'ekti o'rniga flat maydonlar).
+**Fayllar:** `apps/extension/src/background/messages/get-tracked-products.ts`, `apps/extension/src/lib/api.ts`
+**Commit:** (2026-03-14)
+**Vaqt:** 30min
+**Ta'sir:** Tracked mahsulotlar popup da to'g'ri ko'rinadi. Foydalanuvchi o'zi kuzatishga qo'shgan mahsulotlar ro'yxati endi to'liq ishlaydi.
+
+---
+
+### T-433 | FRONTEND | Extension — SW message channel timeout fix (2026-03-14)
+
+**Manba:** production-bug
+**Muammo:** Modal ochilganda "A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received" xatosi. `apiFetch()` va `fetchUzumProduct()` da timeout yo'q edi — server sekin javob bersa service worker o'ldirilardi.
+**Yechim:** `apiFetch()` ga `signal: AbortSignal.timeout(10000)`, `fetchUzumProduct()` ga `signal: AbortSignal.timeout(8000)` qo'shildi.
+**Fayllar:** `apps/extension/src/lib/api.ts`, `apps/extension/src/lib/uzum-api.ts`
+**Commit:** (2026-03-14)
+**Vaqt:** 15min (plan: 30min)
+**Ta'sir:** Service worker timeout xatosi yo'qoldi. Modal ochilishi barqaror.
 
 ---
 

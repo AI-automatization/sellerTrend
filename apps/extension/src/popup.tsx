@@ -12,7 +12,7 @@ import type { LogoutResponseBody } from "~/background/messages/logout";
 import type { QuickScoreResponseBody } from "~/background/messages/quick-score";
 import type { CategoryItem } from "~/lib/api";
 
-const DASHBOARD_URL = process.env.PLASMO_PUBLIC_API_URL?.replace("/api/v1", "") ?? "http://localhost:5173";
+const DASHBOARD_URL = process.env.PLASMO_PUBLIC_WEB_URL ?? process.env.PLASMO_PUBLIC_API_URL?.replace("/api/v1", "") ?? "http://localhost:5173";
 
 function Popup() {
   const [loading, setLoading] = useState(true);

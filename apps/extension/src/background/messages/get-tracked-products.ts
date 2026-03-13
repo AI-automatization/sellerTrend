@@ -20,14 +20,12 @@ const handler: PlasmoMessaging.MessageHandler<
 > = async (_req, res) => {
   try {
     const products = await getTrackedProducts()
-    const items: TrackedProductItem[] = products
-      .filter((p) => p.is_active)
-      .map((p) => ({
-        product_id: p.product_id,
-        title: p.product?.title ?? null,
-        score: p.product?.score ?? null,
-        weekly_bought: p.product?.weekly_bought ?? null,
-      }))
+    const items: TrackedProductItem[] = products.map((p) => ({
+      product_id: p.product_id,
+      title: p.title ?? null,
+      score: p.score ?? null,
+      weekly_bought: p.weekly_bought ?? null,
+    }))
     res.send({ success: true, data: items })
   } catch (err) {
     if (err instanceof ApiError) {

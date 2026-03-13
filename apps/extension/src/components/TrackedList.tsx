@@ -23,10 +23,11 @@ function getScoreColor(score: number): string {
 }
 
 const DASHBOARD_URL =
-  process.env.PLASMO_PUBLIC_API_URL?.replace("/api/v1", "") ?? "http://localhost:5173"
+  process.env.PLASMO_PUBLIC_WEB_URL ?? process.env.PLASMO_PUBLIC_API_URL?.replace("/api/v1", "") ?? "http://localhost:5173"
 
 export default function TrackedList() {
   const [products, setProducts] = useState<TrackedProduct[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -36,7 +37,8 @@ export default function TrackedList() {
     })
       .then((res) => {
         if (res.success && res.data) {
-          setProducts(res.data.slice(0, 10))
+          setProducts(res.data.slice(0, 5))
+          setTotal(res.data.length)
         }
       })
       .catch(() => {})
@@ -71,7 +73,7 @@ export default function TrackedList() {
           padding: "0 0 6px",
         }}
       >
-        Kuzatilmoqda ({products.length})
+        Kuzatilmoqda ({total})
       </div>
 
       {products.map((p) => (

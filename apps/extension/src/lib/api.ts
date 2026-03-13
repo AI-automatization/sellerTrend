@@ -201,14 +201,11 @@ export async function trackProduct(productId: string): Promise<{ id: string }> {
 
 export interface TrackedProductItem {
   product_id: string;
-  is_active: boolean;
-  product?: {
-    title?: string;
-    score?: number | null;
-    photo_url?: string | null;
-    sell_price?: string | null;
-    weekly_bought?: number | null;
-  };
+  title?: string | null;
+  score?: number | null;
+  photo_url?: string | null;
+  sell_price?: number | null;
+  weekly_bought?: number | null;
 }
 
 export async function getTrackedProducts(): Promise<TrackedProductItem[]> {
