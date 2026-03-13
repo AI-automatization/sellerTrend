@@ -35,7 +35,7 @@ COPY packages/utils/package.json ./packages/utils/
 RUN pnpm install --no-frozen-lockfile --prod --filter api --filter @uzum/types --filter @uzum/utils
 
 # Prisma CLI needed at runtime for db push in entrypoint — install globally to avoid pnpm conflict
-RUN npm install -g prisma
+RUN npm install -g prisma@6.19.2
 
 # Ensure swagger-ui-dist top-level symlink exists for NestJS Swagger static serving
 RUN ln -sf /app/node_modules/.pnpm/swagger-ui-dist@5.17.14/node_modules/swagger-ui-dist \
