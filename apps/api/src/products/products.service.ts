@@ -277,19 +277,81 @@ export class ProductsService {
       this.logger.warn(`Redis cache read error: ${err instanceof Error ? err.message : String(err)}`);
     }
 
-    // Fetch from Uzum API
+    // Try Uzum GraphQL/REST API first
     const results = await this.uzumClient.searchProducts(sanitized, limit, 0);
 
-    // Cache result (only if non-empty)
     if (results.length > 0) {
-      try {
-        await this.redis.set(cacheKey, JSON.stringify(results), 'EX', CACHE_TTL_SECONDS);
-      } catch (err: unknown) {
-        this.logger.warn(`Redis cache write error: ${err instanceof Error ? err.message : String(err)}`);
-      }
+      this.cacheResults(cacheKey, results, CACHE_TTL_SECONDS);
+      return results;
     }
 
-    return results;
+    // Fallback: search our local Product database
+    this.logger.log(`Uzum API empty, falling back to DB search for "${sanitized}"`);
+    const dbResults = await this.searchProductsDB(sanitized, limit);
+
+    if (dbResults.length > 0) {
+      this.cacheResults(cacheKey, dbResults, CACHE_TTL_SECONDS);
+    }
+
+    return dbResults;
+  }
+
+  /** Search products in our PostgreSQL database using ILIKE */
+  private async searchProductsDB(query: string, limit: number): Promise<UzumSearchProduct[]> {
+    try {
+      const keywords = query.split(/\s+/).filter((k) => k.length >= 2);
+      if (keywords.length === 0) return [];
+
+      // Build ILIKE conditions for each keyword
+      const where = {
+        AND: keywords.map((kw) => ({
+          OR: [
+            { title: { contains: kw, mode: 'insensitive' as const } },
+            { title_uz: { contains: kw, mode: 'insensitive' as const } },
+          ],
+        })),
+        is_active: true,
+      };
+
+      const products = await this.prisma.product.findMany({
+        where,
+        select: {
+          id: true,
+          title: true,
+          rating: true,
+          orders_quantity: true,
+          feedback_quantity: true,
+          photo_url: true,
+          skus: {
+            select: { min_sell_price: true },
+            take: 1,
+            orderBy: { min_sell_price: 'asc' },
+          },
+        },
+        orderBy: { orders_quantity: 'desc' },
+        take: limit,
+      });
+
+      return products.map((p) => ({
+        id: Number(p.id),
+        productId: Number(p.id),
+        title: p.title,
+        minSellPrice: p.skus[0]?.min_sell_price ? Number(p.skus[0].min_sell_price) : undefined,
+        sellPrice: p.skus[0]?.min_sell_price ? Number(p.skus[0].min_sell_price) : undefined,
+        rating: p.rating ? Number(p.rating) : undefined,
+        ordersQuantity: p.orders_quantity ? Number(p.orders_quantity) : undefined,
+        feedbackQuantity: p.feedback_quantity ?? undefined,
+      }));
+    } catch (err: unknown) {
+      this.logger.error(`searchProductsDB failed: ${err instanceof Error ? err.message : String(err)}`);
+      return [];
+    }
+  }
+
+  private cacheResults(key: string, results: UzumSearchProduct[], ttl: number): void {
+    this.redis.set(key, JSON.stringify(results), 'EX', ttl).catch((err: unknown) => {
+      this.logger.warn(`Redis cache write error: ${err instanceof Error ? err.message : String(err)}`);
+    });
   }
 
   /**
