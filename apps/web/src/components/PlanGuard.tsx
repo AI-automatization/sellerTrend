@@ -28,7 +28,7 @@ export function PlanGuard({ requiredPlan, children }: PlanGuardProps) {
   const payload = useAuthStore((s) => s.payload);
 
   // Extract plan from token payload or default to FREE
-  const currentPlan = ((payload as Record<string, unknown>)?.plan as PlanTier) || 'FREE';
+  const currentPlan = ((payload as unknown as Record<string, unknown>)?.plan as PlanTier) || 'FREE';
   const currentLevel = PLAN_HIERARCHY[currentPlan] ?? 0;
   const requiredLevel = PLAN_HIERARCHY[requiredPlan];
 

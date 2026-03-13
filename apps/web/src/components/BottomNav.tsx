@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { HomeIcon, MagnifyingGlassCircleIcon, MagnifyingGlassIcon, ArrowTrendingUpIcon, SignalIcon, GlobeAltIcon } from './icons';
+import { HomeIcon, MagnifyingGlassCircleIcon, MagnifyingGlassIcon, ArrowTrendingUpIcon, SignalIcon } from './icons';
 import { useI18n } from '../i18n/I18nContext';
 
 const NAV_ITEMS = [

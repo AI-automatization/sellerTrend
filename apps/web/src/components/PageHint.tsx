@@ -9,7 +9,7 @@ interface PageHintProps {
 export function PageHint({ page, children }: PageHintProps) {
   const storageKey = `tooltip_seen_${page}`;
   const [visible, setVisible] = useState(() => !localStorage.getItem(storageKey));
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const { t } = useI18n();
 
   useEffect(() => {
