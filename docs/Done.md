@@ -3,6 +3,15 @@
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
 
+### T-442 | FRONTEND | Dashboard KPI — "O'rta Score" va "Salomatlik" o'zgartirildi (2026-03-14)
+
+**Manba:** user-feedback (2026-03-14)
+**Muammo:** `O'rta Score` (avgScore 5.43) va `Salomatlik` (healthPct 73%) foydalanuvchi uchun tushunarsiz — nima qilish kerakligini anglatmaydi.
+**Yechim:** `O'rta Score` → `Ko'tarilayotgan` (rising count), `Salomatlik` → `Tushayotgan` (falling count, rang: yashil/sariq/qizil). i18n: uz/ru/en.
+**Fayllar:** `apps/web/src/components/dashboard/KPICards.tsx`, `apps/web/src/i18n/uz.ts`, `ru.ts`, `en.ts`
+**Vaqt:** 15min (plan: 15min)
+**Ta'sir:** Dashboard KPI kartalari endi aniq actionable ma'lumot ko'rsatadi — foydalanuvchi qancha mahsulot o'sishda/tushishda ekanini bir qarashda biladi.
+
 ### T-441 | BACKEND | Uzum impit proxy + x-iid header fix (2026-03-14)
 
 **Manba:** production-bug (user-feedback, 2026-03-14)

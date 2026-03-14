@@ -106,6 +106,10 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 ---
 
+> ~~T-442~~ ✅ DONE (2026-03-14) → Done.md — KPI "O'rta Score" → "Ko'tarilayotgan", "Salomatlik" → "Tushayotgan"
+
+---
+
 ## BUGS & CRITICAL FIXES
 
 > ~~T-433~~ ✅ DONE (2026-03-14) → Done.md — SW timeout fix (AbortSignal)
