@@ -12,6 +12,16 @@
 **Vaqt:** 1h (plan: 1h)
 **Ta'sir:** Foydalanuvchi pastga scroll qilganida avtomatik qo'shimcha mahsulotlar yüklenir — cheksiz natijalar (Uzum da 3000+ mahsulot).
 
+### T-445 | FRONTEND | Analyze modal + search btn i18n (2026-03-14)
+
+**Manba:** user-feedback (2026-03-14)
+**Muammo:** Analyze faqat dedicated page edi — foydalanuvchi har safar navigate qilishi kerak bo'lardi. `search.searchBtn` i18n kaliti yo'q, fallback `'Qidirish'` ishlatilardi.
+**Yechim:** `AnalyzeModal.tsx` yaratildi (DaisyUI dialog, to'liq analyze logic). `Layout.tsx` ga `isAnalyzeOpen` state, sidebar "Analyze" → button (onClick), Ctrl+K → modal. `search.searchBtn` uz/ru/en qo'shildi.
+**Fayllar:** `apps/web/src/components/AnalyzeModal.tsx`, `apps/web/src/components/Layout.tsx`, `apps/web/src/pages/SearchPage.tsx`, `apps/web/src/i18n/uz.ts`, `ru.ts`, `en.ts`
+**Commit:** b446e78
+**Vaqt:** 30min (plan: 1h)
+**Ta'sir:** Foydalanuvchi dashboard dan chiqmasdan mahsulot tahlil qila oladi. Ctrl+K shortcut ishlaydi. Tugma matni aniq.
+
 ### T-444 | FRONTEND | Search card dizayn — onboarding uslubida qayta loyiha (2026-03-14)
 
 **Manba:** user-feedback (2026-03-14)
