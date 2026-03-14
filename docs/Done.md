@@ -3,14 +3,14 @@
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
 
-### T-443 | IKKALASI | Search — Infinite scroll (YouTube uslubi) (2026-03-14)
+### T-443 | FRONTEND | Search — Infinite scroll + Pagination (2026-03-14, v2)
 
 **Manba:** user-feedback (2026-03-14)
-**Muammo:** Search natijalarida faqat 24/48 ta mahsulot ko'rinardi, ortiqcha yüklash yo'q edi — foydalanuvchi barcha natijalarni ko'ra olmaydi.
-**Yechim:** Backend: `SearchQueryDto` ga `offset` param qo'shildi; `searchProducts`, `searchProductsGraphQL`, `searchGraphQLViaImpit`, `searchGraphQLViaFetch`, `buildGraphQLRequest` — barchaga `offset` uzatildi. Frontend: `SearchPage` da IntersectionObserver bilan infinite scroll implement qilindi — sentinel element ko'ringanda `loadMore` chaqiriladi, natijalar append bo'ladi. Sahifa hajmi: 24 ta. `products.ts` API ga `offset` param qo'shildi.
-**Fayllar:** `apps/api/src/uzum/uzum.client.ts`, `apps/api/src/products/products.service.ts`, `apps/api/src/products/dto/search-query.dto.ts`, `apps/api/src/products/products.controller.ts`, `apps/web/src/api/products.ts`, `apps/web/src/pages/SearchPage.tsx`
-**Vaqt:** 1h (plan: 1h)
-**Ta'sir:** Foydalanuvchi pastga scroll qilganida avtomatik qo'shimcha mahsulotlar yüklenir — cheksiz natijalar (Uzum da 3000+ mahsulot).
+**Muammo:** v1 da cheksiz scroll bor edi lekin pagination yo'q — foydalanuvchi qayerdaligini bilmay qolardi. Yangi talab: har sahifada max 64 mahsulot (24+24+16 scroll bilan), pastda pagination.
+**Yechim:** `PAGE_LIMIT=64` qo'shildi. `calcPaging()` helper — `hasMore` (shu sahifada yana batch bor) va `hasNextPage` (keyingi sahifa bor) ni hisoblaydi. `page` state va `changePage()` funksiya — sahifa o'tganda results reset, scroll top, `(page-1)*64` offset dan yangi batch. Pagination UI: `< Oldingi | 1 2 3 | Keyingi >` — faqat `page>1 || hasNextPage` bo'lganda ko'rinadi.
+**Fayllar:** `apps/web/src/pages/SearchPage.tsx`
+**Vaqt:** 30min (plan: 2h)
+**Ta'sir:** Foydalanuvchi har sahifada max 64 mahsulot ko'radi, scroll bilan yuklaydi, pagination bilan sahifalar orasida erkin o'tadi.
 
 ### T-446 | IKKALASI | Tracked product — kuzatuvdan olib tashlash (2026-03-14)
 

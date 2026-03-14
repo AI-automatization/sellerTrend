@@ -129,43 +129,7 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 > ~~T-439~~ ✅ DONE (2026-03-14) → Done.md — photos { key } fix, DB fallback photoUrl
 
-### T-443 | P1 | FULLSTACK | Search — Infinite Scroll + Pagination | 2h
-
-**Manba:** user-feedback (2026-03-14)
-**Mas'ul:** pending[Sardor]
-
-**Tahlil:**
-Avvalgi T-443 implementatsiyasi (infinite scroll, offset) allaqachon bajarilgan edi.
-Lekin talablar o'zgardi: foydalanuvchi "sahifali infinite scroll" xohlaydi —
-har sahifada max 64 product (24→24→16 scroll bilan), sahifalar orasida pagination.
-
-**Muammo:**
-Hozirgi kod cheksiz scroll qiladi, sahifalar yo'q. Max product chegarasi yo'q.
-Foydalanuvchi juda ko'p natija bo'lganda qayerdaligini bilmaydi.
-
-**Yechim:**
-
-**Arxitektura:**
-- `PAGE_SIZE = 24` (har batch)
-- `PAGE_LIMIT = 64` (har sahifadagi max product)
-- Sahifa 1: offset 0..63 → 24 + 24 + 16 (scroll bilan yukladi)
-- Sahifa 2: offset 64..127 → yana 24 + 24 + 16
-- Pagination raqamlari pastda (1, 2, 3...)
-- Sahifaga o'tganda: results tozalanadi, tepadan boshlanadi
-
-**Frontend (`apps/web/src/pages/SearchPage.tsx`):**
-- `page` state (1 dan boshlanadi), `pageOffset = (page - 1) * PAGE_LIMIT`
-- `hasMore` = `results.length < PAGE_LIMIT && lastBatch === PAGE_SIZE`
-- `totalPages` — backend `total` qaytarsa hisoblash, aks holda `hasNextPage` flag
-- Sahifaga click → `page` o'zgaradi, results tozalanadi, scroll top
-- Pagination component: `< 1 2 3 ... >`
-
-**Backend (`apps/api`):**
-- Hozirgi offset/limit API yetarli, o'zgartirish kerak emas
-- Frontend `pageOffset + batchOffset` ni `offset` sifatida yuboradi
-
-**Fayllar:**
-- `apps/web/src/pages/SearchPage.tsx` — page state + pagination UI
+> ~~T-443~~ ✅ DONE (2026-03-14, v2) → Done.md — Infinite scroll + Pagination (64/page, 24/batch)
 
 ---
 
