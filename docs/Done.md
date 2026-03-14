@@ -12,6 +12,16 @@
 **Vaqt:** 15min (plan: 15min)
 **Ta'sir:** Dashboard KPI kartalari endi aniq actionable ma'lumot ko'rsatadi — foydalanuvchi qancha mahsulot o'sishda/tushishda ekanini bir qarashda biladi.
 
+### T-439 | BACKEND | Search — product rasmlari + iphone 1 natija fix (2026-03-14)
+
+**Manba:** production-bug (user-feedback, 2026-03-14)
+**Muammo:** Search da rasmlar ko'rinmaydi. `coverPhoto { photoKey }` ishlatildi — lekin Uzum GraphQL schemada bu field yo'q (`CatalogCard` da). `photos { photoKey }` ham xato — `Photo` type da `photoKey` yo'q. `coverPhoto` ni fragment da ishlatish 1-natijaga olib kelgan (GraphQL error → DB fallback).
+**Yechim:** Uzum GraphQL schema test qilindi: `photos { key }` — `CatalogCard` fragmentida ishlaydi, `__typename=SkuGroupCard`. `parseGraphQLResponse` da `photoUrl = https://images.uzum.uz/${key}/original.jpg`. DB fallback da `photoUrl: p.photo_url ?? undefined` qo'shildi. Redis cache eski natija saqlab qolgan edi — tozalandi.
+**Fayllar:** `apps/api/src/uzum/uzum.client.ts`, `apps/api/src/products/products.service.ts`
+**Commit:** ce1ed30
+**Vaqt:** 1.5h (plan: 30min)
+**Ta'sir:** Search sahifasida barcha product rasmlari ko'rinadi — live Uzum GraphQL va DB fallback da ham.
+
 ### T-441 | BACKEND | Uzum impit proxy + x-iid header fix (2026-03-14)
 
 **Manba:** production-bug (user-feedback, 2026-03-14)

@@ -127,27 +127,7 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 ---
 
-### T-439 | P1 | BACKEND | Search — product rasmlari ko'rinmaydi + iphone 1 natija | 30min
-
-**Manba:** production-bug (user-feedback, 2026-03-14)
-**Mas'ul:** pending[Sardor]
-
-**Muammo 1 — Rasm:**
-`SEARCH_GRAPHQL_QUERY` da `coverPhoto { photoKey }` qo'shildi (commit 8983760) lekin rasmlar hali ko'rinmayapdi. Sabab aniqlanmagan: field nomi xato bo'lishi (`photos` vs `coverPhoto`), URL pattern xato, yoki response parsing muammosi.
-
-**Muammo 2 — Natija soni:**
-`iphone` yozganda faqat 1 ta product chiqyapdi. Search GraphQL dan yetarli natija kelmayapdi yoki limit/pagination muammosi bor.
-
-**Tekshirish kerak:**
-1. API logida `searchProductsGraphQL` qancha natija qaytaryapti
-2. GraphQL response da `coverPhoto` field bor-yo'qligini tekshirish
-3. Uzum GraphQL schema da to'g'ri field nomi: `coverPhoto` yoki `photos`?
-4. `limit` API ga to'g'ri yetib borayaptimi (`search-query.dto.ts`)
-
-**Fayllar:**
-- `apps/api/src/uzum/uzum.client.ts` — `SEARCH_GRAPHQL_QUERY`, `parseGraphQLResponse`
-- `apps/api/src/products/products.service.ts` — `searchProducts`, `searchProductsDB`
-- `apps/api/src/products/dto/search-query.dto.ts` — limit validation
+> ~~T-439~~ ✅ DONE (2026-03-14) → Done.md — photos { key } fix, DB fallback photoUrl
 
 ---
 
