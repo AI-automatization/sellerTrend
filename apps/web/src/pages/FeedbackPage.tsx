@@ -57,7 +57,8 @@ export function FeedbackPage() {
     setLoading(true);
     try {
       const r = await feedbackApi.getMyTickets();
-      setTickets(r.data || []);
+      const list = Array.isArray(r.data) ? r.data : (r.data?.data ?? []);
+      setTickets(list);
     } catch (e) { logError(e); }
     setLoading(false);
   }

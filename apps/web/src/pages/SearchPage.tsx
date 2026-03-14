@@ -195,23 +195,9 @@ export function SearchPage() {
         </div>
       )}
 
-      {/* Loading skeleton */}
+      {/* Loading skeleton — birinchi qidiruv */}
       {loading && !hasSearched && query.trim().length >= MIN_QUERY_LENGTH && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="card bg-base-200/60 border border-base-300/50">
-              <div className="card-body p-4 gap-3">
-                <div className="skeleton h-40 w-full rounded-lg" />
-                <div className="skeleton h-4 w-3/4" />
-                <div className="skeleton h-3 w-1/2" />
-                <div className="flex justify-between">
-                  <div className="skeleton h-5 w-20" />
-                  <div className="skeleton h-8 w-24 rounded-lg" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <SearchCardSkeleton count={8} />
       )}
 
       {/* Results grid */}
@@ -366,11 +352,9 @@ export function SearchPage() {
             })}
           </div>
 
-          {/* Infinite scroll sentinel + loading indicator */}
-          <div ref={sentinelRef} className="flex justify-center py-4">
-            {loadingMore && (
-              <span className="loading loading-spinner loading-md text-primary" />
-            )}
+          {/* Infinite scroll sentinel + skeleton */}
+          <div ref={sentinelRef}>
+            {loadingMore && <SearchCardSkeleton count={4} />}
           </div>
         </>
       )}
@@ -400,6 +384,36 @@ export function SearchPage() {
           </p>
         </div>
       )}
+    </div>
+  );
+}
+
+function SearchCardSkeleton({ count }: { count: number }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="rounded-2xl bg-base-100 border border-base-300/30 shadow-sm overflow-hidden">
+          {/* Image skeleton */}
+          <div className="skeleton aspect-square w-full rounded-none" />
+          {/* Content skeleton */}
+          <div className="p-3 space-y-2.5">
+            <div className="skeleton h-3.5 w-full rounded-lg" />
+            <div className="skeleton h-3.5 w-2/3 rounded-lg" />
+            <div className="flex gap-1">
+              <div className="skeleton h-4 w-20 rounded-full" />
+              <div className="skeleton h-4 w-16 rounded-full" />
+            </div>
+            <div>
+              <div className="skeleton h-5 w-28 rounded-lg" />
+              <div className="skeleton h-3 w-10 rounded mt-1" />
+            </div>
+            <div className="flex gap-1.5 pt-0.5">
+              <div className="skeleton h-8 flex-1 rounded-lg" />
+              <div className="skeleton h-8 flex-1 rounded-lg" />
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
