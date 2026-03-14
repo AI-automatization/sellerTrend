@@ -161,25 +161,20 @@ query getMakeSearch($queryInput: MakeSearchQueryInput!) {
     items {
       catalogCard {
         __typename
-        ...DefaultCardFragment
+        feedbackQuantity
+        id
+        minFullPrice
+        minSellPrice
+        ordersQuantity
+        productId
+        rating
+        title
+        coverPhoto { photoKey }
       }
       __typename
     }
     __typename
   }
-}
-
-fragment DefaultCardFragment on CatalogCard {
-  feedbackQuantity
-  id
-  minFullPrice
-  minSellPrice
-  ordersQuantity
-  productId
-  rating
-  title
-  coverPhoto { photoKey }
-  __typename
 }
 `;
 
@@ -198,7 +193,7 @@ interface GqlSearchResponse {
           ordersQuantity?: number;
           rating?: number;
           feedbackQuantity?: number;
-          coverPhoto?: { photoKey?: string };
+          coverPhoto?: { photoKey?: string }; // present when __typename === 'ProductCard'
         };
       }>;
     };
