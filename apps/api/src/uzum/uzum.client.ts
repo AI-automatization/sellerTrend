@@ -161,20 +161,24 @@ query getMakeSearch($queryInput: MakeSearchQueryInput!) {
     items {
       catalogCard {
         __typename
-        feedbackQuantity
-        id
-        minFullPrice
-        minSellPrice
-        ordersQuantity
-        productId
-        rating
-        title
-        coverPhoto { photoKey }
+        ...DefaultCardFragment
       }
       __typename
     }
     __typename
   }
+}
+
+fragment DefaultCardFragment on CatalogCard {
+  feedbackQuantity
+  id
+  minFullPrice
+  minSellPrice
+  ordersQuantity
+  productId
+  rating
+  title
+  __typename
 }
 `;
 
@@ -193,7 +197,6 @@ interface GqlSearchResponse {
           ordersQuantity?: number;
           rating?: number;
           feedbackQuantity?: number;
-          coverPhoto?: { photoKey?: string }; // present when __typename === 'ProductCard'
         };
       }>;
     };
@@ -565,7 +568,6 @@ export class UzumClient {
       .map((item) => {
         const card = item.catalogCard;
         if (!card) return null;
-        const photoKey = card.coverPhoto?.photoKey;
         return {
           id: card.id ?? card.productId,
           productId: card.productId,
@@ -575,7 +577,6 @@ export class UzumClient {
           rating: card.rating,
           ordersQuantity: card.ordersQuantity,
           feedbackQuantity: card.feedbackQuantity,
-          photoUrl: photoKey ? `https://images.uzum.uz/${photoKey}/original.jpg` : undefined,
         } as UzumSearchProduct;
       })
       .filter((p): p is UzumSearchProduct => p !== null);
