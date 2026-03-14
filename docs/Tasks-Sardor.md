@@ -129,6 +129,43 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 > ~~T-439~~ ✅ DONE (2026-03-14) → Done.md — photos { key } fix, DB fallback photoUrl
 
+### T-443 | P1 | FULLSTACK | Search — Infinite Scroll (YouTube uslubi) | 2h
+
+**Manba:** user-feedback (2026-03-14)
+**Mas'ul:** pending[Sardor]
+
+**Muammo:** Hozir search bir marta so'rov yuboradi, limit bilan cheklangan. Ko'p product bo'lsa hammasi ko'rinmaydi.
+
+**Yechim:**
+
+**Backend (`apps/api`):**
+- `searchProducts(query, limit, offset)` — `offset` parametri qo'shish
+- Cache key: `search:${query}:${limit}:${offset}`
+- `search-query.dto.ts` ga `offset?: number = 0` qo'shish
+- `uzumClient.searchProducts(query, limit, offset)` — `pagination.offset` ni uzatish
+- DB fallback da ham `skip: offset` qo'shish
+
+**Frontend (`apps/web`):**
+- `SearchPage.tsx` — `offset` state, `hasMore` flag, `loadMore()` funksiya
+- `IntersectionObserver` — sahifa pastiga yetganda `loadMore()` chaqiriladi
+- Yangi natijalar mavjud natijalar ga `append` (replace emas)
+- Loading spinner — pastda, yangi batch kelayotganda
+- `productsApi.searchProducts(q, limit=24, offset)` — offset parametri
+
+**Fayllar:**
+- `apps/api/src/products/products.service.ts` — `searchProducts` offset
+- `apps/api/src/products/dto/search-query.dto.ts` — offset field
+- `apps/api/src/products/products.controller.ts` — offset pass
+- `apps/api/src/uzum/uzum.client.ts` — pagination.offset
+- `apps/web/src/pages/SearchPage.tsx` — IntersectionObserver + append
+- `apps/web/src/api/products.ts` — offset param
+
+**Muhim:**
+- Birinchi qidiruvda offset=0, limit=24
+- Scroll pastga → offset+=24, yangi batch keladi
+- Uzum GraphQL `pagination: { offset, limit }` ni qo'llab-quvvatlaydi ✅
+- Agar natija `limit` dan kam kelsa → `hasMore = false`
+
 ---
 
 > ~~T-430~~ ✅ DONE (2026-03-11) → Done.md — UzumCard track button qaytarildi (commit 724caf1)
