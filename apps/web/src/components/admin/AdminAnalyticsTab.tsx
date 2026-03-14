@@ -190,7 +190,7 @@ export function AdminAnalyticsTab({ topUsers, popularProducts, popularCategories
           <h3 className="font-semibold text-sm">Top Foydalanuvchilar</h3>
           <span className="text-xs text-base-content/40">{topUsers.length} ta</span>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-auto max-h-[400px]">
           <table className="table table-sm w-full">
             <thead><tr className="bg-base-300/40 text-xs uppercase tracking-wider text-base-content/50"><th className="w-12 text-center">#</th><th>Foydalanuvchi</th><th className="text-center">Tracked</th><th className="text-center">Avg Score</th><th className="text-center">Haftalik</th><th className="text-center">Discovery</th><th className="text-center">Faollik</th></tr></thead>
             <tbody>
@@ -222,7 +222,7 @@ export function AdminAnalyticsTab({ topUsers, popularProducts, popularCategories
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div className="bg-base-200 rounded-2xl border border-base-300/50 overflow-hidden">
           <div className="px-4 py-3 border-b border-base-300/30 flex items-center justify-between"><h3 className="font-semibold text-sm">Top Mahsulotlar</h3><span className="text-xs text-base-content/40">{popularProducts.length} ta</span></div>
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[320px]">
             <table className="table table-sm w-full">
               <thead><tr className="bg-base-300/40 text-xs uppercase tracking-wider text-base-content/50"><th className="w-10 text-center">#</th><th>Mahsulot</th><th className="text-center">Track</th><th className="text-center">Score</th><th className="text-right">Haftalik</th></tr></thead>
               <tbody>
@@ -242,7 +242,7 @@ export function AdminAnalyticsTab({ topUsers, popularProducts, popularCategories
         </div>
         <div className="bg-base-200 rounded-2xl border border-base-300/50 overflow-hidden">
           <div className="px-4 py-3 border-b border-base-300/30 flex items-center justify-between"><h3 className="font-semibold text-sm">Top Kategoriyalar</h3><span className="text-xs text-base-content/40">{popularCategories.length} ta</span></div>
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[320px]">
             <table className="table table-sm w-full">
               <thead><tr className="bg-base-300/40 text-xs uppercase tracking-wider text-base-content/50"><th>Kategoriya ID</th><th className="text-center">Discovery</th><th className="text-center">Winnerlar</th><th className="text-right">Oxirgi run</th></tr></thead>
               <tbody>

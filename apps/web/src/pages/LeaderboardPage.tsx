@@ -102,7 +102,7 @@ export function LeaderboardPage() {
                 </Link>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-auto max-h-[480px]">
                 <table className="table table-sm">
                   <thead>
                     <tr>

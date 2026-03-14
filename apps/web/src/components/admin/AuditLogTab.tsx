@@ -8,7 +8,7 @@ export interface AuditLogTabProps {
 
 export function AuditLogTab({ auditLog }: AuditLogTabProps) {
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-auto max-h-[520px]">
       <table className="table table-sm">
         <thead><tr><th>Vaqt</th><th>Tur</th><th>Amal</th><th>User</th><th>Account</th><th>Tafsilotlar</th><th>IP</th></tr></thead>
         <tbody>

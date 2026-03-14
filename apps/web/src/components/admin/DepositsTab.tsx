@@ -16,7 +16,7 @@ export function DepositsTab({ depositLog, depositLogTotal, depositLogPage, onDep
       <div className="flex items-center justify-between">
         <p className="text-sm text-base-content/50">Jami: {depositLogTotal} ta deposit</p>
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-auto max-h-[500px]">
         <table className="table table-sm">
           <thead>
             <tr><th>Sana</th><th>Kompaniya</th><th>Miqdor</th><th>Oldingi</th><th>Keyingi</th><th>Izoh</th><th>Amal</th></tr>

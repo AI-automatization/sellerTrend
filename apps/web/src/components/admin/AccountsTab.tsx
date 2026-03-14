@@ -100,7 +100,7 @@ export function AccountsTab({
 
       {/* Unified Accounts + Users Table */}
       <div className="bg-base-200 rounded-2xl border border-base-300/50 overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-auto max-h-[520px]">
           <table className="table table-sm w-full">
             <thead>
               <tr className="bg-base-300/40 text-xs uppercase tracking-wider text-base-content/50">
