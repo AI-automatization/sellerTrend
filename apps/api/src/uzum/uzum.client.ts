@@ -178,6 +178,7 @@ fragment DefaultCardFragment on CatalogCard {
   productId
   rating
   title
+  photos { key }
   __typename
 }
 `;
@@ -197,6 +198,7 @@ interface GqlSearchResponse {
           ordersQuantity?: number;
           rating?: number;
           feedbackQuantity?: number;
+          photos?: Array<{ key?: string }>;
         };
       }>;
     };
@@ -568,6 +570,7 @@ export class UzumClient {
       .map((item) => {
         const card = item.catalogCard;
         if (!card) return null;
+        const photoKey = card.photos?.[0]?.key;
         return {
           id: card.id ?? card.productId,
           productId: card.productId,
@@ -577,6 +580,7 @@ export class UzumClient {
           rating: card.rating,
           ordersQuantity: card.ordersQuantity,
           feedbackQuantity: card.feedbackQuantity,
+          photoUrl: photoKey ? `https://images.uzum.uz/${photoKey}/original.jpg` : undefined,
         } as UzumSearchProduct;
       })
       .filter((p): p is UzumSearchProduct => p !== null);
