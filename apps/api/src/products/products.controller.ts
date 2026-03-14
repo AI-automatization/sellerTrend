@@ -43,7 +43,7 @@ export class ProductsController {
     @CurrentUser('account_id') accountId: string,
     @Query() query: SearchQueryDto,
   ) {
-    const results = await this.productsService.searchProducts(query.q, query.limit);
+    const results = await this.productsService.searchProducts(query.q, query.limit, query.offset);
     this.productsService.logSearch(accountId, query.q, results.length);
     return results;
   }

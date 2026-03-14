@@ -11,6 +11,7 @@ import type { SearchProduct } from '../api/types';
 import { toast } from 'react-toastify';
 
 const MIN_QUERY_LENGTH = 2;
+const PAGE_SIZE = 24;
 
 function formatPrice(price: number): string {
   return price.toLocaleString('ru-RU');
@@ -22,17 +23,23 @@ export function SearchPage() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchProduct[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [offset, setOffset] = useState(0);
   const [trackingIds, setTrackingIds] = useState<Set<number>>(new Set());
   const { isTracked, trackProduct } = useTrackedProducts();
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const search = useCallback(async (q: string) => {
     if (q.trim().length < MIN_QUERY_LENGTH) {
       setResults([]);
       setHasSearched(false);
+      setHasMore(false);
+      setOffset(0);
       return;
     }
 
@@ -42,11 +49,14 @@ export function SearchPage() {
 
     setLoading(true);
     setError('');
+    setOffset(0);
+    setHasMore(false);
     try {
-      const res = await productsApi.searchProducts(q.trim());
+      const res = await productsApi.searchProducts(q.trim(), PAGE_SIZE, 0);
       if (!controller.signal.aborted) {
         setResults(res.data);
         setHasSearched(true);
+        setHasMore(res.data.length === PAGE_SIZE);
       }
     } catch (err: unknown) {
       if (!controller.signal.aborted) {
@@ -62,6 +72,41 @@ export function SearchPage() {
       }
     }
   }, [t]);
+
+  const loadMore = useCallback(async () => {
+    if (!hasMore || loadingMore || loading) return;
+    const newOffset = offset + PAGE_SIZE;
+    setLoadingMore(true);
+    try {
+      const res = await productsApi.searchProducts(query.trim(), PAGE_SIZE, newOffset);
+      if (res.data.length > 0) {
+        setResults(prev => [...prev, ...res.data]);
+        setOffset(newOffset);
+        setHasMore(res.data.length === PAGE_SIZE);
+      } else {
+        setHasMore(false);
+      }
+    } catch {
+      setHasMore(false);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [hasMore, loadingMore, loading, offset, query]);
+
+  // IntersectionObserver — sentinel element ko'ringanda loadMore chaqiriladi
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadMore();
+      },
+      { rootMargin: '300px' },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadMore]);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -309,6 +354,13 @@ export function SearchPage() {
                 </Fragment>
               );
             })}
+          </div>
+
+          {/* Infinite scroll sentinel + loading indicator */}
+          <div ref={sentinelRef} className="flex justify-center py-4">
+            {loadingMore && (
+              <span className="loading loading-spinner loading-md text-primary" />
+            )}
           </div>
         </>
       )}

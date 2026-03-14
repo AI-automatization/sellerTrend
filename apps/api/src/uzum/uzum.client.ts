@@ -503,26 +503,30 @@ export class UzumClient {
   async searchProducts(
     query: string,
     size: number,
-    _page: number,
+    offset: number,
   ): Promise<UzumSearchProduct[]> {
     // Try GraphQL first
-    const gqlResult = await this.searchProductsGraphQL(query, size);
+    const gqlResult = await this.searchProductsGraphQL(query, size, offset);
     if (gqlResult.length > 0) return gqlResult;
 
-    // Fallback to REST (may still work for some queries)
-    this.logger.warn('GraphQL search returned empty, trying REST fallback');
-    return this.searchProductsREST(query, size);
+    // Fallback to REST only for first page
+    if (offset === 0) {
+      this.logger.warn('GraphQL search returned empty, trying REST fallback');
+      return this.searchProductsREST(query, size);
+    }
+
+    return [];
   }
 
   /** Build GraphQL request body and headers (includes cookies if available) */
-  private buildGraphQLRequest(query: string, limit: number, token: string) {
+  private buildGraphQLRequest(query: string, limit: number, offset: number, token: string) {
     const variables = {
       queryInput: {
         text: query,
         showAdultContent: 'NONE',
         filters: [],
         sort: 'BY_RELEVANCE_DESC',
-        pagination: { offset: 0, limit },
+        pagination: { offset, limit },
         correctQuery: false,
         getFastCategories: false,
         getPromotionItems: false,
@@ -590,9 +594,10 @@ export class UzumClient {
   private async searchGraphQLViaImpit(
     query: string,
     limit: number,
+    offset: number,
     token: string,
   ): Promise<UzumSearchProduct[]> {
-    const { headers, body } = this.buildGraphQLRequest(query, limit, token);
+    const { headers, body } = this.buildGraphQLRequest(query, limit, offset, token);
     const impit = getImpit();
 
     const res = await impit.fetch(GRAPHQL_URL, {
@@ -622,9 +627,10 @@ export class UzumClient {
   private async searchGraphQLViaFetch(
     query: string,
     limit: number,
+    offset: number,
     token: string,
   ): Promise<UzumSearchProduct[]> {
-    const { headers, body } = this.buildGraphQLRequest(query, limit, token);
+    const { headers, body } = this.buildGraphQLRequest(query, limit, offset, token);
 
     const res = await fetchWithTimeout(
       GRAPHQL_URL,
@@ -661,6 +667,7 @@ export class UzumClient {
   private async searchProductsGraphQL(
     query: string,
     limit: number,
+    offset: number,
   ): Promise<UzumSearchProduct[]> {
     try {
       const token = await this.getAnonymousToken();
@@ -670,7 +677,7 @@ export class UzumClient {
       }
 
       // impit first (Chrome TLS fingerprint bypasses 429)
-      const impitResult = await this.searchGraphQLViaImpit(query, limit, token);
+      const impitResult = await this.searchGraphQLViaImpit(query, limit, offset, token);
       if (impitResult.length > 0) {
         this.logger.log(`GraphQL search via impit: ${impitResult.length} results`);
         return impitResult;
@@ -678,7 +685,7 @@ export class UzumClient {
 
       // Fallback to native fetch (works if PROXY_URL is set)
       this.logger.warn('impit returned empty, trying native fetch fallback');
-      return this.searchGraphQLViaFetch(query, limit, token);
+      return this.searchGraphQLViaFetch(query, limit, offset, token);
     } catch (err: unknown) {
       this.logger.warn(
         `searchProductsGraphQL failed: ${err instanceof Error ? err.message : String(err)}`,

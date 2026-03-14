@@ -260,12 +260,12 @@ export class ProductsService {
     });
   }
 
-  async searchProducts(query: string, limit = 24): Promise<UzumSearchProduct[]> {
+  async searchProducts(query: string, limit = 24, offset = 0): Promise<UzumSearchProduct[]> {
     const CACHE_TTL_SECONDS = 300; // 5 minutes
     const sanitized = query.trim().slice(0, 100);
     if (sanitized.length < 2) return [];
 
-    const cacheKey = `search:${sanitized}:${limit}`;
+    const cacheKey = `search:${sanitized}:${limit}:${offset}`;
 
     // Check Redis cache
     try {
@@ -278,22 +278,24 @@ export class ProductsService {
     }
 
     // Try Uzum GraphQL/REST API first
-    const results = await this.uzumClient.searchProducts(sanitized, limit, 0);
+    const results = await this.uzumClient.searchProducts(sanitized, limit, offset);
 
     if (results.length > 0) {
       this.cacheResults(cacheKey, results, CACHE_TTL_SECONDS);
       return results;
     }
 
-    // Fallback: search our local Product database
-    this.logger.log(`Uzum API empty, falling back to DB search for "${sanitized}"`);
-    const dbResults = await this.searchProductsDB(sanitized, limit);
-
-    if (dbResults.length > 0) {
-      this.cacheResults(cacheKey, dbResults, CACHE_TTL_SECONDS);
+    // Fallback: search our local Product database (only for first page)
+    if (offset === 0) {
+      this.logger.log(`Uzum API empty, falling back to DB search for "${sanitized}"`);
+      const dbResults = await this.searchProductsDB(sanitized, limit);
+      if (dbResults.length > 0) {
+        this.cacheResults(cacheKey, dbResults, CACHE_TTL_SECONDS);
+      }
+      return dbResults;
     }
 
-    return dbResults;
+    return [];
   }
 
   /** Search products in our PostgreSQL database using ILIKE */

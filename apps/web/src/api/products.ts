@@ -10,8 +10,8 @@ export const productsApi = {
   getMlForecast: (productId: string) => api.get(`/products/${productId}/ml-forecast`),
   getTrendAnalysis: (productId: string) => api.get(`/products/${productId}/trend-analysis`),
   getWeeklyTrend: (productId: string) => api.get(`/products/${productId}/weekly-trend`),
-  searchProducts: (query: string, limit = 48) =>
-    api.get<SearchProduct[]>('/products/search', { params: { q: query, limit } }),
+  searchProducts: (query: string, limit = 24, offset = 0) =>
+    api.get<SearchProduct[]>('/products/search', { params: { q: query, limit, offset } }),
   trackFromSearch: (uzumProductId: number) =>
     api.post<{ tracked: boolean }>(`/products/search/${uzumProductId}/track`),
   getSourcingComparison: (productId: string) =>
