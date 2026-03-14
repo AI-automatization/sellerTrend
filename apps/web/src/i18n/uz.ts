@@ -1390,6 +1390,7 @@ export const uz: Record<string, string> = {
     'search.noResultsHint': "Boshqa so'z bilan qidirib ko'ring",
     'search.initial': 'Mahsulot qidiring',
     'search.initialHint': "Uzum'da mahsulot topish uchun yozishni boshlang",
+    'search.searchBtn': 'Mahsulot qidirish',
     'search.analyze': 'Tahlil',
 
     // ── Expand Panel ────────────────────────────────────────────────────────

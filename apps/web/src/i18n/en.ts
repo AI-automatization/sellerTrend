@@ -1385,6 +1385,7 @@ export const en: Record<string, string> = {
     'search.noResultsHint': 'Try a different search query',
     'search.initial': 'Search for products',
     'search.initialHint': 'Start typing to find products on Uzum',
+    'search.searchBtn': 'Search Products',
     'search.analyze': 'Analyze',
 
     // ── Expand Panel ────────────────────────────────────────────────────────

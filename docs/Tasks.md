@@ -1862,4 +1862,28 @@ export function useChat() {
 
 ---
 
+### T-445 | P2 | FRONTEND | Analyze → Modal (sidebar tugma + Ctrl+K) | 1h
+
+**Sana:** 2026-03-14
+**Manba:** user-feedback
+**Topilgan joyda:** `apps/web/src/pages/AnalyzePage.tsx`, `apps/web/src/components/Layout.tsx`
+**Mas'ul:** pending[Sardor]
+
+**Tahlil:**
+Analyze page → modal ga o'tkazish — foydalanuvchi dashboard dan chiqmasdan mahsulot tahlil qila oladi. Sidebar da "Analyze" NavLink → button, Ctrl+K modal ochadi. `/analyze` route fallback sifatida saqlanadi.
+
+**Muammo:**
+- Analyze faqat dedicated page — foydalanuvchi har safar navigate qilishi kerak
+- Dashboard da mahsulot ko'rib, URL tahlil qilmoqchi bo'lsa page o'zgaradi
+- Onboarding flow bilan mos — u ham modal uslubida ishlaydi
+
+**Yechim:**
+1. `AnalyzeModal.tsx` — DaisyUI dialog, analyze logic + result
+2. `Layout.tsx` — `isAnalyzeOpen` state, analyze nav item → button, Ctrl+K → modal
+3. `AnalyzePage.tsx` — saqlanadi (direct URL fallback)
+
+**Fayllar:** `apps/web/src/components/AnalyzeModal.tsx` (yangi), `apps/web/src/components/Layout.tsx`
+
+---
+
 *Tasks.md | VENTRA Analytics Platform | 2026-03-14*

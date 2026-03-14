@@ -174,7 +174,7 @@ export function SearchPage() {
             {loading ? (
               <span className="loading loading-spinner loading-sm" />
             ) : (
-              <><MagnifyingGlassIcon className="w-4 h-4" />{t('search.searchBtn') || 'Qidirish'}</>
+              <><MagnifyingGlassIcon className="w-4 h-4" />{t('search.searchBtn')}</>
             )}
           </button>
         </form>

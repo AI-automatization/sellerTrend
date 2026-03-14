@@ -1374,6 +1374,7 @@ export const ru: Record<string, string> = {
     'search.noResultsHint': 'Попробуйте другой запрос',
     'search.initial': 'Поиск товаров',
     'search.initialHint': 'Начните вводить, чтобы найти товары на Uzum',
+    'search.searchBtn': 'Найти товары',
     'search.analyze': 'Анализ',
 
     // ── Expand Panel ────────────────────────────────────────────────────────

@@ -41,6 +41,7 @@ import { useTheme } from '../hooks/useTheme';
 import type { Lang } from '../i18n/translations';
 import { WhatsNew, useHasUnseenUpdates } from './WhatsNew';
 import { StreakBadge } from './StreakBadge';
+import { AnalyzeModal } from './AnalyzeModal';
 
 const LANGS: { code: Lang; label: string }[] = [
   { code: 'uz', label: "O'z" },
@@ -49,10 +50,19 @@ const LANGS: { code: Lang; label: string }[] = [
 ];
 
 /* ── Sidebar nav section ── */
+interface NavItem {
+  to: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  badge?: number;
+  end?: boolean;
+  onClick?: () => void;
+}
+
 interface NavSection {
   label: string;
   badge?: string;
-  items: { to: string; icon: React.ComponentType<{ className?: string }>; label: string; badge?: number; end?: boolean }[];
+  items: NavItem[];
 }
 
 /* ── Chevron icon ── */
@@ -82,6 +92,7 @@ export function Layout() {
   const [balance, setBalance] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  const [isAnalyzeOpen, setIsAnalyzeOpen] = useState(false);
   const { lang, setLang, t } = useI18n();
   const { isDark, toggle } = useTheme();
 
@@ -146,17 +157,17 @@ export function Layout() {
 
   useNotificationRefresh(fetchNotifications);
 
-  // Ctrl+K → quick navigate to Analyze
+  // Ctrl+K → open Analyze modal
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
-        navigate('/analyze');
+        setIsAnalyzeOpen(true);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [navigate]);
+  }, []);
 
   const clearTokens = useAuthStore((s) => s.clearTokens);
 
@@ -199,7 +210,7 @@ export function Layout() {
       items: [
         { to: '/', icon: HomeIcon, label: t('nav.dashboard'), end: true },
         { to: '/search', icon: MagnifyingGlassCircleIcon, label: t('nav.search') },
-        { to: '/analyze', icon: MagnifyingGlassIcon, label: t('nav.analyze') },
+        { to: '/analyze', icon: MagnifyingGlassIcon, label: t('nav.analyze'), onClick: () => setIsAnalyzeOpen(true) },
         { to: '/discovery', icon: ArrowTrendingUpIcon, label: t('nav.discovery') },
         { to: '/sourcing', icon: GlobeAltIcon, label: t('nav.sourcing') },
       ],
@@ -392,18 +403,14 @@ export function Layout() {
                       {section.items.map((item) => {
                         const active = isItemActive(item);
                         const Icon = item.icon;
+                        const sharedClass = `group relative flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[13px] transition-all duration-150 w-full text-left ${
+                          active
+                            ? 'ventra-nav-active text-primary font-semibold'
+                            : 'text-base-content/60 hover:bg-base-content/5 hover:text-base-content/85 font-medium'
+                        }`;
 
-                        return (
-                          <NavLink
-                            key={item.to}
-                            to={item.to}
-                            end={item.end}
-                            className={`group relative flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[13px] transition-all duration-150 ${
-                              active
-                                ? 'ventra-nav-active text-primary font-semibold'
-                                : 'text-base-content/60 hover:bg-base-content/5 hover:text-base-content/85 font-medium'
-                            }`}
-                          >
+                        const inner = (
+                          <>
                             {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full bg-primary shadow-sm shadow-primary/40" />}
                             <Icon className={`w-[17px] h-[17px] shrink-0 transition-colors duration-150 ${active ? 'text-primary' : 'text-base-content/35 group-hover:text-base-content/55'}`} />
                             <span className="truncate">{item.label}</span>
@@ -412,6 +419,16 @@ export function Layout() {
                                 {item.badge}
                               </span>
                             )}
+                          </>
+                        );
+
+                        return item.onClick ? (
+                          <button key={item.to} onClick={item.onClick} className={sharedClass}>
+                            {inner}
+                          </button>
+                        ) : (
+                          <NavLink key={item.to} to={item.to} end={item.end} className={sharedClass}>
+                            {inner}
                           </NavLink>
                         );
                       })}
@@ -485,6 +502,7 @@ export function Layout() {
       <BottomNav />
       <ScrollToTop />
       <WhatsNew externalOpen={showWhatsNew} onClose={() => setShowWhatsNew(false)} />
+      <AnalyzeModal isOpen={isAnalyzeOpen} onClose={() => setIsAnalyzeOpen(false)} />
     </div>
   );
 }
