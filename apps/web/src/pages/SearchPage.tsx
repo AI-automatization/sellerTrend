@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, Fragment } from 'react';
+import { useState, useEffect, useRef, useCallback, Fragment, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { productsApi } from '../api/client';
 import { getErrorMessage } from '../utils/getErrorMessage';
@@ -10,8 +10,6 @@ import { useTrackedProducts } from '../hooks/useTrackedProducts';
 import type { SearchProduct } from '../api/types';
 import { toast } from 'react-toastify';
 
-const DEBOUNCE_MS = 300;
-const DEFAULT_LIMIT = 24;
 const MIN_QUERY_LENGTH = 2;
 
 function formatPrice(price: number): string {
@@ -45,7 +43,7 @@ export function SearchPage() {
     setLoading(true);
     setError('');
     try {
-      const res = await productsApi.searchProducts(q.trim(), DEFAULT_LIMIT);
+      const res = await productsApi.searchProducts(q.trim());
       if (!controller.signal.aborted) {
         setResults(res.data);
         setHasSearched(true);
@@ -65,22 +63,10 @@ export function SearchPage() {
     }
   }, [t]);
 
-  // Debounced search
-  useEffect(() => {
-    if (query.trim().length < MIN_QUERY_LENGTH) {
-      setResults([]);
-      setHasSearched(false);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    const timer = setTimeout(() => {
-      search(query);
-    }, DEBOUNCE_MS);
-
-    return () => clearTimeout(timer);
-  }, [query, search]);
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    search(query);
+  }
 
   // Cleanup abort controller on unmount
   useEffect(() => {
@@ -123,20 +109,30 @@ export function SearchPage() {
 
       {/* Search input */}
       <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-6">
-        <div className="relative">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-base-content/30" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="input input-bordered w-full pl-10"
-            placeholder={t('search.placeholder')}
-            autoFocus
-          />
-          {loading && (
-            <span className="loading loading-spinner loading-sm absolute right-3 top-1/2 -translate-y-1/2 text-primary" />
-          )}
-        </div>
+        <form onSubmit={handleSubmit} className="flex gap-2">
+          <div className="relative flex-1">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-base-content/30" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="input input-bordered w-full pl-10"
+              placeholder={t('search.placeholder')}
+              autoFocus
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading || query.trim().length < MIN_QUERY_LENGTH}
+            className="btn btn-primary min-w-[120px]"
+          >
+            {loading ? (
+              <span className="loading loading-spinner loading-sm" />
+            ) : (
+              <><MagnifyingGlassIcon className="w-4 h-4" />{t('search.searchBtn') || 'Qidirish'}</>
+            )}
+          </button>
+        </form>
         {query.length > 0 && query.trim().length < MIN_QUERY_LENGTH && (
           <p className="text-xs text-base-content/40 mt-2">
             {t('search.minChars')}

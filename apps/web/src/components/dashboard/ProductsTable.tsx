@@ -65,10 +65,10 @@ export function ProductsTable({ products, sortedProducts, sortKey, setSortKey }:
             </Link>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-auto max-h-[480px]">
             <table className="table table-sm">
               <thead>
-                <tr className="bg-base-300/10 text-[9px] text-base-content/30 uppercase tracking-[0.12em]">
+                <tr className="bg-base-200/95 sticky top-0 z-10 text-[9px] text-base-content/30 uppercase tracking-[0.12em]">
                   <th scope="col" className="font-bold pl-5">{t('dashboard.product')}</th>
                   <th scope="col" className="font-bold text-center">{t('dashboard.score')}</th>
                   <th scope="col" className="font-bold text-center">{t('dashboard.trend')}</th>

@@ -3,6 +3,15 @@
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
 
+### T-439 | BACKEND | Search product rasmlari — GraphQL coverPhoto + DB fallback photoUrl fix (2026-03-14)
+
+**Manba:** kod-audit (2026-03-14)
+**Muammo:** Search natijalarida product rasmlari ko'rinmayotgan edi. `SEARCH_GRAPHQL_QUERY` da `coverPhoto` field yo'q edi; `searchProductsDB()` return map da `photoUrl` maydoni yo'q edi.
+**Yechim:** `DefaultCardFragment` ga `coverPhoto { photoKey }` qo'shildi; `parseGraphQLResponse` da `photoUrl: https://images.uzum.uz/${photoKey}/original.jpg` mapping qo'shildi; DB fallback da `photoUrl: p.photo_url ?? undefined` qo'shildi; `UzumSearchProduct` interface ga `photoUrl?: string` qo'shildi.
+**Fayllar:** `apps/api/src/uzum/uzum.client.ts`, `apps/api/src/products/products.service.ts`
+**Vaqt:** 15min (plan: 15min)
+**Ta'sir:** Search sahifasida product rasmlari endi ko'rinadi — ham live GraphQL, ham DB fallback holatda.
+
 ### T-441 | BACKEND | Uzum impit proxy + x-iid header fix (2026-03-14)
 
 **Manba:** production-bug (user-feedback, 2026-03-14)

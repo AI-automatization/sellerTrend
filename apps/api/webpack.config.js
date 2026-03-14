@@ -6,6 +6,7 @@ module.exports = (options) => {
     // @prisma/client ni bundle qilma — native binary'lari bor
     externals: [
       { '@prisma/client': 'commonjs2 @prisma/client' },
+      { 'impit': 'commonjs2 impit' },
     ],
     resolve: {
       ...options.resolve,

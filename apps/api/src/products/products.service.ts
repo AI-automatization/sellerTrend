@@ -341,6 +341,7 @@ export class ProductsService {
         rating: p.rating ? Number(p.rating) : undefined,
         ordersQuantity: p.orders_quantity ? Number(p.orders_quantity) : undefined,
         feedbackQuantity: p.feedback_quantity ?? undefined,
+        photoUrl: p.photo_url ?? undefined,
       }));
     } catch (err: unknown) {
       this.logger.error(`searchProductsDB failed: ${err instanceof Error ? err.message : String(err)}`);

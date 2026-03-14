@@ -90,6 +90,7 @@ export interface UzumSearchProduct {
   ordersQuantity?: number;
   ordersAmount?: number;
   feedbackQuantity?: number;
+  photoUrl?: string;
 }
 
 /** Normalized product shape returned by fetchProductDetail */
@@ -177,6 +178,7 @@ fragment DefaultCardFragment on CatalogCard {
   productId
   rating
   title
+  coverPhoto { photoKey }
   __typename
 }
 `;
@@ -196,6 +198,7 @@ interface GqlSearchResponse {
           ordersQuantity?: number;
           rating?: number;
           feedbackQuantity?: number;
+          coverPhoto?: { photoKey?: string };
         };
       }>;
     };
@@ -538,6 +541,7 @@ export class UzumClient {
       'User-Agent': HEADERS['User-Agent'],
       'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
       Accept: '*/*',
+      'x-iid': SERVER_IID,
     };
 
     // search-gateway requires cookies from token endpoint
@@ -566,6 +570,7 @@ export class UzumClient {
       .map((item) => {
         const card = item.catalogCard;
         if (!card) return null;
+        const photoKey = card.coverPhoto?.photoKey;
         return {
           id: card.id ?? card.productId,
           productId: card.productId,
@@ -575,6 +580,7 @@ export class UzumClient {
           rating: card.rating,
           ordersQuantity: card.ordersQuantity,
           feedbackQuantity: card.feedbackQuantity,
+          photoUrl: photoKey ? `https://images.uzum.uz/${photoKey}/original.jpg` : undefined,
         } as UzumSearchProduct;
       })
       .filter((p): p is UzumSearchProduct => p !== null);

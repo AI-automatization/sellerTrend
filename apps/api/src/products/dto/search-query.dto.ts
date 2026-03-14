@@ -9,11 +9,11 @@ export class SearchQueryDto {
   @MaxLength(100)
   q!: string;
 
-  @ApiProperty({ required: false, default: 24 })
+  @ApiProperty({ required: false, default: 100 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(48)
-  limit?: number = 24;
+  @Max(100)
+  limit?: number = 100;
 }

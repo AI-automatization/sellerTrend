@@ -123,16 +123,7 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 ---
 
-### T-439 | P1 | BACKEND | Search — DB fallback photo_url mapga qo'shilmagan | 15min
-
-**Manba:** kod-audit (2026-03-14)
-**Mas'ul:** pending[Bekzod]
-
-**Muammo:** `products.service.ts` `searchProductsDB()` da `photo_url: true` select qilinadi lekin return map da `photoUrl` maydoni yo'q. DB fallback ishlaganda barcha product rasmlari ko'rinmaydi.
-
-**Yechim:** `searchProductsDB` return map ga `photoUrl: p.photo_url ?? undefined` qo'shish.
-
-**Fayllar:** `apps/api/src/products/products.service.ts` — `searchProductsDB()` metodi (~line 335)
+> ~~T-439~~ ✅ DONE (2026-03-14) → Done.md — DB fallback + GraphQL coverPhoto fix
 
 ---
 
