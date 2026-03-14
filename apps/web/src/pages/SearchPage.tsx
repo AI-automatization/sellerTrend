@@ -226,123 +226,133 @@ export function SearchPage() {
               const isTracking = trackingIds.has(uzumId);
               const tracked = isTracked(uzumId);
               const isExpanded = expandedId === uzumId;
+              const price = product.sellPrice ?? product.minSellPrice ?? null;
+              const isFrom = !product.sellPrice && !!product.minSellPrice;
 
               return (
                 <Fragment key={product.id}>
                   <div
-                    className={`card bg-base-200/60 border transition-colors duration-200 ${
+                    className={`rounded-2xl bg-base-100 border overflow-hidden transition-all duration-200 ${
                       isExpanded
-                        ? 'border-primary/50 ring-1 ring-primary/20'
-                        : 'border-base-300/50 hover:border-primary/30'
+                        ? 'border-primary/40 shadow-lg shadow-primary/8'
+                        : 'border-base-300/30 shadow-sm hover:shadow-lg hover:border-primary/25'
                     }`}
                   >
-                    <div className="card-body p-4 gap-3">
-                      {/* Product image */}
+                    {/* Image area */}
+                    <div
+                      className="relative aspect-square bg-base-200/50 overflow-hidden cursor-pointer group"
+                      onClick={() => navigate(`/products/${uzumId}`)}
+                    >
                       {product.photoUrl ? (
-                        <figure
-                          className="rounded-lg overflow-hidden bg-base-300/30 aspect-square cursor-pointer"
-                          onClick={() => navigate(`/products/${uzumId}`)}
-                        >
-                          <img
-                            src={product.photoUrl}
-                            alt={product.title}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
-                        </figure>
+                        <img
+                          src={product.photoUrl}
+                          alt={product.title}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          loading="lazy"
+                        />
                       ) : (
-                        <div
-                          className="rounded-lg bg-base-300/30 aspect-square flex items-center justify-center cursor-pointer"
-                          onClick={() => navigate(`/products/${uzumId}`)}
-                        >
-                          <MagnifyingGlassIcon className="w-10 h-10 text-base-content/15" />
+                        <div className="w-full h-full flex items-center justify-center">
+                          <MagnifyingGlassIcon className="w-12 h-12 text-base-content/10" />
                         </div>
                       )}
+                      {/* Hover overlay */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors duration-200" />
+                      {/* Rating badge */}
+                      {product.rating > 0 && (
+                        <div className="absolute top-2 right-2 flex items-center gap-0.5 bg-base-100/90 backdrop-blur-sm px-1.5 py-0.5 rounded-full shadow-sm">
+                          <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                          <span className="text-[10px] font-bold text-base-content/80">{product.rating.toFixed(1)}</span>
+                        </div>
+                      )}
+                      {/* Tracked badge */}
+                      {tracked && (
+                        <div className="absolute top-2 left-2 bg-success/90 backdrop-blur-sm px-2 py-0.5 rounded-full">
+                          <span className="text-[10px] font-bold text-success-content uppercase tracking-wider">{t('search.tracked')}</span>
+                        </div>
+                      )}
+                    </div>
 
+                    {/* Content */}
+                    <div className="p-3 space-y-2.5">
                       {/* Title */}
                       <h3
-                        className="font-semibold text-sm leading-snug line-clamp-2 cursor-pointer hover:text-primary transition-colors"
+                        className="font-semibold text-sm leading-snug line-clamp-2 cursor-pointer hover:text-primary transition-colors min-h-[2.5rem]"
                         onClick={() => navigate(`/products/${uzumId}`)}
                         title={product.title}
                       >
                         {product.title}
                       </h3>
 
-                      {/* Stats row */}
-                      <div className="flex flex-wrap gap-2 text-xs text-base-content/50">
-                        {product.rating > 0 && (
-                          <span className="flex items-center gap-1">
-                            <svg className="w-3.5 h-3.5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                            </svg>
-                            {product.rating.toFixed(1)}
-                          </span>
-                        )}
-                        {product.ordersQuantity != null && product.ordersQuantity > 0 && (
-                          <span>{t('search.orders')}: {product.ordersQuantity.toLocaleString()}</span>
-                        )}
-                        {product.reviewsAmount != null && product.reviewsAmount > 0 && (
-                          <span>{t('search.reviews')}: {product.reviewsAmount.toLocaleString()}</span>
+                      {/* Stats chips */}
+                      {(product.ordersQuantity > 0 || (product.reviewsAmount != null && product.reviewsAmount > 0)) && (
+                        <div className="flex flex-wrap gap-1">
+                          {product.ordersQuantity > 0 && (
+                            <span className="inline-flex items-center text-[10px] bg-base-200/80 px-2 py-0.5 rounded-full text-base-content/50 font-medium">
+                              {product.ordersQuantity.toLocaleString()} {t('search.orders')}
+                            </span>
+                          )}
+                          {product.reviewsAmount != null && product.reviewsAmount > 0 && (
+                            <span className="inline-flex items-center text-[10px] bg-base-200/80 px-2 py-0.5 rounded-full text-base-content/50 font-medium">
+                              {product.reviewsAmount.toLocaleString()} {t('search.reviews')}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Price */}
+                      <div>
+                        {price != null && price > 0 ? (
+                          <>
+                            <p className="font-bold text-lg tabular-nums leading-tight">
+                              {isFrom && <span className="text-sm font-normal text-base-content/40 mr-1">{t('search.from')}</span>}
+                              {formatPrice(price)}
+                            </p>
+                            <p className="text-[10px] text-base-content/35 uppercase tracking-wider">{t('common.som')}</p>
+                          </>
+                        ) : (
+                          <p className="text-sm text-base-content/25">{t('search.noPrice')}</p>
                         )}
                       </div>
 
-                      {/* Price + Action buttons */}
-                      <div className="flex items-center justify-between mt-auto pt-1">
-                        <div>
-                          {product.sellPrice != null && product.sellPrice > 0 ? (
-                            <span className="font-bold text-base tabular-nums">
-                              {formatPrice(product.sellPrice)} <span className="text-xs font-normal text-base-content/40">{t('common.som')}</span>
-                            </span>
-                          ) : product.minSellPrice != null && product.minSellPrice > 0 ? (
-                            <span className="font-bold text-base tabular-nums">
-                              {t('search.from')} {formatPrice(product.minSellPrice)} <span className="text-xs font-normal text-base-content/40">{t('common.som')}</span>
-                            </span>
-                          ) : (
-                            <span className="text-sm text-base-content/30">{t('search.noPrice')}</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          {/* Analyze button */}
-                          <button
-                            onClick={() => setExpandedId(isExpanded ? null : uzumId)}
-                            className={`btn btn-sm gap-1 ${
-                              isExpanded
-                                ? 'btn-secondary'
-                                : 'btn-outline btn-secondary'
-                            }`}
-                          >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                      {/* Action buttons */}
+                      <div className="flex gap-1.5 pt-0.5">
+                        <button
+                          onClick={() => setExpandedId(isExpanded ? null : uzumId)}
+                          className={`btn btn-sm flex-1 gap-1 text-xs ${
+                            isExpanded ? 'btn-secondary' : 'btn-outline btn-secondary'
+                          }`}
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                          </svg>
+                          {t('search.analyze')}
+                        </button>
+                        <button
+                          onClick={() => handleTrack(product)}
+                          disabled={isTracking || tracked}
+                          className={`btn btn-sm flex-1 gap-1 text-xs ${
+                            tracked ? 'btn-success' : 'btn-outline btn-primary'
+                          }`}
+                        >
+                          {isTracking ? (
+                            <span className="loading loading-spinner loading-xs" />
+                          ) : tracked ? (
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                             </svg>
-                            {t('search.analyze')}
-                          </button>
-                          {/* Track button */}
-                          <button
-                            onClick={() => handleTrack(product)}
-                            disabled={isTracking || tracked}
-                            className={`btn btn-sm gap-1 ${
-                              tracked
-                                ? 'btn-success'
-                                : 'btn-outline btn-primary'
-                            }`}
-                          >
-                            {isTracking ? (
-                              <span className="loading loading-spinner loading-xs" />
-                            ) : tracked ? (
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                              </svg>
-                            ) : (
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                              </svg>
-                            )}
-                            {tracked ? t('search.tracked') : t('search.track')}
-                          </button>
-                        </div>
+                          ) : (
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                            </svg>
+                          )}
+                          {tracked ? t('search.tracked') : t('search.track')}
+                        </button>
                       </div>
                     </div>
                   </div>
+
                   {/* Inline expand panel */}
                   {isExpanded && (
                     <ExpandPanel

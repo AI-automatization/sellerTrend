@@ -12,6 +12,15 @@
 **Vaqt:** 1h (plan: 1h)
 **Ta'sir:** Foydalanuvchi pastga scroll qilganida avtomatik qo'shimcha mahsulotlar yüklenir — cheksiz natijalar (Uzum da 3000+ mahsulot).
 
+### T-444 | FRONTEND | Search card dizayn — onboarding uslubida qayta loyiha (2026-03-14)
+
+**Manba:** user-feedback (2026-03-14)
+**Muammo:** Search card lari vizual jihatdan zaif, onboarding/dashboard stili bilan uyg'un emas edi. Narx 6 raqamli bo'lganda "so'm" pastga tushib qolayotgan edi.
+**Yechim:** Card to'liq qayta loyiha: `rounded-2xl bg-base-100 shadow-sm hover:shadow-lg`; rasm ustida rating badge (backdrop-blur pill), tracked badge, hover scale+overlay; sarlavha `min-h-[2.5rem]`; stats chip/rounded-full uslubi; narx `text-lg font-bold` + `text-[10px] uppercase tracking-wider` so'm; tugmalar `flex-1` teng kenglikda.
+**Fayllar:** `apps/web/src/pages/SearchPage.tsx`
+**Vaqt:** 20min (plan: 2h)
+**Ta'sir:** Search card lari endi dashboard va onboarding bilan bir xil dizayn tili — aniq ierarxiya, hover effektlari, narx muammosi yo'q.
+
 ### T-442 | FRONTEND | Dashboard KPI — "O'rta Score" va "Salomatlik" o'zgartirildi (2026-03-14)
 
 **Manba:** user-feedback (2026-03-14)
