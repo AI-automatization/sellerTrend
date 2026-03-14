@@ -131,17 +131,25 @@ const proxyDispatcher: unknown = process.env.PROXY_URL
 let impitInstance: Impit | null = null;
 function getImpit(): Impit {
   if (!impitInstance) {
-    impitInstance = new Impit({ browser: 'chrome' });
+    const opts: ConstructorParameters<typeof Impit>[0] = { browser: 'chrome' };
+    if (process.env.PROXY_URL) {
+      opts.proxyUrl = process.env.PROXY_URL;
+    }
+    impitInstance = new Impit(opts);
   }
   return impitInstance;
 }
+// Stable x-iid per server instance — Uzum token endpoint requires this header
+const SERVER_IID = process.env.UZUM_IID ?? 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+
 const HEADERS = {
   'User-Agent':
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
   Origin: 'https://uzum.uz',
   Referer: 'https://uzum.uz/',
   'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',
   Accept: 'application/json',
+  'x-iid': SERVER_IID,
 };
 
 /** GraphQL search query — minimal fields for search results */
