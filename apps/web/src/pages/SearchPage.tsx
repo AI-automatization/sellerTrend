@@ -286,9 +286,9 @@ export function SearchPage() {
                       </h3>
 
                       {/* Stats chips */}
-                      {(product.ordersQuantity > 0 || (product.reviewsAmount != null && product.reviewsAmount > 0)) && (
+                      {((product.ordersQuantity != null && product.ordersQuantity > 0) || (product.reviewsAmount != null && product.reviewsAmount > 0)) && (
                         <div className="flex flex-wrap gap-1">
-                          {product.ordersQuantity > 0 && (
+                          {product.ordersQuantity != null && product.ordersQuantity > 0 && (
                             <span className="inline-flex items-center text-[10px] bg-base-200/80 px-2 py-0.5 rounded-full text-base-content/50 font-medium">
                               {product.ordersQuantity.toLocaleString()} {t('search.orders')}
                             </span>
