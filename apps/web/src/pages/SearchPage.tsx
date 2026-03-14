@@ -12,6 +12,7 @@ import { toast } from 'react-toastify';
 
 const MIN_QUERY_LENGTH = 2;
 const PAGE_SIZE = 24;
+const PAGE_LIMIT = 64;
 
 function formatPrice(price: number): string {
   return price.toLocaleString('ru-RU');
@@ -27,19 +28,40 @@ export function SearchPage() {
   const [error, setError] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const [hasMore, setHasMore] = useState(false);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [page, setPage] = useState(1);
   const [offset, setOffset] = useState(0);
   const [trackingIds, setTrackingIds] = useState<Set<number>>(new Set());
   const { isTracked, trackProduct } = useTrackedProducts();
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const topRef = useRef<HTMLDivElement | null>(null);
+
+  /** Scroll sahifa tepasiga */
+  const scrollToTop = useCallback(() => {
+    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
+  /** hasMore va hasNextPage ni hisoblash */
+  function calcPaging(batchCount: number, nextOffset: number, currentPage: number) {
+    const pageStart = (currentPage - 1) * PAGE_LIMIT;
+    const withinPage = nextOffset - pageStart;
+    const batchFull = batchCount === PAGE_SIZE;
+    return {
+      hasMore: batchFull && withinPage < PAGE_LIMIT,
+      hasNextPage: batchFull && withinPage >= PAGE_LIMIT,
+    };
+  }
 
   const search = useCallback(async (q: string) => {
     if (q.trim().length < MIN_QUERY_LENGTH) {
       setResults([]);
       setHasSearched(false);
       setHasMore(false);
+      setHasNextPage(false);
       setOffset(0);
+      setPage(1);
       return;
     }
 
@@ -49,14 +71,21 @@ export function SearchPage() {
 
     setLoading(true);
     setError('');
+    setPage(1);
     setOffset(0);
     setHasMore(false);
+    setHasNextPage(false);
+
     try {
       const res = await productsApi.searchProducts(q.trim(), PAGE_SIZE, 0);
       if (!controller.signal.aborted) {
         setResults(res.data);
         setHasSearched(true);
-        setHasMore(res.data.length === PAGE_SIZE);
+        const nextOffset = PAGE_SIZE;
+        const paging = calcPaging(res.data.length, nextOffset, 1);
+        setHasMore(paging.hasMore);
+        setHasNextPage(paging.hasNextPage);
+        setOffset(nextOffset);
       }
     } catch (err: unknown) {
       if (!controller.signal.aborted) {
@@ -75,25 +104,66 @@ export function SearchPage() {
 
   const loadMore = useCallback(async () => {
     if (!hasMore || loadingMore || loading) return;
-    const newOffset = offset + PAGE_SIZE;
     setLoadingMore(true);
     try {
-      const res = await productsApi.searchProducts(query.trim(), PAGE_SIZE, newOffset);
+      const res = await productsApi.searchProducts(query.trim(), PAGE_SIZE, offset);
       if (res.data.length > 0) {
         setResults(prev => [...prev, ...res.data]);
-        setOffset(newOffset);
-        setHasMore(res.data.length === PAGE_SIZE);
+        const nextOffset = offset + PAGE_SIZE;
+        const paging = calcPaging(res.data.length, nextOffset, page);
+        setHasMore(paging.hasMore);
+        setHasNextPage(paging.hasNextPage);
+        setOffset(nextOffset);
       } else {
         setHasMore(false);
+        setHasNextPage(false);
       }
     } catch {
       setHasMore(false);
     } finally {
       setLoadingMore(false);
     }
-  }, [hasMore, loadingMore, loading, offset, query]);
+  }, [hasMore, loadingMore, loading, offset, query, page]);
 
-  // IntersectionObserver — sentinel element ko'ringanda loadMore chaqiriladi
+  const changePage = useCallback(async (newPage: number) => {
+    if (newPage < 1 || loading || loadingMore) return;
+
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    setPage(newPage);
+    setResults([]);
+    setHasMore(false);
+    setHasNextPage(false);
+    setExpandedId(null);
+    setLoading(true);
+    setError('');
+
+    const pageStart = (newPage - 1) * PAGE_LIMIT;
+    try {
+      const res = await productsApi.searchProducts(query.trim(), PAGE_SIZE, pageStart);
+      if (!controller.signal.aborted) {
+        setResults(res.data);
+        const nextOffset = pageStart + PAGE_SIZE;
+        const paging = calcPaging(res.data.length, nextOffset, newPage);
+        setHasMore(paging.hasMore);
+        setHasNextPage(paging.hasNextPage);
+        setOffset(nextOffset);
+        scrollToTop();
+      }
+    } catch (err: unknown) {
+      if (!controller.signal.aborted) {
+        setError(getErrorMessage(err, t('search.error'), t));
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
+    }
+  }, [loading, loadingMore, query, scrollToTop, t]);
+
+  // IntersectionObserver — sentinel ko'ringanda loadMore
   useEffect(() => {
     const sentinel = sentinelRef.current;
     if (!sentinel || !hasMore) return;
@@ -113,7 +183,6 @@ export function SearchPage() {
     search(query);
   }
 
-  // Cleanup abort controller on unmount
   useEffect(() => {
     return () => { abortRef.current?.abort(); };
   }, []);
@@ -137,8 +206,11 @@ export function SearchPage() {
     }
   }
 
+  const showPagination = hasSearched && !loading && (page > 1 || hasNextPage);
+
   return (
     <div className="w-full space-y-4 lg:space-y-6">
+      <div ref={topRef} />
       <PageHint page="search">{t('hints.search')}</PageHint>
 
       {/* Header */}
@@ -195,8 +267,8 @@ export function SearchPage() {
         </div>
       )}
 
-      {/* Loading skeleton — birinchi qidiruv */}
-      {loading && !hasSearched && query.trim().length >= MIN_QUERY_LENGTH && (
+      {/* Loading skeleton — birinchi qidiruv / sahifa o'tish */}
+      {loading && query.trim().length >= MIN_QUERY_LENGTH && (
         <SearchCardSkeleton count={8} />
       )}
 
@@ -205,6 +277,9 @@ export function SearchPage() {
         <>
           <p className="text-sm text-base-content/50">
             {t('search.resultsCount').replace('{count}', String(results.length))}
+            {page > 1 && (
+              <span className="ml-2 text-base-content/30">· {page}-sahifa</span>
+            )}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {results.map((product) => {
@@ -241,9 +316,7 @@ export function SearchPage() {
                           <MagnifyingGlassIcon className="w-12 h-12 text-base-content/10" />
                         </div>
                       )}
-                      {/* Hover overlay */}
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors duration-200" />
-                      {/* Rating badge */}
                       {product.rating > 0 && (
                         <div className="absolute top-2 right-2 flex items-center gap-0.5 bg-base-100/90 backdrop-blur-sm px-1.5 py-0.5 rounded-full shadow-sm">
                           <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
@@ -252,7 +325,6 @@ export function SearchPage() {
                           <span className="text-[10px] font-bold text-base-content/80">{product.rating.toFixed(1)}</span>
                         </div>
                       )}
-                      {/* Tracked badge */}
                       {tracked && (
                         <div className="absolute top-2 left-2 bg-success/90 backdrop-blur-sm px-2 py-0.5 rounded-full">
                           <span className="text-[10px] font-bold text-success-content uppercase tracking-wider">{t('search.tracked')}</span>
@@ -262,7 +334,6 @@ export function SearchPage() {
 
                     {/* Content */}
                     <div className="p-3 space-y-2.5">
-                      {/* Title */}
                       <h3
                         className="font-semibold text-sm leading-snug line-clamp-2 cursor-pointer hover:text-primary transition-colors min-h-[2.5rem]"
                         onClick={() => navigate(`/products/${uzumId}`)}
@@ -271,7 +342,6 @@ export function SearchPage() {
                         {product.title}
                       </h3>
 
-                      {/* Stats chips */}
                       {((product.ordersQuantity != null && product.ordersQuantity > 0) || (product.reviewsAmount != null && product.reviewsAmount > 0)) && (
                         <div className="flex flex-wrap gap-1">
                           {product.ordersQuantity != null && product.ordersQuantity > 0 && (
@@ -287,7 +357,6 @@ export function SearchPage() {
                         </div>
                       )}
 
-                      {/* Price */}
                       <div>
                         {price != null && price > 0 ? (
                           <>
@@ -302,7 +371,6 @@ export function SearchPage() {
                         )}
                       </div>
 
-                      {/* Action buttons */}
                       <div className="flex gap-1.5 pt-0.5">
                         <button
                           onClick={() => setExpandedId(isExpanded ? null : uzumId)}
@@ -352,10 +420,60 @@ export function SearchPage() {
             })}
           </div>
 
-          {/* Infinite scroll sentinel + skeleton */}
+          {/* Infinite scroll sentinel + loading skeleton */}
           <div ref={sentinelRef}>
             {loadingMore && <SearchCardSkeleton count={4} />}
           </div>
+
+          {/* Pagination */}
+          {showPagination && (
+            <div className="flex items-center justify-center gap-2 pt-2 pb-4">
+              <button
+                onClick={() => changePage(page - 1)}
+                disabled={page <= 1 || loading}
+                className="btn btn-sm btn-ghost gap-1"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+                Oldingi
+              </button>
+
+              {/* Sahifa raqamlari */}
+              <div className="flex items-center gap-1">
+                {page > 2 && (
+                  <>
+                    <button onClick={() => changePage(1)} className="btn btn-sm btn-ghost w-9 h-9 p-0">1</button>
+                    {page > 3 && <span className="text-base-content/30 px-1">···</span>}
+                  </>
+                )}
+                {page > 1 && (
+                  <button onClick={() => changePage(page - 1)} className="btn btn-sm btn-ghost w-9 h-9 p-0">
+                    {page - 1}
+                  </button>
+                )}
+                <button className="btn btn-sm btn-primary w-9 h-9 p-0 pointer-events-none">
+                  {page}
+                </button>
+                {hasNextPage && (
+                  <button onClick={() => changePage(page + 1)} className="btn btn-sm btn-ghost w-9 h-9 p-0">
+                    {page + 1}
+                  </button>
+                )}
+              </div>
+
+              <button
+                onClick={() => changePage(page + 1)}
+                disabled={!hasNextPage || loading}
+                className="btn btn-sm btn-ghost gap-1"
+              >
+                Keyingi
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          )}
         </>
       )}
 
@@ -393,9 +511,7 @@ function SearchCardSkeleton({ count }: { count: number }) {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="rounded-2xl bg-base-100 border border-base-300/30 shadow-sm overflow-hidden">
-          {/* Image skeleton */}
           <div className="skeleton aspect-square w-full rounded-none" />
-          {/* Content skeleton */}
           <div className="p-3 space-y-2.5">
             <div className="skeleton h-3.5 w-full rounded-lg" />
             <div className="skeleton h-3.5 w-2/3 rounded-lg" />
