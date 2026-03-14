@@ -114,6 +114,7 @@ export function AnalyzeModal({ isOpen, onClose }: Props) {
     try {
       await productsApi.track(String(result.product_id));
       setTracked(true);
+      window.dispatchEvent(new CustomEvent('product-tracked'));
     } catch {
       // already tracked — ignore
     }

@@ -763,6 +763,14 @@ export class ProductsService {
     return { ...tp, product_id: tp.product_id.toString() };
   }
 
+  async untrackProduct(accountId: string, productId: bigint) {
+    await this.prisma.trackedProduct.updateMany({
+      where: { account_id: accountId, product_id: productId },
+      data: { is_active: false },
+    });
+    return { untracked: true };
+  }
+
   async getProductSnapshots(productId: bigint, accountId: string, limit = 30) {
     await this.assertProductOwnership(productId, accountId);
 

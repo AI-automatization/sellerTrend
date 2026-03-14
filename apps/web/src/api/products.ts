@@ -5,6 +5,7 @@ export const productsApi = {
   getTracked: () => api.get('/products/tracked'),
   getProduct: (productId: string) => api.get(`/products/${productId}`),
   track: (productId: string) => api.post(`/products/${productId}/track`),
+  untrack: (productId: string) => api.delete(`/products/${productId}/track`),
   getSnapshots: (productId: string) => api.get(`/products/${productId}/snapshots`),
   getForecast: (productId: string) => api.get(`/products/${productId}/forecast`),
   getMlForecast: (productId: string) => api.get(`/products/${productId}/ml-forecast`),

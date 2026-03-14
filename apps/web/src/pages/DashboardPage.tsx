@@ -13,7 +13,7 @@ import { PageHint } from '../components/PageHint';
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function DashboardPage() {
-  const { products, balance, loading, error, isSuperAdmin, exporting, handleExportCsv } = useDashboardData();
+  const { products, setProducts, balance, loading, error, isSuperAdmin, exporting, handleExportCsv } = useDashboardData();
   const [sortKey, setSortKey] = useState<'score' | 'weekly' | 'price'>('score');
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -205,6 +205,7 @@ export function DashboardPage() {
         sortedProducts={sortedProducts}
         sortKey={sortKey}
         setSortKey={setSortKey}
+        onUntrack={(id) => setProducts(prev => prev.filter(p => String(p.product_id) !== id))}
       />
 
       <style>{`

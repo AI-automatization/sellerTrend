@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { TrackedProduct } from '../../api/types';
 import { FireIcon, MagnifyingGlassIcon } from '../icons';
 import { useI18n } from '../../i18n/I18nContext';
 import { ScorePill, TrendChip, FadeIn } from './index';
+import { productsApi } from '../../api/client';
+import { toast } from 'react-toastify';
 
 type SortKey = 'score' | 'weekly' | 'price';
 
@@ -11,10 +14,30 @@ interface Props {
   sortedProducts: TrackedProduct[];
   sortKey: SortKey;
   setSortKey: (key: SortKey) => void;
+  onUntrack?: (productId: string) => void;
 }
 
-export function ProductsTable({ products, sortedProducts, sortKey, setSortKey }: Props) {
+export function ProductsTable({ products, sortedProducts, sortKey, setSortKey, onUntrack }: Props) {
   const { t } = useI18n();
+  const [untrackingIds, setUntrackingIds] = useState<Set<string>>(new Set());
+
+  async function handleUntrack(productId: string) {
+    if (untrackingIds.has(productId)) return;
+    setUntrackingIds(prev => new Set(prev).add(productId));
+    try {
+      await productsApi.untrack(productId);
+      onUntrack?.(productId);
+      toast.success(t('dashboard.untrackSuccess'));
+    } catch {
+      toast.error(t('dashboard.untrackError'));
+    } finally {
+      setUntrackingIds(prev => {
+        const next = new Set(prev);
+        next.delete(productId);
+        return next;
+      });
+    }
+  }
 
   return (
     <FadeIn delay={400}>
@@ -76,7 +99,7 @@ export function ProductsTable({ products, sortedProducts, sortKey, setSortKey }:
                   <th scope="col" className="font-bold text-right hidden md:table-cell">{t('dashboard.orders')}</th>
                   <th scope="col" className="font-bold text-right">{t('dashboard.price')}</th>
                   <th scope="col" className="font-bold text-right hidden sm:table-cell">{t('dashboard.rating')}</th>
-                  <th scope="col" className="w-10"></th>
+                  <th scope="col" className="w-16"></th>
                 </tr>
               </thead>
               <tbody>
@@ -130,10 +153,25 @@ export function ProductsTable({ products, sortedProducts, sortKey, setSortKey }:
                       <span className="ml-0.5 text-base-content/40 tabular-nums">{p.rating ?? '—'}</span>
                     </td>
                     <td>
-                      <Link to={`/products/${p.product_id}`}
-                        className="btn btn-ghost btn-xs opacity-0 group-hover/row:opacity-100 transition-opacity">
-                        →
-                      </Link>
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                        <Link to={`/products/${p.product_id}`}
+                          className="btn btn-ghost btn-xs">
+                          →
+                        </Link>
+                        <button
+                          onClick={() => handleUntrack(String(p.product_id))}
+                          disabled={untrackingIds.has(String(p.product_id))}
+                          className="btn btn-ghost btn-xs text-error/50 hover:text-error hover:bg-error/8"
+                          title={t('dashboard.untrack')}
+                        >
+                          {untrackingIds.has(String(p.product_id))
+                            ? <span className="loading loading-spinner loading-xs" />
+                            : <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                          }
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

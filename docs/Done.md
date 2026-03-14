@@ -12,6 +12,15 @@
 **Vaqt:** 1h (plan: 1h)
 **Ta'sir:** Foydalanuvchi pastga scroll qilganida avtomatik qo'shimcha mahsulotlar yüklenir — cheksiz natijalar (Uzum da 3000+ mahsulot).
 
+### T-446 | IKKALASI | Tracked product — kuzatuvdan olib tashlash (2026-03-14)
+
+**Manba:** user-feedback (2026-03-14)
+**Muammo:** Foydalanuvchi kuzatuvga qo'shilgan mahsulotni olib tashlash imkoni yo'q edi.
+**Yechim:** Backend: `untrackProduct` service method (`is_active: false`), `DELETE /products/:id/track` endpoint. Frontend: `productsApi.untrack()`, ProductsTable da hover da "×" tugmasi, `onUntrack` callback orqali listdan darhol o'chiladi. `product-tracked` CustomEvent — track qilinganda dashboard auto-refresh. i18n uz/ru/en.
+**Fayllar:** `apps/api/src/products/products.service.ts`, `products.controller.ts`, `apps/web/src/api/products.ts`, `apps/web/src/components/dashboard/ProductsTable.tsx`, `apps/web/src/hooks/useDashboardData.ts`, `apps/web/src/pages/AnalyzePage.tsx`, `apps/web/src/components/AnalyzeModal.tsx`, `apps/web/src/pages/DashboardPage.tsx`
+**Vaqt:** 45min (plan: 1h)
+**Ta'sir:** Foydalanuvchi mahsulotni kuzatuvdan olib tashlashi mumkin. Track qilinganda dashboard reload qilmasdan yangilanadi.
+
 ### T-445 | FRONTEND | Analyze modal + search btn i18n (2026-03-14)
 
 **Manba:** user-feedback (2026-03-14)

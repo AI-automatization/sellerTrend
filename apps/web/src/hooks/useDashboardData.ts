@@ -33,6 +33,11 @@ export function useDashboardData() {
     fetchData();
   }, [location.key, fetchData]);
 
+  useEffect(() => {
+    window.addEventListener('product-tracked', fetchData);
+    return () => window.removeEventListener('product-tracked', fetchData);
+  }, [fetchData]);
+
   async function handleExportCsv() {
     setExporting(true);
     try {
@@ -48,5 +53,5 @@ export function useDashboardData() {
     }
   }
 
-  return { products, balance, loading, error, isSuperAdmin, exporting, handleExportCsv };
+  return { products, setProducts, balance, loading, error, isSuperAdmin, exporting, handleExportCsv };
 }
