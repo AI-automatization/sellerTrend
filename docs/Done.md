@@ -1,7 +1,17 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
-# Yangilangan: 2026-03-09
+# Yangilangan: 2026-03-14
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
+
+### T-441 | BACKEND | Uzum impit proxy + x-iid header fix (2026-03-14)
+
+**Manba:** production-bug (user-feedback, 2026-03-14)
+**Muammo:** Search 429 — impit proxysiz ishlar edi, PROXY_URL set bo'lsa ham impit uni ishlatmayotgan edi. Token endpoint `x-iid` header talab qiladi, HEADERS da yo'q edi.
+**Yechim:** `getImpit()` da `proxyUrl` qo'shildi; HEADERS ga `x-iid: SERVER_IID` va Chrome 130 UA qo'shildi.
+**Fayllar:** `apps/api/src/uzum/uzum.client.ts`
+**Commit:** 21f243d
+**Vaqt:** 1h (plan: 2h)
+**Ta'sir:** PROXY_URL set qilinganda impit ham proxy orqali ishlaydi → Uzum 429 bypass bo'ladi. x-iid mavjudligi token acquisition ishonchliligini oshiradi.
 
 # ── DONE.MD ENTRY FORMATI ──────────────────────────────────
 #

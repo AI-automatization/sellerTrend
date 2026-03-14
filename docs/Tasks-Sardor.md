@@ -99,6 +99,13 @@ Manba: T-328 dan ajratildi (2026-03-06)
 
 ---
 
+## SEARCH BUG
+
+> ~~T-441~~ ✅ DONE (2026-03-14) — impit proxyUrl + x-iid header fix
+> Tafsil: Tasks.md da
+
+---
+
 ## BUGS & CRITICAL FIXES
 
 > ~~T-433~~ ✅ DONE (2026-03-14) → Done.md — SW timeout fix (AbortSignal)

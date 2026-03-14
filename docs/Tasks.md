@@ -752,6 +752,7 @@ Yoki Chrome popup lifecycle issue — service worker timeout.
 ---
 
 # ═══════════════════════════════════════════════════════════
+
 # RAG CHAT PIPELINE (T-428..T-433) — Bekzod
 # ═══════════════════════════════════════════════════════════
 #
