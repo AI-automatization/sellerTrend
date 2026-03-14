@@ -42,7 +42,7 @@ export function ChartsSection({ scoreChartData, trendPieData, stats, products }:
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-base-content/15" />&lt;4</span>
             </div>
           </div>
-          <div className="p-4 lg:p-5">
+          <div className="p-4 lg:p-5 max-h-96 overflow-y-auto">
             {scoreChartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={Math.max(260, scoreChartData.length * 30)}>
                 <BarChart data={scoreChartData} layout="vertical" margin={{ top: 0, right: 24, left: 0, bottom: 0 }}>

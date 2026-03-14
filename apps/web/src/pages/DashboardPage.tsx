@@ -46,7 +46,6 @@ export function DashboardPage() {
     products
       .filter((p) => p.score !== null)
       .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-      .slice(0, 12)
       .map((p) => ({
         name: p.title.length > 18 ? p.title.slice(0, 18) + '…' : p.title,
         score: p.score ?? 0,
