@@ -1,20 +1,11 @@
 #!/usr/bin/env sh
 
-# === ZONA ENFORCEMENT — Zone violations qilolmaydi ===
-# Bekzod: apps/api, apps/web, apps/worker
-# Sardor: apps/landing, apps/desktop, apps/bot, apps/extension
+# === ZONA ENFORCEMENT — Bekzod = PM (faqat docs), Sardor = Full-Stack (barcha kod) ===
+# Bekzod: faqat docs/ — apps/ va packages/ ga TAQIQLANGAN
+# Sardor: barcha papkalarga to'liq ruxsat
 
 COMMITTER_NAME=$(git config user.name)
 COMMITTER_EMAIL=$(git config user.email)
-
-# Sardor identifikatsiya (ism yoki email bo'yicha)
-IS_SARDOR=false
-case "$COMMITTER_NAME" in
-  *[Ss]ardor*) IS_SARDOR=true ;;
-esac
-case "$COMMITTER_EMAIL" in
-  *sardor*) IS_SARDOR=true ;;
-esac
 
 # Bekzod identifikatsiya
 IS_BEKZOD=false
@@ -25,45 +16,9 @@ case "$COMMITTER_EMAIL" in
   *bekzod*) IS_BEKZOD=true ;;
 esac
 
-if [ "$IS_SARDOR" = true ]; then
-  # Sardor uchun taqiqlangan zona'lar (Bekzod)
-  BLOCKED_FILES=$(git diff --cached --name-only | grep -E "^(apps/api/|apps/web/|apps/worker/)" || true)
-
-  if [ -n "$BLOCKED_FILES" ]; then
-    echo ""
-    echo "══════════════════════════════════════════════════════════════"
-    echo "  ❌ COMMIT BLOKLANDI — ZONA BUZILISHI"
-    echo "══════════════════════════════════════════════════════════════"
-    echo ""
-    echo "  Sardor, siz quyidagi fayllarga commit qilolmaysiz:"
-    echo ""
-    echo "$BLOCKED_FILES" | while read -r file; do
-      echo "    ❌ $file"
-    done
-    echo ""
-    echo "  SIZNING ZONA:"
-    echo "    ✅ apps/landing/    — Landing page"
-    echo "    ✅ apps/desktop/    — Desktop app"
-    echo "    ✅ apps/bot/        — Telegram bot"
-    echo "    ✅ apps/extension/  — Chrome Extension"
-    echo "    ✅ packages/        — Shared (lock bilan)"
-    echo "    ✅ docs/            — Dokumentatsiya"
-    echo ""
-    echo "  TAQIQLANGAN ZONA (Bekzod mas'ul):"
-    echo "    ❌ apps/api/        — Backend API"
-    echo "    ❌ apps/web/        — Frontend Web dashboard"
-    echo "    ❌ apps/worker/     — BullMQ Worker"
-    echo ""
-    echo "  Agar bu o'zgarish zarur bo'lsa — Bekzod bilan gaplashing."
-    echo "══════════════════════════════════════════════════════════════"
-    echo ""
-    exit 1
-  fi
-fi
-
 if [ "$IS_BEKZOD" = true ]; then
-  # Bekzod uchun taqiqlangan zona'lar (Sardor)
-  BLOCKED_FILES=$(git diff --cached --name-only | grep -E "^(apps/landing/|apps/desktop/|apps/bot/|apps/extension/)" || true)
+  # Bekzod PM — faqat docs/ va root config fayllar ruxsat
+  BLOCKED_FILES=$(git diff --cached --name-only | grep -E "^(apps/|packages/)" || true)
 
   if [ -n "$BLOCKED_FILES" ]; then
     echo ""
@@ -71,31 +26,29 @@ if [ "$IS_BEKZOD" = true ]; then
     echo "  ❌ COMMIT BLOKLANDI — ZONA BUZILISHI"
     echo "══════════════════════════════════════════════════════════════"
     echo ""
-    echo "  Bekzod, siz quyidagi fayllarga commit qilolmaysiz:"
+    echo "  Bekzod, siz PM sifatida kod fayllariga commit qilolmaysiz:"
     echo ""
     echo "$BLOCKED_FILES" | while read -r file; do
       echo "    ❌ $file"
     done
     echo ""
-    echo "  SIZNING ZONA:"
-    echo "    ✅ apps/api/        — Backend API"
-    echo "    ✅ apps/web/        — Frontend Web dashboard"
-    echo "    ✅ apps/worker/     — BullMQ Worker"
-    echo "    ✅ packages/        — Shared (lock bilan)"
-    echo "    ✅ docs/            — Dokumentatsiya"
+    echo "  SIZNING ZONA (PM):"
+    echo "    ✅ docs/            — Task boshqaruvi, dokumentatsiya"
+    echo "    ✅ CLAUDE.md        — Loyiha konfiguratsiyasi"
+    echo "    ✅ .husky/          — Git hooks"
     echo ""
-    echo "  TAQIQLANGAN ZONA (Sardor mas'ul):"
-    echo "    ❌ apps/landing/    — Landing page"
-    echo "    ❌ apps/desktop/    — Desktop app"
-    echo "    ❌ apps/bot/        — Telegram bot"
-    echo "    ❌ apps/extension/  — Chrome Extension"
+    echo "  TAQIQLANGAN (Sardor mas'ul):"
+    echo "    ❌ apps/*           — Barcha applar"
+    echo "    ❌ packages/*       — Shared types/utils"
     echo ""
-    echo "  Agar bu o'zgarish zarur bo'lsa — Sardor bilan gaplashing."
+    echo "  Kod o'zgarishi kerak bo'lsa — Sardorga task yozing."
     echo "══════════════════════════════════════════════════════════════"
     echo ""
     exit 1
   fi
 fi
+
+# Sardor — barcha papkalarga to'liq ruxsat, bloklash yo'q
 
 # Lint-staged (barcha uchun)
 npx lint-staged

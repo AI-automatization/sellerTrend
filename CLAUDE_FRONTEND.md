@@ -1,53 +1,24 @@
-# CLAUDE_FRONTEND.md — Landing + Desktop Engineer Guide
+# CLAUDE_FRONTEND.md — Frontend Engineer Guide (Sardor)
 # React 19 · TypeScript · Tailwind v4 · DaisyUI v5
-# Claude CLI bu faylni Sardor tanlanganda o'qiydi
+# Claude CLI bu faylni Sardor tanlanganda o'qiydi (CLAUDE_BACKEND.md bilan birga)
 
 ---
 
-## !! QATTIQ OGOHLANTIRISH — ZONA HIMOYASI !!
+## ZONA (Sardor — Full-Stack Developer)
 
 ```
-╔══════════════════════════════════════════════════════════════╗
-║  SARDOR — FAQAT LANDING VA DESKTOP BILAN ISHLAYSIZ!        ║
-║                                                              ║
-║  TAQIQLANGAN (pre-commit hook BLOKLAYDI):                    ║
-║    ❌ apps/api/        — Backend API (Bekzod)                ║
-║    ❌ apps/web/        — Frontend Dashboard (Bekzod)         ║
-║    ❌ apps/worker/     — BullMQ Worker (Bekzod)              ║
-║    ❌ apps/bot/        — Telegram Bot (Bekzod)               ║
-║    ❌ apps/extension/  — Chrome Extension (Bekzod)           ║
-║                                                              ║
-║  Bu zona'lardagi fayllarni edit qilsangiz —                  ║
-║  git commit ISHLAMAYDI, hook bloklaydi!                      ║
-║                                                              ║
-║  Agar bu zona'larda o'zgartirish kerak bo'lsa —              ║
-║  Bekzod bilan Telegram orqali gaplashing.                    ║
-╚══════════════════════════════════════════════════════════════╝
-```
-
----
-
-## ZONA (Sardor — Frontend + Bot + Extension)
-
-```
+apps/api/        → Backend API (NestJS)
+apps/worker/     → BullMQ processors
+apps/web/        → Frontend Web Dashboard (React 19)
 apps/landing/    → Landing page (ventra.uz marketing sahifasi)
 apps/desktop/    → Desktop app (Electron/Tauri)
 apps/bot/        → Telegram bot (grammY framework)
-apps/extension/  → Chrome Extension
+apps/extension/  → Chrome Extension (Uzum uchun)
+packages/        → Shared types/utils
+docs/            → Dokumentatsiya
 ```
 
-**RUXSAT BERILGAN:**
-- `apps/landing/` — Landing page (to'liq ruxsat)
-- `apps/desktop/` — Desktop app (to'liq ruxsat)
-- `apps/bot/` — Telegram bot (to'liq ruxsat)
-- `apps/extension/` — Chrome Extension (to'liq ruxsat)
-- `packages/` — Shared types/utils (LOCK protocol bilan, Bekzod bilan kelishib)
-- `docs/` — Dokumentatsiya
-
-**TAQIQLANGAN (pre-commit hook bloklaydi):**
-- `apps/web/` — Asosiy frontend dashboard (Bekzod zonasi)
-- `apps/api/` — Backend API (Bekzod zonasi)
-- `apps/worker/` — BullMQ Worker (Bekzod zonasi)
+**Barcha kod zonalariga to'liq ruxsat.**
 
 ---
 
@@ -346,10 +317,6 @@ Fonts:    Inter (body) + Space Grotesk (headings)
 ## TAQIQLANGAN HARAKATLAR
 
 ```
-❌ apps/web/ papkasiga TEGINMA — bu Bekzod zonasi!
-❌ apps/api/ papkasiga TEGINMA
-❌ apps/api/prisma/ ga TEGINMA — migration Backend qiladi
-❌ apps/extension/ papkasiga TEGINMA
 ❌ any type — TypeScript strict
 ❌ console.log — development faqat
 ❌ inline style (style={{...}}) → Tailwind class
@@ -361,4 +328,4 @@ Fonts:    Inter (body) + Space Grotesk (headings)
 
 ---
 
-*CLAUDE_FRONTEND.md | VENTRA Analytics Platform | 2026-03-03*
+*CLAUDE_FRONTEND.md | VENTRA Analytics Platform | 2026-03-10*

@@ -12,8 +12,8 @@
 Salom! Men VENTRA loyihasidaman.
 
 Kimligingizni aniqlay olmayman — ismingiz kim?
-  1. Bekzod (Full-Stack: Backend + Frontend Web + DevOps)
-  2. Sardor (Landing + Desktop)
+  1. Bekzod (PM — loyiha boshqaruvi, task yaratish, code review)
+  2. Sardor (Full-Stack Developer — barcha apps, packages, infra)
 
 Ishlash rejimi:
   A. Single Task  — 1 agent, oddiy task
@@ -23,8 +23,8 @@ Ishlash rejimi:
 
 Javob kelgach:
 1. Tegishli faylni o'qib kontekstga kirish:
-   - Bekzod → `CLAUDE_BACKEND.md`
-   - Sardor → `CLAUDE_FRONTEND.md`
+   - Bekzod → PM sifatida, `docs/Tasks.md` o'qib boshqaradi (kod yozmaydi)
+   - Sardor → `CLAUDE_BACKEND.md` + `CLAUDE_FRONTEND.md` (barcha kod zonalari)
 2. `git pull origin main` — eng yangi holatni olish
 3. `docs/Tasks.md` o'qib ochiq tasklarni ko'rish + `pending[X]` statuslarni tekshirish
 4. Task boshlashdan oldin **GIT-BASED TASK LOCKING** protokolini bajarish (pastda)
@@ -46,15 +46,15 @@ Javob kelgach:
 **Monorepo:** `pnpm workspaces` + `turbo`
 
 ```
-apps/api/        → Backend API (Bekzod)
-apps/worker/     → Worker (Bekzod)
-apps/web/        → Frontend Web (Bekzod)
+apps/api/        → Backend API (Sardor)
+apps/worker/     → Worker (Sardor)
+apps/web/        → Frontend Web (Sardor)
 apps/landing/    → Landing page (Sardor)
 apps/desktop/    → Desktop app (Sardor)
 apps/bot/        → Telegram bot (Sardor)
 apps/extension/  → Chrome Extension (Sardor)
-packages/types/  → Shared types (IKKALASI — kelishib)
-packages/utils/  → Shared utils (IKKALASI — kelishib)
+packages/types/  → Shared types (Sardor)
+packages/utils/  → Shared utils (Sardor)
 ```
 
 ---
@@ -112,7 +112,7 @@ MANBA TEGLARI (standart):
 
 **Qoidalar:**
 - Bug/task topilgan paytda DARHOL yoziladi
-- Har sessiyada avval `docs/Tasks.md` o'qib, T-raqamni davom ettirish (hozirgi: T-410, keyingi: T-411)
+- Har sessiyada avval `docs/Tasks.md` o'qib, T-raqamni davom ettirish (hozirgi: T-427, keyingi: T-428)
 - Takroriy task yaratmaslik, mavjudini yangilash
 - **Tahlil** maydoni MAJBURIY — "nega" bu muammo, ta'sir ko'lami yozilishi SHART
 - **Done.md** ga ko'chirganda **Ta'sir** maydoni MAJBURIY — nima yaxshilandi
@@ -219,23 +219,25 @@ refactor(discovery): replace Playwright with REST pagination
 ## LOCAL DEVELOPMENT
 
 ```bash
+# Root-level commands (turbo):
+pnpm dev                    # Barcha applarni ishga tushirish
+pnpm build                  # Production build (turbo)
+pnpm lint                   # Lint (turbo)
+pnpm typecheck              # tsc --noEmit (api + web)
+
 # Infra (postgres + redis):
 docker-compose up -d
 
-# API:
-cd apps/api && pnpm dev
-
-# Worker:
-cd apps/worker && pnpm dev
-
-# Web:
-cd apps/web && pnpm dev
+# App-specific:
+cd apps/api && pnpm dev     # Backend API (:3000)
+cd apps/worker && pnpm dev  # Worker
+cd apps/web && pnpm dev     # Web dashboard (:5173)
 
 # Prisma migration (FAQAT Bekzod):
 cd apps/api && npx prisma migrate dev --name [migration-name]
 npx prisma generate
 
-# Type check:
+# Type check (individual):
 pnpm --filter api exec tsc --noEmit
 pnpm --filter web exec tsc --noEmit
 ```
@@ -264,241 +266,45 @@ pnpm --filter web exec tsc --noEmit
 
 ## MULTI-AGENT PROTOCOL
 
-> To'liq arxitektura: `docs/MULTI_AGENT_ARCHITECTURE.md`
+> **To'liq arxitektura:** `docs/MULTI_AGENT_ARCHITECTURE.md` (agent turlari, prompt template, DAG algorithm, sprint plan)
 
-### Agent turlari
+### Agent turlari (qisqa)
 
-| Agent | Tool | Zona | Vazifasi |
-|-------|------|------|----------|
-| **Orchestrator** | Main CLI session | docs/, git | Task parsing, dispatch, merge, archive |
-| **Backend Agent** | `Agent(subagent_type: "general-purpose", isolation: "worktree")` | apps/api, worker, bot | NestJS, Prisma, BullMQ |
-| **Web Agent** | `Agent(subagent_type: "general-purpose", isolation: "worktree")` | apps/web, extension | React, Tailwind, i18n (Bekzod) |
-| **Landing Agent** | `Agent(subagent_type: "general-purpose", isolation: "worktree")` | apps/landing, desktop | Landing + Desktop (Sardor) |
-| **QA Agent** | `Agent(subagent_type: "general-purpose")` | read-only, barcha fayllar | tsc, build, lint, test |
-| **PM Agent** | `Agent(subagent_type: "general-purpose")` | docs/ (read+write) | Sprint planning, velocity, task decomposition |
-| **BA Agent** | `Agent(subagent_type: "general-purpose")` | read-only + admin API | Marketplace analytics, biznes hisobotlar |
-| **Explorer** | `Agent(subagent_type: "Explore")` | read-only | Code research, bug analysis |
-| **Planner** | `Agent(subagent_type: "Plan")` | read-only | Architecture, decomposition |
+| Agent | Tool | Vazifasi |
+|-------|------|----------|
+| **Orchestrator** | Main CLI | Task parsing, dispatch, merge, archive |
+| **Backend Agent** | `general-purpose` + worktree | NestJS, Prisma, BullMQ (Sardor) |
+| **Web Agent** | `general-purpose` + worktree | React, Tailwind, i18n (Sardor) |
+| **Landing Agent** | `general-purpose` + worktree | Landing, Desktop, Bot, Extension (Sardor) |
+| **QA Agent** | `general-purpose` | tsc + build + test (MAJBURIY har merge da) |
+| **PM Agent** | `general-purpose` | Sprint planning → `docs/sprint-plan.md` |
+| **BA Agent** | `general-purpose` | Marketplace analytics → `docs/ba-report.md` |
+| **Explorer** | `Explore` | Code research (read-only) |
+| **Planner** | `Plan` | Architecture decisions (read-only) |
 
-### Ishlash tartibi (Mode B)
+### Mode B — ishlash tartibi
 
-```
-1. PM PLAN  — PM Agent: Tasks.md + Done.md + git log → sprint plan, prioritet, dependency graph
-2. BA CONTEXT — BA Agent: marketplace data tahlili → qaysi tasklar biznesga eng katta ta'sir (ixtiyoriy)
-3. DISPATCH — Parallel agentlar ishga tushirish (worktree isolation)
-   ├─ Backend Agent  → backend task (worktree A)
-   ├─ Web Agent      → frontend web task (worktree B) — Bekzod
-   ├─ Landing Agent  → landing/desktop task (worktree C) — Sardor
-   └─ Explorer Agent → research (read-only, agar kerak)
-4. VALIDATE — QA Agent: tsc + build + test (MAJBURIY, har merge dan oldin)
-5. MERGE   — Orchestrator: worktree → main, conflict resolve
-6. PM RETRO — PM Agent: sprint natijasi, velocity hisoblash, docs/Done.md yangilash
-7. BA MEASURE — BA Agent: o'zgarish ta'sirini o'lchash (ixtiyoriy, katta feature uchun)
-8. ARCHIVE — Tasks.md → Done.md ko'chirish
-```
+`PM PLAN → DISPATCH (parallel worktrees) → VALIDATE (QA) → MERGE → ARCHIVE`
 
-### Zone qoidalari — QATTIQ
+### Task → agent tanlash
 
-```
-ZONE MATRIX:
-                Backend    Web        Landing    Shared    Docs
-  Backend Agent:  ✅ o'zi    ❌ tegma   ❌ tegma   🔒 lock   ❌ tegma
-  Web Agent:      ❌ tegma   ✅ o'zi    ❌ tegma   🔒 lock   ❌ tegma
-  Landing Agent:  ❌ tegma   ❌ tegma   ✅ o'zi    🔒 lock   ❌ tegma
-  QA Agent:       👁 read    👁 read    👁 read   👁 read   ❌ tegma
-  PM Agent:       👁 read    👁 read    👁 read   👁 read   ✅ yozadi
-  BA Agent:       👁 read    👁 read    👁 read   👁 read   ✅ yozadi
-  Orchestrator:   👁 read    👁 read    👁 read   ✅ merge  ✅ yozadi
+| Fayl pattern | Agent |
+|---|---|
+| `apps/api/**`, `apps/worker/**` | Backend Agent (Sardor) |
+| `apps/web/**` | Web Agent (Sardor) |
+| `apps/landing/**`, `apps/desktop/**`, `apps/bot/**`, `apps/extension/**` | Landing Agent (Sardor) |
+| `packages/**` | Sardor (lock kerak emas) |
+| Cross-zone | Sequential: Backend → Frontend (Sardor) |
 
-ZONE MAP:
-  backend  = apps/api/, apps/worker/                   (Bekzod)
-  web      = apps/web/                                 (Bekzod)
-  landing  = apps/landing/, apps/desktop/              (Sardor)
-  frontend = apps/bot/, apps/extension/                (Sardor)
-  shared   = packages/types/, packages/utils/
-  docs     = docs/, CLAUDE*.md
+**Task hajmi:** <30min → Single Agent | 30-60min → Single + worktree | >60min → Multi-Agent + worktrees
+
+### QA — har merge dan oldin (MAJBURIY)
+
+```bash
+pnpm --filter api exec tsc --noEmit && pnpm --filter web exec tsc --noEmit && pnpm --filter worker exec tsc --noEmit && pnpm --filter bot exec tsc --noEmit && pnpm build && pnpm --filter @uzum/utils test
 ```
 
-### Lock protocol (packages/* uchun)
-
-```
-Lock fayl: .claude/locks/{zone}.lock
-Format:    {"agent":"...", "task":"T-XXX", "locked_at":"ISO", "ttl_minutes":30}
-
-Qoidalar:
-  1. O'zgartirish OLDIN lock tekshir
-  2. Lock mavjud → KUTISH yoki boshqa task
-  3. Lock TTL 30 daqiqa — expired lock = bo'sh
-  4. O'zgartirish tugagach → lock o'chirish
-  5. Orchestrator expired lock larni tozalashi mumkin
-```
-
-### Agent prompt template
-
-Har sub-agent ga beriladigan prompt formati:
-
-```
-You are {ROLE} AGENT for VENTRA Analytics Platform.
-
-ZONE:       {allowed directories}
-FORBIDDEN:  {restricted directories — DO NOT touch}
-RULES:      {top 5 rules from CLAUDE_BACKEND.md or CLAUDE_FRONTEND.md}
-
-TASK:
-  ID:    T-{XXX}
-  Title: {task title}
-  Files: {expected files to modify}
-  Deps:  {prerequisite tasks — already done}
-
-DELIVERABLES:
-  1. Code changes within your ZONE only
-  2. Self-check: tsc --noEmit for your app
-  3. Summary: files changed + what + why
-
-CONSTRAINTS:
-  - DO NOT touch files outside your zone
-  - DO NOT modify docs/Tasks.md or docs/Done.md
-  - DO NOT commit — Orchestrator handles git
-  - NO `any` type — TypeScript strict
-  - If blocked → return error, do not guess
-```
-
-### Task classification
-
-```
-Task fayllariga qarab agent tanlanadi:
-
-  apps/api/**          → Backend Agent (Bekzod)
-  apps/worker/**       → Backend Agent (Bekzod)
-  apps/bot/**          → Backend Agent (Bekzod)
-  apps/web/**          → Web Agent (Bekzod)
-  apps/extension/**    → Web Agent (Bekzod)
-  apps/landing/**      → Landing Agent (Sardor)
-  apps/desktop/**      → Landing Agent (Sardor)
-  packages/**          → Lock → birinchi kelgan agent
-  prisma/schema.prisma → Backend Agent (Bekzod)
-  IKKALASI tasks       → Sequential: Backend → Web
-
-Task hajmi → mode:
-  < 30 min, 1-2 fayl   → Single Agent (worktree'siz)
-  30-60 min, 3-5 fayl   → Single Agent + worktree
-  > 60 min, 5+ fayl     → Multi-Agent + worktrees
-  Cross-zone (IKKALASI)  → Sequential: Backend birinchi, keyin Frontend
-```
-
-### QA Agent — MAJBURIY validatsiya
-
-```
-Har merge dan OLDIN QA Agent quyidagilarni tekshiradi:
-
-  1. pnpm --filter api exec tsc --noEmit
-  2. pnpm --filter web exec tsc --noEmit
-  3. pnpm --filter worker exec tsc --noEmit
-  4. pnpm --filter bot exec tsc --noEmit
-  5. pnpm build
-  6. pnpm --filter @uzum/utils test
-
-NATIJA:
-  ✅ PASS → Orchestrator merge qiladi
-  ❌ FAIL → Tegishli agent ga error qaytariladi, tuzatish kerak
-```
-
-### PM Agent — Sprint Planning & Velocity
-
-```
-PM Agent VAZIFASI:
-  Sprint boshlashda va tugashda ishga tushadi.
-  Kod YOZMAYDI — faqat docs/ papkaga yozadi.
-
-KIRISH (o'qiydi):
-  - docs/Tasks.md         → ochiq tasklar, prioritetlar, dependency
-  - docs/Done.md          → bajarilgan ishlar, vaqt, ta'sir
-  - git log --oneline -50 → oxirgi commitlar (velocity hisoblash)
-  - docs/Tasks-Bekzod.md  → developer-specific backlog
-
-CHIQISH (yozadi):
-  - docs/sprint-plan.md   → joriy sprint plani (task ro'yxati, tartib, vaqt)
-
-QOBILIYATLARI:
-  1. Sprint Planning:
-     - Tasks.md dan P0/P1 tasklarni ajratish
-     - Dependency graph: T-418 → T-419 (ketma-ket), T-420 || T-421 (parallel)
-     - Developer yuk taqsimoti: Bekzod 8h, Sardor 4h
-  2. Velocity Tracking:
-     - Done.md dan "Vaqt" maydonini o'qish → actual vs planned
-     - Oxirgi 7 kun: N ta task / X soat = velocity score
-     - Trend: tezlashyapti / sekinlashyapti / barqaror
-  3. Task Decomposition:
-     - Katta task (4h+) → 2-3 kichik sub-task ga bo'lish
-     - Har sub-task: aniq fayllar, deliverable, vaqt
-  4. Sprint Retro:
-     - Nima yaxshi ishladi / nima to'siq bo'ldi
-     - Keyingi sprintga tavsiyalar
-
-CHEKLOVLAR:
-  - Kod fayllarni O'ZGARTIRMAYDI
-  - Tasks.md ga task QO'SHMAYDI (faqat Orchestrator qiladi)
-  - git commit/push QILMAYDI
-```
-
-### BA Agent — Marketplace Analytics & Business Intelligence
-
-```
-BA Agent VAZIFASI:
-  Biznes qarorlar uchun ma'lumot tahlili.
-  Kod YOZMAYDI — faqat docs/ papkaga hisobot yozadi.
-
-KIRISH (o'qiydi):
-  - docs/Done.md           → qanday feature'lar qo'shilgani
-  - apps/api/prisma/schema.prisma → DB model tuzilishi
-  - Admin API endpointlari (read-only):
-      GET /admin/stats              → foydalanuvchi/mahsulot statistikasi
-      GET /admin/monitoring/metrics → tizim holati
-      GET /admin/monitoring/capacity → sig'im baholash
-
-CHIQISH (yozadi):
-  - docs/ba-report.md      → marketplace analytics hisoboti
-
-QOBILIYATLARI:
-  1. Marketplace Intelligence:
-     - Qaysi kategoriyalar o'sish trendida (category_path tahlili)
-     - Top mahsulotlar va ularning score dinamikasi
-     - Niche imkoniyatlari: kam raqobat + yuqori talab
-  2. Feature Impact Assessment:
-     - Yangi feature qo'shilgandan keyin: foydalanuvchi faolligi o'zgardimi?
-     - A/B taqqoslash: oldin vs keyin (Done.md sanalar bo'yicha)
-  3. User Behavior Analysis:
-     - Eng ko'p ishlatiladigan endpointlar
-     - Churn signallari: so'nggi 7 kunda login qilmagan accountlar
-  4. Revenue Forecasting:
-     - Billing tranzaksiyalar trendi
-     - Plan upgrade/downgrade nisbati
-
-CHEKLOVLAR:
-  - Kod fayllarni O'ZGARTIRMAYDI
-  - DB ga to'g'ridan yozmaydi (faqat GET so'rovlar)
-  - Maxfiy ma'lumotlarni (email, password) hisobotga YOZMAYDI
-  - git commit/push QILMAYDI
-```
-
-### Ikkala developer bir vaqtda ishlasa
-
-```
-  Bekzod (Terminal 1)              Sardor (Terminal 2)
-  ═══════════════════              ═══════════════════
-  Mode B → Full-Stack Orch.        Mode B → Landing Orch.
-    │                                │
-    ├─ Agent: T-299 (Redis fix)      ├─ Agent: L-XXX (Landing SEO)
-    ├─ Agent: T-303 (Axios timeout)  ├─ Agent: T-XXX (Desktop build)
-    ├─ QA: tsc api+web+worker        ├─ QA: tsc landing+desktop
-    ├─ git commit + push             ├─ git commit + push
-    └─ Done.md update                └─ Done.md update
-
-  Bekzod ZONASI: apps/api + apps/web + apps/worker + apps/bot + apps/extension
-  Sardor ZONASI: apps/landing + apps/desktop
-  PARALLEL OK: zona'lar kesishmaydi → conflict YO'Q
-  SHARED ZONE: packages/* → LOCK protocol faollashadi
-```
+### Zone qoidalari → pastdagi ZONA HIMOYASI bo'limiga qarang
 
 ---
 
@@ -507,32 +313,32 @@ CHEKLOVLAR:
 **Git pre-commit hook (`.husky/pre-commit`) avtomatik tekshiradi:**
 
 ```
-BEKZOD ZONASI (Sardor commit qilolmaydi):
-  ❌ apps/api/        — Backend API
-  ❌ apps/web/        — Frontend Web dashboard
-  ❌ apps/worker/     — BullMQ Worker
+BEKZOD ZONASI (PM — kod yozmaydi):
+  ✅ docs/            — Task boshqaruvi, dokumentatsiya
+  ❌ apps/*           — Barcha kod Sardor zonasi
+  ❌ packages/*       — Barcha kod Sardor zonasi
 
-SARDOR ZONASI (Bekzod commit qilolmaydi):
-  ❌ apps/landing/    — Landing page
-  ❌ apps/desktop/    — Desktop app
-  ❌ apps/bot/        — Telegram Bot
-  ❌ apps/extension/  — Chrome Extension
-
-UMUMIY ZONA (ikkalasi, kelishib):
-  ✅ packages/        — Shared types/utils (lock protocol)
+SARDOR ZONASI (Full-Stack Developer — hamma narsa):
+  ✅ apps/api/        — Backend API
+  ✅ apps/web/        — Frontend Web dashboard
+  ✅ apps/worker/     — BullMQ Worker
+  ✅ apps/landing/    — Landing page
+  ✅ apps/desktop/    — Desktop app
+  ✅ apps/bot/        — Telegram Bot
+  ✅ apps/extension/  — Chrome Extension
+  ✅ packages/        — Shared types/utils
   ✅ docs/            — Dokumentatsiya
 ```
 
 **Hook qanday ishlaydi:**
 1. `git config user.name` va `user.email` orqali committer aniqlanadi
-2. Sardor identifikatsiyasi: ism yoki email da "sardor" bo'lsa
-3. Agar Sardor Bekzod zonasidagi faylni stage qilgan bo'lsa → **commit BLOKLADI**
-4. Xato xabari bilan taqiqlangan fayllar ro'yxati ko'rsatiladi
+2. Bekzod identifikatsiyasi: ism yoki email da "bekzod" bo'lsa
+3. Agar Bekzod `apps/` yoki `packages/` dagi faylni stage qilgan bo'lsa → **commit BLOKLADI**
+4. Sardor — barcha papkalarga to'liq ruxsat
 
 **Claude CLI uchun qo'shimcha qoida:**
-- Sardor sessiyasida `apps/web/`, `apps/api/`, `apps/worker/`
-  dagi fayllarni EDIT/WRITE qilish **TAQIQLANGAN** — hook'dan OLDIN Claude o'zi bloklashi kerak
-- Bekzod sessiyasida `apps/landing/`, `apps/desktop/`, `apps/bot/`, `apps/extension/` dagi fayllarni EDIT/WRITE **TAQIQLANGAN**
+- Bekzod sessiyasida `apps/`, `packages/` dagi fayllarni EDIT/WRITE qilish **TAQIQLANGAN** — faqat `docs/` bilan ishlaydi
+- Sardor sessiyasida barcha fayllarni EDIT/WRITE qilish **RUXSAT BERILGAN**
 
 ---
 
@@ -542,11 +348,11 @@ UMUMIY ZONA (ikkalasi, kelishib):
 ❌ prisma migrate reset — ma'lumotlar yo'qoladi!
 ❌ main branch'ga to'g'ridan push — PR orqali
 ❌ .env faylni commit qilma — .gitignore da bo'lishi kerak
-❌ packages/* o'zgartirish — avval kelishib olish (yoki lock protocol)
+❌ Bekzod: apps/* yoki packages/* ga teginish — PM faqat docs/ bilan ishlaydi
 ❌ Multi-Agent: agent zone dan tashqari fayl o'zgartirishi TAQIQLANGAN
 ❌ Multi-Agent: QA Agent tekshirmasdan merge qilish TAQIQLANGAN
 ```
 
 ---
 
-*CLAUDE.md | VENTRA Analytics Platform | 2026-03-08*
+*CLAUDE.md | VENTRA Analytics Platform | 2026-03-10*

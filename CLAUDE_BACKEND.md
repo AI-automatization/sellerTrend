@@ -1,21 +1,25 @@
-# CLAUDE_BACKEND.md — Full-Stack Engineer Guide (Bekzod)
+# CLAUDE_BACKEND.md — Full-Stack Engineer Guide (Sardor)
 # Backend: NestJS · Prisma · BullMQ · PostgreSQL · Redis · Claude API · Telegram
 # Frontend: React 19 · Vite 7 · Tailwind v4 · DaisyUI v5
-# Claude CLI bu faylni Bekzod tanlanganda o'qiydi
+# Claude CLI bu faylni Sardor tanlanganda o'qiydi
 
 ---
 
-## ZONA (Bekzod — Backend)
+## ZONA (Sardor — Full-Stack Developer)
 
 ```
 apps/api/        → Backend API (NestJS)
 apps/worker/     → BullMQ processors
+apps/web/        → Frontend Web Dashboard (React 19)
+apps/landing/    → Landing page
+apps/desktop/    → Desktop app
+apps/bot/        → Telegram bot
+apps/extension/  → Chrome Extension
+packages/        → Shared types/utils
 docker-compose.yml → Infra config
 ```
 
-**TEGINMA:**
-- `apps/landing/`, `apps/desktop/` — Sardor zonasi
-- `apps/bot/`, `apps/extension/` — Sardor zonasi (2026-03-08 dan)
+**Barcha kod zonalariga to'liq ruxsat.**
 
 ---
 
@@ -272,7 +276,6 @@ const results = [alibabaResult, taobaoResult, amazonResult]
 ## TAQIQLANGAN HARAKATLAR
 
 ```
-❌ apps/landing/, apps/desktop/ papkalariga TEGINMA (Sardor zonasi)
 ❌ prisma migrate reset — data yo'qoladi
 ❌ main branch'ga to'g'ridan push
 ❌ .env faylni commit qilma
@@ -283,4 +286,4 @@ const results = [alibabaResult, taobaoResult, amazonResult]
 
 ---
 
-*CLAUDE_BACKEND.md | VENTRA Analytics Platform | 2026-02-26*
+*CLAUDE_BACKEND.md | VENTRA Analytics Platform | 2026-03-10*
