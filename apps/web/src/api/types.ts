@@ -180,14 +180,6 @@ export interface AuditEvent {
   created_at: string;
 }
 
-// ─── Billing Domain ──────────────────────────────────────────────────────────
-
-export interface Balance {
-  balance: string;
-  status: string;
-  daily_fee: string;
-}
-
 // ─── Leaderboard Domain ──────────────────────────────────────────────────────
 
 export interface LeaderItem {

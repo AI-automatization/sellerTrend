@@ -1,8 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
 import { useDashboardData } from '../hooks/useDashboardData';
-import { ArrowTrendingUpIcon, MagnifyingGlassIcon, WalletIcon } from '../components/icons';
+import { ArrowTrendingUpIcon, MagnifyingGlassIcon } from '../components/icons';
 import { useI18n } from '../i18n/I18nContext';
 import { getTokenPayload } from '../api/client';
 import {
@@ -13,7 +12,7 @@ import { PageHint } from '../components/PageHint';
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function DashboardPage() {
-  const { products, setProducts, balance, loading, error, isSuperAdmin, exporting, handleExportCsv } = useDashboardData();
+  const { products, setProducts, loading, error, isSuperAdmin, exporting, handleExportCsv } = useDashboardData();
   const [sortKey, setSortKey] = useState<'score' | 'weekly' | 'price'>('score');
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -77,7 +76,6 @@ export function DashboardPage() {
 
   const scoreSparkline = useMemo(() => products.slice(0, 8).map((p) => p.score ?? 0), [products]);
   const salesSparkline = useMemo(() => products.slice(0, 8).map((p) => p.weekly_bought ?? 0), [products]);
-  const paymentDue = balance?.status === 'PAYMENT_DUE';
   const hour = new Date().getHours();
   const greeting = hour < 6 ? t('greeting.night') : hour < 12 ? t('greeting.morning') : hour < 18 ? t('greeting.day') : t('greeting.evening');
 
@@ -155,29 +153,10 @@ export function DashboardPage() {
         </div>
       </FadeIn>
 
-      {/* ═══ PAYMENT ALERT ═══ */}
-      {paymentDue && !isSuperAdmin && (
-        <FadeIn delay={50}>
-          <div className="relative overflow-hidden bg-gradient-to-r from-error/8 via-error/4 to-transparent border border-error/15 rounded-2xl px-5 py-4 flex items-center gap-4">
-            <div className="absolute -left-4 -top-4 w-24 h-24 bg-error/5 rounded-full blur-2xl" />
-            <div className="w-11 h-11 rounded-xl bg-error/10 flex items-center justify-center shrink-0 relative">
-              <WalletIcon className="w-5 h-5 text-error" />
-            </div>
-            <div className="flex-1 relative">
-              <p className="font-bold text-sm text-error">{t('dashboard.paymentRequired')}</p>
-              <p className="text-xs text-base-content/45 mt-0.5">{t('dashboard.paymentDesc')}</p>
-            </div>
-            <button className="btn btn-error btn-sm shadow-sm" onClick={() => toast.info(t('dashboard.topUpMessage'))}>{t('dashboard.topUp')}</button>
-          </div>
-        </FadeIn>
-      )}
-
       {/* ═══ KPI CARDS ═══ */}
       <KPICards
         stats={stats}
-        balance={balance}
         isSuperAdmin={isSuperAdmin}
-        paymentDue={paymentDue}
         scoreSparkline={scoreSparkline}
         salesSparkline={salesSparkline}
         productsCount={products.length}

@@ -1,13 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { productsApi, billingApi, exportApi, getTokenPayload } from '../api/client';
+import { productsApi, exportApi, getTokenPayload } from '../api/client';
 import { logError, toastError } from '../utils/handleError';
 import { formatISODate } from '../utils/formatDate';
-import type { TrackedProduct, Balance } from '../api/types';
+import type { TrackedProduct } from '../api/types';
 
 export function useDashboardData() {
   const [products, setProducts] = useState<TrackedProduct[]>([]);
-  const [balance, setBalance] = useState<Balance | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -17,17 +16,11 @@ export function useDashboardData() {
   const fetchData = useCallback(() => {
     setLoading(true);
     setError(null);
-    const promises: Promise<unknown>[] = [
-      productsApi.getTracked().then((r) => setProducts(r.data)).catch((err) => {
-        logError(err);
-        setError(err instanceof Error ? err.message : 'Failed to load products');
-      }),
-    ];
-    if (!isSuperAdmin) {
-      promises.push(billingApi.getBalance().then((r) => setBalance(r.data)).catch(logError));
-    }
-    Promise.all(promises).finally(() => setLoading(false));
-  }, [isSuperAdmin]);
+    productsApi.getTracked().then((r) => setProducts(r.data)).catch((err) => {
+      logError(err);
+      setError(err instanceof Error ? err.message : 'Failed to load products');
+    }).finally(() => setLoading(false));
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -53,5 +46,5 @@ export function useDashboardData() {
     }
   }
 
-  return { products, setProducts, balance, loading, error, isSuperAdmin, exporting, handleExportCsv };
+  return { products, setProducts, loading, error, isSuperAdmin, exporting, handleExportCsv };
 }

@@ -32,6 +32,3 @@ export const achievementsApi = {
   getAll: () => api.get('/achievements'),
 };
 
-export const billingApi = {
-  getBalance: () => api.get('/billing/balance'),
-};

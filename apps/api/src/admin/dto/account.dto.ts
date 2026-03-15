@@ -2,40 +2,12 @@ import {
   IsString,
   IsNotEmpty,
   IsOptional,
-  IsNumber,
   IsArray,
   IsEnum,
   IsEmail,
   IsIn,
-  Min,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-
-export class SetAccountFeeDto {
-  @ApiProperty({ description: 'Daily fee amount (null to use global default)', nullable: true })
-  @IsOptional()
-  @IsNumber()
-  fee!: number | null;
-}
-
-export class DepositDto {
-  @ApiProperty({ description: 'Deposit amount' })
-  @IsNumber()
-  @Min(1)
-  amount!: number;
-
-  @ApiPropertyOptional({ description: 'Deposit description' })
-  @IsOptional()
-  @IsString()
-  description?: string;
-}
-
-export class SetGlobalFeeDto {
-  @ApiProperty({ description: 'Global daily fee amount' })
-  @IsNumber()
-  @Min(0)
-  fee!: number;
-}
 
 export class CreateAccountDto {
   @ApiProperty({ description: 'Company name' })
@@ -74,10 +46,8 @@ export class UpdateAccountPhoneDto {
 }
 
 enum BulkAction {
-  DEPOSIT = 'DEPOSIT',
   SUSPEND = 'SUSPEND',
   ACTIVATE = 'ACTIVATE',
-  SET_FEE = 'SET_FEE',
 }
 
 export class BulkAccountActionDto {
@@ -88,17 +58,7 @@ export class BulkAccountActionDto {
 
   @ApiProperty({ description: 'Bulk action to perform', enum: BulkAction })
   @IsEnum(BulkAction)
-  action!: 'DEPOSIT' | 'SUSPEND' | 'ACTIVATE' | 'SET_FEE';
-
-  @ApiPropertyOptional({ description: 'Deposit amount (for DEPOSIT action)' })
-  @IsOptional()
-  @IsNumber()
-  amount?: number;
-
-  @ApiPropertyOptional({ description: 'Fee amount (for SET_FEE action)' })
-  @IsOptional()
-  @IsNumber()
-  fee?: number;
+  action!: 'SUSPEND' | 'ACTIVATE';
 }
 
 export class SetPlanDto {

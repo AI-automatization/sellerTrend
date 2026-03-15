@@ -546,7 +546,7 @@ export class AdminUserService {
 
   /** Account Transactions */
   async getAccountTransactions(accountId: string, page = 1, limit = 20) {
-    const [transactions, total, account] = await Promise.all([
+    const [transactions, total] = await Promise.all([
       this.prisma.transaction.findMany({
         where: { account_id: accountId },
         orderBy: { created_at: 'desc' },
@@ -554,40 +554,19 @@ export class AdminUserService {
         take: limit,
       }),
       this.prisma.transaction.count({ where: { account_id: accountId } }),
-      this.prisma.account.findUnique({
-        where: { id: accountId },
-        select: { balance: true },
-      }),
     ]);
-
-    // Calculate summary
-    const allTx = await this.prisma.transaction.aggregate({
-      where: { account_id: accountId, type: 'CHARGE' },
-      _sum: { amount: true },
-    });
-    const allDeposits = await this.prisma.transaction.aggregate({
-      where: { account_id: accountId, type: 'DEPOSIT' },
-      _sum: { amount: true },
-    });
 
     return {
       items: transactions.map((t) => ({
         id: t.id,
         type: t.type,
         amount: t.amount.toString(),
-        balance_before: t.balance_before.toString(),
-        balance_after: t.balance_after.toString(),
         description: t.description,
         created_at: t.created_at,
       })),
       total,
       page,
       pages: Math.ceil(total / limit),
-      summary: {
-        total_charges: (allTx._sum.amount ?? BigInt(0)).toString(),
-        total_deposits: (allDeposits._sum.amount ?? BigInt(0)).toString(),
-        current_balance: (account?.balance ?? BigInt(0)).toString(),
-      },
     };
   }
 }

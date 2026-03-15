@@ -25,9 +25,6 @@ import { AdminFeedbackService } from './admin-feedback.service';
 import { AdminLogService } from './admin-log.service';
 import { AdminMonitoringService } from './admin-monitoring.service';
 import {
-  SetAccountFeeDto,
-  DepositDto,
-  SetGlobalFeeDto,
   CreateAccountDto,
   UpdateAccountStatusDto,
   UpdateAccountPhoneDto,
@@ -78,46 +75,6 @@ export class AdminController {
   @Get('accounts/:id')
   getAccount(@Param('id') id: string) {
     return this.accountService.getAccount(id);
-  }
-
-  /** Update per-account daily_fee (null = use global default) */
-  @Patch('accounts/:id/fee')
-  setFee(
-    @Param('id') id: string,
-    @Body() body: SetAccountFeeDto,
-    @CurrentUser('id') adminUserId: string,
-  ) {
-    return this.accountService.setAccountDailyFee(id, body.fee, adminUserId);
-  }
-
-  /** Deposit balance to an account */
-  @Post('accounts/:id/deposit')
-  deposit(
-    @Param('id') id: string,
-    @Body() body: DepositDto,
-    @CurrentUser('id') adminUserId: string,
-  ) {
-    return this.accountService.depositToAccount(
-      id,
-      body.amount,
-      adminUserId,
-      body.description,
-    );
-  }
-
-  /** Get global daily fee */
-  @Get('global-fee')
-  getGlobalFee() {
-    return this.accountService.getGlobalFee();
-  }
-
-  /** Update global daily fee */
-  @Put('global-fee')
-  setGlobalFee(
-    @Body() body: SetGlobalFeeDto,
-    @CurrentUser('id') adminUserId: string,
-  ) {
-    return this.accountService.setGlobalFee(body.fee, adminUserId);
   }
 
   /** Create new account + first user */
@@ -175,7 +132,7 @@ export class AdminController {
     return this.accountService.bulkAccountAction(
       body.account_ids,
       body.action,
-      { amount: body.amount, fee: body.fee, adminUserId },
+      { adminUserId },
     );
   }
 
@@ -207,28 +164,6 @@ export class AdminController {
       body.role,
       adminUserId,
     );
-  }
-
-  // ============================================================
-  // DEPOSIT LOG ENDPOINTS
-  // ============================================================
-
-  /** Deposit Log — paginated list */
-  @Get('deposit-log')
-  getDepositLog(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
-    return this.accountService.getDepositLog(
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
-    );
-  }
-
-  /** Delete deposit log entry */
-  @Delete('deposit-log/:id')
-  deleteDepositLog(@Param('id') id: string) {
-    return this.accountService.deleteDepositLog(id);
   }
 
   // ============================================================
@@ -710,7 +645,7 @@ export class AdminController {
         to ? new Date(to) : undefined,
       );
 
-      const headers = ['id', 'account_id', 'account_name', 'type', 'amount', 'balance_before', 'balance_after', 'description', 'created_at'];
+      const headers = ['id', 'account_id', 'account_name', 'type', 'amount', 'description', 'created_at'];
       const csvRows = [headers.join(',')];
 
       for (const row of data) {

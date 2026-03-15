@@ -31,8 +31,6 @@ export class AdminAccountService {
         status: a.status,
         plan: a.plan,
         plan_expires_at: a.plan_expires_at,
-        balance: a.balance.toString(),
-        daily_fee: a.daily_fee?.toString() ?? null,
         created_at: a.created_at,
         users: a.users,
         transaction_count: a._count.transactions,
@@ -62,17 +60,12 @@ export class AdminAccountService {
       status: account.status,
       plan: account.plan,
       plan_expires_at: account.plan_expires_at,
-      plan_renewed_at: account.plan_renewed_at,
-      balance: account.balance.toString(),
-      daily_fee: account.daily_fee?.toString() ?? null,
       created_at: account.created_at,
       users: account.users,
       transactions: account.transactions.map((t) => ({
         id: t.id,
         type: t.type,
         amount: t.amount.toString(),
-        balance_before: t.balance_before.toString(),
-        balance_after: t.balance_after.toString(),
         description: t.description,
         created_at: t.created_at,
       })),
@@ -113,9 +106,9 @@ export class AdminAccountService {
 
   /** Update Account Status */
   async updateAccountStatus(accountId: string, status: string, adminUserId: string) {
-    const validStatuses = ['ACTIVE', 'PAYMENT_DUE', 'SUSPENDED'];
+    const validStatuses = ['ACTIVE', 'SUSPENDED'];
     if (!validStatuses.includes(status)) {
-      throw new BadRequestException('Noto\'g\'ri status');
+      throw new BadRequestException('Noto\'g\'ri status. Mumkin: ACTIVE, SUSPENDED');
     }
 
     const account = await this.prisma.account.findUniqueOrThrow({
@@ -168,15 +161,7 @@ export class AdminAccountService {
     return { id: accountId, phone };
   }
 
-  /** Plan pricing constants (som/month) */
-  private static readonly PLAN_PRICES: Record<string, bigint> = {
-    FREE: BigInt(0),
-    PRO: BigInt(150000),
-    MAX: BigInt(350000),
-    COMPANY: BigInt(990000),
-  };
-
-  /** Set account plan with auto-calculated expiration and subscription transaction */
+  /** Set account plan (FREE/PRO/MAX/COMPANY) — auto-calculates 30-day expiration */
   async setPlan(accountId: string, plan: string, adminUserId: string) {
     const validPlans = ['FREE', 'PRO', 'MAX', 'COMPANY'];
     if (!validPlans.includes(plan)) {
@@ -185,27 +170,20 @@ export class AdminAccountService {
 
     const account = await this.prisma.account.findUniqueOrThrow({
       where: { id: accountId },
-      select: { plan: true, plan_expires_at: true, balance: true },
+      select: { plan: true, plan_expires_at: true },
     });
 
     const now = new Date();
     const expiresAt = plan === 'FREE'
       ? null
       : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    const isUpgradeFromFree = account.plan === 'FREE' && plan !== 'FREE';
-    const price = AdminAccountService.PLAN_PRICES[plan] ?? BigInt(0);
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.account.update({
+    await this.prisma.$transaction([
+      this.prisma.account.update({
         where: { id: accountId },
-        data: {
-          plan,
-          plan_expires_at: expiresAt,
-          plan_renewed_at: now,
-        },
-      });
-
-      await tx.auditEvent.create({
+        data: { plan, plan_expires_at: expiresAt },
+      }),
+      this.prisma.auditEvent.create({
         data: {
           account_id: accountId,
           user_id: adminUserId,
@@ -213,192 +191,17 @@ export class AdminAccountService {
           old_value: { plan: account.plan, plan_expires_at: account.plan_expires_at?.toISOString() ?? null },
           new_value: { plan, plan_expires_at: expiresAt?.toISOString() ?? null },
         },
-      });
-
-      // Create SUBSCRIPTION transaction when upgrading from FREE to a paid plan
-      if (isUpgradeFromFree && price > BigInt(0)) {
-        await tx.transaction.create({
-          data: {
-            account_id: accountId,
-            type: 'SUBSCRIPTION',
-            amount: price,
-            balance_before: account.balance,
-            balance_after: account.balance,
-            description: `Admin set plan: ${account.plan} \u2192 ${plan}`,
-          },
-        });
-      }
-    });
+      }),
+    ]);
 
     return { id: accountId, plan, plan_expires_at: expiresAt };
-  }
-
-  async setAccountDailyFee(
-    accountId: string,
-    fee: number | null,
-    adminUserId: string,
-  ) {
-    const old = await this.prisma.account.findUniqueOrThrow({
-      where: { id: accountId },
-      select: { daily_fee: true },
-    });
-
-    const newFee = fee !== null ? BigInt(fee) : null;
-
-    await this.prisma.$transaction([
-      this.prisma.account.update({
-        where: { id: accountId },
-        data: { daily_fee: newFee },
-      }),
-      this.prisma.auditEvent.create({
-        data: {
-          account_id: accountId,
-          user_id: adminUserId,
-          action: 'DAILY_FEE_CHANGED',
-          old_value: { fee: old.daily_fee?.toString() ?? null },
-          new_value: { fee: fee?.toString() ?? null },
-        },
-      }),
-    ]);
-
-    return { daily_fee: fee?.toString() ?? null };
-  }
-
-  async depositToAccount(
-    accountId: string,
-    amount: number,
-    adminUserId: string,
-    description?: string,
-  ) {
-    const account = await this.prisma.account.findUniqueOrThrow({
-      where: { id: accountId },
-    });
-
-    const bigAmount = BigInt(amount);
-    const newBalance = account.balance + bigAmount;
-
-    await this.prisma.$transaction([
-      this.prisma.account.update({
-        where: { id: accountId },
-        data: {
-          balance: newBalance,
-          ...(account.status === 'PAYMENT_DUE' && { status: 'ACTIVE' }),
-        },
-      }),
-      this.prisma.transaction.create({
-        data: {
-          account_id: accountId,
-          type: 'DEPOSIT',
-          amount: bigAmount,
-          balance_before: account.balance,
-          balance_after: newBalance,
-          description: description ?? `Admin deposit by ${adminUserId}`,
-        },
-      }),
-      this.prisma.auditEvent.create({
-        data: {
-          account_id: accountId,
-          user_id: adminUserId,
-          action: 'BALANCE_DEPOSITED',
-          old_value: { balance: account.balance.toString() },
-          new_value: { balance: newBalance.toString(), amount: amount.toString() },
-        },
-      }),
-    ]);
-
-    return {
-      balance: newBalance.toString(),
-      status: account.status === 'PAYMENT_DUE' ? 'ACTIVE' : account.status,
-    };
-  }
-
-  async getGlobalFee() {
-    const setting = await this.prisma.systemSetting.findUnique({
-      where: { key: 'daily_fee_default' },
-    });
-    return { daily_fee_default: setting?.value ?? '50000' };
-  }
-
-  async setGlobalFee(fee: number, adminUserId: string) {
-    const old = await this.prisma.systemSetting.findUnique({
-      where: { key: 'daily_fee_default' },
-    });
-
-    await this.prisma.$transaction([
-      this.prisma.systemSetting.upsert({
-        where: { key: 'daily_fee_default' },
-        update: { value: String(fee) },
-        create: { key: 'daily_fee_default', value: String(fee) },
-      }),
-      this.prisma.auditEvent.create({
-        data: {
-          user_id: adminUserId,
-          action: 'GLOBAL_FEE_CHANGED',
-          old_value: { fee: old?.value ?? '50000' },
-          new_value: { fee: String(fee) },
-        },
-      }),
-    ]);
-
-    return { daily_fee_default: String(fee) };
-  }
-
-  /** Deposit Log — list all DEPOSIT transactions */
-  async getDepositLog(page = 1, limit = 20) {
-    const skip = (page - 1) * limit;
-    const where = { type: 'DEPOSIT' as const };
-
-    const [items, total] = await Promise.all([
-      this.prisma.transaction.findMany({
-        where,
-        orderBy: { created_at: 'desc' },
-        skip,
-        take: limit,
-        include: {
-          account: { select: { id: true, name: true, status: true } },
-        },
-      }),
-      this.prisma.transaction.count({ where }),
-    ]);
-
-    return {
-      items: items.map((t) => ({
-        id: t.id,
-        account_id: t.account_id,
-        account_name: t.account.name,
-        account_status: t.account.status,
-        amount: t.amount.toString(),
-        balance_before: t.balance_before.toString(),
-        balance_after: t.balance_after.toString(),
-        description: t.description,
-        created_at: t.created_at,
-      })),
-      total,
-      page,
-      pages: Math.ceil(total / limit),
-    };
-  }
-
-  /** Delete a single deposit log entry */
-  async deleteDepositLog(transactionId: string) {
-    const tx = await this.prisma.transaction.findUnique({
-      where: { id: transactionId },
-    });
-    if (!tx) throw new NotFoundException('Transaction topilmadi');
-    if (tx.type !== 'DEPOSIT') throw new BadRequestException('Faqat DEPOSIT turidagi tranzaksiyalarni o\'chirish mumkin');
-
-    await this.prisma.transaction.delete({
-      where: { id: transactionId },
-    });
-
-    return { deleted: true };
   }
 
   /** Bulk Account Action */
   async bulkAccountAction(
     accountIds: string[],
-    action: 'DEPOSIT' | 'SUSPEND' | 'ACTIVATE' | 'SET_FEE',
-    params: { amount?: number; fee?: number; adminUserId: string },
+    action: 'SUSPEND' | 'ACTIVATE',
+    params: { adminUserId: string },
   ) {
     let success = 0;
     let failed = 0;
@@ -407,24 +210,12 @@ export class AdminAccountService {
     for (const accountId of accountIds) {
       try {
         switch (action) {
-          case 'DEPOSIT': {
-            if (!params.amount) throw new Error('Amount is required for DEPOSIT');
-            await this.depositToAccount(accountId, params.amount, params.adminUserId);
-            break;
-          }
-          case 'SUSPEND': {
+          case 'SUSPEND':
             await this.updateAccountStatus(accountId, 'SUSPENDED', params.adminUserId);
             break;
-          }
-          case 'ACTIVATE': {
+          case 'ACTIVATE':
             await this.updateAccountStatus(accountId, 'ACTIVE', params.adminUserId);
             break;
-          }
-          case 'SET_FEE': {
-            if (params.fee === undefined) throw new Error('Fee is required for SET_FEE');
-            await this.setAccountDailyFee(accountId, params.fee, params.adminUserId);
-            break;
-          }
         }
         success++;
       } catch (err: unknown) {
@@ -434,5 +225,21 @@ export class AdminAccountService {
     }
 
     return { success, failed, errors };
+  }
+
+  async deleteAccount(accountId: string, adminUserId: string) {
+    const account = await this.prisma.account.findUnique({ where: { id: accountId } });
+    if (!account) throw new NotFoundException('Account topilmadi');
+
+    await this.prisma.auditEvent.create({
+      data: {
+        user_id: adminUserId,
+        action: 'ACCOUNT_DELETED',
+        old_value: { account_id: accountId, name: account.name },
+      },
+    });
+
+    await this.prisma.account.delete({ where: { id: accountId } });
+    return { deleted: true };
   }
 }

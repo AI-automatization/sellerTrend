@@ -162,8 +162,6 @@ export class AdminLogService {
       account_name: t.account.name,
       type: t.type,
       amount: t.amount.toString(),
-      balance_before: t.balance_before.toString(),
-      balance_after: t.balance_after.toString(),
       description: t.description ?? '',
       created_at: t.created_at.toISOString(),
     }));

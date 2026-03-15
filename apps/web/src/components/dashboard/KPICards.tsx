@@ -1,5 +1,4 @@
-import type { Balance } from '../../api/types';
-import { WalletIcon, ArrowTrendingUpIcon } from '../icons';
+import { ArrowTrendingUpIcon } from '../icons';
 import { useI18n } from '../../i18n/I18nContext';
 import { AnimatedNumber, MiniSparkline, FadeIn } from './index';
 
@@ -14,44 +13,17 @@ interface DashboardStats {
 
 interface Props {
   stats: DashboardStats;
-  balance: Balance | null;
   isSuperAdmin: boolean;
-  paymentDue: boolean;
   scoreSparkline: number[];
   salesSparkline: number[];
   productsCount: number;
 }
 
-export function KPICards({ stats, balance, isSuperAdmin, paymentDue, scoreSparkline, salesSparkline, productsCount }: Props) {
+export function KPICards({ stats, isSuperAdmin, scoreSparkline, salesSparkline, productsCount }: Props) {
   const { t } = useI18n();
 
   return (
-    <div className={`grid grid-cols-2 ${isSuperAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-5'} gap-3 lg:gap-4`}>
-      {/* Balans */}
-      {!isSuperAdmin && (
-        <FadeIn delay={80} className="group">
-          <div className={`relative h-full rounded-2xl p-4 lg:p-5 overflow-hidden ventra-card ${
-            paymentDue
-              ? 'bg-gradient-to-br from-error/8 to-error/3 border border-error/15'
-              : 'bg-base-200/50 border border-base-300/40'
-          }`}>
-            <div className="absolute top-0 left-0 w-0.5 h-full bg-gradient-to-b from-primary via-primary/40 to-transparent" />
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[9px] text-base-content/30 font-bold uppercase tracking-[0.15em]">{t('dashboard.balance')}</span>
-              <div className="w-7 h-7 rounded-lg bg-primary/8 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
-                <WalletIcon className="w-3.5 h-3.5 text-primary/70" />
-              </div>
-            </div>
-            <p className={`text-xl lg:text-2xl font-bold tabular-nums tracking-tight ${paymentDue ? 'text-error' : ''}`}>
-              {balance ? <AnimatedNumber value={Number(balance.balance)} /> : '—'}
-            </p>
-            <p className="text-[10px] text-base-content/25 mt-2 tabular-nums">
-              {t('common.som')} · {balance ? Number(balance.daily_fee).toLocaleString() : '—'}{t('common.perDay')}
-            </p>
-          </div>
-        </FadeIn>
-      )}
-
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
       {/* Kuzatuv */}
       <FadeIn delay={120} className="group">
         <div className="relative h-full rounded-2xl p-4 lg:p-5 bg-base-200/50 border border-base-300/40 overflow-hidden ventra-card">
