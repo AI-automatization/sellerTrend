@@ -1889,4 +1889,29 @@ Hozir JWT payloadda `plan` field yo'q. Frontend plan ni bilmaydi — `/auth/me` 
 
 ---
 
+---
+
+### T-448 | P2 | BACKEND | weekly_bought — Uzum API raw field tekshirish va aniqlash | 1h
+
+**Sana:** 2026-03-15
+**Manba:** user-feedback
+**Mas'ul:** Sardor
+
+**Tahlil:**
+Uzum product sahifasida "X человека купили на этой неделе" ko'rsatiladi. Ventra da esa delta (2 snapshot farqi) ishlatiladi — bu ~95% aniq lekin 5-10 ta farq bo'lishi mumkin. Uzum REST API `/api/v2/product/:id` response'ida `weeklyBoughtCount` yoki shunga o'xshash dedicated haftalik field bo'lishi mumkin — lekin hozir `UzumProductData` interface da faqat `ordersAmount` va `rOrdersAmount` bor.
+
+**Muammo:**
+- Ventra weekly_bought = delta (snapshot N - snapshot N-1) → Uzum reset vaqti bilan mos tushmaydi
+- Uzum haftalik hisobini o'z serverida saqlaydi, API orqali berilishi noma'lum
+
+**Yechim:**
+1. `fetchProductDetail()` da `d` obyektni to'liq raw log qilib, response da `weeklyBoughtCount` / `weekBought` / boshqa haftalik field borligini tekshirish
+2. Agar bor → `UzumProductData` interface ga qo'shib, `UzumNormalizedProduct` ga uzatish, `uzum.service.ts` da `scraped` source sifatida ishlatish
+3. Agar yo'q → delta yondashuvi saqlanib qoladi (hozirgi holat)
+4. Uzum bilan mos kelsa → push, mos kelmasa → revert
+
+**Fayllar:** `apps/api/src/uzum/uzum.client.ts`, `apps/api/src/uzum/uzum.service.ts`
+
+---
+
 *Tasks.md | VENTRA Analytics Platform | 2026-03-15*
