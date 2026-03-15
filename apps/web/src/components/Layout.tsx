@@ -10,7 +10,6 @@ import {
   MagnifyingGlassIcon,
   MagnifyingGlassCircleIcon,
   ArrowRightOnRectangleIcon,
-  WalletIcon,
   ArrowTrendingUpIcon,
   GlobeAltIcon,
   ShieldCheckIcon,
@@ -33,7 +32,7 @@ import {
   SunIcon,
   MoonIcon,
 } from './icons';
-import { getTokenPayload, billingApi, notificationApi } from '../api/client';
+import { getTokenPayload, notificationApi } from '../api/client';
 import { logError } from '../utils/handleError';
 import { useNotificationRefresh } from '../hooks/useSocket';
 import { useI18n } from '../i18n/I18nContext';
@@ -88,8 +87,6 @@ function PuzzleIcon({ className }: { className?: string }) {
 
 export function Layout() {
   const navigate = useNavigate();
-  const [paymentDue, setPaymentDue] = useState(false);
-  const [balance, setBalance] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [isAnalyzeOpen, setIsAnalyzeOpen] = useState(false);
@@ -125,26 +122,6 @@ export function Layout() {
   const toggleSection = (key: string) => {
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
   };
-
-  useEffect(() => {
-    if (isSuperAdmin) return;
-    billingApi.getBalance().then((r) => {
-      if (r.data.status === 'PAYMENT_DUE') {
-        setPaymentDue(true);
-        setBalance(r.data.balance);
-      }
-    }).catch(logError);
-  }, [isSuperAdmin]);
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      setPaymentDue(true);
-      if (detail?.balance) setBalance(detail.balance);
-    };
-    window.addEventListener('payment-due', handler);
-    return () => window.removeEventListener('payment-due', handler);
-  }, []);
 
   const fetchNotifications = useCallback(() => {
     notificationApi.getMy().then((r) => {
@@ -294,51 +271,10 @@ export function Layout() {
           </NavLink>
         </div>
 
-        {/* PAYMENT_DUE global banner */}
-        {paymentDue && (
-          <div className="bg-error/10 border-b border-error/30 px-4 py-2 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-error text-sm">
-              <WalletIcon className="w-4 h-4 shrink-0" />
-              <span>
-                <strong>{t('billing.planExpired')}</strong> {t('payment.balance')}: {Number(balance).toLocaleString()} {t('common.som')}.
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button className="btn btn-error btn-xs" onClick={() => navigate('/billing')}>
-                {t('billing.upgradePlan')}
-              </button>
-              <button className="btn btn-ghost btn-xs text-error" onClick={() => navigate('/feedback')}>
-                {t('billing.contactSupport')}
-              </button>
-            </div>
-          </div>
-        )}
-
         <main id="main-content" className="flex-1 p-4 lg:p-6 pb-16 lg:pb-6 ventra-main-bg relative" role="main" aria-live="polite">
           <div className="ventra-page-enter">
           <Outlet />
           </div>
-          {paymentDue && !['/', '/admin', '/billing'].includes(location.pathname) && (
-            <div className="absolute inset-0 bg-base-100/90 backdrop-blur-sm supports-[backdrop-filter]:bg-base-100/80 z-30 flex items-center justify-center">
-              <div className="card bg-base-200 shadow-xl border border-error/30 max-w-md mx-4">
-                <div className="card-body items-center text-center gap-4">
-                  <WalletIcon className="w-12 h-12 text-error" />
-                  <h3 className="text-lg font-bold">{t('billing.planExpired')}</h3>
-                  <p className="text-base-content/60 text-sm">
-                    {t('payment.overduePrefix')}<strong>{Number(balance).toLocaleString()} {t('common.som')}</strong>{t('payment.overdueSuffix')}
-                  </p>
-                  <div className="flex gap-2">
-                    <button className="btn btn-primary btn-sm" onClick={() => navigate('/billing')}>
-                      {t('billing.upgradePlan')}
-                    </button>
-                    <button className="btn btn-ghost btn-sm" onClick={() => navigate('/feedback')}>
-                      {t('billing.contactSupport')}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </main>
       </div>
 
