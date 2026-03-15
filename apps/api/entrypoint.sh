@@ -10,7 +10,7 @@ UPDATE accounts SET status = 'ACTIVE' WHERE status = 'PAYMENT_DUE';
 EOF
 
 echo "[entrypoint] Running pre-migration data cleanup..."
-DATABASE_URL="$DB_URL" prisma db execute --file /tmp/pre_migration.sql || true
+prisma db execute --url "$DB_URL" --file /tmp/pre_migration.sql || true
 
 # Use direct connection for migration if available (PgBouncer can't handle DDL)
 if [ -n "$DIRECT_DATABASE_URL" ]; then
