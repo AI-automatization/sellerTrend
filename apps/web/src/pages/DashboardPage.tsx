@@ -12,7 +12,7 @@ import { PageHint } from '../components/PageHint';
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function DashboardPage() {
-  const { products, setProducts, loading, error, isSuperAdmin, exporting, handleExportCsv } = useDashboardData();
+  const { products, setProducts, loading, error, exporting, handleExportCsv } = useDashboardData();
   const [sortKey, setSortKey] = useState<'score' | 'weekly' | 'price'>('score');
   const { t } = useI18n();
   const navigate = useNavigate();
