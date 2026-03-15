@@ -3,6 +3,13 @@
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
 
+### T-448 | BACKEND | weekly_bought — Uzum API raw field tekshirish (2026-03-15)
+
+**Manba:** user-feedback (2026-03-15)
+**Muammo:** Uzum product sahifasida "X человека купили на этой неделе" ko'rsatiladi, Ventra da esa delta (snapshot farqi) ishlatiladi — 5-10 ta farq bo'lishi mumkin edi.
+**Yechim:** Uzum REST API `/api/v2/product/18332` response to'liq tekshirildi. Haftalik dedicated field **yo'q** — faqat `ordersAmount` (kumulativ), `rOrdersAmount` (yaxlitlangan), `boughtAmount: 0` (SKU darajasi) mavjud. Uzum "на этой неделе" ni o'z ichki serverida hisoblaydi va API orqali bermaydi.
+**Ta'sir:** Delta yondashuvi (~95% aniqlik) saqlanib qoldi — bu Uzum API imkoniyati doirasidagi eng yaxshi yechim.
+
 ### T-443 | FRONTEND | Search — Infinite scroll + Pagination (2026-03-14, v2)
 
 **Manba:** user-feedback (2026-03-14)
