@@ -4,9 +4,19 @@ set -e
 DB_URL="${DIRECT_DATABASE_URL:-$DATABASE_URL}"
 
 # Pre-migration: convert deprecated enum values so db push can alter enums
+# Each DO block catches its own error independently (no cross-rollback)
 cat > /tmp/pre_migration.sql << 'EOF'
-UPDATE transactions SET type = 'SUBSCRIPTION' WHERE type IN ('CHARGE', 'DEPOSIT');
-UPDATE accounts SET status = 'ACTIVE' WHERE status = 'PAYMENT_DUE';
+DO $$ BEGIN
+  UPDATE transactions SET type = 'SUBSCRIPTION'::text::"TransactionType"
+  WHERE type::text IN ('CHARGE', 'DEPOSIT');
+EXCEPTION WHEN others THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  UPDATE accounts SET status = 'ACTIVE'::text::"AccountStatus"
+  WHERE status::text = 'PAYMENT_DUE';
+EXCEPTION WHEN others THEN NULL;
+END $$;
 EOF
 
 echo "[entrypoint] Running pre-migration data cleanup..."
