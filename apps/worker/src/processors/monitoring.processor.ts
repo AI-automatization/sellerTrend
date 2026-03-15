@@ -164,9 +164,9 @@ async function runFlashSales(accountId: string): Promise<number> {
 // ─── Main job processor ──────────────────────────────────────────────────────
 
 async function processMonitoringSignals(jobId: string, jobName: string) {
-  // Only process accounts that are ACTIVE or PAYMENT_DUE (not SUSPENDED)
+  // Only process accounts that are ACTIVE (not SUSPENDED)
   const accounts = await prisma.account.findMany({
-    where: { status: { in: ['ACTIVE', 'PAYMENT_DUE'] } },
+    where: { status: 'ACTIVE' },
     select: { id: true },
   });
   logJobInfo(QUEUE_NAME, jobId, jobName, `Running signals for ${accounts.length} accounts`);

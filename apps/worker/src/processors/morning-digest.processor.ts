@@ -27,14 +27,11 @@ async function sendTelegramMessage(chatId: string, text: string): Promise<boolea
 // ─── Digest builder ──────────────────────────────────────────────────────────
 
 async function buildDigestForAccount(accountId: string): Promise<string | null> {
-  // 1. Balance
   const account = await prisma.account.findUnique({
     where: { id: accountId },
-    select: { name: true, balance: true },
+    select: { name: true, plan: true },
   });
   if (!account) return null;
-
-  const balanceSom = Number(account.balance) / 100; // balance in tiyin → SOM
 
   // 2. Top tracked products by latest score
   const tracked = await prisma.trackedProduct.findMany({
@@ -76,7 +73,7 @@ async function buildDigestForAccount(accountId: string): Promise<string | null> 
   const lines: string[] = [
     `🌅 <b>Xayrli kun, ${account.name}!</b>`,
     ``,
-    `💰 <b>Balans:</b> ${balanceSom.toLocaleString('ru-RU')} so'm`,
+    `📦 <b>Plan:</b> ${account.plan}`,
   ];
 
   if (pendingAlerts > 0) {
