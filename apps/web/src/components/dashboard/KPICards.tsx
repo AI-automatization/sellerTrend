@@ -13,13 +13,12 @@ interface DashboardStats {
 
 interface Props {
   stats: DashboardStats;
-  isSuperAdmin: boolean;
   scoreSparkline: number[];
   salesSparkline: number[];
   productsCount: number;
 }
 
-export function KPICards({ stats, isSuperAdmin, scoreSparkline, salesSparkline, productsCount }: Props) {
+export function KPICards({ stats, scoreSparkline, salesSparkline, productsCount }: Props) {
   const { t } = useI18n();
 
   return (

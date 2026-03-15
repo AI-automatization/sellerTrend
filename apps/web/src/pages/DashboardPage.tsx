@@ -156,7 +156,6 @@ export function DashboardPage() {
       {/* ═══ KPI CARDS ═══ */}
       <KPICards
         stats={stats}
-        isSuperAdmin={isSuperAdmin}
         scoreSparkline={scoreSparkline}
         salesSparkline={salesSparkline}
         productsCount={products.length}
