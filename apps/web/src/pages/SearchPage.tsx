@@ -11,8 +11,8 @@ import type { SearchProduct } from '../api/types';
 import { toast } from 'react-toastify';
 
 const MIN_QUERY_LENGTH = 2;
-const PAGE_SIZE = 24;
-const PAGE_LIMIT = 64;
+const PAGE_SIZE = 15;
+const PAGE_LIMIT = 30;
 
 function formatPrice(price: number): string {
   return price.toLocaleString('ru-RU');

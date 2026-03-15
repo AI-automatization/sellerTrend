@@ -281,8 +281,9 @@ export class ProductsService {
     const results = await this.uzumClient.searchProducts(sanitized, limit, offset);
 
     if (results.length > 0) {
-      this.cacheResults(cacheKey, results, CACHE_TTL_SECONDS);
-      return results;
+      const enriched = await this.enrichWithScores(results);
+      this.cacheResults(cacheKey, enriched, CACHE_TTL_SECONDS);
+      return enriched;
     }
 
     // Fallback: search our local Product database (only for first page)
@@ -329,25 +330,74 @@ export class ProductsService {
             take: 1,
             orderBy: { min_sell_price: 'asc' },
           },
+          snapshots: {
+            select: { score: true, weekly_bought: true },
+            orderBy: { snapshot_at: 'desc' },
+            take: 1,
+          },
         },
         orderBy: { orders_quantity: 'desc' },
         take: limit,
       });
 
-      return products.map((p) => ({
-        id: Number(p.id),
-        productId: Number(p.id),
-        title: p.title,
-        minSellPrice: p.skus[0]?.min_sell_price ? Number(p.skus[0].min_sell_price) : undefined,
-        sellPrice: p.skus[0]?.min_sell_price ? Number(p.skus[0].min_sell_price) : undefined,
-        rating: p.rating ? Number(p.rating) : undefined,
-        ordersQuantity: p.orders_quantity ? Number(p.orders_quantity) : undefined,
-        feedbackQuantity: p.feedback_quantity ?? undefined,
-        photoUrl: p.photo_url ?? undefined,
-      }));
+      return products.map((p) => {
+        const snap = p.snapshots[0];
+        return {
+          id: Number(p.id),
+          productId: Number(p.id),
+          title: p.title,
+          minSellPrice: p.skus[0]?.min_sell_price ? Number(p.skus[0].min_sell_price) : undefined,
+          sellPrice: p.skus[0]?.min_sell_price ? Number(p.skus[0].min_sell_price) : undefined,
+          rating: p.rating ? Number(p.rating) : undefined,
+          ordersQuantity: p.orders_quantity ? Number(p.orders_quantity) : undefined,
+          feedbackQuantity: p.feedback_quantity ?? undefined,
+          photoUrl: p.photo_url ?? undefined,
+          score: snap?.score ? Number(snap.score) : undefined,
+          weeklyBought: snap?.weekly_bought ?? undefined,
+        };
+      });
     } catch (err: unknown) {
       this.logger.error(`searchProductsDB failed: ${err instanceof Error ? err.message : String(err)}`);
       return [];
+    }
+  }
+
+  /** Enrich Uzum API search results with score + weekly_bought from our DB */
+  private async enrichWithScores(results: UzumSearchProduct[]): Promise<UzumSearchProduct[]> {
+    const ids = results
+      .map((r) => r.productId ?? r.id)
+      .filter((id): id is number => id != null);
+    if (ids.length === 0) return results;
+
+    try {
+      const dbRows = await this.prisma.product.findMany({
+        where: { id: { in: ids.map(BigInt) } },
+        select: {
+          id: true,
+          snapshots: {
+            select: { score: true, weekly_bought: true },
+            orderBy: { snapshot_at: 'desc' },
+            take: 1,
+          },
+        },
+      });
+
+      const scoreMap = new Map<number, { score?: number; weeklyBought?: number }>();
+      for (const row of dbRows) {
+        const snap = row.snapshots[0];
+        scoreMap.set(Number(row.id), {
+          score: snap?.score ? Number(snap.score) : undefined,
+          weeklyBought: snap?.weekly_bought ?? undefined,
+        });
+      }
+
+      return results.map((r) => {
+        const key = r.productId ?? r.id;
+        const extra = key != null ? scoreMap.get(key) : undefined;
+        return extra ? { ...r, ...extra } : r;
+      });
+    } catch {
+      return results;
     }
   }
 

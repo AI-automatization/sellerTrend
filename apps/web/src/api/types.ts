@@ -112,6 +112,8 @@ export interface SearchProduct {
   ordersAmount?: number;
   reviewsAmount?: number;
   photoUrl?: string;
+  score?: number;
+  weeklyBought?: number;
 }
 
 // ─── Revenue Estimator Domain ────────────────────────────────────────────────

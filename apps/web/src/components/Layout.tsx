@@ -8,7 +8,6 @@ import {
   HomeIcon,
   ChartBarIcon,
   MagnifyingGlassIcon,
-  MagnifyingGlassCircleIcon,
   ArrowRightOnRectangleIcon,
   ArrowTrendingUpIcon,
   GlobeAltIcon,
@@ -41,6 +40,7 @@ import type { Lang } from '../i18n/translations';
 import { WhatsNew, useHasUnseenUpdates } from './WhatsNew';
 import { StreakBadge } from './StreakBadge';
 import { AnalyzeModal } from './AnalyzeModal';
+import { SearchDrawer } from './SearchDrawer';
 
 const LANGS: { code: Lang; label: string }[] = [
   { code: 'uz', label: "O'z" },
@@ -90,6 +90,8 @@ export function Layout() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [isAnalyzeOpen, setIsAnalyzeOpen] = useState(false);
+  const [analyzeUrl, setAnalyzeUrl] = useState<string | undefined>(undefined);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { lang, setLang, t } = useI18n();
   const { isDark, toggle } = useTheme();
 
@@ -111,7 +113,7 @@ export function Layout() {
   useEffect(() => {
     const path = location.pathname;
     const initial: Record<string, boolean> = {};
-    if (['/', '/search', '/analyze', '/discovery', '/sourcing'].some(p => p === '/' ? path === '/' : path.startsWith(p))) initial['asosiy'] = true;
+    if (['/', '/discovery', '/sourcing'].some(p => p === '/' ? path === '/' : path.startsWith(p))) initial['asosiy'] = true;
     if (['/shops', '/signals', '/leaderboard'].some(p => path.startsWith(p))) initial['mahsulot'] = true;
     if (['/calculator', '/revenue-estimator', '/elasticity', '/ai-description', '/consultation', '/compare'].some(p => path.startsWith(p))) initial['asboblar'] = true;
     if (['/achievements', '/enterprise', '/referral', '/api-keys', '/feedback', '/extension'].some(p => path.startsWith(p))) initial['biznes'] = true;
@@ -139,6 +141,7 @@ export function Layout() {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
+        setAnalyzeUrl(undefined);
         setIsAnalyzeOpen(true);
       }
     };
@@ -186,8 +189,6 @@ export function Layout() {
       label: t('nav.section.main'),
       items: [
         { to: '/', icon: HomeIcon, label: t('nav.dashboard'), end: true },
-        { to: '/search', icon: MagnifyingGlassCircleIcon, label: t('nav.search') },
-        { to: '/analyze', icon: MagnifyingGlassIcon, label: t('nav.analyze'), onClick: () => setIsAnalyzeOpen(true) },
         { to: '/discovery', icon: ArrowTrendingUpIcon, label: t('nav.discovery') },
         { to: '/sourcing', icon: GlobeAltIcon, label: t('nav.sourcing') },
       ],
@@ -273,7 +274,7 @@ export function Layout() {
 
         <main id="main-content" className="flex-1 p-4 lg:p-6 pb-16 lg:pb-6 ventra-main-bg relative" role="main" aria-live="polite">
           <div className="ventra-page-enter">
-          <Outlet />
+          <Outlet context={{ onOpenAnalyze: (url?: string) => { setAnalyzeUrl(url); setIsAnalyzeOpen(true); }, onOpenSearch: () => setIsSearchOpen(true) }} />
           </div>
         </main>
       </div>
@@ -438,7 +439,8 @@ export function Layout() {
       <BottomNav />
       <ScrollToTop />
       <WhatsNew externalOpen={showWhatsNew} onClose={() => setShowWhatsNew(false)} />
-      <AnalyzeModal isOpen={isAnalyzeOpen} onClose={() => setIsAnalyzeOpen(false)} />
+      <AnalyzeModal isOpen={isAnalyzeOpen} onClose={() => setIsAnalyzeOpen(false)} initialUrl={analyzeUrl} />
+      <SearchDrawer isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </div>
   );
 }

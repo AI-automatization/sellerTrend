@@ -1889,6 +1889,4 @@ Hozir JWT payloadda `plan` field yo'q. Frontend plan ni bilmaydi — `/auth/me` 
 
 ---
 
----
-
 *Tasks.md | VENTRA Analytics Platform | 2026-03-15*

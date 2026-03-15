@@ -3,6 +3,48 @@
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
 
+### T-454 | FRONTEND | Search — tahlil natijasi SearchDrawer ichida (2026-03-15)
+
+**Manba:** user-feedback (2026-03-15)
+**Muammo:** "Tahlil qilish" bosilganda SearchDrawer yopilardi, AnalyzeModal alohida ochilardi — qidirish konteksti yo'qolardi.
+**Yechim:** `analyzeState` state qo'shildi. Tahlil bosilganda SearchDrawer yopilmaydi — ichida loading → natija paneli ko'rsatiladi. Header da "Orqaga" tugmasi (qidiruv natijalariga qaytadi). Escape ham qidiruvga qaytaradi. `onOpenAnalyze` prop olib tashlandi. `ScoreRadial`, `StatCard` — SearchDrawer ichiga inline qilingan.
+**Ta'sir:** Sotuvchi qidiruv kontekstini yo'qotmaydi, mahsulotdan mahsulotga o'tib tahlil qila oladi.
+
+### T-453 | FRONTEND | Search — "Tezkor tahlil" tugmasi (AnalyzeModal integration) (2026-03-15)
+
+**Manba:** ai-tahlil (2026-03-15)
+**Muammo:** Qidiruvdan mahsulotni bosqanda ProductPage ochiladi, SearchDrawer yopiladi — foydalanuvchi qidirish kontekstini yo'qotadi.
+**Yechim:** `AnalyzeModal` ga `initialUrl` prop qo'shildi. `Layout.tsx` da `analyzeUrl` state + `onOpenAnalyze(url?)` signature. `SearchDrawer` da har kartada lupa tugmasi — bosqanda Search yopiladi, AnalyzeModal o'sha mahsulot URL bilan ochiladi (`https://uzum.uz/product/{id}`).
+**Ta'sir:** Sotuvchi qidiruvdan chiqmasdan tezkor AI tahlil ko'ra oladi.
+
+### T-452 | FRONTEND | Search — Sort + reviewsAmount badge (2026-03-15)
+
+**Manba:** ai-tahlil (2026-03-15)
+**Muammo:** Qidiruv natijalari Uzum algoritmi tartibida, eng trendlisi birinchi emas. `reviewsAmount` ma'lumot bor lekin ko'rsatilmaydi.
+**Yechim:** `SearchDrawer` ga `sortKey` state + `sortedResults` computed qo'shildi. Score/Savdo/Narx tugmalari — frontend sort. `reviewsAmount` chip sifatida ko'rsatildi.
+**Ta'sir:** Sotuvchi bir zumda eng ko'p sotilayotgan yoki eng yuqori scoreli mahsulotlarni yuqorida ko'radi.
+
+### T-451 | IKKALASI | Search — Score + weekly_bought backend response ga qo'shish (2026-03-15)
+
+**Manba:** ai-tahlil (2026-03-15)
+**Muammo:** SearchDrawer Uzum ning o'zidan farq qilmasdi — Trend Score ko'rsatilmaydi, VENTRA USP yo'q edi.
+**Yechim:** `UzumSearchProduct` interface ga `score`, `weeklyBought` qo'shildi. `searchProductsDB` — `snapshots` relation orqali eng so'nggi `score` + `weekly_bought` select qilinadi. `enrichWithScores()` — Uzum API natijalarini batch DB lookup bilan enrich qiladi. Frontend `SearchProduct` type yangilandi. Kartada score badge (yashil/sariq/kulrang) + weekly chip ko'rsatiladi.
+**Ta'sir:** Sotuvchi qidiruv natijalarida to'g'ridan Trend Score ko'radi — qaysi mahsulot trendda ekanini bir zumda biladi.
+
+### T-450 | FRONTEND | Search — modal + 3-column grid (2026-03-15)
+
+**Manba:** user-feedback (2026-03-15)
+**Muammo:** Search alohida page — foydalanuvchi dashboard dan chiqib ketardi, holat yo'qolardi.
+**Yechim:** `SearchDrawer.tsx` — DaisyUI modal (max-w-4xl), 3-column product grid, IntersectionObserver infinite scroll, PAGE_SIZE=15/PAGE_LIMIT=30. `/search` route olib tashlandi. Sidebar Search item olib tashlandi — Dashboard header ga o'tkazildi (URL tahlil oldiga).
+**Ta'sir:** Search endi overlay sifatida ishlaydi, foydalanuvchi kontekstini yo'qotmaydi.
+
+### T-449 | FRONTEND | URL tahlil — page o'rniga modal (2026-03-15)
+
+**Manba:** user-feedback (2026-03-15)
+**Muammo:** Dashboard da URL tahlil bosilganda alohida page ochilardi, sidebar da "Analyze" nav item bor edi.
+**Yechim:** `AnalyzeModal` mavjud edi — `Layout.tsx` da `isAnalyzeOpen` state + Outlet context orqali `onOpenAnalyze` callback uzatildi. `DashboardPage` `useOutletContext` bilan oldi. `/analyze` route va sidebar item olib tashlandi.
+**Ta'sir:** URL tahlil endi modal sifatida ishlaydi, foydalanuvchi dashboard dan chiqmaydi.
+
 ### T-448 | BACKEND | weekly_bought — Uzum API raw field tekshirish (2026-03-15)
 
 **Manba:** user-feedback (2026-03-15)

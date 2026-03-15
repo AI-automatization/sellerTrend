@@ -91,6 +91,8 @@ export interface UzumSearchProduct {
   ordersAmount?: number;
   feedbackQuantity?: number;
   photoUrl?: string;
+  score?: number;
+  weeklyBought?: number;
 }
 
 /** Normalized product shape returned by fetchProductDetail */

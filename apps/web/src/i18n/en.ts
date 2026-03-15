@@ -164,7 +164,7 @@ export const en: Record<string, string> = {
     'analyze.analyzing': 'Analyzing...',
     'analyze.error': 'Analysis error. Check the URL.',
     'analyze.totalOrders': 'Total orders',
-    'analyze.recentActivity': 'Recent activity',
+    'analyze.recentActivity': 'Sold this week',
     'analyze.rating': 'Rating',
     'analyze.reviews': 'Reviews',
     'analyze.price': 'Price',
@@ -1377,6 +1377,7 @@ export const en: Record<string, string> = {
     'search.error': 'Search failed. Please try again.',
     'search.resultsCount': '{count} products found',
     'search.orders': 'Orders',
+    'search.weekly': 'pcs/wk',
     'search.reviews': 'Reviews',
     'search.from': 'from',
     'search.noPrice': 'Price N/A',
@@ -1390,6 +1391,7 @@ export const en: Record<string, string> = {
     'search.initialHint': 'Start typing to find products on Uzum',
     'search.searchBtn': 'Search Products',
     'search.analyze': 'Analyze',
+    'search.sortTrend': 'Trend',
 
     // ── Expand Panel ────────────────────────────────────────────────────────
     'expand.loading': 'Loading data...',

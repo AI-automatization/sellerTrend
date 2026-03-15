@@ -163,7 +163,7 @@ export const ru: Record<string, string> = {
     'analyze.analyzing': 'Анализ...',
     'analyze.error': 'Ошибка анализа. Проверьте правильность URL.',
     'analyze.totalOrders': 'Всего заказов',
-    'analyze.recentActivity': 'Последняя активность',
+    'analyze.recentActivity': 'Продано за неделю',
     'analyze.rating': 'Рейтинг',
     'analyze.reviews': 'Отзывы',
     'analyze.price': 'Цена',
@@ -1366,6 +1366,7 @@ export const ru: Record<string, string> = {
     'search.error': 'Ошибка поиска. Попробуйте ещё раз.',
     'search.resultsCount': 'Найдено {count} товаров',
     'search.orders': 'Заказы',
+    'search.weekly': 'шт/нед',
     'search.reviews': 'Отзывы',
     'search.from': 'от',
     'search.noPrice': 'Цена N/A',
@@ -1378,7 +1379,8 @@ export const ru: Record<string, string> = {
     'search.initial': 'Поиск товаров',
     'search.initialHint': 'Начните вводить, чтобы найти товары на Uzum',
     'search.searchBtn': 'Найти товары',
-    'search.analyze': 'Анализ',
+    'search.analyze': 'Анализировать',
+    'search.sortTrend': 'Тренд',
 
     // ── Expand Panel ────────────────────────────────────────────────────────
     'expand.loading': 'Загрузка данных...',

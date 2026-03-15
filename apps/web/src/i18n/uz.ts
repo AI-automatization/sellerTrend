@@ -170,7 +170,7 @@ export const uz: Record<string, string> = {
     'analyze.analyzing': 'Tahlil qilinmoqda...',
     'analyze.error': "Tahlil vaqtida xato. URL to'g'riligini tekshiring.",
     'analyze.totalOrders': 'Jami buyurtmalar',
-    'analyze.recentActivity': "So'nggi faollik",
+    'analyze.recentActivity': 'Haftalik sotilgan',
     'analyze.rating': 'Reyting',
     'analyze.reviews': 'Sharhlar',
     'analyze.price': 'Narx',
@@ -1382,6 +1382,7 @@ export const uz: Record<string, string> = {
     'search.error': 'Qidirishda xato. Qayta urinib ko\'ring.',
     'search.resultsCount': '{count} ta mahsulot topildi',
     'search.orders': 'Buyurtmalar',
+    'search.weekly': 'ta/hafta',
     'search.reviews': 'Sharhlar',
     'search.from': 'dan',
     'search.noPrice': "Narx yo'q",
@@ -1394,7 +1395,8 @@ export const uz: Record<string, string> = {
     'search.initial': 'Mahsulot qidiring',
     'search.initialHint': "Uzum'da mahsulot topish uchun yozishni boshlang",
     'search.searchBtn': 'Mahsulot qidirish',
-    'search.analyze': 'Tahlil',
+    'search.analyze': 'Tahlil qilish',
+    'search.sortTrend': 'Trend',
 
     // ── Expand Panel ────────────────────────────────────────────────────────
     'expand.loading': "Ma'lumotlar yuklanmoqda...",

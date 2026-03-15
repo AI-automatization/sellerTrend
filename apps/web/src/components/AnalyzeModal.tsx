@@ -42,9 +42,10 @@ function StatCard({ label, value, accent }: { label: string; value: string; acce
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  initialUrl?: string;
 }
 
-export function AnalyzeModal({ isOpen, onClose }: Props) {
+export function AnalyzeModal({ isOpen, onClose, initialUrl }: Props) {
   const { t } = useI18n();
   const [url, setUrl] = useState('');
   const [result, setResult] = useState<AnalyzeResult | null>(null);
@@ -56,14 +57,14 @@ export function AnalyzeModal({ isOpen, onClose }: Props) {
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
-      setUrl('');
+      setUrl(initialUrl ?? '');
       setResult(null);
       setSnapshots([]);
       setError('');
       setLoading(false);
       setTracked(false);
     }
-  }, [isOpen]);
+  }, [isOpen, initialUrl]);
 
   // Close on Escape
   useEffect(() => {
@@ -87,7 +88,10 @@ export function AnalyzeModal({ isOpen, onClose }: Props) {
       const data: AnalyzeResult = res.data;
       setResult(data);
       try {
-        const snap = await productsApi.getSnapshots(String(data.product_id));
+        const [snap, trackedRes] = await Promise.all([
+          productsApi.getSnapshots(String(data.product_id)),
+          productsApi.getTracked(),
+        ]);
         const chartData = snap.data
           .slice()
           .reverse()
@@ -99,6 +103,9 @@ export function AnalyzeModal({ isOpen, onClose }: Props) {
             score: Number(Number(s.score).toFixed(4)),
           }));
         setSnapshots(chartData);
+        const isAlreadyTracked = (trackedRes.data as Array<{ product_id: string | number }>)
+          .some((t) => String(t.product_id) === String(data.product_id));
+        setTracked(isAlreadyTracked);
       } catch {
         // snapshot history optional
       }
@@ -205,8 +212,8 @@ export function AnalyzeModal({ isOpen, onClose }: Props) {
                 <StatCard label={t('analyze.totalOrders')} value={(result.orders_quantity ?? 0).toLocaleString()} accent="text-primary" />
                 <StatCard
                   label={t('analyze.recentActivity')}
-                  value={result.weekly_bought != null ? result.weekly_bought.toLocaleString() : 'N/A'}
-                  accent={result.weekly_bought ? 'text-success' : 'text-base-content/40'}
+                  value={result.weekly_bought != null ? result.weekly_bought.toLocaleString() : '—'}
+                  accent={result.weekly_bought ? 'text-success' : 'text-base-content/30'}
                 />
                 <StatCard label={t('analyze.rating')} value={`${result.rating}`} accent="text-yellow-400" />
                 <StatCard label={t('analyze.reviews')} value={(result.feedback_quantity ?? 0).toLocaleString()} accent="text-secondary" />

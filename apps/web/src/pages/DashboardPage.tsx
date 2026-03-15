@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { ArrowTrendingUpIcon, MagnifyingGlassIcon } from '../components/icons';
 import { useI18n } from '../i18n/I18nContext';
@@ -12,10 +12,10 @@ import { PageHint } from '../components/PageHint';
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function DashboardPage() {
+  const { onOpenAnalyze, onOpenSearch } = useOutletContext<{ onOpenAnalyze: (url?: string) => void; onOpenSearch: () => void }>();
   const { products, setProducts, loading, error, exporting, handleExportCsv } = useDashboardData();
   const [sortKey, setSortKey] = useState<'score' | 'weekly' | 'price'>('score');
   const { t } = useI18n();
-  const navigate = useNavigate();
   const tokenPayload = getTokenPayload();
 
   // ── Computed ──
@@ -107,7 +107,7 @@ export function DashboardPage() {
     return (
       <EmptyState
         userEmail={tokenPayload?.email ?? 'user'}
-        onStartAnalysis={() => navigate('/analyze')}
+        onStartAnalysis={() => onOpenAnalyze?.()}
       />
     );
   }
@@ -146,9 +146,12 @@ export function DashboardPage() {
                 </svg>
               )} {t('common.csv')}
             </button>
-            <Link to="/analyze" className="btn btn-primary btn-sm gap-1.5 shadow-md shadow-primary/15 text-xs">
+            <button onClick={() => onOpenSearch?.()} className="btn btn-ghost btn-sm border border-base-300/40 gap-1.5 hover:border-primary/20 transition-all text-xs">
+              <MagnifyingGlassIcon className="w-3.5 h-3.5" /> {t('nav.search')}
+            </button>
+            <button onClick={() => onOpenAnalyze?.()} className="btn btn-primary btn-sm gap-1.5 shadow-md shadow-primary/15 text-xs">
               <MagnifyingGlassIcon className="w-3.5 h-3.5" /> {t('analyze.button')}
-            </Link>
+            </button>
           </div>
         </div>
       </FadeIn>
