@@ -1862,28 +1862,31 @@ export function useChat() {
 
 ---
 
-### T-445 | P2 | FRONTEND | Analyze → Modal (sidebar tugma + Ctrl+K) | 1h
+### T-447 | P3 | FULLSTACK | JWT token + PlanGuard — plan-based feature gating | 2h
 
-**Sana:** 2026-03-14
-**Manba:** user-feedback
-**Topilgan joyda:** `apps/web/src/pages/AnalyzePage.tsx`, `apps/web/src/components/Layout.tsx`
-**Mas'ul:** pending[Sardor]
+**Sana:** 2026-03-15
+**Manba:** self-improve
+**Mas'ul:** Sardor
 
 **Tahlil:**
-Analyze page → modal ga o'tkazish — foydalanuvchi dashboard dan chiqmasdan mahsulot tahlil qila oladi. Sidebar da "Analyze" NavLink → button, Ctrl+K modal ochadi. `/analyze` route fallback sifatida saqlanadi.
+Hozir JWT payloadda `plan` field yo'q. Frontend plan ni bilmaydi — `/auth/me` ga so'rovsiz feature gating imkoni yo'q. `PlanGuard` component mavjud lekin hech qayerga ulanmagan. Bu task to'lov tizimi (Payme/Click) qo'shilganda kerak bo'ladi — hozir P3 (past prioritet).
 
 **Muammo:**
-- Analyze faqat dedicated page — foydalanuvchi har safar navigate qilishi kerak
-- Dashboard da mahsulot ko'rib, URL tahlil qilmoqchi bo'lsa page o'zgaradi
-- Onboarding flow bilan mos — u ham modal uslubida ishlaydi
+- JWT da `plan` yo'q → frontend tokendan plan o'qiy olmaydi
+- `PlanGuard` component ishlatilmayapti
+- Feature gating mexanizmi yo'q
 
 **Yechim:**
-1. `AnalyzeModal.tsx` — DaisyUI dialog, analyze logic + result
-2. `Layout.tsx` — `isAnalyzeOpen` state, analyze nav item → button, Ctrl+K → modal
-3. `AnalyzePage.tsx` — saqlanadi (direct URL fallback)
+1. `auth.service.ts` — `signAccessToken()`ga `plan` parametr qo'shish, JWT payloadga yozish
+2. `auth.service.ts` — `login()`, `refresh()`, `register()`da account'dan `plan` o'qib uzatish
+3. `packages/types/` — JWT payload type'ga `plan` qo'shish
+4. Frontend `PlanGuard` — `getTokenPayload().plan` ishlatsin
+5. Kerakli feature'larni `<PlanGuard require="PRO">` bilan wrap qilish
 
-**Fayllar:** `apps/web/src/components/AnalyzeModal.tsx` (yangi), `apps/web/src/components/Layout.tsx`
+**Fayllar:** `apps/api/src/auth/auth.service.ts`, `packages/types/src/index.ts`, `apps/web/src/components/PlanGuard.tsx`
+
+**Eslatma:** To'lov tizimi yo'q bo'lguncha bu task bajarilmaydi — hozir barcha userlar FREE planda.
 
 ---
 
-*Tasks.md | VENTRA Analytics Platform | 2026-03-14*
+*Tasks.md | VENTRA Analytics Platform | 2026-03-15*
