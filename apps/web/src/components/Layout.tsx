@@ -7,8 +7,7 @@ import { useAuthStore } from '../stores/authStore';
 import {
   HomeIcon,
   ChartBarIcon,
-  MagnifyingGlassIcon,
-  ArrowRightOnRectangleIcon,
+ArrowRightOnRectangleIcon,
   ArrowTrendingUpIcon,
   GlobeAltIcon,
   ShieldCheckIcon,
