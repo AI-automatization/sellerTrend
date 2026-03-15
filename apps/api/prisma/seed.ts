@@ -11,15 +11,7 @@ const DEMO_PASSWORD  = process.env.SEED_DEMO_PASSWORD ?? 'Demo123!';
 async function main() {
   console.log('🌱 Seeding database...\n');
 
-  // 1. Default system settings
-  await prisma.systemSetting.upsert({
-    where:  { key: 'daily_fee_default' },
-    update: {},
-    create: { key: 'daily_fee_default', value: '50000' },
-  });
-  console.log('✅ system_settings: daily_fee_default = 50,000 so\'m');
-
-  // 2. Super admin account
+  // 1. Super admin account
   const adminAccount = await prisma.account.upsert({
     where:  { id: 'aaaaaaaa-0000-0000-0000-000000000001' },
     update: {},
@@ -27,7 +19,6 @@ async function main() {
       id:      'aaaaaaaa-0000-0000-0000-000000000001',
       name:    'Super Admin',
       status:  'ACTIVE',
-      balance: BigInt(0),
     },
   });
 
@@ -54,7 +45,6 @@ async function main() {
       id:      'bbbbbbbb-0000-0000-0000-000000000002',
       name:    'Demo Sotuvchi',
       status:  'ACTIVE',
-      balance: BigInt(500_000),
     },
   });
 
@@ -72,25 +62,24 @@ async function main() {
   console.log('\n✅ Demo User yaratildi:');
   console.log(`   📧 Email:  ${DEMO_EMAIL}`);
   console.log(`   🔑 Parol:  ${DEMO_PASSWORD}`);
-  console.log('   💰 Balans: 500,000 so\'m');
 
 
   // ─── 10 Test Users across 5 Companies ───
   const pw = await bcrypt.hash('Test123!', 12);
 
   const companies = [
-    { id: 'cccccccc-0000-0000-0000-000000000003', name: 'Toshkent Electronics', balance: 2_500_000 },
-    { id: 'dddddddd-0000-0000-0000-000000000004', name: 'Samarkand Fashion', balance: 1_800_000 },
-    { id: 'eeeeeeee-0000-0000-0000-000000000005', name: 'Buxoro Cosmetics', balance: 3_200_000 },
-    { id: 'ffffffff-0000-0000-0000-000000000006', name: 'Andijon Foods', balance: 900_000 },
-    { id: '11111111-0000-0000-0000-000000000007', name: 'Namangan Tech Hub', balance: 4_100_000 },
+    { id: 'cccccccc-0000-0000-0000-000000000003', name: 'Toshkent Electronics' },
+    { id: 'dddddddd-0000-0000-0000-000000000004', name: 'Samarkand Fashion' },
+    { id: 'eeeeeeee-0000-0000-0000-000000000005', name: 'Buxoro Cosmetics' },
+    { id: 'ffffffff-0000-0000-0000-000000000006', name: 'Andijon Foods' },
+    { id: '11111111-0000-0000-0000-000000000007', name: 'Namangan Tech Hub' },
   ];
 
   for (const c of companies) {
     await prisma.account.upsert({
       where: { id: c.id },
       update: {},
-      create: { id: c.id, name: c.name, status: 'ACTIVE', balance: BigInt(c.balance) },
+      create: { id: c.id, name: c.name, status: 'ACTIVE' },
     });
   }
 
@@ -120,31 +109,6 @@ async function main() {
     });
   }
   console.log('\n✅ 10 test userlar yaratildi (Test123! parol)');
-
-  // ─── Test deposit transactions ───
-  for (const c of companies) {
-    const depositsForCompany = [
-      { amount: Math.floor(c.balance * 0.6), description: 'Birinchi to\'lov' },
-      { amount: Math.floor(c.balance * 0.4), description: 'Ikkinchi to\'lov' },
-    ];
-    let currentBal = BigInt(0);
-    for (const d of depositsForCompany) {
-      const bigAmount = BigInt(d.amount);
-      const newBal = currentBal + bigAmount;
-      await prisma.transaction.create({
-        data: {
-          account_id: c.id,
-          type: 'DEPOSIT',
-          amount: bigAmount,
-          balance_before: currentBal,
-          balance_after: newBal,
-          description: d.description,
-        },
-      });
-      currentBal = newBal;
-    }
-  }
-  console.log('✅ Test deposit tranzaksiyalar yaratildi');
 
   // 4. Cargo providers
   const existing = await prisma.cargoProvider.count();

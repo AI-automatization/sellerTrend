@@ -124,7 +124,7 @@ export class AdminLogService {
     const users = await this.prisma.user.findMany({
       orderBy: { created_at: 'desc' },
       take: 5000,
-      include: { account: { select: { name: true, status: true, balance: true } } },
+      include: { account: { select: { name: true, status: true } } },
     });
 
     return users.map((u) => ({
@@ -135,14 +135,13 @@ export class AdminLogService {
       account_id: u.account_id,
       account_name: u.account.name,
       account_status: u.account.status,
-      account_balance: u.account.balance.toString(),
       created_at: u.created_at.toISOString(),
     }));
   }
 
   /** Export — Revenue CSV data */
   async getExportRevenueData(from?: Date, to?: Date) {
-    const where: Prisma.TransactionWhereInput = { type: 'CHARGE' };
+    const where: Prisma.TransactionWhereInput = { type: 'SUBSCRIPTION' };
     if (from || to) {
       where.created_at = {};
       if (from) where.created_at.gte = from;
@@ -208,7 +207,7 @@ export class AdminLogService {
       this.prisma.account.findMany({
         where: { name: { contains: q, mode: 'insensitive' } },
         take: 5,
-        select: { id: true, name: true, status: true, balance: true },
+        select: { id: true, name: true, status: true },
       }),
       this.prisma.product.findMany({
         where: { title: { contains: q, mode: 'insensitive' } },
@@ -229,7 +228,6 @@ export class AdminLogService {
         id: a.id,
         name: a.name,
         status: a.status,
-        balance: a.balance.toString(),
       })),
       products: products.map((p) => ({
         id: p.id.toString(),

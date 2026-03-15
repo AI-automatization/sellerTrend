@@ -80,7 +80,7 @@ export class AdminStatsService {
       }),
     ]);
 
-    const statusMap: Record<string, number> = { ACTIVE: 0, PAYMENT_DUE: 0, SUSPENDED: 0 };
+    const statusMap: Record<string, number> = { ACTIVE: 0, SUSPENDED: 0 };
     for (const row of accountsByStatus) {
       statusMap[row.status] = row._count.id;
     }
@@ -93,9 +93,8 @@ export class AdminStatsService {
     return {
       accounts: {
         active: statusMap.ACTIVE,
-        payment_due: statusMap.PAYMENT_DUE,
         suspended: statusMap.SUSPENDED,
-        total: statusMap.ACTIVE + statusMap.PAYMENT_DUE + statusMap.SUSPENDED,
+        total: statusMap.ACTIVE + statusMap.SUSPENDED,
       },
       plan_breakdown: planMap,
       users: {
@@ -122,43 +121,21 @@ export class AdminStatsService {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    const [dailyData, mrrResult, avgBalance, paymentDueThisMonth, todayRevResult] = await Promise.all([
-      this.prisma.$queryRaw<{ date: Date; total: string }[]>`
-        SELECT DATE(created_at) as date, SUM(amount)::text as total
-        FROM transactions
-        WHERE type = 'CHARGE' AND created_at >= ${since}
-        GROUP BY DATE(created_at)
-        ORDER BY date ASC
-      `,
+    const [mrrResult, todayRevResult] = await Promise.all([
       this.prisma.transaction.aggregate({
-        where: { type: 'CHARGE', created_at: { gte: monthStart } },
+        where: { type: 'SUBSCRIPTION', created_at: { gte: monthStart } },
         _sum: { amount: true },
       }),
-      this.prisma.account.aggregate({
-        where: { id: { not: SUPER_ADMIN_ACCOUNT_ID } },
-        _avg: { balance: true },
+      this.prisma.transaction.aggregate({
+        where: { type: 'SUBSCRIPTION', created_at: { gte: todayStart } },
+        _sum: { amount: true },
       }),
-      this.prisma.account.count({
-        where: { status: 'PAYMENT_DUE', id: { not: SUPER_ADMIN_ACCOUNT_ID } },
-      }),
-      this.prisma.$queryRaw<{ total: string }[]>`
-        SELECT COALESCE(SUM(amount), 0)::text as total
-        FROM transactions
-        WHERE type = 'CHARGE' AND created_at >= ${todayStart}
-      `,
     ]);
 
-    const daily = dailyData.map((row) => ({
-      date: row.date instanceof Date ? row.date.toISOString().split('T')[0] : String(row.date),
-      amount: row.total,
-    }));
-
     return {
-      daily,
-      today_revenue: todayRevResult[0]?.total ?? '0',
+      daily: [],
+      today_revenue: (todayRevResult._sum.amount ?? BigInt(0)).toString(),
       mrr: (mrrResult._sum.amount ?? BigInt(0)).toString(),
-      avg_balance: (avgBalance._avg.balance ?? 0).toString(),
-      payment_due_count: paymentDueThisMonth,
     };
   }
 
@@ -178,13 +155,12 @@ export class AdminStatsService {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
     const [
-      weekNew, monthNew, activeAccounts, paymentDueAccounts,
+      weekNew, monthNew, activeAccounts,
       churnedAccounts, planBreakdown, mrrResult, avgDaysToRenewal,
     ] = await Promise.all([
       this.prisma.user.count({ where: { created_at: { gte: weekAgo }, account_id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
       this.prisma.user.count({ where: { created_at: { gte: monthAgo }, account_id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
       this.prisma.account.count({ where: { status: 'ACTIVE', id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
-      this.prisma.account.count({ where: { status: 'PAYMENT_DUE', id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
       // Real churn: plan expired 7+ days ago AND not renewed (not ACTIVE)
       this.prisma.account.count({
         where: {
@@ -248,7 +224,6 @@ export class AdminStatsService {
       churn_rate_pct: churnRatePct,
       churned_accounts: churnedAccounts,
       active_accounts: activeAccounts,
-      payment_due_accounts: paymentDueAccounts,
       plan_breakdown: planBreakdownMap,
       mrr: (mrrResult._sum.amount ?? BigInt(0)).toString(),
       avg_days_to_renewal: avgDaysToRenewal[0]?.avg_days != null

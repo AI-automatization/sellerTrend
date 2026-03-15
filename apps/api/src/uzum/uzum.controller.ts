@@ -32,15 +32,7 @@ export class UzumController {
   async analyzeUrl(
     @Body() dto: AnalyzeUrlDto,
     @CurrentUser('account_id') accountId: string,
-    @CurrentUser() user: { account: { plan: string } },
   ) {
-    // Increment analyses_used for FREE plan users before running analysis
-    if (user.account.plan === 'FREE') {
-      await this.prisma.account.update({
-        where: { id: accountId },
-        data: { analyses_used: { increment: 1 } },
-      });
-    }
     this.reqLogger.logAnalyze(accountId, dto.url);
     return this.uzumService.analyzeUrl(dto.url);
   }
@@ -50,16 +42,7 @@ export class UzumController {
   @UseGuards(JwtAuthGuard, BillingGuard)
   async analyzeById(
     @Param('id', ParseIntPipe) id: number,
-    @CurrentUser('account_id') accountId: string,
-    @CurrentUser() user: { account: { plan: string } },
   ) {
-    // Increment analyses_used for FREE plan users before running analysis
-    if (user.account.plan === 'FREE') {
-      await this.prisma.account.update({
-        where: { id: accountId },
-        data: { analyses_used: { increment: 1 } },
-      });
-    }
     return this.uzumService.analyzeProduct(id);
   }
 

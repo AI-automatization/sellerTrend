@@ -30,14 +30,7 @@ export class SeedService implements OnApplicationBootstrap {
       this.logger.warn('pgvector extension not available — embedding features disabled');
     }
 
-    // 1. System settings
-    await this.prisma.systemSetting.upsert({
-      where: { key: 'daily_fee_default' },
-      update: {},
-      create: { key: 'daily_fee_default', value: '50000' },
-    });
-
-    // 2. Super Admin
+    // 1. Super Admin
     const adminAccount = await this.prisma.account.upsert({
       where: { id: 'aaaaaaaa-0000-0000-0000-000000000001' },
       update: {},
@@ -45,7 +38,6 @@ export class SeedService implements OnApplicationBootstrap {
         id: 'aaaaaaaa-0000-0000-0000-000000000001',
         name: 'Super Admin',
         status: 'ACTIVE',
-        balance: BigInt(0),
       },
     });
 
@@ -61,7 +53,7 @@ export class SeedService implements OnApplicationBootstrap {
       },
     });
 
-    // 3. Demo user
+    // 2. Demo user
     const demoAccount = await this.prisma.account.upsert({
       where: { id: 'bbbbbbbb-0000-0000-0000-000000000002' },
       update: {},
@@ -69,7 +61,6 @@ export class SeedService implements OnApplicationBootstrap {
         id: 'bbbbbbbb-0000-0000-0000-000000000002',
         name: 'Demo Sotuvchi',
         status: 'ACTIVE',
-        balance: BigInt(500_000),
       },
     });
 
