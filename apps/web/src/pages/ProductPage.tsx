@@ -309,13 +309,11 @@ export function ProductPage() {
           </div>
           <div className="flex items-baseline gap-2">
             <p className={`font-bold text-lg tabular-nums leading-tight ${
-              weeklyTrend?.weekly_sold ? 'text-success' : result.weekly_bought ? 'text-success' : 'text-base-content/30'
+              result.weekly_bought ? 'text-success' : 'text-base-content/30'
             }`}>
-              {weeklyTrend?.weekly_sold != null
-                ? weeklyTrend.weekly_sold.toLocaleString()
-                : result.weekly_bought != null
-                  ? result.weekly_bought.toLocaleString()
-                  : '—'}
+              {result.weekly_bought != null
+                ? result.weekly_bought.toLocaleString()
+                : '—'}
             </p>
             {weeklyTrend?.delta != null && weeklyTrend.delta !== 0 && (
               <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
