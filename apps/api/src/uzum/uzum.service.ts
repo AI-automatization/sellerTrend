@@ -35,12 +35,20 @@ export class UzumService {
     return this.analyzeProduct(productId);
   }
 
-  async analyzeProduct(productId: number): Promise<unknown> {
+  async analyzeProduct(productId: number, accountId?: string): Promise<unknown> {
     // 1. Fetch product detail
     const detail = await this.uzumClient.fetchProductDetail(productId);
     if (!detail) {
       throw new BadRequestException(`Product ${productId} not found on Uzum`);
     }
+
+    // Check if this product is already tracked by the account
+    const isTracked = accountId
+      ? !!(await this.prisma.trackedProduct.findUnique({
+          where: { account_id_product_id: { account_id: accountId, product_id: BigInt(productId) } },
+          select: { id: true },
+        }))
+      : false;
 
     // 2. Upsert shop
     if (detail.shop) {
@@ -116,6 +124,7 @@ export class UzumService {
         total_available_amount: detail.totalAvailableAmount ?? 0,
         photo_url: detail.photoUrl ?? null,
         ai_explanation: null,
+        is_tracked: isTracked,
       };
     }
 
@@ -265,6 +274,7 @@ export class UzumService {
       total_available_amount: detail.totalAvailableAmount ?? 0,
       photo_url: detail.photoUrl ?? null,
       ai_explanation: aiExplanation,
+      is_tracked: isTracked,
     };
   }
 

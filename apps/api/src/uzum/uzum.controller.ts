@@ -42,8 +42,9 @@ export class UzumController {
   @UseGuards(JwtAuthGuard, BillingGuard)
   async analyzeById(
     @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('account_id') accountId: string,
   ) {
-    return this.uzumService.analyzeProduct(id);
+    return this.uzumService.analyzeProduct(id, accountId);
   }
 
   /** Quick score for browser extension — lightweight, no billing guard */
