@@ -20,6 +20,7 @@ export interface AnalyzeResult {
   ai_explanation: string[] | null;
   snapshot_id?: string;
   photo_url?: string | null;
+  is_tracked?: boolean;
 }
 
 export interface WeeklyTrend {

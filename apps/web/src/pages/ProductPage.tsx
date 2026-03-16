@@ -102,6 +102,7 @@ export function ProductPage() {
       ]);
       if (controller.signal.aborted) return;
       setResult(analyzeRes.data);
+      if (analyzeRes.data.is_tracked) setTracked(true);
       const snaps: Snapshot[] = snapRes.data;
       const MONTHS = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn', 'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'];
       // Aggregate by day — keep latest snapshot per day to avoid zigzag (T-197)

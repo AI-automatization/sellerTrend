@@ -600,6 +600,7 @@ export class ProductsService {
       total_available_amount: product.total_available_amount?.toString() ?? null,
       ai_explanation,
       last_updated: latest?.snapshot_at ?? product.updated_at,
+      is_tracked: true,
     };
   }
 
