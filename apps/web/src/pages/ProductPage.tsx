@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useI18n } from '../i18n/I18nContext';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { uzumApi, productsApi, sourcingApi } from '../api/client';
 import { getErrorMessage } from '../utils/getErrorMessage';
 import { logError } from '../utils/handleError';
@@ -19,7 +19,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { MagnifyingGlassIcon, ArrowTrendingUpIcon } from '../components/icons';
+import { ArrowTrendingUpIcon } from '../components/icons';
 import { CompetitorSection } from '../components/CompetitorSection';
 import {
   ScoreRadial,
@@ -262,7 +262,6 @@ export function ProductPage() {
               <span className="badge badge-outline text-xs font-mono">#{result.product_id}</span>
               <span className={`text-xs font-medium ${scoreLevel.color}`}>{scoreLevel.text}</span>
               {isMine && <span className="badge badge-secondary badge-sm">🏪 {t('product.markedMine')}</span>}
-              {refreshing && <span className="loading loading-spinner loading-xs text-primary" />}
             </div>
             <h1 className="font-bold text-xl lg:text-2xl leading-snug">{result.title}</h1>
             <ScoreMeter score={result.score} />
@@ -289,9 +288,6 @@ export function ProductPage() {
           <a href={uzumUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-ghost gap-1">
             {t('product.viewOnUzum')}
           </a>
-          <Link to="/analyze" className="btn btn-sm btn-ghost gap-1">
-            <MagnifyingGlassIcon className="w-4 h-4" /> URL Tahlil
-          </Link>
         </div>
       </div>
 
