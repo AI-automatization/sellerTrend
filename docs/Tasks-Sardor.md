@@ -1,6 +1,32 @@
 # SARDOR — Ochiq Vazifalar
 # Fayllar: apps/desktop/, apps/landing/, apps/bot/, apps/extension/
-# Yangilangan: 2026-03-15
+# Yangilangan: 2026-03-16
+
+---
+
+# BACKEND REFACTOR
+
+### T-446 | P3 | BACKEND | weekly_bought logikasini bitta helper ga chiqarish (DRY) | 30min
+
+**Sana:** 2026-03-16
+**Manba:** kod-audit (ai-tahlil)
+**Topilgan joyda:** `apps/api/src/products/products.service.ts:491-505`, `:571-586`, `:1017-1035`
+**Mas'ul:** —
+
+**Tahlil:**
+`weekly_bought` uchun scraped → any non-zero → calcWeeklyBought() fallback logikasi
+`products.service.ts` da 3+ joyda aynan takrorlanadi: `getTrackedProductsWithDetails()`,
+`analyzeProduct()`, `getProductForWidget()`. DRY prinsipiga xilof — biri o'zgarsa boshqalari
+o'zgarmay qolishi mumkin va inconsistency paydo bo'ladi.
+
+**Muammo:**
+Bir xil 15 qatorlik logika 3 funksiyada copy-paste.
+
+**Yechim:**
+1. `resolveWeeklyBought(snaps, fallbackOrders, fallbackTime)` private helper yaratish
+2. Barcha 3 joyda shu helper chaqirish
+
+**Fayllar:** `apps/api/src/products/products.service.ts`
 
 ---
 
