@@ -130,9 +130,9 @@ export default function CompetitorAnalysis({ product }: CompetitorAnalysisProps)
       {empty || competitors.length === 0 ? (
         <div className="text-center py-4 text-xs text-base-content/60">
           <div className="text-2xl mb-2">📊</div>
-          <div>Bu mahsulot hali VENTRA top ro'yxatida yo'q.</div>
+          <div>Bu mahsulot kategoriya top ro'yxatida emas.</div>
           <div className="mt-1 text-base-content/40">
-            Kuzatishga qo'shing — ma'lumot to'plansin.
+            Ko'proq ma'lumot to'plangach raqobatchilar ko'rinadi.
           </div>
         </div>
       ) : (

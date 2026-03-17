@@ -190,7 +190,7 @@ export default function QuickAnalysisModal({
       className="modal modal-open"
       onCancel={(e) => e.preventDefault()}
     >
-      <div className="modal-box w-full max-w-sm">
+      <div className="modal-box w-full max-w-sm p-4 mx-3">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-lg">
@@ -227,13 +227,13 @@ export default function QuickAnalysisModal({
                 {/* Tabs */}
                 <div className="tabs tabs-boxed bg-base-200 p-1">
                   <button
-                    className={`tab tab-sm ${activeTab === "analysis" ? "tab-active" : ""}`}
+                    className={`tab tab-sm ${activeTab === "analysis" ? "tab-active !text-primary-content" : "text-base-content/60"}`}
                     onClick={() => setActiveTab("analysis")}
                   >
                     📊 Tahlil
                   </button>
                   <button
-                    className={`tab tab-sm ${activeTab === "competitors" ? "tab-active" : ""}`}
+                    className={`tab tab-sm ${activeTab === "competitors" ? "tab-active !text-primary-content" : "text-base-content/60"}`}
                     onClick={() => setActiveTab("competitors")}
                   >
                     🏆 Raqobatchilar
@@ -252,85 +252,89 @@ export default function QuickAnalysisModal({
 
                     {/* Product title (from uzum) */}
                     {product.title && (
-                      <div className="text-sm font-medium line-clamp-2 bg-base-200 rounded-lg p-2">
+                      <div className="text-xs font-medium truncate bg-base-200 rounded-lg px-2 py-1.5">
                         {product.title}
                       </div>
                     )}
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-2">
                   {/* Score */}
-                  <div className="stat bg-base-200 rounded-lg p-3">
-                    <div className="stat-title text-xs">Score</div>
-                    <div className="stat-value text-lg text-primary">
-                      {product.score != null ? product.score.toFixed(2) : "--"}
+                  <div className="bg-primary/10 border border-primary/20 rounded-lg p-2">
+                    <div className="text-xs text-primary/70 font-medium mb-1">Score</div>
+                    <div className="text-base font-bold text-primary">
+                      {product.score != null ? product.score.toFixed(2) : "—"}
                     </div>
                   </div>
 
                   {/* Weekly Bought or Total Orders */}
-                  <div className="stat bg-base-200 rounded-lg p-3">
-                    <div className="stat-title text-xs">
+                  <div className="bg-success/10 border border-success/20 rounded-lg p-2">
+                    <div className="text-xs text-success/70 font-medium mb-1">
                       {product.fromUzum ? "Buyurtmalar" : "Haftalik"}
                     </div>
-                    <div className="stat-value text-lg text-success">
+                    <div className="text-base font-bold text-success">
                       {product.fromUzum
                         ? (product.ordersAmount ?? 0).toLocaleString()
                         : product.weekly_bought != null
                           ? product.weekly_bought.toLocaleString()
-                          : "--"}
+                          : "—"}
                     </div>
                   </div>
 
                   {/* Price */}
-                  <div className="stat bg-base-200 rounded-lg p-3 col-span-2">
-                    <div className="stat-title text-xs">Narx</div>
-                    <div className="stat-value text-lg">
-                      {product.sell_price != null ? Math.floor(product.sell_price).toLocaleString() : "--"}
+                  <div className="bg-base-200 border border-base-300 rounded-lg p-2 col-span-2">
+                    <div className="text-xs text-base-content/50 font-medium mb-1">Narx</div>
+                    <div className="text-base font-bold">
+                      {product.sell_price != null ? Math.floor(product.sell_price).toLocaleString() : "—"}
+                      <span className="text-sm font-normal text-base-content/50 ml-1">so'm</span>
                     </div>
-                    <div className="stat-desc text-xs">so'm</div>
                   </div>
 
                   {/* Rating (uzum) or Trend (ventra) */}
                   {product.fromUzum ? (
                     <>
-                      <div className="stat bg-base-200 rounded-lg p-3">
-                        <div className="stat-title text-xs">Reyting</div>
-                        <div className="stat-value text-lg text-warning">
-                          ⭐ {product.rating?.toFixed(1) ?? "--"}
+                      <div className="bg-warning/10 border border-warning/20 rounded-lg p-2">
+                        <div className="text-xs text-warning/70 font-medium mb-1">Reyting</div>
+                        <div className="text-base font-bold text-warning">
+                          {product.rating?.toFixed(1) ?? "—"}
                         </div>
-                        <div className="stat-desc text-xs">{product.reviewsAmount ?? 0} sharh</div>
+                        <div className="text-xs text-base-content/40">{product.reviewsAmount ?? 0} sharh</div>
                       </div>
-                      <div className="stat bg-base-200 rounded-lg p-3">
-                        <div className="stat-title text-xs">Ombor</div>
-                        <div className="stat-value text-lg">
+                      <div className="bg-base-200 border border-base-300 rounded-lg p-2">
+                        <div className="text-xs text-base-content/50 font-medium mb-1">Ombor</div>
+                        <div className="text-base font-bold">
                           {(product.totalAvailableAmount ?? 0).toLocaleString()}
                         </div>
-                        <div className="stat-desc text-xs">dona</div>
+                        <div className="text-xs text-base-content/40">dona</div>
                       </div>
                     </>
                   ) : (
-                    <div className="stat bg-base-200 rounded-lg p-3 col-span-2">
-                      <div className="stat-title text-xs">Trend</div>
-                      <div className="stat-value text-lg">
-                        {product.trend || "—"}
+                    <div className={`rounded-lg p-2 col-span-2 border ${
+                      product.trend === "up" ? "bg-success/10 border-success/20" :
+                      product.trend === "down" ? "bg-error/10 border-error/20" :
+                      product.trend === "flat" ? "bg-warning/10 border-warning/20" :
+                      "bg-base-200 border-base-300"
+                    }`}>
+                      <div className="text-xs text-base-content/50 font-medium mb-1">Trend</div>
+                      <div className={`text-base font-bold ${
+                        product.trend === "up" ? "text-success" :
+                        product.trend === "down" ? "text-error" :
+                        product.trend === "flat" ? "text-warning" : "text-base-content/30"
+                      }`}>
+                        {product.trend === "up" ? "↑ O'sish" :
+                         product.trend === "down" ? "↓ Tushish" :
+                         product.trend === "flat" ? "→ Barqaror" : "Ma'lumot yo'q"}
                       </div>
                     </div>
                   )}
 
-                  {/* Seller (uzum) or Last Updated (ventra) */}
-                  {product.fromUzum ? (
-                    <div className="stat bg-base-200 rounded-lg p-3 col-span-2">
-                      <div className="stat-title text-xs">Sotuvchi</div>
-                      <div className="stat-desc text-xs">{product.sellerTitle || "--"}</div>
+                  {/* Seller (uzum only) */}
+                  {product.fromUzum && product.sellerTitle ? (
+                    <div className="bg-base-200 border border-base-300 rounded-lg p-2 col-span-2">
+                      <div className="text-xs text-base-content/50 font-medium mb-1">Sotuvchi</div>
+                      <div className="text-sm font-medium truncate">{product.sellerTitle}</div>
                     </div>
-                  ) : (
-                    <div className="stat bg-base-200 rounded-lg p-3 col-span-2">
-                      <div className="stat-title text-xs">So'nggi yangilash</div>
-                      <div className="stat-desc text-xs">
-                        {product.last_updated ? new Date(product.last_updated).toLocaleString("uz-UZ") : "--"}
-                      </div>
-                    </div>
-                  )}
+                  ) : null}
                 </div>
 
                 {/* Price History */}

@@ -17,6 +17,18 @@ const DASHBOARD_URL = process.env.PLASMO_PUBLIC_WEB_URL ?? process.env.PLASMO_PU
 function Popup() {
   const [loading, setLoading] = useState(true);
   const [authState, setAuthState] = useState<AuthStateResponseBody | null>(null);
+  const [theme, setTheme] = useState<"dark" | "light">(() => {
+    try { return (localStorage.getItem("ventra_theme") as "dark" | "light") ?? "dark"; } catch { return "dark"; }
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    try { localStorage.setItem("ventra_theme", theme); } catch { /* ignore */ }
+  }, [theme]);
+
+  function toggleTheme() {
+    setTheme((t) => t === "dark" ? "light" : "dark");
+  }
   const [productId, setProductId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<CategoryItem | null>(null);
@@ -95,14 +107,19 @@ function Popup() {
   if (!authState?.isLoggedIn) {
     return (
       <div className="w-72 p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-content font-bold text-sm">V</span>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+              <span className="text-primary-content font-bold text-sm">V</span>
+            </div>
+            <div>
+              <h1 className="font-bold text-base leading-tight">VENTRA</h1>
+              <p className="text-xs opacity-60">Uzum Analytics</p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-bold text-base leading-tight">VENTRA</h1>
-            <p className="text-xs opacity-60">Uzum Analytics</p>
-          </div>
+          <button onClick={toggleTheme} className="btn btn-ghost btn-xs btn-circle" title="Tema o'zgartirish">
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
         </div>
         <LoginForm onSuccess={handleLoginSuccess} />
       </div>
@@ -111,16 +128,21 @@ function Popup() {
 
   return (
     <div className="w-72 p-5">
-      <div className="flex items-center gap-2 mb-4">
-        <div className="w-8 h-8 rounded-lg bg-success flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-success-content">
-            <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
-          </svg>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-success flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-success-content">
+              <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="font-bold text-base leading-tight">VENTRA</h1>
+            <p className="text-xs opacity-60">{authState.email}</p>
+          </div>
         </div>
-        <div>
-          <h1 className="font-bold text-base leading-tight">VENTRA</h1>
-          <p className="text-xs opacity-60">{authState.email}</p>
-        </div>
+        <button onClick={toggleTheme} className="btn btn-ghost btn-xs btn-circle" title="Tema o'zgartirish">
+          {theme === "dark" ? "☀️" : "🌙"}
+        </button>
       </div>
 
       <div className="divider my-2" />

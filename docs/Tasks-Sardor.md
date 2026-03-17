@@ -1,6 +1,45 @@
 # SARDOR — Ochiq Vazifalar
 # Fayllar: apps/desktop/, apps/landing/, apps/bot/, apps/extension/
-# Yangilangan: 2026-03-16
+# Yangilangan: 2026-03-17
+
+---
+
+# CHROME EXTENSION — UI/UX
+
+### T-449 | P1 | FRONTEND | Extension QuickAnalysisModal va Popup dizayn yaxshilash | 2h
+
+**Sana:** 2026-03-17
+**Manba:** user-feedback (screenshot audit)
+**Topilgan joyda:** `apps/extension/src/components/QuickAnalysisModal.tsx`, `apps/extension/src/popup.tsx`
+**Mas'ul:** —
+
+**Tahlil:**
+Screenshot audit natijasida extension UI da bir qator vizual va UX muammolar topildi.
+Foydalanuvchi uchun professional ko'rinish muhim — extension VENTRA ning "yuz"i, birinchi taassurot shu.
+
+**Muammo:**
+1. **Modal chetlarga yopishib ketgan** — `QuickAnalysisModal` ichki padding yetarli emas
+2. **Vizual ierarxiya yo'q** — hamma kartochkalar bir xil kulrang, rang kodi yo'q
+3. **`Trend: —`** — bo'sh holat singan ko'rinadi, fallback UI kerak
+4. **`Narx tarixi to'planmoqda`** — bo'sh holat yaxshi ko'rinmaydi
+5. **`So'nggi yangilash: 2026-03-17 11:12:58`** — keraksiz, joy oladi, olib tashlash
+6. **`Kategoriyalar: ⭐ 0.0 • mahsulot`** — bug ko'rinadi, ma'nosiz qiymat
+7. **Raqobatchilar tab** — bo'sh holat faqat icon + matn, yaxshilash kerak
+8. **`Sevimlilarga qo'shish`** button joylashuvi noto'g'ri
+
+**Yechim:**
+1. `QuickAnalysisModal` — padding/margin oshirish, chetlardan havo berish
+2. Score kartochkasi — ko'k rang, Haftalik — yashil, Narx — oq/neytral (rang kodi)
+3. Trend `—` o'rniga `"Ma'lumot yig'ilmoqda"` yoki progress indicator
+4. `So'nggi yangilash` olib tashlash — ortiqcha
+5. `Kategoriyalar 0.0` — `null` yoki `0` bo'lsa yashirish
+6. Raqobatchilar bo'sh holat — yaxshiroq empty state (skeleton yoki qisqa matn)
+7. Umumiy: kartochkalar orasidagi spacing oshirish
+
+**Fayllar:**
+- `apps/extension/src/components/QuickAnalysisModal.tsx`
+- `apps/extension/src/popup.tsx`
+- `apps/extension/src/components/CategoryFilter.tsx`
 
 ---
 

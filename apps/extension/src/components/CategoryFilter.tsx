@@ -69,7 +69,7 @@ export default function CategoryFilter({ onSelect, selectedCategoryId }: Categor
           >
             <div className="font-medium truncate">{cat.category_title}</div>
             <div className="text-xs opacity-70">
-              ⭐ {(cat.avg_score ?? 0).toFixed(1)} • {cat.product_count} mahsulot
+              {cat.avg_score > 0 ? `⭐ ${cat.avg_score.toFixed(1)} • ` : ""}{cat.product_count} mahsulot
             </div>
           </button>
         ))}
