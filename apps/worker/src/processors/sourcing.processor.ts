@@ -356,18 +356,25 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
 
   // Always run Playwright scrapers — use shared browser pool
   const browser = await browserPool.getBrowser();
-  const context = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    locale: 'en-US',
-    timezoneId: 'America/New_York',
-    viewport: { width: 1366, height: 768 },
-    extraHTTPHeaders: { 'Accept-Language': 'en-US,en;q=0.9' },
-  });
 
-  await context.addInitScript(() => {
-    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-    (window as unknown as Record<string, unknown>).chrome = { runtime: {} };
-  });
+  let context: import('playwright').BrowserContext;
+  if (browserPool.isBrightData()) {
+    // Bright Data CDP: reuse the existing context provided by the remote browser
+    const existingContexts = browser.contexts();
+    context = existingContexts.length > 0 ? existingContexts[0] : await browser.newContext();
+  } else {
+    context = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      locale: 'en-US',
+      timezoneId: 'America/New_York',
+      viewport: { width: 1366, height: 768 },
+      extraHTTPHeaders: { 'Accept-Language': 'en-US,en;q=0.9' },
+    });
+    await context.addInitScript(() => {
+      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+      (window as unknown as Record<string, unknown>).chrome = { runtime: {} };
+    });
+  }
 
   try {
     // Run all searches in parallel

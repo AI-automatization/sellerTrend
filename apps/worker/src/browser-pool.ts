@@ -34,11 +34,19 @@ const LAUNCH_ARGS = [
   '--disable-blink-features=AutomationControlled',
 ];
 
+function getBrightDataWsEndpoint(): string | null {
+  const user = process.env.BRIGHT_DATA_USERNAME;
+  const pass = process.env.BRIGHT_DATA_PASSWORD;
+  if (!user || !pass) return null;
+  return `wss://${user}:${pass}@brd.superproxy.io:9222`;
+}
+
 class BrowserPool {
   private static instance: BrowserPool;
   private browser: Browser | null = null;
   private launching: Promise<Browser> | null = null;
   private activeUsers = 0;
+  private usingBrightData = false;
 
   static getInstance(): BrowserPool {
     if (!BrowserPool.instance) {
@@ -47,8 +55,15 @@ class BrowserPool {
     return BrowserPool.instance;
   }
 
+  /** Whether the current browser is connected via Bright Data CDP. */
+  isBrightData(): boolean {
+    return this.usingBrightData;
+  }
+
   /**
-   * Get (or launch) the shared Chromium browser.
+   * Get (or launch/connect) the shared browser.
+   * When BRIGHT_DATA_USERNAME is set, connects via CDP to Bright Data Scraping Browser.
+   * Otherwise falls back to local Chromium launch.
    * Multiple callers may await this concurrently — only one launch occurs.
    */
   async getBrowser(): Promise<Browser> {
@@ -63,12 +78,22 @@ class BrowserPool {
       return this.launching;
     }
 
-    this.launching = chromium.launch({
-      headless: true,
-      executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
-      proxy: process.env.PROXY_URL ? { server: process.env.PROXY_URL } : undefined,
-      args: LAUNCH_ARGS,
-    });
+    const sbrWs = getBrightDataWsEndpoint();
+
+    if (sbrWs) {
+      console.log('[BrowserPool] Bright Data CDP ulanmoqda...');
+      this.usingBrightData = true;
+      this.launching = chromium.connectOverCDP(sbrWs);
+    } else {
+      console.log('[BrowserPool] Local Playwright (fallback)...');
+      this.usingBrightData = false;
+      this.launching = chromium.launch({
+        headless: true,
+        executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
+        proxy: process.env.PROXY_URL ? { server: process.env.PROXY_URL } : undefined,
+        args: LAUNCH_ARGS,
+      });
+    }
 
     try {
       this.browser = await this.launching;
@@ -79,6 +104,7 @@ class BrowserPool {
     // Auto-cleanup reference on unexpected disconnect (crash, OOM kill)
     this.browser.on('disconnected', () => {
       this.browser = null;
+      this.usingBrightData = false;
     });
 
     return this.browser;

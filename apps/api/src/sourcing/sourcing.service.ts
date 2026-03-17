@@ -239,6 +239,25 @@ export class SourcingService {
   }) {
     const { account_id, product_id, product_title, platforms } = params;
 
+    // 30 daqiqa ichida bir xil product_id uchun qayta qidirmaslik
+    const recentJob = await this.prisma.externalSearchJob.findFirst({
+      where: {
+        product_id: BigInt(product_id),
+        status: { in: ['DONE', 'RUNNING', 'PENDING'] },
+        created_at: { gte: new Date(Date.now() - 30 * 60 * 1000) },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+
+    if (recentJob) {
+      return {
+        job_id: recentJob.id,
+        status: recentJob.status,
+        query: recentJob.query,
+        platforms: recentJob.platforms,
+      };
+    }
+
     // Create job record
     const job = await this.prisma.externalSearchJob.create({
       data: {
