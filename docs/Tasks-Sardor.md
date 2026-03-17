@@ -8,40 +8,13 @@
 
 > **Maqsad:** `ProductPage.tsx` da global narx taqqoslashni to'liq pipeline ga o'tkazish
 > **Arxitektura:** `docs/GLOBAL_PRICE_INTEGRATION (1).md`
-> **Ketma-ketlik:** ~~T-454~~ → ~~T-455~~ → ~~T-456~~ → T-457
+> **Ketma-ketlik:** ~~T-454~~ → ~~T-455~~ → ~~T-456~~ → ~~T-457~~
 > ~~T-454~~ DONE (2026-03-17, 18a1eb4) → brightdata-done.md
 > ~~T-455~~ DONE (2026-03-17, 18a1eb4) → brightdata-done.md
 > ~~T-456~~ DONE (2026-03-17, 3b5fee6) → brightdata-done.md
-
-### T-457 | P2 | FRONTEND | GlobalPriceComparison — yangi pipeline format + status badge | 1h
-
-**Sana:** 2026-03-17
-**Manba:** ai-tahlil
-**Topilgan joyda:** `apps/web/src/pages/ProductPage.tsx` — `GlobalPriceComparison` component
-**Mas'ul:** —
-
-**Tahlil:**
-Yangi pipeline (`/sourcing/jobs`) eski quick mode dan farqli field format qaytaradi:
-`price_usd` (number) vs `price` (string), `image_url` vs `image`, `platform` vs `source`.
-`GlobalPriceComparison` hozir faqat eski formatni ko'radi — yangi natijalar ko'rinmaydi.
-Bundan tashqari job holati (`PENDING/RUNNING/DONE/FAILED`) foydalanuvchiga ko'rsatilmaydi.
-
-**Muammo:**
-`parsePrice(item.price)` → yangi formatda `price_usd` ishlamaydi.
-`SOURCE_META[item.source]` → yangi formatda `item.platform` ishlamaydi.
-
-**Yechim:**
-1. Props: `note/productTitle` o'chirib `jobStatus` qo'shish
-2. `parsePrice` — `price_usd` (number) va `price` (string) ikkalasini qo'llash
-3. `sourceKey` — `item.platform ?? item.source` orqali normallashtirish
-4. Kartochka: `image_url`, `seller_name`, `url` fallback fieldlar qo'shish
-5. Status badge: `PENDING/RUNNING` → spinner, `DONE` → natija soni, `FAILED` → xato
-6. Sarlavha tavsifi yangilash: "Banggood va Shopee" → "1688, Taobao, Alibaba, Banggood, Shopee"
-
-**Fayllar:**
-- `apps/web/src/pages/ProductPage.tsx` (`GlobalPriceComparison` component)
-
-**Bog'liqlik:** T-456
+> ~~T-457~~ DONE (2026-03-17, 0aefc10) → brightdata-done.md
+>
+> **GLOBAL PRICE INTEGRATION: BUTUNLAY TUGALLANDI ✅**
 
 ---
 
