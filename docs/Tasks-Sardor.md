@@ -8,39 +8,10 @@
 
 > **Maqsad:** `ProductPage.tsx` da global narx taqqoslashni to'liq pipeline ga o'tkazish
 > **Arxitektura:** `docs/GLOBAL_PRICE_INTEGRATION (1).md`
-> **Ketma-ketlik:** ~~T-454~~ → ~~T-455~~ → T-456 → T-457
+> **Ketma-ketlik:** ~~T-454~~ → ~~T-455~~ → ~~T-456~~ → T-457
 > ~~T-454~~ DONE (2026-03-17, 18a1eb4) → brightdata-done.md
 > ~~T-455~~ DONE (2026-03-17, 18a1eb4) → brightdata-done.md
-
-### T-456 | P1 | FRONTEND | ProductPage — quick mode → full pipeline (job + polling) | 45min | pending[Claude-Auto]
-
-**Sana:** 2026-03-17
-**Manba:** ai-tahlil
-**Topilgan joyda:** `apps/web/src/pages/ProductPage.tsx` — `extNote` state, sourcing useEffect
-**Mas'ul:** —
-
-**Tahlil:**
-`ProductPage.tsx` hali eski `/sourcing/search` (quick mode) ishlatmoqda — faqat
-Banggood/Shopee, DB ga saqlanmaydi, 1688/Taobao/Alibaba yo'q.
-To'liq pipeline (`/sourcing/jobs`) orqali barcha 5 platforma qo'llab-quvvatlanadi,
-natijalar DB ga saqlanadi, cache ishlaydi.
-
-**Muammo:**
-`sourcingApi.searchPrices()` → `/sourcing/search` (quick, eski) → 2 platforma.
-Kerak: `sourcingApi.createJob()` → polling → 5 platforma.
-
-**Yechim:**
-1. `extNote` state olib tashlash
-2. `extJobId`, `extJobStatus` state qo'shish
-3. Eski useEffect o'rniga 2 ta yangi: job yaratish + polling (har 3 soniya)
-4. `GlobalPriceComparison` chaqiruvida `note/productTitle` o'chirib, `jobStatus` qo'shish
-
-**Fayllar:**
-- `apps/web/src/pages/ProductPage.tsx`
-
-**Bog'liqlik:** T-454 + T-455
-
----
+> ~~T-456~~ DONE (2026-03-17, 3b5fee6) → brightdata-done.md
 
 ### T-457 | P2 | FRONTEND | GlobalPriceComparison — yangi pipeline format + status badge | 1h
 

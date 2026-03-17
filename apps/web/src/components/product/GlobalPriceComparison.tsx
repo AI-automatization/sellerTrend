@@ -1,31 +1,37 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { ExternalItem } from './types';
 import { SOURCE_META } from './types';
 
 interface GlobalPriceComparisonProps {
-  items: ExternalItem[];
+  items: any[];
   loading: boolean;
-  note: string;
+  jobStatus: string | null;
   uzumPrice: number | null;
-  productTitle: string;
   usdRate: number;
 }
 
 export function GlobalPriceComparison({
-  items, loading, note, uzumPrice, productTitle, usdRate,
+  items, loading, jobStatus, uzumPrice, usdRate,
 }: GlobalPriceComparisonProps) {
   const [expanded, setExpanded] = useState(false);
   const visible = expanded ? items : items.slice(0, 6);
   const USD_RATE = usdRate;
 
-  function parsePrice(priceStr: string): number | null {
-    const m = priceStr.match(/[\d.,]+/);
-    if (!m) return null;
-    const n = parseFloat(m[0].replace(',', '.'));
-    if (isNaN(n)) return null;
-    if (priceStr.includes('$') || n < 10000) return n * USD_RATE;
-    return n;
+  function parsePrice(item: any): number | null {
+    // Yangi format: price_usd raqam sifatida keladi
+    if (typeof item.price_usd === 'number' && item.price_usd > 0) {
+      return item.price_usd * USD_RATE;
+    }
+    // Eski format: price string sifatida keladi
+    if (typeof item.price === 'string') {
+      const m = item.price.match(/[\d.,]+/);
+      if (!m) return null;
+      const n = parseFloat(m[0].replace(',', '.'));
+      if (isNaN(n)) return null;
+      if (item.price.includes('$') || n < 10000) return n * USD_RATE;
+      return n;
+    }
+    return null;
   }
 
   function marginLabel(extPriceUzs: number): { text: string; cls: string } | null {
@@ -46,12 +52,26 @@ export function GlobalPriceComparison({
             <span>🌏</span> Global Bozor Taqqoslash
           </h2>
           <p className="text-xs text-base-content/50 mt-0.5">
-            Shu mahsulot uchun Banggood va Shopee global narxlari
+            1688, Taobao, Alibaba, Banggood, Shopee global narxlari
           </p>
         </div>
-        <Link to="/sourcing" className="btn btn-outline btn-xs gap-1">
-          Cargo kalkulyator ↗
-        </Link>
+        <div className="flex items-center gap-2 flex-wrap">
+          {(jobStatus === 'PENDING' || jobStatus === 'RUNNING') && (
+            <span className="badge badge-ghost badge-sm gap-1">
+              <span className="loading loading-spinner loading-xs" />
+              Qidirilmoqda...
+            </span>
+          )}
+          {jobStatus === 'DONE' && items.length > 0 && (
+            <span className="badge badge-success badge-sm">{items.length} ta natija</span>
+          )}
+          {jobStatus === 'FAILED' && (
+            <span className="badge badge-error badge-sm">Xato</span>
+          )}
+          <Link to="/sourcing" className="btn btn-outline btn-xs gap-1">
+            Cargo kalkulyator ↗
+          </Link>
+        </div>
       </div>
 
       {loading && (
@@ -72,17 +92,10 @@ export function GlobalPriceComparison({
         </div>
       )}
 
-      {!loading && note && (
-        <div className="flex items-start gap-2 bg-base-300/60 rounded-xl px-4 py-3 text-sm">
-          <span className="text-base-content/40 text-xs shrink-0 mt-0.5">ℹ️</span>
-          <p className="text-base-content/70">{note}</p>
-        </div>
-      )}
-
       {!loading && items.length > 0 && (
         <>
           {uzumPrice && (() => {
-            const prices = items.map((it) => parsePrice(it.price)).filter((p): p is number => p !== null);
+            const prices = items.map((it) => parsePrice(it)).filter((p): p is number => p !== null);
             if (prices.length === 0) return null;
             const minExt = Math.min(...prices);
             const diff = ((uzumPrice - minExt) / uzumPrice) * 100;
@@ -106,8 +119,9 @@ export function GlobalPriceComparison({
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
             {visible.map((item, i) => {
-              const meta = SOURCE_META[item.source] ?? { label: item.source, flag: '\uD83C\uDF10', color: 'badge-ghost' };
-              const extPriceUzs = parsePrice(item.price);
+              const sourceKey = (item.platform ?? item.source ?? '').toUpperCase();
+              const meta = SOURCE_META[sourceKey] ?? { label: sourceKey, flag: '🌐', color: 'badge-ghost' };
+              const extPriceUzs = parsePrice(item);
               const mg = extPriceUzs ? marginLabel(extPriceUzs) : null;
 
               return (
@@ -116,25 +130,28 @@ export function GlobalPriceComparison({
                     <span className={`badge badge-xs ${meta.color}`}>{meta.flag} {meta.label}</span>
                     {mg && <span className={`text-xs font-medium ${mg.cls}`}>{mg.text}</span>}
                   </div>
-                  {item.image ? (
-                    <img src={item.image} alt={item.title}
+                  {(item.image ?? item.image_url) ? (
+                    <img src={item.image ?? item.image_url} alt={item.title}
                       className="w-full h-24 object-contain rounded-lg bg-base-200"
                       onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                   ) : (
                     <div className="w-full h-24 rounded-lg bg-base-200 flex items-center justify-center text-3xl">📦</div>
                   )}
                   <p className="text-xs leading-snug line-clamp-2 text-base-content/80 flex-1">{item.title}</p>
-                  <p className="font-bold text-base text-primary leading-none">{item.price}</p>
+                  <p className="font-bold text-base text-primary leading-none">
+                    {item.price ?? `$${(item.price_usd as number)?.toFixed(2)}`}
+                  </p>
                   {extPriceUzs && <p className="text-xs text-base-content/40">≈ {extPriceUzs.toLocaleString()} so'm</p>}
-                  {item.store && <p className="text-xs text-base-content/40 truncate">{item.store}</p>}
+                  {(item.store ?? item.seller_name) && (
+                    <p className="text-xs text-base-content/40 truncate">{item.store ?? item.seller_name}</p>
+                  )}
                   <div className="flex gap-1 mt-auto">
-                    {item.link && item.link !== '#' ? (
-                      <a href={item.link} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-xs flex-1">Ko'rish ↗</a>
+                    {(item.link ?? item.url) && (item.link ?? item.url) !== '#' ? (
+                      <a href={item.link ?? item.url} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-xs flex-1">Ko'rish ↗</a>
                     ) : (
                       <span className="btn btn-xs btn-disabled flex-1">Demo</span>
                     )}
-                    <Link to={`/sourcing?q=${encodeURIComponent(productTitle)}&price=${extPriceUzs ?? ''}`}
-                      className="btn btn-ghost btn-xs" title="Cargo kalkulyatorda hisoblash">🧮</Link>
+                    <Link to="/sourcing" className="btn btn-ghost btn-xs" title="Cargo kalkulyatorda hisoblash">🧮</Link>
                   </div>
                 </div>
               );
@@ -149,7 +166,7 @@ export function GlobalPriceComparison({
         </>
       )}
 
-      {!loading && items.length === 0 && !note && (
+      {!loading && items.length === 0 && jobStatus !== 'PENDING' && jobStatus !== 'RUNNING' && (
         <div className="text-center py-8 text-base-content/30">
           <p className="text-3xl mb-2">🔍</p>
           <p className="text-sm">Global bozorda natija topilmadi</p>
