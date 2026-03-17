@@ -63,7 +63,8 @@ export function ProductPage() {
   const [extItems, setExtItems] = useState<ExternalItem[]>([]);
   const [extLoading, setExtLoading] = useState(false);
   const [extSearched, setExtSearched] = useState(false);
-  const [extNote, setExtNote] = useState('');
+  const [extJobId, setExtJobId] = useState<string | null>(null);
+  const [extJobStatus, setExtJobStatus] = useState<string | null>(null);
   // TODO(T-370): Replace with dynamic rate from API config endpoint.
   // This fallback is only used while the live rate is being fetched.
   const FALLBACK_USD_RATE = 12_900;
@@ -162,26 +163,55 @@ export function ProductPage() {
     }).finally(() => setMlLoading(false));
   }, [loadedProductId]);
 
+  // useEffect 1 — job yaratish
   useEffect(() => {
-    if (!result?.title || extSearched) return;
+    if (!result?.product_id || !result?.title || extSearched) return;
     setExtSearched(true);
     setExtLoading(true);
-    const q = extractSearchQuery(result.title);
     sourcingApi
-      .searchPrices(q, 'BOTH')
+      .createJob({ product_id: result.product_id, product_title: result.title })
       .then((res) => {
-        setExtItems((res.data.results ?? []).slice(0, 12));
-        if (res.data.note) setExtNote(res.data.note);
+        setExtJobId(res.data.job_id);
+        setExtJobStatus(res.data.status);
       })
-      .catch(logError)
-      .finally(() => setExtLoading(false));
-  }, [result?.title]);
+      .catch(() => setExtLoading(false));
+  }, [result?.product_id]);
+
+  // useEffect 2 — polling (har 3 soniyada natijani tekshirish)
+  useEffect(() => {
+    if (!extJobId) return;
+    let active = true;
+
+    async function poll() {
+      while (active) {
+        try {
+          const res = await sourcingApi.getJob(extJobId!);
+          if (!active) return;
+          setExtJobStatus(res.data.status);
+          if (res.data.status === 'DONE') {
+            setExtItems(res.data.results ?? []);
+            setExtLoading(false);
+            return;
+          }
+          if (res.data.status === 'FAILED') {
+            setExtLoading(false);
+            return;
+          }
+        } catch { /* davom etish */ }
+        await new Promise((r) => setTimeout(r, 3000));
+      }
+    }
+
+    poll();
+    return () => { active = false; };
+  }, [extJobId]);
 
   // Reset external search state when product changes (T-125)
   useEffect(() => {
     setExtSearched(false);
     setExtItems([]);
-    setExtNote('');
+    setExtJobId(null);
+    setExtJobStatus(null);
     setMlForecast(null);
     setTrendAnalysis(null);
     setWeeklyTrend(null);
@@ -736,8 +766,8 @@ export function ProductPage() {
       {/* Global Market Price Comparison */}
       <ErrorBoundary variant="section" label="Xitoy narxlari">
         <GlobalPriceComparison
-          items={extItems} loading={extLoading} note={extNote}
-          uzumPrice={result.sell_price} productTitle={result.title}
+          items={extItems} loading={extLoading} jobStatus={extJobStatus}
+          uzumPrice={result.sell_price}
           usdRate={usdRate}
         />
       </ErrorBoundary>

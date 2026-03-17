@@ -4,6 +4,76 @@
 
 ---
 
+# GLOBAL PRICE INTEGRATION (T-454..T-457)
+
+> **Maqsad:** `ProductPage.tsx` da global narx taqqoslashni to'liq pipeline ga o'tkazish
+> **Arxitektura:** `docs/GLOBAL_PRICE_INTEGRATION (1).md`
+> **Ketma-ketlik:** ~~T-454~~ → ~~T-455~~ → T-456 → T-457
+> ~~T-454~~ DONE (2026-03-17, 18a1eb4) → brightdata-done.md
+> ~~T-455~~ DONE (2026-03-17, 18a1eb4) → brightdata-done.md
+
+### T-456 | P1 | FRONTEND | ProductPage — quick mode → full pipeline (job + polling) | 45min | pending[Claude-Auto]
+
+**Sana:** 2026-03-17
+**Manba:** ai-tahlil
+**Topilgan joyda:** `apps/web/src/pages/ProductPage.tsx` — `extNote` state, sourcing useEffect
+**Mas'ul:** —
+
+**Tahlil:**
+`ProductPage.tsx` hali eski `/sourcing/search` (quick mode) ishlatmoqda — faqat
+Banggood/Shopee, DB ga saqlanmaydi, 1688/Taobao/Alibaba yo'q.
+To'liq pipeline (`/sourcing/jobs`) orqali barcha 5 platforma qo'llab-quvvatlanadi,
+natijalar DB ga saqlanadi, cache ishlaydi.
+
+**Muammo:**
+`sourcingApi.searchPrices()` → `/sourcing/search` (quick, eski) → 2 platforma.
+Kerak: `sourcingApi.createJob()` → polling → 5 platforma.
+
+**Yechim:**
+1. `extNote` state olib tashlash
+2. `extJobId`, `extJobStatus` state qo'shish
+3. Eski useEffect o'rniga 2 ta yangi: job yaratish + polling (har 3 soniya)
+4. `GlobalPriceComparison` chaqiruvida `note/productTitle` o'chirib, `jobStatus` qo'shish
+
+**Fayllar:**
+- `apps/web/src/pages/ProductPage.tsx`
+
+**Bog'liqlik:** T-454 + T-455
+
+---
+
+### T-457 | P2 | FRONTEND | GlobalPriceComparison — yangi pipeline format + status badge | 1h
+
+**Sana:** 2026-03-17
+**Manba:** ai-tahlil
+**Topilgan joyda:** `apps/web/src/pages/ProductPage.tsx` — `GlobalPriceComparison` component
+**Mas'ul:** —
+
+**Tahlil:**
+Yangi pipeline (`/sourcing/jobs`) eski quick mode dan farqli field format qaytaradi:
+`price_usd` (number) vs `price` (string), `image_url` vs `image`, `platform` vs `source`.
+`GlobalPriceComparison` hozir faqat eski formatni ko'radi — yangi natijalar ko'rinmaydi.
+Bundan tashqari job holati (`PENDING/RUNNING/DONE/FAILED`) foydalanuvchiga ko'rsatilmaydi.
+
+**Muammo:**
+`parsePrice(item.price)` → yangi formatda `price_usd` ishlamaydi.
+`SOURCE_META[item.source]` → yangi formatda `item.platform` ishlamaydi.
+
+**Yechim:**
+1. Props: `note/productTitle` o'chirib `jobStatus` qo'shish
+2. `parsePrice` — `price_usd` (number) va `price` (string) ikkalasini qo'llash
+3. `sourceKey` — `item.platform ?? item.source` orqali normallashtirish
+4. Kartochka: `image_url`, `seller_name`, `url` fallback fieldlar qo'shish
+5. Status badge: `PENDING/RUNNING` → spinner, `DONE` → natija soni, `FAILED` → xato
+6. Sarlavha tavsifi yangilash: "Banggood va Shopee" → "1688, Taobao, Alibaba, Banggood, Shopee"
+
+**Fayllar:**
+- `apps/web/src/pages/ProductPage.tsx` (`GlobalPriceComparison` component)
+
+**Bog'liqlik:** T-456
+
+---
+
 # CHROME EXTENSION — UI/UX
 
 ### T-449 | P1 | FRONTEND | Extension QuickAnalysisModal va Popup dizayn yaxshilash | 2h
