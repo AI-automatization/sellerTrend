@@ -74,7 +74,9 @@ async function aiGenerateQuery(
           `{"cn_query":"1688/Taobao uchun qisqa qidiruv","en_query":"AliExpress/Amazon uchun inglizcha"}`,
       }],
     });
-    const text = msg.content[0].type === 'text' ? msg.content[0].text.trim() : '';
+    const raw = msg.content[0].type === 'text' ? msg.content[0].text.trim() : '';
+    // Strip markdown code block if model wraps response: ```json ... ```
+    const text = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
     const parsed = JSON.parse(text);
     return { cn_query: parsed.cn_query || title, en_query: parsed.en_query || title };
   } catch {
@@ -104,7 +106,8 @@ async function aiScoreResults(
           `Faqat JSON: [{"index":0,"match_score":0.9,"note":"..."},...]`,
       }],
     });
-    const text = msg.content[0].type === 'text' ? msg.content[0].text.trim() : '';
+    const raw = msg.content[0].type === 'text' ? msg.content[0].text.trim() : '';
+    const text = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
     const parsed = JSON.parse(text);
     if (Array.isArray(parsed)) {
       for (const item of parsed) {
@@ -183,11 +186,13 @@ async function scrapeBanggood(
     await page.waitForTimeout(BANGGOOD_LOAD_WAIT_MS);
 
     // Check captured JSON for product list
-    for (const { json } of captured) {
+    logJobInfo('sourcing-search', '-', 'scrapeBanggood', `Intercepted ${captured.length} JSON responses`);
+    for (const { url: capUrl, json } of captured) {
       const list =
         json?.data?.list ?? json?.list ?? json?.result?.list ??
         json?.products ?? json?.data?.products ?? json?.ret?.list ?? json?.data?.ret?.list;
       if (Array.isArray(list) && list.length > 0) {
+        logJobInfo('sourcing-search', '-', 'scrapeBanggood', `JSON hit: ${capUrl.slice(0, 80)} (${list.length} items)`);
         return list.slice(0, 8).map((item: Record<string, unknown>) => ({
           title: (item.name ?? item.title ?? item.goods_name ?? '') as string,
           price: (item.price ?? item.sale_price ?? item.shop_price ?? '') as string,
@@ -202,6 +207,9 @@ async function scrapeBanggood(
     // DOM fallback
     await page.evaluate(() => window.scrollTo(0, 600));
     await page.waitForTimeout(BANGGOOD_SCROLL_WAIT_MS);
+
+    const finalUrl = page.url();
+    logJobInfo('sourcing-search', '-', 'scrapeBanggood', `Final URL: ${finalUrl.slice(0, 100)}`);
 
     const items: ExternalProduct[] = await page.evaluate(() => {
       const cards = Array.from(document.querySelectorAll('li[data-product-id]')).slice(0, 10);
@@ -220,7 +228,9 @@ async function scrapeBanggood(
         };
       });
     });
-    return items.filter((i) => i.title.length > 0);
+    const filtered = items.filter((i) => i.title.length > 0);
+    logJobInfo('sourcing-search', '-', 'scrapeBanggood', `DOM: ${items.length} cards, ${filtered.length} with title`);
+    return filtered;
   } finally {
     await page.close();
   }
