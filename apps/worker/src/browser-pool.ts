@@ -82,9 +82,18 @@ class BrowserPool {
     if (sbrWs) {
       console.log('[BrowserPool] Bright Data CDP ulanmoqda...');
       this.usingBrightData = true;
-      this.launching = chromium.connectOverCDP(sbrWs);
+      this.launching = chromium.connectOverCDP(sbrWs, { timeout: 12000 }).catch(async (err) => {
+        console.log(`[BrowserPool] Bright Data failed (${(err as Error).message.slice(0, 80)}), local Playwright ga fallback...`);
+        this.usingBrightData = false;
+        return chromium.launch({
+          headless: true,
+          executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
+          proxy: process.env.PROXY_URL ? { server: process.env.PROXY_URL } : undefined,
+          args: LAUNCH_ARGS,
+        });
+      });
     } else {
-      console.log('[BrowserPool] Local Playwright (fallback)...');
+      console.log('[BrowserPool] Local Playwright...');
       this.usingBrightData = false;
       this.launching = chromium.launch({
         headless: true,
