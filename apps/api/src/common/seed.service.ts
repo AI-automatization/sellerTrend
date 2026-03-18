@@ -91,19 +91,23 @@ export class SeedService implements OnApplicationBootstrap {
       });
     }
 
-    // 5. External platforms (skip if already exist)
-    const platformCount = await this.prisma.externalPlatform.count();
-    if (platformCount === 0) {
-      await this.prisma.externalPlatform.createMany({
-        data: [
-          { code: '1688', name: '1688.com', country: 'CN', base_url: 'https://www.1688.com', api_type: 'serpapi' },
-          { code: 'taobao', name: 'Taobao', country: 'CN', base_url: 'https://www.taobao.com', api_type: 'serpapi' },
-          { code: 'aliexpress', name: 'AliExpress', country: 'CN', base_url: 'https://www.aliexpress.com', api_type: 'affiliate' },
-          { code: 'alibaba', name: 'Alibaba', country: 'CN', base_url: 'https://www.alibaba.com', api_type: 'serpapi' },
-          { code: 'amazon_de', name: 'Amazon.de', country: 'DE', base_url: 'https://www.amazon.de', api_type: 'serpapi' },
-          { code: 'banggood', name: 'Banggood', country: 'CN', base_url: 'https://www.banggood.com', api_type: 'playwright' },
-          { code: 'shopee', name: 'Shopee', country: 'CN', base_url: 'https://shopee.com', api_type: 'playwright' },
-        ],
+    // 5. External platforms (upsert — yangi platformalar qo'shiladi, eskilar o'zgartirilmaydi)
+    const platforms = [
+      { code: '1688', name: '1688.com', country: 'CN', base_url: 'https://www.1688.com', api_type: 'serpapi' },
+      { code: 'taobao', name: 'Taobao', country: 'CN', base_url: 'https://www.taobao.com', api_type: 'serpapi' },
+      { code: 'aliexpress', name: 'AliExpress', country: 'CN', base_url: 'https://www.aliexpress.com', api_type: 'affiliate' },
+      { code: 'alibaba', name: 'Alibaba', country: 'CN', base_url: 'https://www.alibaba.com', api_type: 'serpapi' },
+      { code: 'amazon_de', name: 'Amazon.de', country: 'DE', base_url: 'https://www.amazon.de', api_type: 'serpapi' },
+      { code: 'banggood', name: 'Banggood', country: 'CN', base_url: 'https://www.banggood.com', api_type: 'playwright' },
+      { code: 'shopee', name: 'Shopee', country: 'CN', base_url: 'https://shopee.com', api_type: 'playwright' },
+      { code: 'google_shopping', name: 'Google Shopping', country: 'GLOBAL', base_url: 'https://shopping.google.com', api_type: 'serpapi' },
+      { code: 'baidu', name: 'Baidu Mall', country: 'CN', base_url: 'https://mall.baidu.com', api_type: 'serpapi' },
+    ];
+    for (const p of platforms) {
+      await this.prisma.externalPlatform.upsert({
+        where: { code: p.code },
+        update: {},
+        create: p,
       });
     }
 
