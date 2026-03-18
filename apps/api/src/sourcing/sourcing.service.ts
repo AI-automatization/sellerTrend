@@ -239,9 +239,10 @@ export class SourcingService {
   }) {
     const { account_id, product_id, product_title, platforms } = params;
 
-    // 30 daqiqa ichida bir xil product_id uchun qayta qidirmaslik
+    // 30 daqiqa ichida bir xil product_id uchun qayta qidirmaslik (faqat o'z accounti)
     const recentJob = await this.prisma.externalSearchJob.findFirst({
       where: {
+        account_id,
         product_id: BigInt(product_id),
         status: { in: ['DONE', 'RUNNING', 'PENDING'] },
         created_at: { gte: new Date(Date.now() - 30 * 60 * 1000) },
