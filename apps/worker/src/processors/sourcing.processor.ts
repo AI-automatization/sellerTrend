@@ -209,9 +209,9 @@ async function scrapeBanggood(
         const imgEl = card.querySelector('img') as HTMLImageElement | null;
         const linkEl = card.querySelector('a[href*="banggood.com"]') as HTMLAnchorElement | null;
         const priceEl = card.querySelector('.main-price, .price, .stprice, [class*="price"]');
-        const goodsNameEl = card.querySelector('.goods-name, .p-name, [class*="name"]');
+        const goodsNameEl = card.querySelector('[class*="title"], a[title], .goods-name, .p-name, [class*="name"]');
         return {
-          title: goodsNameEl?.textContent?.trim() ?? imgEl?.getAttribute('alt') ?? linkEl?.getAttribute('title') ?? '',
+          title: goodsNameEl?.getAttribute('title') ?? goodsNameEl?.textContent?.trim() ?? imgEl?.getAttribute('alt') ?? linkEl?.getAttribute('title') ?? '',
           price: priceEl?.textContent?.trim() ?? '',
           source: 'BANGGOOD',
           link: linkEl?.getAttribute('href') ?? `https://www.banggood.com/p-${card.getAttribute('data-product-id')}.html`,
