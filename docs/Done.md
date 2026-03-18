@@ -3,6 +3,16 @@
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
 
+### T-459 | BACKEND | Banggood title selector fix — sourcing scraper (2026-03-18)
+
+**Manba:** ai-tahlil (2026-03-18)
+**Muammo:** `scrapeBanggood()` da DOM fallback title selector `.goods-name, .p-name` eskirgan edi — Banggood sayt strukturasi o'zgargan, title bo'sh qaytardi.
+**Yechim:** Selector ga `[class*="title"], a[title]` qo'shildi. Title extraction da `getAttribute('title')` birinchi tekshiriladi (ko'pincha anchor tag da to'liq nom bo'ladi).
+**Fayllar:** `apps/worker/src/processors/sourcing.processor.ts:206-218`
+**Commit:** b5a41a1
+**Vaqt:** 15min (plan: 1h)
+**Ta'sir:** Banggood DOM fallback endi title topadi — sourcing pipeline Banggood natijalarini qaytaradi.
+
 ### T-454 | FRONTEND | Search — tahlil natijasi SearchDrawer ichida (2026-03-15)
 
 **Manba:** user-feedback (2026-03-15)

@@ -12,8 +12,8 @@
 ```
 Ochiq:       ~25 ta
 Bajarilgan:  ~180+ ta (Done.md)
-Oxirgi T-#:  T-433
-Keyingi T-#: T-434 dan boshlash
+Oxirgi T-#:  T-460
+Keyingi T-#: T-461 dan boshlash
 ```
 
 ---
@@ -1859,6 +1859,58 @@ export function useChat() {
 | **RAG Chat Pipeline** (T-428..T-433) | 6 | 6 | Sardor |
 | **JAMI task ochiq** | **~25** | | |
 | **JAMI bajarilgan** | **~180+** | | → Done.md |
+
+---
+
+### T-458 | P1 | BACKEND | Anthropic API key yangilash — sourcing AI query/scoring ishlamayapti | 15min
+
+**Sana:** 2026-03-18
+**Manba:** ai-tahlil
+**Mas'ul:** Sardor
+
+**Tahlil:**
+Sourcing pipeline da `aiGenerateQuery` va `aiScoreResults` Claude Haiku ishlatadi.
+Local test da `401 invalid x-api-key` xatosi aniqlandi. Key eskirgan.
+AI query generation ishlamasa — ruscha title `enQuery` sifatida Playwright scraper ga uzatiladi
+→ Banggood/Shopee ruscha query bilan 0 natija qaytaradi.
+
+**Muammo:**
+`.env` da `ANTHROPIC_API_KEY` invalid (401 error).
+
+**Yechim:**
+1. Anthropic Console dan yangi API key olish
+2. `.env` + Railway environment variable yangilash
+3. `apps/worker && node -e "require('@anthropic-ai/sdk')"` bilan test qilish
+
+**Fayllar:**
+- `.env` — `ANTHROPIC_API_KEY`
+- `apps/worker/src/processors/sourcing.processor.ts:55-83`
+
+---
+
+### T-460 | P2 | BACKEND | SERPAPI_API_KEY yo'q — 1688/Taobao/Alibaba/Amazon ishlamayapti | 30min
+
+**Sana:** 2026-03-18
+**Manba:** ai-tahlil
+**Mas'ul:** Sardor
+
+**Tahlil:**
+Sourcing pipeline `SERPAPI_API_KEY` bo'lmasa 1688, Taobao, Alibaba, Amazon qidiruvlari
+o'tkazib yuboriladi (`if (!apiKey) return []`). Local test da SerpAPI: 0 natija.
+Faqat Playwright (Banggood + Shopee) ishlaydi — bu esa Xitoy platformalarsiz
+cross-platform comparison to'liq emas.
+
+**Muammo:**
+`.env` da `SERPAPI_API_KEY` yo'q → 4 ta platforma (1688, Taobao, Alibaba, Amazon) ishlamaydi.
+
+**Yechim:**
+1. SerpAPI (serpapi.com) da account ochib API key olish
+2. `.env` + Railway environment variable ga `SERPAPI_API_KEY` qo'shish
+3. `.env.example` ga ham qo'shish
+
+**Fayllar:**
+- `apps/worker/src/processors/sourcing.processor.ts:123-156` — `serpApiSearch()`
+- `.env.example`
 
 ---
 
