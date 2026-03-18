@@ -141,10 +141,11 @@ async function serpApiSearch(
     return items.slice(0, 10).map((item: any) => {
       const raw = item.price ?? item.extracted_price ?? item.offer_price ?? '0';
       const priceNum = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/[^0-9.]/g, '')) || 0;
+      const currency = platformCode === 'google_shopping' ? 'USD' : 'CNY';
       return {
         title: item.title ?? item.name ?? '',
         price_usd: priceNum,
-        currency: ['amazon_de'].includes(platformCode) ? 'EUR' : 'CNY',
+        currency,
         url: item.link ?? item.product_link ?? item.url ?? '',
         image: item.thumbnail ?? item.image ?? '',
         seller: item.source ?? item.seller ?? item.shop_name ?? null,
@@ -359,9 +360,9 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
   const apiSearches: Promise<any[]>[] = [];
 
   if (serpApiKey) {
-    apiSearches.push(serpApiSearch(cnQuery, '1688', '1688'));
-    apiSearches.push(serpApiSearch(cnQuery, 'taobao', 'taobao'));
-    apiSearches.push(serpApiSearch(enQuery, 'alibaba', 'alibaba'));
+    // google_shopping — global narxlar (USD), cn_query ham qo'shamiz
+    apiSearches.push(serpApiSearch(enQuery, 'google_shopping', 'google_shopping'));
+    apiSearches.push(serpApiSearch(cnQuery, 'google_shopping', 'google_shopping'));
   }
 
   // Always run Playwright scrapers — use shared browser pool
