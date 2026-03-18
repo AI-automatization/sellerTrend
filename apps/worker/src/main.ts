@@ -1,4 +1,8 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'path';
+// Local app .env first, then root monorepo .env (Railway injects vars directly)
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 import http from 'http';
 import { createDiscoveryWorker } from './processors/discovery.processor';
 import { createSourcingWorker } from './processors/sourcing.processor';
@@ -79,7 +83,7 @@ async function bootstrap() {
   logProcess('info', 'Crons: competitor 6h, weekly-scrape 15min, alert-delivery 5min, monitoring 6h, digest 07:00, currency 00:30, cleanup 02:00, onboarding-reminder 10:00, weekly-digest Mon/08:00');
 
   // Health check HTTP server — reuse shared Redis from redis.ts
-  const healthPort = parseInt(process.env.PORT || process.env.WORKER_HEALTH_PORT || '3001', 10);
+  const healthPort = parseInt(process.env.WORKER_HEALTH_PORT || '3001', 10);
   const redis = getHealthRedis();
 
   const server = http.createServer(async (req, res) => {

@@ -315,7 +315,7 @@ async function processBatch(jobId: string, jobName: string) {
   const redis = getHealthRedis();
 
   // Create a single shared BrowserContext for the entire batch
-  const sharedContext = await createWeeklyScrapeContext();
+  let sharedContext = await createWeeklyScrapeContext();
   try {
     for (const pid of productIds) {
       // T-385: Acquire Redis lock to prevent duplicate scraping
@@ -335,8 +335,24 @@ async function processBatch(jobId: string, jobName: string) {
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        logJobInfo(QUEUE_NAME, jobId, jobName, `Error for product ${pid}: ${msg}`);
-        failed++;
+        // Bright Data CDP disconnect — context invalid, reconnect and retry product
+        if (msg.includes('Target page, context or browser has been closed') || msg.includes('Target closed')) {
+          logJobInfo(QUEUE_NAME, jobId, jobName, `Browser context closed (reconnecting Bright Data)...`);
+          try { await sharedContext.close(); } catch { /* already closed */ }
+          sharedContext = await createWeeklyScrapeContext();
+          // Retry this product with fresh context
+          try {
+            const retry = await scrapeAndSaveProduct(pid, jobId, jobName, sharedContext);
+            if (retry.scraped) scraped++;
+            else failed++;
+          } catch (retryErr) {
+            logJobInfo(QUEUE_NAME, jobId, jobName, `Retry failed for product ${pid}: ${retryErr instanceof Error ? retryErr.message : String(retryErr)}`);
+            failed++;
+          }
+        } else {
+          logJobInfo(QUEUE_NAME, jobId, jobName, `Error for product ${pid}: ${msg}`);
+          failed++;
+        }
       } finally {
         await releaseScrapeLock(redis, pid.toString());
       }
@@ -347,7 +363,7 @@ async function processBatch(jobId: string, jobName: string) {
       }
     }
   } finally {
-    await sharedContext.close();
+    await sharedContext.close().catch(() => { /* already closed on disconnect */ });
     await (await import('../browser-pool')).browserPool.release();
   }
 
@@ -366,8 +382,15 @@ async function processSingle(productId: string, jobId: string, jobName: string) 
   }
 
   try {
-    const result = await scrapeAndSaveProduct(pid, jobId, jobName);
-    return result;
+    return await scrapeAndSaveProduct(pid, jobId, jobName);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    // Browser crash (local Playwright or Bright Data CDP disconnect) — retry once
+    if (msg.includes('Target page, context or browser has been closed') || msg.includes('Target closed')) {
+      logJobInfo(QUEUE_NAME, jobId, jobName, `Browser crashed, retrying product ${productId}...`);
+      return await scrapeAndSaveProduct(pid, jobId, jobName);
+    }
+    throw err;
   } finally {
     await releaseScrapeLock(redis, productId);
   }
