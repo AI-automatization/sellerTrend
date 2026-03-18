@@ -32,17 +32,6 @@ import type { ExternalItem } from '../components/product';
 import type { AnalyzeResult, WeeklyTrend, Forecast, Snapshot, MlForecast, TrendAnalysis } from '../api/types';
 import { glassTooltip, CHART_ANIMATION_MS } from '../utils/formatters';
 
-function extractSearchQuery(title: string): string {
-  const stopWords = new Set([
-    'для', 'из', 'и', 'в', 'с', 'на', 'по', 'за', 'от', 'до', 'ва', 'учун',
-    'bilan', 'uchun', 'купить', 'продажа', 'набор', 'комплект',
-  ]);
-  const words = title
-    .replace(/[()[\]{}"'«»]/g, ' ')
-    .split(/\s+/)
-    .filter((w) => w.length > 2 && !stopWords.has(w.toLowerCase()));
-  return words.slice(0, 5).join(' ');
-}
 
 export function ProductPage() {
   const { t } = useI18n();
