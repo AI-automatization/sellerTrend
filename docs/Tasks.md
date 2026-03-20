@@ -10,7 +10,7 @@
 ## STATISTIKA
 
 ```
-Ochiq:       ~25 ta
+Ochiq:       ~33 ta
 Bajarilgan:  ~180+ ta (Done.md)
 Oxirgi T-#:  T-460
 Keyingi T-#: T-461 dan boshlash
@@ -166,6 +166,373 @@ Task Done.md ga ko'chirilganda quyidagi FORMAT ishlatiladi:
 **Vaqt:** 45min (plan: 30min)
 **Ta'sir:** Production da memory leak 15 min ichida aniqlanadi (oldin hech qachon).
 ```
+
+---
+
+# ═══════════════════════════════════════════════════════════
+# GRAPHQL SCRAPING v2 — Ziyoda (BATCH 1-4, ketma-ket)
+# Arxitektura: docs/ARCHITECTURE-GRAPHQL-SCRAPING.md
+# ═══════════════════════════════════════════════════════════
+
+## BATCH 1: INFRA — Token Manager + Discovery (T-432, T-433)
+
+### T-432 | P1 | BACKEND | GraphQL client + TokenManager service | 2h
+
+**Sana:** 2026-03-20
+**Manba:** ai-tahlil (Claude recon session — graphql.uzum.uz introspection, 2026-03-20)
+**Mas'ul:** Ziyoda
+
+**Tahlil:**
+Uzum GraphQL API (`graphql.uzum.uz`) guest JWT token bilan ishlaydi. Token `id.uzum.uz/api/auth/token`
+endpointidan avtomatik olinadi — login shart emas. Hozirgi tizim faqat REST API ishlatadi, lekin
+REST discovery service tez-tez 500 xato qaytaradi. GraphQL esa barqaror ishlaydi (sinov: "iphone" →
+482 natija). Bu task butun GraphQL integratsiyaning ASOSI — keyingi barcha tasklar shunga bog'liq.
+
+**Muammo:**
+Worker da GraphQL client va token management yo'q. Hozir faqat REST (`api.uzum.uz/api/v2/product/{id}`)
+va Playwright DOM scraper ishlatiladi. GraphQL uchun Chromium orqali guest JWT olish, uni cache qilish,
+va expired bo'lganda auto-refresh qilish kerak.
+
+**Yechim:**
+1. `apps/worker/src/clients/uzum-graphql.client.ts` yaratish:
+   - `UzumGraphQLClient` class — singleton
+   - `query<T>(operationName, query, variables)` — generic GraphQL so'rov method
+   - Headerlar: `Authorization: Bearer {token}`, `apollographql-client-name: web-customers`,
+     `apollographql-client-version: 1.63.2`, `Accept-Language: ru-RU`
+   - Error handling: 401 → token refresh → retry(1), 400 → log+skip, 429 → backoff, 5xx → throw
+
+2. `apps/worker/src/clients/token-manager.ts` yaratish:
+   - `TokenManager` class — singleton
+   - `getToken(): Promise<string>` — cached token qaytaradi, expired bo'lsa yangilaydi
+   - Token olish: Playwright Chromium headless → `uzum.uz` navigate → cookie `access_token` o'qish
+   - Cache: in-memory, TTL 5 soat (JWT exp dan 1 soat oldin refresh)
+   - `refreshToken()` — yangi Chromium session → yangi JWT
+   - Fallback: Chromium fail → xato log, null qaytarish (caller REST ga fallback qiladi)
+
+3. `packages/types/src/uzum-graphql.types.ts` — GraphQL response type lar:
+   - `MakeSearchResult`, `ProductPageResult`, `SuggestionsResult`
+   - `SkuGroupCard`, `Product`, `Shop`, `Sku`, `InstallmentWidget`
+
+4. Test: worker start → token olinadi → `makeSearch("test", limit:1)` → 200 response
+
+**Fayllar:**
+- `apps/worker/src/clients/uzum-graphql.client.ts` (YANGI)
+- `apps/worker/src/clients/token-manager.ts` (YANGI)
+- `packages/types/src/uzum-graphql.types.ts` (YANGI)
+- `apps/worker/src/main.ts` (TokenManager init)
+
+---
+
+### T-433 | P1 | BACKEND | GraphQL makeSearch — discovery processor | 2h
+
+**Sana:** 2026-03-20
+**Manba:** ai-tahlil (Claude recon session — makeSearch sinov, 2026-03-20)
+**Mas'ul:** Ziyoda
+**Dependency:** T-432 (GraphQL client + TokenManager)
+
+**Tahlil:**
+Hozirgi discovery tizimi Playwright DOM scraper orqali kategoriya sahifasidan mahsulot ID larini
+oladi (`uzum-scraper.ts:scrapeCategoryProductIds`). Bu usul sekin (20s timeout, scroll 15 marta),
+max 200 mahsulot oladi, va Chromium instance kerak. GraphQL `makeSearch` query esa 48 mahsulot/sahifa
+beradi, pagination bilan BARCHA mahsulotlarni olish mumkin, va <1 soniyada ishlaydi. Bu hozirgi eng
+katta muammo (discovery 500 xato) ni to'liq yechadi.
+
+**Muammo:**
+`discovery.processor.ts` hozir Playwright ga bog'langan. REST API discovery (`/api/v2/main/search/product`)
+tez-tez 500 qaytaradi ("Internal service not available"). Playwright fallback esa sekin va ishonchsiz.
+
+**Yechim:**
+1. `apps/worker/src/clients/uzum-graphql.client.ts` ga qo'shish:
+   - `searchProducts(params)` method — `makeSearch` query wrapper
+   - Params: `{ text?, categoryId?, sort, offset, limit, filters? }`
+   - Sort turlari: `BY_RELEVANCE_DESC`, `BY_ORDERS_DESC`, `BY_PRICE_ASC`, `BY_PRICE_DESC`
+   - Response: `{ total, items: SkuGroupCard[] }` — productId, title, ordersQuantity, narxlar, rating
+   - Auto-pagination: `searchAllProducts(params)` — barcha sahifalarni ketma-ket oladi (48 tadan)
+
+2. `apps/worker/src/processors/discovery.processor.ts` yangilash:
+   - Avval GraphQL `makeSearch` bilan urinish
+   - Agar GraphQL fail (token yo'q, 5xx) → Playwright fallback (hozirgi mantiq)
+   - Log: qaysi manba ishlatilgani (graphql vs playwright)
+
+3. YANGI fieldlarni saqlash (makeSearch dan keladi, hozir yo'q):
+   - `discount.discountPrice` — Uzum Card narxi
+   - `discount.discountAmount` — Uzum Card % chegirma
+   - `buyingOptions.isBestPrice` — eng arzon sotuvchi
+   - `deliveryOptions.stockType` — FBO/FBS/DBS
+   - Bu fieldlar uchun Prisma migration kerak bo'lishi mumkin (T-434 da)
+
+4. GraphQL query string `apps/worker/src/graphql/queries.ts` faylda saqlanadi
+
+**Fayllar:**
+- `apps/worker/src/clients/uzum-graphql.client.ts` (searchProducts, searchAllProducts)
+- `apps/worker/src/processors/discovery.processor.ts` (GraphQL first, Playwright fallback)
+- `apps/worker/src/graphql/queries.ts` (YANGI — query string lar)
+
+---
+
+## BATCH 2: PRODUCT DETAIL — GraphQL + REST hybrid (T-434, T-435)
+
+### T-434 | P1 | BACKEND | GraphQL productPage — product detail enrichment | 2h
+
+**Sana:** 2026-03-20
+**Manba:** ai-tahlil (Claude recon session — productPage sinov, 2026-03-20)
+**Mas'ul:** Ziyoda
+**Dependency:** T-432 (GraphQL client)
+
+**Tahlil:**
+GraphQL `productPage` 1 ta so'rovda REST dan ko'ra ko'proq ma'lumot beradi: mahsulot detalari +
+shop info + barcha SKU lar + installment kalkulyatsiya + nested kategoriya daraxti. Hozir REST
+`/api/v2/product/{id}` ishlatiladi va shop ma'lumotlari alohida olinadi. GraphQL bilan barcha
+data bitta so'rovda keladi. LEKIN `totalAvailableAmount` GraphQL da yo'q — shu uchun REST ham kerak.
+
+**Muammo:**
+`uzum-scraper.ts:fetchUzumProductRaw()` faqat REST ishlatadi. Shop ma'lumotlari alohida olinadi.
+Nasiya faqat 2 davr, 1 SKU uchun saqlanadi. Kategoriya daraxti manual parse qilinadi.
+
+**Yechim:**
+1. `apps/worker/src/clients/uzum-graphql.client.ts` ga qo'shish:
+   - `getProductPage(productId: number)` — GraphQL productPage query
+   - Response: product + shop + skuList + installmentWidget + characteristics
+   - Type-safe: `ProductPageResult` interface
+
+2. `apps/worker/src/processors/uzum-scraper.ts` yangilash:
+   - `fetchProductFull(productId)` — YANGI method:
+     - GraphQL `productPage` + REST `/api/v2/product/{id}` PARALLEL (Promise.all)
+     - GraphQL dan: title, ordersQuantity, rating, feedbackQuantity, shop, skuList, badges,
+       characteristics, installmentWidget, category chain, photos
+     - REST dan: `totalAvailableAmount` (GraphQL da yo'q)
+     - Merge: ikkalasining natijasi birlashtiriladi
+   - Eski `fetchUzumProductRaw()` saqlanadi (fallback sifatida)
+
+3. `import.processor.ts` va `weekly-scrape.processor.ts` yangilash:
+   - `fetchProductFull()` chaqirish (avval `fetchUzumProductRaw()` edi)
+   - Fallback: GraphQL fail → `fetchUzumProductRaw()` (REST only)
+
+4. GraphQL query `apps/worker/src/graphql/queries.ts` ga qo'shiladi
+
+**Fayllar:**
+- `apps/worker/src/clients/uzum-graphql.client.ts` (getProductPage)
+- `apps/worker/src/processors/uzum-scraper.ts` (fetchProductFull — YANGI hybrid method)
+- `apps/worker/src/processors/import.processor.ts` (fetchProductFull chaqirish)
+- `apps/worker/src/processors/weekly-scrape.processor.ts` (fetchProductFull chaqirish)
+- `apps/worker/src/graphql/queries.ts` (productPage query)
+
+---
+
+### T-435 | P1 | BACKEND | Prisma schema + YANGI fieldlar (discount, delivery, isBestPrice) | 1.5h
+
+**Sana:** 2026-03-20
+**Manba:** ai-tahlil (Claude recon session — yangi GraphQL fieldlar, 2026-03-20)
+**Mas'ul:** Ziyoda
+**Dependency:** T-434 (productPage integration)
+
+**Tahlil:**
+GraphQL dan keladigan yangi fieldlar hozirgi DB schema da yo'q. Bu ma'lumotlar narx analitikasi,
+chegirma monitoring, va delivery intelligence uchun kerak. Masalan: Uzum Card narxi (discountPrice) —
+ko'pchilik xaridor Uzum Card bilan to'laydi, bu haqiqiy eng past narx. `isBestPrice` — bu sotuvchi
+shu mahsulot uchun eng arzon ekanligini bildiradi.
+
+**Muammo:**
+DB da quyidagi fieldlar yo'q:
+- `uzum_card_price` — Uzum Card bilan to'lov narxi
+- `uzum_card_discount_percent` — Uzum Card chegirma foizi
+- `seller_discount_percent` — Sotuvchi tomoni chegirma
+- `is_best_price` — Eng arzon sotuvchi belgisi
+- `delivery_stock_type` — FBO/FBS/DBS (hozir faqat FBO/FBS)
+- `delivery_date` — Yetkazib berish sanasi
+
+**Yechim:**
+1. Prisma migration yaratish: `npx prisma migrate dev --name add-graphql-fields`
+
+   `ProductSnapshot` modeliga qo'shish:
+   ```prisma
+   uzum_card_price          BigInt?    // Uzum Card bilan narx (SUM)
+   uzum_card_discount       Int?       // Uzum Card % chegirma
+   seller_discount          Int?       // Sotuvchi % chegirma
+   is_best_price            Boolean?   // Eng arzon sotuvchi
+   delivery_type            String?    // FBO | FBS | DBS
+   delivery_date            String?    // "Завтра", "25 марта"
+   ```
+
+   `SkuSnapshot` modeliga qo'shish:
+   ```prisma
+   installment_3m           BigInt?    // 3 oylik to'lov (SUM)
+   installment_6m           BigInt?    // 6 oylik to'lov (SUM)
+   installment_12m          BigInt?    // 12 oylik to'lov (SUM)
+   installment_24m          BigInt?    // 24 oylik to'lov (SUM)
+   ```
+
+2. `apps/worker/src/processors/` — yangi fieldlarni snapshot yaratishda saqlash
+3. `apps/api/src/products/products.service.ts` — yangi fieldlarni frontend ga qaytarish
+
+**Fayllar:**
+- `apps/api/prisma/schema.prisma` (migration)
+- `apps/worker/src/processors/weekly-scrape.processor.ts` (yangi fieldlar saqlash)
+- `apps/worker/src/processors/import.processor.ts` (yangi fieldlar saqlash)
+- `apps/api/src/products/products.service.ts` (yangi fieldlar qaytarish)
+
+---
+
+## BATCH 3: MARKETPLACE INTELLIGENCE — Yangi imkoniyatlar (T-436, T-437, T-438)
+
+### T-436 | P2 | BACKEND | installmentWidget — to'liq nasiya kalkulyatsiya | 1.5h
+
+**Sana:** 2026-03-20
+**Manba:** ai-tahlil (Claude recon session — installmentWidget response, 2026-03-20)
+**Mas'ul:** Ziyoda
+**Dependency:** T-434, T-435
+
+**Tahlil:**
+Hozir nasiya ma'lumotlari chala saqlanadi: faqat `charge_price` (12 oy) va `charge_quantity_alt` (24 oy),
+faqat 1-chi SKU uchun. GraphQL `installmentWidget` esa barcha SKU lar uchun 4 davr (3, 6, 12, 24 oy)
+beradi. Bu ma'lumot bilan haqiqiy nasiya foiz stavkasini hisoblash mumkin:
+`(oylik × muddat) / narx - 1 = foiz`. Masalan: SKU 7394417 (18.9M so'm):
+- 24 oy: 1.3M × 24 = 31.4M → **65% ustama**
+- 12 oy: 2.2M × 12 = 25.8M → **36% ustama**
+- 3 oy: 6.9M × 3 = 20.7M → **9% ustama**
+
+**Muammo:**
+`sku_snapshots` jadvalida faqat `charge_price`, `charge_quantity`, `charge_quantity_alt` bor.
+4 davr × barcha SKU ma'lumotlari saqlanmaydi. Nasiya foiz stavkasi hisoblanmaydi.
+
+**Yechim:**
+1. T-435 dagi migration allaqachon `installment_3m/6m/12m/24m` qo'shgan
+2. `weekly-scrape.processor.ts` da installmentWidget dan ma'lumot extract qilish:
+   - `calculationsPairs` ichidan har SKU uchun 4 davr olish
+   - `SkuSnapshot` ga saqlash
+3. `packages/utils/src/index.ts` ga nasiya foiz hisoblash funksiya:
+   - `calcInstallmentRate(price, monthlyPayment, months)` → foiz
+4. API endpoint: `/products/{id}/installments` — frontend uchun
+
+**Fayllar:**
+- `apps/worker/src/processors/weekly-scrape.processor.ts` (installment extract)
+- `packages/utils/src/index.ts` (calcInstallmentRate)
+- `apps/api/src/products/products.service.ts` (installment endpoint)
+
+---
+
+### T-437 | P2 | BACKEND | getSuggestions — TOP mahsulotlar monitoring job | 1.5h
+
+**Sana:** 2026-03-20
+**Manba:** ai-tahlil (Claude recon session — getSuggestions TOP-45, 2026-03-20)
+**Mas'ul:** Ziyoda
+**Dependency:** T-432
+
+**Tahlil:**
+GraphQL `getSuggestions` bo'sh query bilan chaqirilganda Uzumning **TOP-45 eng ommabop mahsulotlari** ni
+qaytaradi. Bu ma'lumot boshqa hech qayerda olinmaydi — Uzum o'z recommendation algoritmining natijasi.
+Har bir mahsulotda ordersQuantity (287K gacha!), Uzum Card narxi, chegirma, isBestPrice bor.
+Kuniga 1-2 marta yig'ib saqlasa — marketplace trend monitoring qilinadi.
+
+**Muammo:**
+Hozir marketplace-level analytics yo'q. Faqat tracked mahsulotlar tahlil qilinadi.
+Uzumning umumiy trendi, top kategoriyalar, eng ko'p sotiladigan mahsulotlar kuzatilmaydi.
+
+**Yechim:**
+1. Prisma model: `MarketplaceSnapshot` (yangi jadval):
+   ```prisma
+   model MarketplaceSnapshot {
+     id            Int      @id @default(autoincrement())
+     captured_at   DateTime @default(now())
+     type          String   // "top_products" | "trending_search" | ...
+     data          Json     // TOP-45 mahsulotlar array
+   }
+   ```
+
+2. `apps/worker/src/jobs/marketplace-intelligence.job.ts` (YANGI):
+   - Cron: `0 8,20 * * *` (kuniga 2 marta — 8:00 va 20:00)
+   - `getSuggestions` chaqirish → `RecommendedSuggestionsBlock` extract
+   - `MarketplaceSnapshot` ga saqlash
+
+3. Admin API endpoint: `GET /admin/marketplace/top-products`
+   - Oxirgi N ta snapshot qaytaradi
+   - Trend: qaysi mahsulotlar yangi paydo bo'ldi, qaysilari tushib ketdi
+
+**Fayllar:**
+- `apps/api/prisma/schema.prisma` (MarketplaceSnapshot model)
+- `apps/worker/src/jobs/marketplace-intelligence.job.ts` (YANGI)
+- `apps/worker/src/main.ts` (job register)
+- `apps/api/src/admin/admin.service.ts` (top-products endpoint)
+
+---
+
+### T-438 | P2 | BACKEND | similarProducts — avtomatik competitor discovery | 1.5h
+
+**Sana:** 2026-03-20
+**Manba:** ai-tahlil (Claude recon session — similarProducts query, 2026-03-20)
+**Mas'ul:** Ziyoda
+**Dependency:** T-432
+
+**Tahlil:**
+GraphQL `similarProducts(productId, limit)` har bir mahsulot uchun Uzum algoritmining topgan
+o'xshash/raqobatchi mahsulotlarini qaytaradi. Hozir competitor tahlil faqat qo'lda qilinadi
+(foydalanuvchi o'zi competitor URL kiritadi). Bu query bilan tracked mahsulotlar uchun avtomatik
+competitor ro'yxati tuziladi — narx taqqoslash, pozitsiya monitoring mumkin bo'ladi.
+
+**Muammo:**
+Competitor tahlil uchun foydalanuvchi o'zi competitor URL kiritishi kerak. Avtomatik topish yo'q.
+
+**Yechim:**
+1. `apps/worker/src/clients/uzum-graphql.client.ts` ga qo'shish:
+   - `getSimilarProducts(productId, limit)` method
+   - Response: `SkuGroupCard[]` — productId, title, ordersQuantity, minSellPrice, rating
+
+2. `apps/worker/src/processors/competitor.processor.ts` yangilash:
+   - Tracked mahsulot import/reanalysis da `similarProducts` chaqirish
+   - Natijalarni `CompetitorProduct` jadvaliga saqlash (mavjud)
+   - Deduplicate: allaqachon mavjud competitor larni qayta qo'shmaslik
+
+3. Weekly cron: tracked mahsulotlar uchun competitor listni yangilash
+   - Haftada 1 marta
+   - Har mahsulot uchun top-10 competitor
+
+**Fayllar:**
+- `apps/worker/src/clients/uzum-graphql.client.ts` (getSimilarProducts)
+- `apps/worker/src/processors/competitor.processor.ts` (similarProducts integration)
+- `apps/worker/src/graphql/queries.ts` (similarProducts query)
+
+---
+
+## BATCH 4: MIGRATION — Eski tizimdan o'tish (T-439)
+
+### T-439 | P1 | BACKEND | Discovery processor migration — Playwright → GraphQL primary | 1h
+
+**Sana:** 2026-03-20
+**Manba:** ai-tahlil (Claude recon session — makeSearch barqarorligi tasdiqlandi, 2026-03-20)
+**Mas'ul:** Ziyoda
+**Dependency:** T-432, T-433, T-434
+
+**Tahlil:**
+T-433 da GraphQL discovery qo'shildi (primary + Playwright fallback). T-434 da product detail
+GraphQL ga o'tdi. Endi eski Playwright-first discovery mantiqini GraphQL-first ga to'liq o'zgartirish
+kerak. Playwright faqat fallback sifatida qoladi. Bu Worker dagi Chromium yuklamasini kamaytiradi,
+tezlikni oshiradi, va discovery 500 xato muammosini butunlay yechadi.
+
+**Muammo:**
+`discovery.processor.ts` hali Playwright-first ishlaydi. T-433 da GraphQL qo'shilgan, lekin
+`weekly-scrape.processor.ts` va boshqa processor larda hali eski mantiq.
+
+**Yechim:**
+1. `discovery.processor.ts` — GraphQL BIRINCHI, Playwright FAQAT fallback:
+   ```
+   try { graphql.searchProducts() }
+   catch { playwright.scrapeCategoryProductIds() }
+   ```
+
+2. `weekly-scrape.processor.ts` — `fetchProductFull()` to'liq integration:
+   - GraphQL productPage + REST totalAvailableAmount (parallel)
+   - Eski `fetchUzumProductRaw()` faqat fallback
+
+3. Logging: qaysi manba ishlatilgani (`source: graphql | rest | playwright`)
+
+4. Feature flag: `USE_GRAPHQL_DISCOVERY=true` (env orqali o'chirish mumkin)
+
+5. Health check: `/health` da GraphQL token status qo'shish
+
+**Fayllar:**
+- `apps/worker/src/processors/discovery.processor.ts` (GraphQL first)
+- `apps/worker/src/processors/weekly-scrape.processor.ts` (fetchProductFull)
+- `apps/worker/src/main.ts` (health check, feature flag)
 
 ---
 
