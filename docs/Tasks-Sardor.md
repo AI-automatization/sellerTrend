@@ -85,58 +85,6 @@ Bir xil 15 qatorlik logika 3 funksiyada copy-paste.
 
 # BILLING — PLAN GUARD INTEGRATION
 
-### T-445 | P1 | IKKALASI | Balance billing logikasini olib tashlash — plan-based billing | 2h | pending[Sardor]
-
-**Sana:** 2026-03-15
-**Manba:** kod-audit (ai-tahlil, 2026-03-15)
-**Topilgan joyda:** `apps/api/src/billing/billing.service.ts`, `apps/api/src/billing/billing.guard.ts`
-**Mas'ul:** Sardor
-
-**Tahlil:**
-Hozir billing ikki parallel tizimga ega: `balance` (kunlik yechish) va `plan` (FREE/PRO/MAX/COMPANY).
-Bu ortiqcha murakkablik — balanceni to'ldirish, kunlik charge, PAYMENT_DUE status bularning barchasi
-foydalanuvchiga tushunarsiz va admin uchun og'ir. Bizning haqiqiy billing modelimiz: admin qo'lda
-plan belgilaydi (masalan oyiga to'lov olgan mijozga PRO), balance tracking shart emas.
-
-**Muammo:**
-Bizning model: admin qo'lda `plan = 'PRO'` belgilaydi, foydalanuvchida faqat FREE/PRO/MAX mavjud.
-Balance tizimi (kunlik yechish, PAYMENT_DUE) bu modelga mos emas va keraksiz murakkablik qo'shadi.
-- `balance`, `daily_fee`, `analyses_used`, `plan_renewed_at` — keraksiz maydonlar
-- `BillingService.chargeAllActiveAccounts()` — Worker da kunlik ishlaydigan charge job, kerak emas
-- `BillingGuard` — `PAYMENT_DUE` va `FREE` limit logikasi ortiqcha, faqat `plan` tekshirish kifoya
-- `TransactionType.CHARGE/DEPOSIT` — balance tranzaksiyalari, kerak emas
-
-**Yechim:**
-1. **Backend — BillingGuard soddalashtiriladi:**
-   - `PAYMENT_DUE` tekshirish olib tashlanadi
-   - `analyses_used` / FREE limit olib tashlanadi
-   - Faqat `account.plan` ni tekshiradi (PlanGuard bilan birgalikda)
-2. **Backend — BillingService:**
-   - `chargeAllActiveAccounts()` olib tashlanadi
-   - `depositBalance()` olib tashlanadi
-   - `getAccountBalance()` olib tashlanadi
-3. **Backend — Worker:** kunlik charge job olib tashlanadi
-4. **DB Migration (Bekzod tasdiqlaydi):**
-   - `Account`: `balance`, `daily_fee`, `analyses_used`, `plan_renewed_at` kolonlar olib tashlanadi
-   - `plan_expires_at` — **qoladi** (admin plan muddatini belgilashi uchun)
-   - `Transaction` model — `CHARGE/DEPOSIT` type lar olib tashlanadi yoki model butunlay olib tashlanadi
-5. **Frontend:** BillingPage da balance ko'rsatish bo'lsa — olib tashlanadi
-
-**Fayllar:**
-- `apps/api/src/billing/billing.service.ts` — chargeAll/deposit/getBalance olib tashlash
-- `apps/api/src/billing/billing.guard.ts` — soddalashtiriladi
-- `apps/api/src/billing/billing.controller.ts` — tekshirish
-- `apps/api/src/admin/admin-account.service.ts` — balance deposit endpoint
-- `apps/api/prisma/schema.prisma` — migration (Bekzod roziligi kerak)
-- `apps/web/src/pages/BillingPage.tsx` — balance UI bo'lsa olib tashlash
-
-**Qo'shimcha kontekst:**
-- T-444 dan KEYIN bajariladi (plan JWT da bo'lishi kerak)
-- DB migration Bekzod bilan kelishib bajariladi — `prisma migrate dev`
-- `plan_expires_at` qoladi — kelajakda avtomatik expiry uchun ishlatilishi mumkin
-
----
-
 ### T-444 | P1 | IKKALASI | Billing plan JWT + PlanGuard frontend integration | 1h
 
 **Sana:** 2026-03-15
