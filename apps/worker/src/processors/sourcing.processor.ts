@@ -28,6 +28,21 @@ const BANGGOOD_LOAD_WAIT_MS = 8000;
 const BANGGOOD_SCROLL_WAIT_MS = 2000;
 const SHOPEE_LOAD_WAIT_MS = 6000;
 const SHOPEE_SCROLL_WAIT_MS = 2000;
+const DHGATE_LOAD_WAIT_MS = 6000;
+const DHGATE_SCROLL_WAIT_MS = 2000;
+const ALIEXPRESS_LOAD_WAIT_MS = 7000;
+const ALIEXPRESS_SCROLL_WAIT_MS = 2000;
+const PIPELINE_TIMEOUT_MS = 90_000; // T-461: global pipeline timeout
+
+// T-462/T-463: currency per platform
+const PLATFORM_CURRENCY: Record<string, string> = {
+  google_shopping: 'USD',
+  aliexpress:      'USD',
+  dhgate:          'USD',
+  baidu:           'CNY',
+  '1688':          'CNY',
+  taobao:          'CNY',
+};
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -79,7 +94,8 @@ async function aiGenerateQuery(
     const text = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
     const parsed = JSON.parse(text);
     return { cn_query: parsed.cn_query || title, en_query: parsed.en_query || title };
-  } catch {
+  } catch (err) {
+    logJobInfo('sourcing-search', '-', 'aiGenerateQuery', `AI query generation failed: ${err}`);
     return { cn_query: title, en_query: title };
   }
 }
@@ -129,19 +145,27 @@ async function serpApiSearch(
   query: string,
   engine: string,
   platformCode: string,
+  queryParam: 'q' | 'search_query' = 'q', // T-462: aliexpress_search uses search_query
 ): Promise<Array<{ title: string; price_usd: number; currency: string; url: string; image: string; seller: string | null; external_id: string | null; platform_code: string }>> {
   const apiKey = process.env.SERPAPI_API_KEY;
-  if (!apiKey) return [];
+  if (!apiKey) {
+    logJobInfo('sourcing-search', '-', 'searchSerpApi', `SERPAPI_API_KEY not set`);
+    return [];
+  }
   try {
-    const params = new URLSearchParams({ api_key: apiKey, engine, q: query, num: '10' });
+    const params = new URLSearchParams({ api_key: apiKey, engine, [queryParam]: query, num: '10' });
     const res = await fetch(`https://serpapi.com/search.json?${params}`);
-    if (!res.ok) return [];
+    if (!res.ok) {
+      logJobInfo('sourcing-search', '-', 'searchSerpApi', `SerpAPI HTTP ${res.status} for engine=${engine}`);
+      return [];
+    }
     const data = await res.json() as any;
+    if (data.error) logJobInfo('sourcing-search', '-', 'searchSerpApi', `SerpAPI error: ${data.error}`);
     const items = data.organic_results ?? data.shopping_results ?? data.products_results ?? [];
+    const currency = PLATFORM_CURRENCY[platformCode] ?? 'USD'; // T-462/T-463
     return items.slice(0, 10).map((item: any) => {
       const raw = item.price ?? item.extracted_price ?? item.offer_price ?? '0';
       const priceNum = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/[^0-9.]/g, '')) || 0;
-      const currency = platformCode === 'google_shopping' ? 'USD' : 'CNY';
       return {
         title: item.title ?? item.name ?? '',
         price_usd: priceNum,
@@ -327,6 +351,169 @@ async function scrapeShopee(
   }
 }
 
+async function scrapeDHgate(
+  query: string,
+  context: BrowserContext,
+): Promise<ExternalProduct[]> {
+  const page = await context.newPage();
+  const captured: Array<{ url: string; json: any }> = [];
+
+  page.on('response', async (response) => {
+    try {
+      const url = response.url();
+      const ct = response.headers()['content-type'] ?? '';
+      if ((url.includes('dhgate.com') || url.includes('dhresource.com')) && ct.includes('application/json')) {
+        const text = await response.text();
+        if (text.length > 200) captured.push({ url, json: JSON.parse(text) });
+      }
+    } catch { /* ignore */ }
+  });
+
+  try {
+    const url = `https://www.dhgate.com/wholesale/search.do?searchkey=${encodeURIComponent(query)}&catalog=`;
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25_000 }).catch(() => {});
+    await page.waitForTimeout(DHGATE_LOAD_WAIT_MS);
+
+    // Try network-intercepted JSON
+    for (const { url: capUrl, json } of captured) {
+      const list =
+        json?.Data?.product_list ?? json?.data?.product_list ??
+        json?.products ?? json?.data?.products ??
+        json?.result?.products ?? json?.items;
+      if (Array.isArray(list) && list.length > 0) {
+        logJobInfo('sourcing-search', '-', 'scrapeDHgate', `JSON hit: ${capUrl.slice(0, 80)} (${list.length} items)`);
+        return list.slice(0, 8).map((item: Record<string, any>) => ({
+          title: String(item.productName ?? item.name ?? item.title ?? ''),
+          price: String(item.currentprice ?? item.min_price ?? item.price ?? ''),
+          source: 'DHGATE',
+          link: String(item.productPageUrl ?? item.url ?? `https://www.dhgate.com/store/product/${item.skuid ?? ''}`),
+          image: String(item.imageURL ?? item.img ?? item.image ?? ''),
+          store: String((item.storeInfo as Record<string, unknown>)?.storeName ?? item.storeName ?? 'DHgate'),
+        })).filter((i: ExternalProduct) => i.title.length > 0);
+      }
+    }
+
+    // DOM fallback
+    await page.evaluate(() => window.scrollTo(0, 600));
+    await page.waitForTimeout(DHGATE_SCROLL_WAIT_MS);
+
+    const items: ExternalProduct[] = await page.evaluate(() => {
+      const cards = Array.from(
+        document.querySelectorAll('[class*="list-item"], [class*="item-info"], .gallery-item, [class*="product-item"]'),
+      ).slice(0, 10);
+      return cards.map((card) => {
+        const titleEl = card.querySelector('[class*="title"], a[title], h3');
+        const priceEl = card.querySelector('[class*="price"]');
+        const linkEl = card.querySelector('a[href]') as HTMLAnchorElement | null;
+        const imgEl = card.querySelector('img') as HTMLImageElement | null;
+        const href = linkEl?.getAttribute('href') ?? '';
+        return {
+          title: titleEl?.getAttribute('title') ?? titleEl?.textContent?.trim() ?? '',
+          price: priceEl?.textContent?.trim() ?? '',
+          source: 'DHGATE',
+          link: href.startsWith('http') ? href : `https://www.dhgate.com${href}`,
+          image: imgEl?.getAttribute('data-src') ?? imgEl?.getAttribute('src') ?? '',
+          store: 'DHgate',
+        };
+      });
+    });
+    const filtered = items.filter((i) => i.title.length > 0 && i.price.length > 0);
+    logJobInfo('sourcing-search', '-', 'scrapeDHgate', `DOM: ${items.length} cards, ${filtered.length} with title+price`);
+    return filtered;
+  } finally {
+    await page.close();
+  }
+}
+
+async function scrapeAliExpress(
+  query: string,
+  context: BrowserContext,
+): Promise<ExternalProduct[]> {
+  const page = await context.newPage();
+  let aeItems: any[] = [];
+
+  page.on('response', async (response) => {
+    try {
+      const url = response.url();
+      const ct = response.headers()['content-type'] ?? '';
+      if (url.includes('aliexpress.com') && ct.includes('application/json') &&
+          (url.includes('search') || url.includes('fn/'))) {
+        const json = await response.json();
+        const list =
+          json?.result?.mods?.itemList?.content ??
+          json?.data?.result?.resultList ??
+          json?.result?.resultList ??
+          json?.items;
+        if (Array.isArray(list) && list.length > 0 && aeItems.length === 0) {
+          aeItems = list;
+          logJobInfo('sourcing-search', '-', 'scrapeAliExpress', `JSON hit: ${url.slice(0, 80)} (${list.length} items)`);
+        }
+      }
+    } catch { /* ignore */ }
+  });
+
+  try {
+    const url = `https://www.aliexpress.com/wholesale?SearchText=${encodeURIComponent(query)}`;
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25_000 }).catch(() => {});
+
+    const finalUrl = page.url();
+    if (finalUrl.includes('captcha') || finalUrl.includes('challenge') || finalUrl.includes('login')) {
+      logJobInfo('sourcing-search', '-', 'scrapeAliExpress', `Blocked: ${finalUrl.slice(0, 80)}`);
+      return [];
+    }
+
+    await page.waitForTimeout(ALIEXPRESS_LOAD_WAIT_MS);
+    await page.evaluate(() => window.scrollTo(0, 400));
+    await page.waitForTimeout(ALIEXPRESS_SCROLL_WAIT_MS);
+
+    if (aeItems.length > 0) {
+      return aeItems.slice(0, 8).map((item: Record<string, any>) => {
+        const itemId = String(item.itemId ?? item.productId ?? '');
+        const title = String(item.title ?? item.productTitle ?? item.name ?? '');
+        const priceStr: string =
+          (item.prices as any)?.salePrice?.formattedPrice ??
+          (item.price as any)?.formattedPrice ??
+          String(item.salePrice ?? '');
+        return {
+          title,
+          price: priceStr,
+          source: 'ALIEXPRESS',
+          link: itemId ? `https://www.aliexpress.com/item/${itemId}.html` : url,
+          image: String(item.image ?? item.productImageUrl ?? ''),
+          store: String((item.store as any)?.storeName ?? item.storeName ?? 'AliExpress'),
+        };
+      }).filter((i: ExternalProduct) => i.title.length > 0);
+    }
+
+    // DOM fallback
+    const items: ExternalProduct[] = await page.evaluate(() => {
+      const cards = Array.from(
+        document.querySelectorAll('[class*="manhattan--container"], [class*="product-item"], [class*="item-wrap"]'),
+      ).slice(0, 10);
+      return cards.map((card) => {
+        const titleEl = card.querySelector('[class*="title"], h3, [class*="name"]');
+        const priceEl = card.querySelector('[class*="price"]');
+        const linkEl = (card.tagName === 'A' ? card : card.querySelector('a')) as HTMLAnchorElement | null;
+        const imgEl = card.querySelector('img') as HTMLImageElement | null;
+        const href = linkEl?.getAttribute('href') ?? '';
+        return {
+          title: titleEl?.textContent?.trim() ?? '',
+          price: priceEl?.textContent?.trim() ?? '',
+          source: 'ALIEXPRESS',
+          link: href.startsWith('http') ? href : `https://www.aliexpress.com${href}`,
+          image: imgEl?.getAttribute('src') ?? imgEl?.getAttribute('data-src') ?? '',
+          store: 'AliExpress',
+        };
+      });
+    });
+    const filtered = items.filter((i) => i.title.length > 0 && i.price.length > 0);
+    logJobInfo('sourcing-search', '-', 'scrapeAliExpress', `DOM: ${items.length} cards, ${filtered.length} with title+price`);
+    return filtered;
+  } finally {
+    await page.close();
+  }
+}
+
 // ─── Full Pipeline ───────────────────────────────────────────────────────────
 
 async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalProduct[]> {
@@ -355,60 +542,81 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
   const platforms = await prisma.externalPlatform.findMany({ where: { is_active: true } });
   const platformMap = new Map(platforms.map((p) => [p.code, p.id]));
 
-  // Step 3: Parallel search — SerpAPI + Playwright
+  // Step 3: Parallel search — SerpAPI + Playwright (T-461/T-462/T-463/T-464)
   const serpApiKey = process.env.SERPAPI_API_KEY;
   const apiSearches: Promise<any[]>[] = [];
 
   if (serpApiKey) {
-    // google_shopping — global narxlar (USD), cn_query ham qo'shamiz
+    // Google Shopping — inglizcha va xitoycha qidiruv (global + Alibaba/AliExpress natijalari)
     apiSearches.push(serpApiSearch(enQuery, 'google_shopping', 'google_shopping'));
     apiSearches.push(serpApiSearch(cnQuery, 'google_shopping', 'google_shopping'));
+    // T-462: Wholesale-targeted qidiruv — ulgurji narxlar (Alibaba, AliExpress, DHgate)
+    apiSearches.push(serpApiSearch(`${enQuery} wholesale bulk price`, 'google_shopping', 'aliexpress'));
+    // T-463: Xitoy ulgurji bozori — cnQuery + "批发" (wholesale) keyword
+    apiSearches.push(serpApiSearch(`${cnQuery} 批发`, 'google_shopping', 'alibaba'));
   }
 
-  // Always run Playwright scrapers — use shared browser pool
-  const browser = await browserPool.getBrowser();
+  // T-464: Banggood/Shopee — bot protection, disabled by default
+  const playwrightEnabled = !serpApiKey || process.env.ENABLE_PLAYWRIGHT_SCRAPERS === 'true';
+  // T-465: DHgate/AliExpress wholesale scrapers — enabled by default, disable with ENABLE_WHOLESALE_SCRAPERS=false
+  const wholesaleEnabled = process.env.ENABLE_WHOLESALE_SCRAPERS !== 'false';
+  const needsPlaywright = playwrightEnabled || wholesaleEnabled;
 
-  let context: import('playwright').BrowserContext;
-  if (browserPool.isBrightData()) {
-    // Bright Data CDP: reuse the existing context provided by the remote browser
-    const existingContexts = browser.contexts();
-    context = existingContexts.length > 0 ? existingContexts[0] : await browser.newContext();
-  } else {
-    context = await browser.newContext({
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-      locale: 'en-US',
-      timezoneId: 'America/New_York',
-      viewport: { width: 1366, height: 768 },
-      extraHTTPHeaders: { 'Accept-Language': 'en-US,en;q=0.9' },
-    });
-    await context.addInitScript(() => {
-      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-      (window as unknown as Record<string, unknown>).chrome = { runtime: {} };
-    });
+  let browser: import('playwright').Browser | null = null;
+  let context: import('playwright').BrowserContext | null = null;
+
+  if (needsPlaywright) {
+    browser = await browserPool.getBrowser();
+    if (browserPool.isBrightData()) {
+      const existingContexts = browser.contexts();
+      context = existingContexts.length > 0 ? existingContexts[0] : await browser.newContext();
+    } else {
+      context = await browser.newContext({
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        locale: 'en-US',
+        timezoneId: 'America/New_York',
+        viewport: { width: 1366, height: 768 },
+        extraHTTPHeaders: { 'Accept-Language': 'en-US,en;q=0.9' },
+      });
+      await context.addInitScript(() => {
+        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+        (window as unknown as Record<string, unknown>).chrome = { runtime: {} };
+      });
+    }
   }
 
   try {
-    // Run all searches in parallel
-    const allResults = await Promise.allSettled([
-      ...apiSearches,
-      scrapeBanggood(enQuery, context),
-      scrapeShopee(enQuery, context),
+    // T-461: Global 90s timeout — prevent Playwright hang
+    const playwrightCalls = context ? [
+      ...(playwrightEnabled ? [scrapeBanggood(enQuery, context), scrapeShopee(enQuery, context)] : []),
+      // T-465: Wholesale scrapers — DHgate (inglizcha) + AliExpress (inglizcha)
+      ...(wholesaleEnabled ? [scrapeDHgate(enQuery, context), scrapeAliExpress(enQuery, context)] : []),
+    ] : [];
+
+    const timeoutPromise: Promise<never> = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`Pipeline timeout after ${PIPELINE_TIMEOUT_MS}ms`)), PIPELINE_TIMEOUT_MS),
+    );
+
+    const allResults = await Promise.race([
+      Promise.allSettled([...apiSearches, ...playwrightCalls]),
+      timeoutPromise,
     ]);
 
-    // Collect SerpAPI results
+    // Collect results — type-based routing (price_usd = SerpAPI, price string = Playwright)
     const serpResults: Array<{ title: string; price_usd: number; currency: string; url: string; image: string; seller: string | null; external_id: string | null; platform_code: string }> = [];
     const playwrightProducts: ExternalProduct[] = [];
 
-    for (let i = 0; i < allResults.length; i++) {
-      const result = allResults[i];
+    for (const result of allResults) {
       if (result.status === 'rejected') {
-        logJobInfo('sourcing-search', jobId ?? '-', 'processSearch', `Search ${i} failed: ${String(result.reason)}`);
+        logJobInfo('sourcing-search', jobId ?? '-', 'processSearch', `Search failed: ${String(result.reason)}`);
         continue;
       }
-      if (i < apiSearches.length) {
-        serpResults.push(...(result.value as Array<{ title: string; price_usd: number; currency: string; url: string; image: string; seller: string | null; external_id: string | null; platform_code: string }>));
+      const val = result.value as any[];
+      if (!val.length) continue;
+      if ('price_usd' in (val[0] ?? {})) {
+        serpResults.push(...(val as typeof serpResults));
       } else {
-        playwrightProducts.push(...(result.value as ExternalProduct[]));
+        playwrightProducts.push(...(val as ExternalProduct[]));
       }
     }
 
@@ -416,18 +624,30 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
 
     // Step 4: Save results to DB (if full mode)
     if (jobId) {
+      // T-463: CNY → USD conversion rate (from DB or fallback)
+      const cnyRateRow = await prisma.currencyRate.findUnique({
+        where: { from_code_to_code: { from_code: 'CNY', to_code: 'UZS' } },
+      });
+      const usdRateRow = await prisma.currencyRate.findUnique({
+        where: { from_code_to_code: { from_code: 'USD', to_code: 'UZS' } },
+      });
+      const cnyToUsd = (cnyRateRow && usdRateRow)
+        ? Number(cnyRateRow.rate) / Number(usdRateRow.rate)
+        : 0.138; // fallback: ~1 CNY = 0.138 USD
+
       // Save SerpAPI results
       for (const item of serpResults) {
         const platId = platformMap.get(item.platform_code);
         if (!platId) continue;
+        const priceUsd = item.currency === 'CNY' ? item.price_usd * cnyToUsd : item.price_usd;
         await prisma.externalSearchResult.create({
           data: {
             job_id: jobId,
             platform_id: platId,
             external_id: item.external_id,
             title: item.title,
-            price_usd: item.price_usd,
-            price_local: item.price_usd,
+            price_usd: priceUsd,          // USD da saqlanadi (cargo calc uchun)
+            price_local: item.price_usd,  // original (CNY yoki USD)
             currency: item.currency,
             url: item.url,
             image_url: item.image || null,
@@ -438,7 +658,7 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
 
       // Save Playwright results
       for (const item of playwrightProducts) {
-        const code = item.source === 'BANGGOOD' ? 'banggood' : 'shopee';
+        const code = item.source.toLowerCase(); // BANGGOOD→banggood, DHGATE→dhgate, ALIEXPRESS→aliexpress, etc.
         const platId = platformMap.get(code);
         if (!platId) continue;
         const priceNum = parseFloat(String(item.price).replace(/[^0-9.]/g, '')) || 0;
@@ -624,8 +844,8 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
 
     return combined;
   } finally {
-    await context.close();
-    await browserPool.release();
+    if (context) await context.close().catch(() => {});
+    if (needsPlaywright) await browserPool.release().catch(() => {});
   }
 }
 

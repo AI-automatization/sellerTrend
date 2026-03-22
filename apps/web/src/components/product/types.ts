@@ -18,5 +18,6 @@ export const SOURCE_META: Record<string, { label: string; flag: string; color: s
   ALIEXPRESS:    { label: 'AliExpress',    flag: '\uD83D\uDECD\uFE0F', color: 'badge-error' },
   DHGATE:        { label: 'DHgate',        flag: '\uD83C\uDFEA', color: 'badge-accent' },
   MADE_IN_CHINA: { label: 'MadeInChina',   flag: '\uD83C\uDFED', color: 'badge-neutral' },
-  SERPAPI:        { label: 'Google',        flag: '\uD83D\uDD0D', color: 'badge-info' },
+  SERPAPI:         { label: 'Google',         flag: '\uD83D\uDD0D', color: 'badge-info' },
+  GOOGLE_SHOPPING: { label: 'Google Shopping', flag: '\uD83D\uDD0D', color: 'badge-info' },
 };

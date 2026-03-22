@@ -1,7 +1,39 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
-# Yangilangan: 2026-03-14
+# Yangilangan: 2026-03-23
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
+
+### T-464 | BACKEND | Sourcing — Playwright scrapers ixtiyoriy (2026-03-23)
+
+**Manba:** ai-tahlil (2026-03-23)
+**Muammo:** Banggood va Shopee scrapers bot protection tufayli 0 natija qaytaradi, lekin har safar Playwright brauzer ochib, vaqt va resurs sarflaydi.
+**Yechim:** `SERPAPI_API_KEY` bo'lsa Playwright o'chiriladi (default). `ENABLE_PLAYWRIGHT_SCRAPERS=true` env o'rnatilsa yoqiladi. `playwrightEnabled` flag bilan shartli ravishda `browser/context` ochiladi, `playwrightCalls` array bo'sh bo'ladi.
+**Fayllar:** `apps/worker/src/processors/sourcing.processor.ts`
+**Ta'sir:** SERPAPI rejimida pipeline ~2-3x tezroq — Playwright overhead yo'q. Bright Data proxy qo'shilganda `ENABLE_PLAYWRIGHT_SCRAPERS=true` orqali qaytariladi.
+
+### T-463 | FRONTEND | GOOGLE_SHOPPING badge label fix (2026-03-23)
+
+**Manba:** kod-audit (2026-03-23)
+**Muammo:** `SOURCE_META` da `GOOGLE_SHOPPING` key yo'q edi — items `platform.code = "google_shopping"` → `sourceKey = "GOOGLE_SHOPPING"` → fallback `{ label: sourceKey, flag: '🌐' }` → UI da xom kod ko'rinardi.
+**Yechim:** `types.ts` ga `GOOGLE_SHOPPING: { label: 'Google Shopping', flag: '🔍', color: 'badge-info' }` qo'shildi.
+**Fayllar:** `apps/web/src/components/product/types.ts`
+**Ta'sir:** Global Bozor Taqqoslash da "Google Shopping" badge to'g'ri nom bilan ko'rinadi.
+
+### T-462 | BACKEND | Sourcing — Xitoy ulgurji bozori integratsiyasi (2026-03-23)
+
+**Manba:** user-feedback (2026-03-23)
+**Muammo:** Sourcing pipeline faqat inglizcha query + SerpAPI Google Shopping ishlatardi. Xitoy ulgurji narxlari (1688, Taobao, Alibaba) ko'rinmasdi. `aliexpress_search` va `baidu_shopping` SerpAPI engine'lari current plan da HTTP 400 qaytaradi.
+**Yechim:** 4 parallel SerpAPI `google_shopping` query: (1) inglizcha query, (2) xitoycha query (Claude Haiku tarjima), (3) `{enQuery} wholesale bulk price` (platform: aliexpress), (4) `{cnQuery} 批发` (platform: alibaba). `aiGenerateQuery()` ga `cn_query` (xitoycha) qaytarildi. `PLATFORM_CURRENCY` map qo'shildi, CNY→USD konversiya logic bor (currencyRate table orqali, fallback 0.138).
+**Fayllar:** `apps/worker/src/processors/sourcing.processor.ts`
+**Ta'sir:** Natijalar 0 → 20 ta (eski pipeline ishlamagan edi). Ulgurji narxlar (`批发` query) import margin hisoblash uchun real ma'lumot beradi.
+
+### T-461 | BACKEND | Sourcing job — global 90s timeout (2026-03-23)
+
+**Manba:** production-bug (2026-03-22)
+**Muammo:** `runFullPipeline()` da global timeout yo'q edi — Playwright hang bo'lsa job abadiy `RUNNING` statusida qolardi.
+**Yechim:** `Promise.race([Promise.allSettled([...searches]), timeoutPromise])` — 90 sekund global timeout. Timeout bo'lsa `FAILED` status + `error_message: "Pipeline timeout after 90000ms"`.
+**Fayllar:** `apps/worker/src/processors/sourcing.processor.ts`
+**Ta'sir:** Job endi maksimal 90s da yakunlanadi (DONE yoki FAILED). Foydalanuvchi cheksiz spinner ko'rmaydi.
 
 ### T-459 | BACKEND | Banggood title selector fix — sourcing scraper (2026-03-18)
 
