@@ -21,7 +21,7 @@ interface GlobalPriceComparisonProps {
   usdRate: number;
 }
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 8;
 
 export function GlobalPriceComparison({
   items, loading, jobStatus, uzumPrice, usdRate,
@@ -107,8 +107,8 @@ export function GlobalPriceComparison({
             <span className="loading loading-spinner loading-xs" />
             Global platformalardan narxlar qidirilmoqda...
           </p>
-          <div className="grid grid-cols-2 gap-3">
-            {Array.from({ length: 6 }).map((_, i) => (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="bg-base-300/50 rounded-xl p-3 animate-pulse space-y-2">
                 <div className="flex gap-2">
                   <div className="w-12 h-12 shrink-0 rounded-lg bg-base-content/10" />
@@ -150,7 +150,7 @@ export function GlobalPriceComparison({
       {/* Product grid */}
       {!loading && sorted.length > 0 && (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
             {visible.map((item, i) => {
               const sourceKey = (item.platform ?? item.source ?? '').toUpperCase();
               const meta = SOURCE_META[sourceKey] ?? { label: sourceKey || 'Global', flag: '🌐', color: 'badge-ghost' };
