@@ -10,10 +10,10 @@
 ## STATISTIKA
 
 ```
-Ochiq:       ~33 ta
+Ochiq:       ~34 ta
 Bajarilgan:  ~180+ ta (Done.md)
-Oxirgi T-#:  T-460
-Keyingi T-#: T-461 dan boshlash
+Oxirgi T-#:  T-461
+Keyingi T-#: T-462 dan boshlash
 ```
 
 ---
@@ -2176,6 +2176,50 @@ export function useChat() {
 - `apps/web/src/i18n/en.ts` — +chat keys
 
 **Bog'liqlik:** T-432 (backend SSE endpoint tayyor bo'lishi kerak)
+
+---
+
+# ═══════════════════════════════════════════════════════════
+# WORKER BUGS
+# ═══════════════════════════════════════════════════════════
+
+### T-461 | P1 | BACKEND | Sourcing job — Playwright hang, global timeout yo'q | 1h
+
+**Sana:** 2026-03-22
+**Manba:** production-bug (manual test — job RUNNING da abadiy qoldi, 2026-03-22)
+**Topilgan joyda:** `apps/worker/src/processors/sourcing.processor.ts:392`
+**Mas'ul:** —
+
+**Tahlil:**
+`runFullPipeline()` da `Promise.allSettled([...apiSearches, scrapeBanggood(), scrapeShopee()])` chaqiriladi.
+`scrapeBanggood` va `scrapeShopee` Playwright ishlatadi — `page.goto()` va `waitForTimeout()` bor lekin
+umumiy pipeline timeout yo'q. Agar Playwright brauzer hang bo'lsa yoki site javob bermasa, job
+cheksiz `RUNNING` statusida qoladi, hech qachon `DONE` yoki `FAILED` ga o'tmaydi. Test paytida
+3+ daqiqa `RUNNING` da qoldi.
+
+Qo'shimcha: `BRIGHT_DATA_USERNAME` `.env` da bo'lsa, BrowserPool CDP ga ulanmoqchi bo'ladi (12s timeout),
+keyin local Chromium ga fallback. Bu ham qo'shimcha kechikish beradi.
+
+**Muammo:**
+1. `runFullPipeline()` da global timeout yo'q — Playwright hang bo'lsa job abadiy `RUNNING`
+2. `page.goto()` da default timeout (30s) lekin scroll + wait bilan jami 20s+ ketadi
+3. Job stuck bo'lganda foydalanuvchi UI da cheksiz spinner ko'radi
+
+**Yechim:**
+1. `runFullPipeline()` ni `Promise.race()` bilan global timeout (90s) ga o'rash:
+   ```typescript
+   const PIPELINE_TIMEOUT_MS = 90_000;
+   const result = await Promise.race([
+     runPipelineInternal(data),
+     new Promise((_, reject) => setTimeout(() => reject(new Error('Pipeline timeout')), PIPELINE_TIMEOUT_MS)),
+   ]);
+   ```
+2. Playwright `page.goto()` da `timeout: 20000` explicit berish
+3. Job timeout bo'lsa `status: 'FAILED'`, `error_message: 'Timeout'` yozish
+4. `scrapeBanggood` va `scrapeShopee` ni alohida `Promise.race()` bilan 30s timeout
+
+**Fayllar:**
+- `apps/worker/src/processors/sourcing.processor.ts`
 
 ---
 
