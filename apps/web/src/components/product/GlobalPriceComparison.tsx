@@ -21,27 +21,23 @@ interface GlobalPriceComparisonProps {
   usdRate: number;
 }
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 6;
 
 export function GlobalPriceComparison({
   items, loading, jobStatus, uzumPrice, usdRate,
 }: GlobalPriceComparisonProps) {
   const [page, setPage] = useState(1);
-  const USD_RATE = usdRate;
-
-  const totalPages = Math.ceil(items.length / PAGE_SIZE);
-  const visible = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   function parsePrice(item: any): number | null {
     if (typeof item.price_usd === 'number' && item.price_usd > 0) {
-      return item.price_usd * USD_RATE;
+      return item.price_usd * usdRate;
     }
     if (typeof item.price === 'string') {
       const m = item.price.match(/[\d.,]+/);
       if (!m) return null;
       const n = parseFloat(m[0].replace(',', '.'));
       if (isNaN(n)) return null;
-      if (item.price.includes('$') || n < 10000) return n * USD_RATE;
+      if (item.price.includes('$') || n < 10000) return n * usdRate;
       return n;
     }
     return null;
@@ -57,8 +53,18 @@ export function GlobalPriceComparison({
     return { text: 'Zarar', cls: 'text-error', bg: 'bg-error/10 border-error/30' };
   }
 
-  const allPrices = items.map(parsePrice).filter((p): p is number => p !== null);
-  const minExtPrice = allPrices.length ? Math.min(...allPrices) : null;
+  // Narx bo'yicha o'sish tartibida sort (null narxlar oxirida)
+  const sorted = [...items].sort((a, b) => {
+    const pa = parsePrice(a) ?? Infinity;
+    const pb = parsePrice(b) ?? Infinity;
+    return pa - pb;
+  });
+
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
+  const visible = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const allPrices = sorted.map(parsePrice).filter((p): p is number => p !== null);
+  const minExtPrice = allPrices.length ? allPrices[0] : null; // sorted, so first = min
 
   return (
     <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-6 space-y-5">
@@ -71,7 +77,7 @@ export function GlobalPriceComparison({
             Global Bozor Taqqoslash
           </h2>
           <p className="text-xs text-base-content/50 mt-0.5">
-            1688 · Taobao · Alibaba · Banggood · Shopee · Google Shopping
+            Alibaba · AliExpress · DHgate · Shopee · Google Shopping
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -101,15 +107,17 @@ export function GlobalPriceComparison({
             <span className="loading loading-spinner loading-xs" />
             Global platformalardan narxlar qidirilmoqda...
           </p>
-          <div className="space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex gap-4 bg-base-300/50 rounded-2xl p-4 animate-pulse">
-                <div className="w-20 h-20 shrink-0 rounded-xl bg-base-content/10" />
-                <div className="flex-1 space-y-2 py-1">
-                  <div className="h-3 bg-base-content/10 rounded w-3/4" />
-                  <div className="h-3 bg-base-content/10 rounded w-1/2" />
-                  <div className="h-5 bg-base-content/10 rounded w-1/3" />
+          <div className="grid grid-cols-2 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-base-300/50 rounded-xl p-3 animate-pulse space-y-2">
+                <div className="flex gap-2">
+                  <div className="w-12 h-12 shrink-0 rounded-lg bg-base-content/10" />
+                  <div className="flex-1 space-y-1.5 pt-0.5">
+                    <div className="h-2.5 bg-base-content/10 rounded w-2/3" />
+                    <div className="h-2.5 bg-base-content/10 rounded w-1/2" />
+                  </div>
                 </div>
+                <div className="h-4 bg-base-content/10 rounded w-1/3" />
               </div>
             ))}
           </div>
@@ -139,106 +147,109 @@ export function GlobalPriceComparison({
         </div>
       )}
 
-      {/* Product list — overflow scroll */}
-      {!loading && items.length > 0 && (
+      {/* Product grid */}
+      {!loading && sorted.length > 0 && (
         <div className="space-y-3">
-          <div className="max-h-[560px] overflow-y-auto space-y-3 pr-1">
+          <div className="grid grid-cols-2 gap-2.5">
             {visible.map((item, i) => {
               const sourceKey = (item.platform ?? item.source ?? '').toUpperCase();
               const meta = SOURCE_META[sourceKey] ?? { label: sourceKey || 'Global', flag: '🌐', color: 'badge-ghost' };
               const extPriceUzs = parsePrice(item);
               const mg = extPriceUzs ? marginInfo(extPriceUzs) : null;
               const rank = (page - 1) * PAGE_SIZE + i + 1;
+              const isLowest = rank === 1 && page === 1;
 
               return (
                 <div
                   key={`${page}-${i}`}
-                  className="group flex gap-3 sm:gap-4 bg-base-100/50 border border-base-300/40 hover:border-primary/30 hover:bg-base-100/80 rounded-2xl p-3 sm:p-4 transition-all duration-200"
+                  className={`group relative flex flex-col gap-2 bg-base-100/60 border rounded-xl p-3 transition-all duration-200 hover:shadow-md hover:bg-base-100/90 ${
+                    isLowest ? 'border-success/40 bg-success/5' : 'border-base-300/40 hover:border-primary/30'
+                  }`}
                 >
-                  {/* Rank */}
-                  <div className="shrink-0 w-6 flex items-start justify-center pt-1">
-                    <span className="text-xs font-bold text-base-content/25 tabular-nums">{rank}</span>
+                  {/* Rank badge */}
+                  <span className="absolute top-2 right-2 text-[10px] font-bold text-base-content/20 tabular-nums">
+                    #{rank}
+                  </span>
+
+                  {/* Image + platform */}
+                  <div className="flex gap-2 items-start">
+                    <div className="shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-base-200 border border-base-300/30 flex items-center justify-center">
+                      {(item.image ?? item.image_url) ? (
+                        <img
+                          src={item.image ?? item.image_url}
+                          alt={item.title}
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <CubeIcon className="w-6 h-6 text-base-content/20" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0 pt-0.5 space-y-1">
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <span className={`badge badge-xs ${meta.color} gap-0.5 shrink-0`}>
+                          {meta.flag} {meta.label}
+                        </span>
+                        {isLowest && (
+                          <span className="badge badge-xs badge-success shrink-0">Eng arzon</span>
+                        )}
+                      </div>
+                      <p className="text-xs leading-snug line-clamp-2 text-base-content/80 font-medium">
+                        {item.title}
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Image */}
-                  <div className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-base-200 border border-base-300/30 flex items-center justify-center">
-                    {(item.image ?? item.image_url) ? (
-                      <img
-                        src={item.image ?? item.image_url}
-                        alt={item.title}
-                        className="w-full h-full object-contain"
-                        onError={(e) => {
-                          const el = e.target as HTMLImageElement;
-                          el.style.display = 'none';
-                          el.parentElement!.classList.add('flex', 'items-center', 'justify-center');
-                        }}
-                      />
-                    ) : (
-                      <CubeIcon className="w-8 h-8 text-base-content/20" />
-                    )}
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-                    {/* Platform badge + margin */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`badge badge-xs ${meta.color} gap-1`}>
-                        {meta.flag} {meta.label}
-                      </span>
+                  {/* Price row */}
+                  <div className="flex items-end justify-between gap-1 mt-auto">
+                    <div>
+                      <p className="font-bold text-base text-primary leading-none">
+                        {item.price ?? `$${(item.price_usd as number)?.toFixed(2)}`}
+                      </p>
+                      {extPriceUzs && (
+                        <p className="text-[11px] text-base-content/40 mt-0.5">
+                          ≈ {extPriceUzs.toLocaleString()} so'm
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
                       {mg && (
-                        <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-md border ${mg.bg} ${mg.cls}`}>
-                          {mg.text} margin
+                        <span className={`text-[10px] font-bold px-1 py-0.5 rounded border ${mg.bg} ${mg.cls}`}>
+                          {mg.text}
+                        </span>
+                      )}
+                      {(item.link ?? item.url) && (item.link ?? item.url) !== '#' && (
+                        <a
+                          href={item.link ?? item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-primary btn-xs p-1 min-h-0 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Ko'rish"
+                        >
+                          <ArrowTopRightOnSquareIcon className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Store + AI match */}
+                  {(item.store ?? item.seller_name ?? item.ai_match_score != null) && (
+                    <div className="flex items-center justify-between gap-1 pt-1 border-t border-base-300/20">
+                      {(item.store ?? item.seller_name) && (
+                        <span className="text-[10px] text-base-content/35 truncate">
+                          {item.store ?? item.seller_name}
                         </span>
                       )}
                       {item.ai_match_score != null && (
-                        <span className="text-xs text-base-content/40 ml-auto hidden sm:flex items-center gap-1">
-                          <SparklesIcon className="w-3 h-3" />
-                          {(item.ai_match_score * 100).toFixed(0)}% mos
+                        <span className="text-[10px] text-base-content/35 flex items-center gap-0.5 shrink-0 ml-auto">
+                          <SparklesIcon className="w-2.5 h-2.5" />
+                          {(item.ai_match_score * 100).toFixed(0)}%
                         </span>
                       )}
                     </div>
-
-                    {/* Title */}
-                    <p className="text-sm leading-snug line-clamp-2 text-base-content/85 font-medium">
-                      {item.title}
-                    </p>
-
-                    {/* Price + actions */}
-                    <div className="flex items-end justify-between flex-wrap gap-2">
-                      <div>
-                        <p className="font-bold text-lg text-primary leading-none">
-                          {item.price ?? `$${(item.price_usd as number)?.toFixed(2)}`}
-                        </p>
-                        {extPriceUzs && (
-                          <p className="text-xs text-base-content/40 mt-0.5">
-                            ≈ {extPriceUzs.toLocaleString()} so'm
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {(item.store ?? item.seller_name) && (
-                          <span className="text-xs text-base-content/40 hidden sm:block truncate max-w-28">
-                            {item.store ?? item.seller_name}
-                          </span>
-                        )}
-                        {(item.link ?? item.url) && (item.link ?? item.url) !== '#' && (
-                          <a
-                            href={item.link ?? item.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="btn btn-primary btn-xs gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            Ko'rish
-                            <ArrowTopRightOnSquareIcon className="w-3 h-3" />
-                          </a>
-                        )}
-                        <Link to="/sourcing" className="btn btn-ghost btn-xs" title="Cargo hisoblash">
-                          <CalculatorIcon className="w-4 h-4" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </div>
               );
             })}
@@ -248,7 +259,7 @@ export function GlobalPriceComparison({
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-1">
               <p className="text-xs text-base-content/40">
-                {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, items.length)} / {items.length} ta natija
+                {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, sorted.length)} / {sorted.length} ta natija
               </p>
               <div className="join">
                 <button
@@ -272,7 +283,7 @@ export function GlobalPriceComparison({
                       <button
                         key={p}
                         className={`join-item btn btn-sm rounded-lg ${page === p ? 'btn-primary' : 'btn-ghost'}`}
-                        onClick={() => setPage(p as number)}
+                        onClick={() => { setPage(p as number); }}
                       >
                         {p}
                       </button>
