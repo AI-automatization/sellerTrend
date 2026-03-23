@@ -40,7 +40,8 @@ export function useDashboardData() {
       a.href = url;
       a.download = `ventra-products-${formatISODate()}.csv`;
       a.click();
-      window.URL.revokeObjectURL(url);
+      // Revoke after browser processes the click (async)
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
     } catch (err: unknown) { toastError(err, 'CSV eksport xatosi'); } finally {
       setExporting(false);
     }

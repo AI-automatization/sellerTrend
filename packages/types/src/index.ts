@@ -257,3 +257,5 @@ export interface CategoryDiscoveryJobData {
   accountId: string;
   categoryUrl?: string; // full Uzum category URL for Playwright scraping
 }
+
+export * from './uzum-graphql.types';

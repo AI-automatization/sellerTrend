@@ -607,7 +607,7 @@ export class AdminController {
     try {
       const data = await this.logService.getExportUsersData();
 
-      const headers = ['id', 'email', 'role', 'is_active', 'account_id', 'account_name', 'account_status', 'account_balance', 'created_at'];
+      const headers = ['id', 'email', 'role', 'is_active', 'account_id', 'account_name', 'account_status', 'created_at'];
       const csvRows = [headers.join(',')];
 
       for (const row of data) {
@@ -668,6 +668,12 @@ export class AdminController {
         res.status(500).json({ statusCode: 500, message: 'Export failed' });
       }
     }
+  }
+
+  /** T-437 — Marketplace TOP mahsulotlar snapshots tarixi */
+  @Get('marketplace/top-products')
+  getMarketplaceTopProducts(@Query('limit') limit?: string) {
+    return this.statsService.getMarketplaceTopProducts(limit ? parseInt(limit) : 10);
   }
 
   /** Export — Activity CSV */

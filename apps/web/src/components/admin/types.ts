@@ -6,9 +6,8 @@ export interface Account {
   id: string;
   name: string;
   phone: string | null;
-  status: 'ACTIVE' | 'PAYMENT_DUE' | 'SUSPENDED';
-  balance: string;
-  daily_fee: string | null;
+  status: 'ACTIVE' | 'SUSPENDED';
+  plan: string;
   created_at: string;
   users: { id: string; email: string; role: Role }[];
   transaction_count: number;

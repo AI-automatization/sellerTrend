@@ -142,6 +142,15 @@ export class ProductsController {
     return this.productsService.getWeeklyTrend(productId, accountId);
   }
 
+  /** Bugungi kunlik sotuv vs kechagi sotuv taqqoslash */
+  @Get(':id/daily-comparison')
+  dailyComparison(
+    @Param('id', ParseBigIntPipe) productId: bigint,
+    @CurrentUser('account_id') accountId: string,
+  ) {
+    return this.productsService.getDailyComparison(productId, accountId);
+  }
+
   /** AI-powered trend analysis */
   @Get(':id/trend-analysis')
   @ActivityAction('PRODUCT_TREND_ANALYSIS')
@@ -168,5 +177,14 @@ export class ProductsController {
         predicted_sales_7d: forecast.sales_forecast.predictions[6]?.value ?? null,
       },
     };
+  }
+
+  /** Nasiya (installment) ma'lumotlari — barcha SKU lar uchun (T-436) */
+  @Get(':id/installments')
+  getInstallments(
+    @Param('id', ParseBigIntPipe) productId: bigint,
+    @CurrentUser('account_id') accountId: string,
+  ) {
+    return this.productsService.getInstallments(productId, accountId);
   }
 }

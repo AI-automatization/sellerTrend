@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useI18n } from '../i18n/I18nContext';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -6,7 +6,8 @@ import { uzumApi, productsApi, sourcingApi } from '../api/client';
 import { getErrorMessage } from '../utils/getErrorMessage';
 import { logError } from '../utils/handleError';
 import { formatDateTime, formatWeekdayDate } from '../utils/formatDate';
-import { ScoreChart } from '../components/ScoreChart';
+
+const ScoreChart = lazy(() => import('../components/ScoreChart'));
 import {
   AreaChart,
   Area,
@@ -29,7 +30,7 @@ import {
   GlobalPriceComparison,
 } from '../components/product';
 import type { ExternalItem } from '../components/product';
-import type { AnalyzeResult, WeeklyTrend, Forecast, Snapshot, MlForecast, TrendAnalysis } from '../api/types';
+import type { AnalyzeResult, WeeklyTrend, Forecast, Snapshot, MlForecast, TrendAnalysis, ProductDetail } from '../api/types';
 import { glassTooltip, CHART_ANIMATION_MS } from '../utils/formatters';
 
 
@@ -39,6 +40,7 @@ export function ProductPage() {
   const navigate = useNavigate();
 
   const [result, setResult] = useState<AnalyzeResult | null>(null);
+  const [productDetail, setProductDetail] = useState<ProductDetail | null>(null);
   const [snapshots, setSnapshots] = useState<{ date: string; score: number; orders: number }[]>([]);
   const [forecast, setForecast] = useState<Forecast | null>(null);
   const [loading, setLoading] = useState(true);
@@ -85,13 +87,15 @@ export function ProductPage() {
     else setLoading(true);
     setError('');
     try {
-      const [analyzeRes, snapRes, forecastRes] = await Promise.all([
+      const [analyzeRes, snapRes, forecastRes, detailRes] = await Promise.all([
         uzumApi.analyzeById(id),
         productsApi.getSnapshots(id).catch(() => ({ data: [] })),
         productsApi.getForecast(id).catch(() => ({ data: null })),
+        productsApi.getProduct(id).catch(() => ({ data: null })),
       ]);
       if (controller.signal.aborted) return;
       setResult(analyzeRes.data);
+      if (detailRes.data) setProductDetail(detailRes.data);
       if (analyzeRes.data.is_tracked) setTracked(true);
       const snaps: Snapshot[] = snapRes.data;
       const MONTHS = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn', 'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'];
@@ -204,6 +208,7 @@ export function ProductPage() {
     setMlForecast(null);
     setTrendAnalysis(null);
     setWeeklyTrend(null);
+    setProductDetail(null);
     try { setIsMine(localStorage.getItem(`mine_${id}`) === '1'); } catch { /* ignore */ }
   }, [id]);
 
@@ -308,6 +313,26 @@ export function ProductPage() {
             {t('product.viewOnUzum')}
           </a>
         </div>
+        {/* Delivery info row */}
+        {(productDetail?.delivery_type || productDetail?.seller_discount != null) && (
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            {productDetail.delivery_type && (
+              <span className="badge badge-outline badge-sm gap-1">
+                🚚 {productDetail.delivery_type}
+              </span>
+            )}
+            {productDetail.delivery_date && (
+              <span className="badge badge-outline badge-sm text-base-content/50">
+                {productDetail.delivery_date}
+              </span>
+            )}
+            {productDetail.seller_discount != null && productDetail.seller_discount > 0 && (
+              <span className="badge badge-warning badge-sm">
+                Seller −{productDetail.seller_discount}%
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Key metrics */}
@@ -354,12 +379,35 @@ export function ProductPage() {
           icon={<svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>}
         />
         {result.sell_price != null && (
-          <StatCard
-            label={t('product.price')}
-            value={`${result.sell_price.toLocaleString()} ${t('sourcing.currency')}`}
-            sub={t('product.minSkuPrice')} accent="text-accent"
-            icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>}
-          />
+          <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 lg:p-4">
+            <div className="flex items-start justify-between mb-1">
+              <p className="text-xs text-base-content/50">{t('product.price')}</p>
+              <svg className="w-4 h-4 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+            </div>
+            <p className={`font-bold text-lg tabular-nums leading-tight ${
+              productDetail?.uzum_card_price != null && productDetail.uzum_card_price < result.sell_price
+                ? 'line-through text-base-content/40 text-base'
+                : 'text-accent'
+            }`}>
+              {result.sell_price.toLocaleString()} {t('sourcing.currency')}
+            </p>
+            {productDetail?.uzum_card_price != null && productDetail.uzum_card_price < result.sell_price && (
+              <p className="font-bold text-accent tabular-nums">
+                {productDetail.uzum_card_price.toLocaleString()} {t('sourcing.currency')}
+                {productDetail.uzum_card_discount != null && (
+                  <span className="ml-1 text-xs font-bold text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded-full">
+                    −{productDetail.uzum_card_discount}%
+                  </span>
+                )}
+              </p>
+            )}
+            <div className="flex items-center gap-1 mt-1 flex-wrap">
+              <p className="text-xs text-base-content/40">{t('product.minSkuPrice')}</p>
+              {productDetail?.is_best_price && (
+                <span className="text-[9px] font-bold text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded-full">best price</span>
+              )}
+            </div>
+          </div>
         )}
         <StatCard
           label={t('product.inventory')}
@@ -728,7 +776,9 @@ export function ProductPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
               <div>
                 <p className="text-xs text-base-content/50 mb-2">{t('product.scoreHistory')}</p>
-                <ScoreChart data={snapshots} />
+                <Suspense fallback={<div className="h-[200px] skeleton" />}>
+                  <ScoreChart data={snapshots} />
+                </Suspense>
               </div>
               <div>
                 <p className="text-xs text-base-content/50 mb-2">{t('product.salesHistory')}</p>

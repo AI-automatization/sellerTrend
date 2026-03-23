@@ -323,8 +323,7 @@ export const ru: Record<string, string> = {
     'error.AUTH_TOKEN_EXPIRED': 'Сессия истекла, войдите снова',
     'error.AUTH_ACCOUNT_DISABLED': 'Аккаунт отключён',
     'error.AUTH_BRUTE_FORCE_LOCKED': 'Слишком много попыток, подождите 15 минут',
-    'error.BILLING_PAYMENT_DUE': 'Требуется оплата',
-    'error.BILLING_INSUFFICIENT_BALANCE': 'Недостаточно средств',
+    'error.BILLING_PLAN_REQUIRED': 'Необходимо обновить тариф',
     'error.PRODUCT_NOT_FOUND': 'Товар не найден',
     'error.PRODUCT_ALREADY_TRACKED': 'Товар уже отслеживается',
     'error.DISCOVERY_INVALID_INPUT': 'Неверный URL или ID категории',
@@ -1414,4 +1413,17 @@ export const ru: Record<string, string> = {
     // ── Streak ──────────────────────────────────────────────────────────────
     'streak.days': '{n} дней подряд',
     'streak.tooltip': 'Серия входов',
+
+    // ── AI Chat ─────────────────────────────────────────────────────────────
+    'chat.title': 'AI Ассистент',
+    'chat.placeholder': 'Напишите вопрос...',
+    'chat.send': 'Отправить',
+    'chat.history': 'История чатов',
+    'chat.newChat': 'Новый чат',
+    'chat.thinking': 'Думаю...',
+    'chat.error': 'Произошла ошибка. Попробуйте ещё раз.',
+    'chat.feedbackThanks': 'Спасибо за отзыв!',
+    'chat.noConversations': 'Пока нет чатов',
+    'chat.deleteConfirm': 'Удалить этот чат?',
+    'chat.planRequired': 'Чат доступен в тарифе MAX',
 };

@@ -126,9 +126,7 @@ export interface UseAdminDataReturn {
 
   // Computed
   activeAccounts: number;
-  dueAccounts: number;
   suspendedAccounts: number;
-  totalBalance: number;
   activeUsers: number;
 
   // Reload
@@ -340,7 +338,7 @@ export function useAdminData(): UseAdminDataReturn {
     try {
       await adminApi.updateAccountStatus(accountId, status);
       setAccounts((prev) => prev.map((a) => a.id === accountId ? { ...a, status: status as Account['status'] } : a));
-      const labels: Record<string, string> = { ACTIVE: 'faollashtirildi', SUSPENDED: 'bloklandi', PAYMENT_DUE: 'to\'lov kerak' };
+      const labels: Record<string, string> = { ACTIVE: 'faollashtirildi', SUSPENDED: 'bloklandi' };
       toast.success(`Account ${labels[status] ?? status}`);
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, 'Statusni o\'zgartirib bo\'lmadi'));
@@ -451,9 +449,7 @@ export function useAdminData(): UseAdminDataReturn {
   // ─── Computed values ───────────────────────────────────────────────────────
 
   const activeAccounts = useMemo(() => accounts.filter((a) => a.status === 'ACTIVE').length, [accounts]);
-  const dueAccounts = useMemo(() => accounts.filter((a) => a.status === 'PAYMENT_DUE').length, [accounts]);
   const suspendedAccounts = useMemo(() => accounts.filter((a) => a.status === 'SUSPENDED').length, [accounts]);
-  const totalBalance = useMemo(() => accounts.reduce((s, a) => s + Number(a.balance), 0), [accounts]);
   const activeUsers = useMemo(() => users.filter((u) => u.is_active).length, [users]);
 
   const currentTab = useMemo(() => ({
@@ -488,7 +484,7 @@ export function useAdminData(): UseAdminDataReturn {
     sendNotification,
     templates, newTmplName, setNewTmplName, newTmplMsg, setNewTmplMsg,
     newTmplType, setNewTmplType, createTemplate, deleteTemplate, onUseTemplate,
-    activeAccounts, dueAccounts, suspendedAccounts, totalBalance, activeUsers,
+    activeAccounts, suspendedAccounts, activeUsers,
     load,
   };
 }

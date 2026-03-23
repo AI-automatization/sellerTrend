@@ -38,6 +38,7 @@ import { useTheme } from '../hooks/useTheme';
 import type { Lang } from '../i18n/translations';
 import { WhatsNew, useHasUnseenUpdates } from './WhatsNew';
 import { StreakBadge } from './StreakBadge';
+import { ChatWidget } from './chat/ChatWidget';
 import { AnalyzeModal } from './AnalyzeModal';
 import { SearchDrawer } from './SearchDrawer';
 
@@ -147,6 +148,13 @@ export function Layout() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, []);
+
+  // Handle 402 payment-due event dispatched by axios interceptor
+  useEffect(() => {
+    const handler = () => navigate('/billing');
+    window.addEventListener('payment-due', handler);
+    return () => window.removeEventListener('payment-due', handler);
+  }, [navigate]);
 
   const clearTokens = useAuthStore((s) => s.clearTokens);
 
@@ -440,6 +448,7 @@ export function Layout() {
       <WhatsNew externalOpen={showWhatsNew} onClose={() => setShowWhatsNew(false)} />
       <AnalyzeModal isOpen={isAnalyzeOpen} onClose={() => setIsAnalyzeOpen(false)} initialUrl={analyzeUrl} />
       <SearchDrawer isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      <ChatWidget />
     </div>
   );
 }

@@ -324,8 +324,7 @@ export const en: Record<string, string> = {
     'error.AUTH_TOKEN_EXPIRED': 'Session expired, please log in again',
     'error.AUTH_ACCOUNT_DISABLED': 'Account disabled',
     'error.AUTH_BRUTE_FORCE_LOCKED': 'Too many attempts, please wait 15 minutes',
-    'error.BILLING_PAYMENT_DUE': 'Payment overdue',
-    'error.BILLING_INSUFFICIENT_BALANCE': 'Insufficient balance',
+    'error.BILLING_PLAN_REQUIRED': 'Plan upgrade required',
     'error.PRODUCT_NOT_FOUND': 'Product not found',
     'error.PRODUCT_ALREADY_TRACKED': 'Product already tracked',
     'error.DISCOVERY_INVALID_INPUT': 'Invalid URL or category ID',
@@ -1425,4 +1424,17 @@ export const en: Record<string, string> = {
     // ── Streak ──────────────────────────────────────────────────────────────
     'streak.days': '{n} day streak',
     'streak.tooltip': 'Login streak',
+
+    // ── AI Chat ─────────────────────────────────────────────────────────────
+    'chat.title': 'AI Assistant',
+    'chat.placeholder': 'Ask a question...',
+    'chat.send': 'Send',
+    'chat.history': 'Chat history',
+    'chat.newChat': 'New chat',
+    'chat.thinking': 'Thinking...',
+    'chat.error': 'An error occurred. Please try again.',
+    'chat.feedbackThanks': 'Thanks for your feedback!',
+    'chat.noConversations': 'No conversations yet',
+    'chat.deleteConfirm': 'Delete this conversation?',
+    'chat.planRequired': 'Chat is available on MAX plan',
 };

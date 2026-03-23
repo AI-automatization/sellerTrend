@@ -707,4 +707,44 @@ export class AdminStatsService {
       by_status: byStatus.map((s) => ({ status: s.status, count: s._count.id })),
     };
   }
+
+  /** T-437 — TOP mahsulotlar marketplace snapshot tarixi */
+  async getMarketplaceTopProducts(limit = 10) {
+    const snapshots = await this.prisma.marketplaceSnapshot.findMany({
+      where: { type: 'top_products' },
+      orderBy: { captured_at: 'desc' },
+      take: limit,
+      select: { id: true, captured_at: true, data: true },
+    });
+
+    if (snapshots.length === 0) return { snapshots: [], trend: [] };
+
+    // Trend: qaysi mahsulotlar yangi paydo bo'ldi (oldingi snapshotda yo'q edi)
+    const latest = snapshots[0];
+    const prev = snapshots[1];
+
+    const latestIds = new Set(
+      (latest.data as Array<{ product_id: number }>).map((p) => p.product_id),
+    );
+    const prevIds = prev
+      ? new Set((prev.data as Array<{ product_id: number }>).map((p) => p.product_id))
+      : new Set<number>();
+
+    const newEntries = [...latestIds].filter((id) => !prevIds.has(id));
+    const dropped = [...prevIds].filter((id) => !latestIds.has(id));
+
+    return {
+      snapshots: snapshots.map((s) => ({
+        id: s.id,
+        captured_at: s.captured_at,
+        count: (s.data as unknown[]).length,
+        products: s.data,
+      })),
+      trend: {
+        new_products: newEntries,
+        dropped_products: dropped,
+        captured_at: latest.captured_at,
+      },
+    };
+  }
 }

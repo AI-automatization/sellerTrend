@@ -1,5 +1,5 @@
 import { api } from './base';
-import type { SearchProduct, SourcingComparison } from './types';
+import type { SearchProduct, SourcingComparison, InstallmentSkuData } from './types';
 
 export const productsApi = {
   getTracked: () => api.get('/products/tracked'),
@@ -17,6 +17,8 @@ export const productsApi = {
     api.post<{ tracked: boolean }>(`/products/search/${uzumProductId}/track`),
   getSourcingComparison: (productId: string) =>
     api.get<SourcingComparison>(`/products/${productId}/sourcing-comparison`),
+  getInstallments: (productId: string) =>
+    api.get<InstallmentSkuData[]>(`/products/${productId}/installments`),
 };
 
 export const uzumApi = {

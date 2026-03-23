@@ -22,7 +22,7 @@ async function aggregateOldSnapshots(jobId: string, jobName: string): Promise<nu
   const cutoff = daysAgo(RAW_SNAPSHOT_RETENTION_DAYS);
 
   // Find days that have raw snapshots older than retention but NOT yet aggregated
-  const rows = await prisma.$queryRaw<Array<{ product_id: bigint; day: Date; cnt: number; avg_score: number; max_wb: number; avg_rating: number; max_orders: bigint }>>`
+  const rows = await prisma.$queryRaw<Array<{ product_id: bigint; day: Date; cnt: number; avg_score: number; max_wb: number; avg_rating: number; max_orders: bigint; orders_delta: bigint | null }>>`
     SELECT
       ps.product_id,
       ps.snapshot_at::date AS day,
@@ -30,7 +30,13 @@ async function aggregateOldSnapshots(jobId: string, jobName: string): Promise<nu
       AVG(ps.score)::decimal(8,4) AS avg_score,
       MAX(ps.weekly_bought)::int AS max_wb,
       AVG(ps.rating)::decimal(3,2) AS avg_rating,
-      MAX(ps.orders_quantity) AS max_orders
+      MAX(ps.orders_quantity) AS max_orders,
+      MAX(ps.orders_quantity) - (
+        SELECT MAX(ps2.orders_quantity)
+        FROM product_snapshots ps2
+        WHERE ps2.product_id = ps.product_id
+          AND ps2.snapshot_at::date = (ps.snapshot_at::date - INTERVAL '1 day')::date
+      ) AS orders_delta
     FROM product_snapshots ps
     WHERE ps.snapshot_at < ${cutoff}
       AND NOT EXISTS (
@@ -61,6 +67,7 @@ async function aggregateOldSnapshots(jobId: string, jobName: string): Promise<nu
           max_weekly_bought: row.max_wb,
           avg_rating: row.avg_rating,
           max_orders: row.max_orders,
+          daily_orders_delta: row.orders_delta ?? null,
           snapshot_count: row.cnt,
         },
         update: {
@@ -68,6 +75,7 @@ async function aggregateOldSnapshots(jobId: string, jobName: string): Promise<nu
           max_weekly_bought: row.max_wb,
           avg_rating: row.avg_rating,
           max_orders: row.max_orders,
+          daily_orders_delta: row.orders_delta ?? null,
           snapshot_count: row.cnt,
         },
       });

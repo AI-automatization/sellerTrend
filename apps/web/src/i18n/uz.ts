@@ -339,8 +339,7 @@ export const uz: Record<string, string> = {
     'error.AUTH_TOKEN_EXPIRED': 'Sessiya muddati tugadi, qaytadan kiring',
     'error.AUTH_ACCOUNT_DISABLED': "Akkaunt o'chirilgan",
     'error.AUTH_BRUTE_FORCE_LOCKED': 'Juda ko\'p urinish, 15 daqiqa kuting',
-    'error.BILLING_PAYMENT_DUE': "To'lov muddati o'tgan",
-    'error.BILLING_INSUFFICIENT_BALANCE': 'Balans yetarli emas',
+    'error.BILLING_PLAN_REQUIRED': 'Tarifni oshirish kerak',
     'error.PRODUCT_NOT_FOUND': 'Mahsulot topilmadi',
     'error.PRODUCT_ALREADY_TRACKED': "Mahsulot allaqachon kuzatilmoqda",
     'error.DISCOVERY_INVALID_INPUT': "URL yoki kategoriya ID noto'g'ri",
@@ -1430,4 +1429,17 @@ export const uz: Record<string, string> = {
     // ── Streak ──────────────────────────────────────────────────────────────
     'streak.days': '{n} kun streak',
     'streak.tooltip': 'Kirish streak',
+
+    // ── AI Chat ─────────────────────────────────────────────────────────────
+    'chat.title': 'AI Yordamchi',
+    'chat.placeholder': 'Savolingizni yozing...',
+    'chat.send': 'Yuborish',
+    'chat.history': 'Suhbat tarixi',
+    'chat.newChat': 'Yangi suhbat',
+    'chat.thinking': "O'ylayapman...",
+    'chat.error': "Xato yuz berdi. Qayta urinib ko'ring.",
+    'chat.feedbackThanks': 'Fikringiz uchun rahmat!',
+    'chat.noConversations': "Hali suhbat yo'q",
+    'chat.deleteConfirm': "Bu suhbatni o'chirishni xohlaysizmi?",
+    'chat.planRequired': 'Chat MAX tarif rejasida mavjud',
 };

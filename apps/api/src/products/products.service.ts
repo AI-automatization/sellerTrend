@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UzumClient, UzumSearchProduct } from '../uzum/uzum.client';
 import { BrightDataClient } from '../bright-data/bright-data.client';
 import { REDIS_CLIENT } from '../common/redis/redis.module';
-import { forecastEnsemble, calcWeeklyBought } from '@uzum/utils';
+import { forecastEnsemble, calcWeeklyBought, calcInstallmentRate } from '@uzum/utils';
 import { RevenueEstimateResponse } from './dto/revenue-estimate.dto';
 
 /** Map niche keyword to Uzum category IDs */
@@ -458,6 +458,8 @@ export class ProductsService {
               select: {
                 id: true, product_id: true, orders_quantity: true, weekly_bought: true,
                 weekly_bought_source: true, rating: true, feedback_quantity: true, score: true, snapshot_at: true,
+                uzum_card_price: true, uzum_card_discount: true, seller_discount: true,
+                is_best_price: true, delivery_type: true, delivery_date: true,
               },
             },
             skus: {
@@ -504,6 +506,25 @@ export class ProductsService {
         }
       }
 
+      // Daily sold: delta between last 2 snapshots
+      let dailySold: number | null = null;
+      let dailySoldDelta: number | null = null;
+      if (snaps.length >= 2) {
+        const s0 = snaps[0];
+        const s1 = snaps[1];
+        const daysDiff = Math.max(0.5, (s0.snapshot_at.getTime() - s1.snapshot_at.getTime()) / (1000 * 60 * 60 * 24));
+        const ordersDiff = Math.max(0, Number(s0.orders_quantity ?? 0) - Number(s1.orders_quantity ?? 0));
+        dailySold = Math.round(ordersDiff / daysDiff);
+      }
+      if (snaps.length >= 3) {
+        const s1 = snaps[1];
+        const s2 = snaps[2];
+        const daysDiff = Math.max(0.5, (s1.snapshot_at.getTime() - s2.snapshot_at.getTime()) / (1000 * 60 * 60 * 24));
+        const ordersDiff = Math.max(0, Number(s1.orders_quantity ?? 0) - Number(s2.orders_quantity ?? 0));
+        const prevDailySold = Math.round(ordersDiff / daysDiff);
+        dailySoldDelta = dailySold !== null ? dailySold - prevDailySold : null;
+      }
+
       return {
         product_id: t.product.id.toString(),
         title: t.product.title,
@@ -514,10 +535,18 @@ export class ProductsService {
         prev_score: prevScore,
         trend,
         weekly_bought: weeklyBought,
+        daily_sold: dailySold,
+        daily_sold_delta: dailySoldDelta,
         sell_price: sku?.min_sell_price ? Number(sku.min_sell_price) : null,
         total_available_amount: t.product.total_available_amount?.toString() ?? null,
         photo_url: t.product.photo_url ?? null,
         tracked_since: t.created_at,
+        uzum_card_price: latest?.uzum_card_price ? Number(latest.uzum_card_price) : null,
+        uzum_card_discount: latest?.uzum_card_discount ?? null,
+        seller_discount: latest?.seller_discount ?? null,
+        is_best_price: latest?.is_best_price ?? null,
+        delivery_type: latest?.delivery_type ?? null,
+        delivery_date: latest?.delivery_date ?? null,
       };
     });
   }
@@ -537,6 +566,8 @@ export class ProductsService {
             select: {
               id: true, product_id: true, orders_quantity: true, weekly_bought: true,
               weekly_bought_source: true, rating: true, feedback_quantity: true, score: true, snapshot_at: true,
+              uzum_card_price: true, uzum_card_discount: true, seller_discount: true,
+              is_best_price: true, delivery_type: true, delivery_date: true,
             },
           },
           skus: {
@@ -585,6 +616,25 @@ export class ProductsService {
       }
     }
 
+    // Daily sold: delta between last 2 snapshots
+    let dailySold: number | null = null;
+    let dailySoldDelta: number | null = null;
+    if (snaps.length >= 2) {
+      const s0 = snaps[0];
+      const s1 = snaps[1];
+      const daysDiff = Math.max(0.5, (s0.snapshot_at.getTime() - s1.snapshot_at.getTime()) / (1000 * 60 * 60 * 24));
+      const ordersDiff = Math.max(0, Number(s0.orders_quantity ?? 0) - Number(s1.orders_quantity ?? 0));
+      dailySold = Math.round(ordersDiff / daysDiff);
+    }
+    if (snaps.length >= 3) {
+      const s1 = snaps[1];
+      const s2 = snaps[2];
+      const daysDiff = Math.max(0.5, (s1.snapshot_at.getTime() - s2.snapshot_at.getTime()) / (1000 * 60 * 60 * 24));
+      const ordersDiff = Math.max(0, Number(s1.orders_quantity ?? 0) - Number(s2.orders_quantity ?? 0));
+      const prevDailySold = Math.round(ordersDiff / daysDiff);
+      dailySoldDelta = dailySold !== null ? dailySold - prevDailySold : null;
+    }
+
     return {
       product_id: product.id.toString(),
       title: product.title,
@@ -594,12 +644,20 @@ export class ProductsService {
       shop_name: product.shop?.title ?? null,
       score: latest?.score ? Number(latest.score) : null,
       weekly_bought: weeklyBought,
+      daily_sold: dailySold,
+      daily_sold_delta: dailySoldDelta,
       sell_price: sku?.min_sell_price ? Number(sku.min_sell_price) : null,
       stock_type: sku?.stock_type ?? null,
       photo_url: product.photo_url ?? null,
       total_available_amount: product.total_available_amount?.toString() ?? null,
       ai_explanation,
       last_updated: latest?.snapshot_at ?? product.updated_at,
+      uzum_card_price: latest?.uzum_card_price ? Number(latest.uzum_card_price) : null,
+      uzum_card_discount: latest?.uzum_card_discount ?? null,
+      seller_discount: latest?.seller_discount ?? null,
+      is_best_price: latest?.is_best_price ?? null,
+      delivery_type: latest?.delivery_type ?? null,
+      delivery_date: latest?.delivery_date ?? null,
     };
   }
 
@@ -1267,6 +1325,135 @@ export class ProductsService {
       score_change: scoreChange !== 0 ? Number(scoreChange.toFixed(4)) : null,
       last_updated: latest.snapshot_at.toISOString(),
     };
+  }
+
+  /**
+   * Bugungi kunlik sotuvni kechagi bilan taqqoslash.
+   * So'nggi 3 snapshot asosida: bugun_delta vs kecha_delta.
+   */
+  async getDailyComparison(productId: bigint, accountId: string): Promise<{
+    today_sold: number | null;
+    yesterday_sold: number | null;
+    delta: number | null;
+    delta_pct: number | null;
+    trend: 'up' | 'flat' | 'down';
+    today_date: string | null;
+    yesterday_date: string | null;
+    last_updated: string | null;
+  }> {
+    await this.assertProductOwnership(productId, accountId);
+
+    const snapshots = await this.prisma.productSnapshot.findMany({
+      where: {
+        product_id: productId,
+        snapshot_at: { gte: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) },
+      },
+      orderBy: { snapshot_at: 'asc' },
+      select: { orders_quantity: true, snapshot_at: true },
+    });
+
+    if (snapshots.length < 2) {
+      return {
+        today_sold: null,
+        yesterday_sold: null,
+        delta: null,
+        delta_pct: null,
+        trend: 'flat',
+        today_date: snapshots[snapshots.length - 1]?.snapshot_at.toISOString().split('T')[0] ?? null,
+        yesterday_date: null,
+        last_updated: snapshots[snapshots.length - 1]?.snapshot_at.toISOString() ?? null,
+      };
+    }
+
+    const calcDelta = (curr: typeof snapshots[0], prev: typeof snapshots[0]): number => {
+      const daysDiff = Math.max(0.5, (curr.snapshot_at.getTime() - prev.snapshot_at.getTime()) / (1000 * 60 * 60 * 24));
+      const ordersDiff = Math.max(0, Number(curr.orders_quantity ?? 0) - Number(prev.orders_quantity ?? 0));
+      return Math.round(ordersDiff / daysDiff);
+    };
+
+    const latest = snapshots[snapshots.length - 1];
+    const prev1 = snapshots[snapshots.length - 2];
+    const todaySold = calcDelta(latest, prev1);
+
+    let yesterdaySold: number | null = null;
+    if (snapshots.length >= 3) {
+      const prev2 = snapshots[snapshots.length - 3];
+      yesterdaySold = calcDelta(prev1, prev2);
+    }
+
+    const delta = yesterdaySold !== null ? todaySold - yesterdaySold : null;
+    const deltaPct =
+      delta !== null && yesterdaySold !== null && yesterdaySold > 0
+        ? Number(((delta / yesterdaySold) * 100).toFixed(1))
+        : null;
+
+    const trend: 'up' | 'flat' | 'down' =
+      delta !== null && delta > 2 ? 'up' :
+      delta !== null && delta < -2 ? 'down' : 'flat';
+
+    return {
+      today_sold: todaySold,
+      yesterday_sold: yesterdaySold,
+      delta,
+      delta_pct: deltaPct,
+      trend,
+      today_date: latest.snapshot_at.toISOString().split('T')[0],
+      yesterday_date: prev1.snapshot_at.toISOString().split('T')[0],
+      last_updated: latest.snapshot_at.toISOString(),
+    };
+  }
+
+  /**
+   * Installment data for all SKUs of a product (T-436).
+   * Returns latest SkuSnapshot installment fields with calculated markup rates.
+   */
+  async getInstallments(productId: bigint, accountId: string) {
+    await this.assertProductOwnership(productId, accountId);
+
+    const skus = await this.prisma.sku.findMany({
+      where: { product_id: productId },
+      select: {
+        id: true,
+        min_sell_price: true,
+        sku_snapshots: {
+          orderBy: { snapshot_at: 'desc' },
+          take: 1,
+          select: {
+            sell_price: true,
+            installment_3m: true,
+            installment_6m: true,
+            installment_12m: true,
+            installment_24m: true,
+            snapshot_at: true,
+          },
+        },
+      },
+    });
+
+    return skus
+      .filter((s) => s.sku_snapshots.length > 0)
+      .map((s) => {
+        const snap = s.sku_snapshots[0];
+        const price = Number(snap.sell_price ?? s.min_sell_price ?? 0);
+        const toNum = (v: bigint | null): number | null => v != null ? Number(v) : null;
+
+        const monthly3  = toNum(snap.installment_3m);
+        const monthly6  = toNum(snap.installment_6m);
+        const monthly12 = toNum(snap.installment_12m);
+        const monthly24 = toNum(snap.installment_24m);
+
+        return {
+          sku_id: s.id.toString(),
+          sell_price: price,
+          installments: {
+            m3:  monthly3  != null ? { monthly: monthly3,  total: monthly3  * 3,  rate: calcInstallmentRate(price, monthly3,  3)  } : null,
+            m6:  monthly6  != null ? { monthly: monthly6,  total: monthly6  * 6,  rate: calcInstallmentRate(price, monthly6,  6)  } : null,
+            m12: monthly12 != null ? { monthly: monthly12, total: monthly12 * 12, rate: calcInstallmentRate(price, monthly12, 12) } : null,
+            m24: monthly24 != null ? { monthly: monthly24, total: monthly24 * 24, rate: calcInstallmentRate(price, monthly24, 24) } : null,
+          },
+          snapshot_at: snap.snapshot_at,
+        };
+      });
   }
 }
 

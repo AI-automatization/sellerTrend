@@ -4,12 +4,14 @@ import { ArrowTrendingUpIcon } from '../components/icons';
 import { ScannerTab, SeasonalCalendarTab, NicheFinderTab } from '../components/discovery';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { PageHint } from '../components/PageHint';
+import { PlanGuard } from '../components/PlanGuard';
 
 export function DiscoveryPage() {
   const [tab, setTab] = useState<'scanner' | 'seasonal' | 'niche'>('scanner');
   const { t } = useI18n();
 
   return (
+    <PlanGuard requiredPlan="PRO">
     <div className="space-y-6 w-full">
       <PageHint page="discovery">{t('hints.discovery')}</PageHint>
 
@@ -44,5 +46,6 @@ export function DiscoveryPage() {
       {tab === 'seasonal' && <ErrorBoundary variant="section" label="Mavsumiy kalendar"><SeasonalCalendarTab /></ErrorBoundary>}
       {tab === 'niche' && <ErrorBoundary variant="section" label="Niche finder"><NicheFinderTab /></ErrorBoundary>}
     </div>
+    </PlanGuard>
   );
 }

@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { uzumApi, productsApi } from '../api/client';
 import { getErrorMessage } from '../utils/getErrorMessage';
 import { FireIcon, MagnifyingGlassIcon } from '../components/icons';
-import { ScoreChart } from '../components/ScoreChart';
+
+const ScoreChart = lazy(() => import('../components/ScoreChart'));
 import { useI18n } from '../i18n/I18nContext';
 import { PageHint } from '../components/PageHint';
+import { PlanGuard } from '../components/PlanGuard';
 import type { AnalyzeResult, Snapshot, ChartPoint } from '../api/types';
 
 const MAX_SCORE = 10;
@@ -95,6 +97,7 @@ export function AnalyzePage() {
   }
 
   return (
+    <PlanGuard requiredPlan="MAX">
     <div className="w-full space-y-4 lg:space-y-6">
       <PageHint page="analyze">{t('hints.analyze')}</PageHint>
 
@@ -207,7 +210,9 @@ export function AnalyzePage() {
               <div className="divider my-0" />
               <div>
                 <p className="text-xs text-base-content/50 mb-2">{t('analyze.scoreHistory')}</p>
-                <ScoreChart data={snapshots} />
+                <Suspense fallback={<div className="h-[200px] skeleton" />}>
+                  <ScoreChart data={snapshots} />
+                </Suspense>
               </div>
             </>
           )}
@@ -255,6 +260,7 @@ export function AnalyzePage() {
         </div>
       )}
     </div>
+    </PlanGuard>
   );
 }
 

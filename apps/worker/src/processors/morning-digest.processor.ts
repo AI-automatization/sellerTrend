@@ -43,8 +43,8 @@ async function buildDigestForAccount(accountId: string): Promise<string | null> 
           title: true,
           snapshots: {
             orderBy: { snapshot_at: 'desc' },
-            take: 1,
-            select: { score: true, weekly_bought: true },
+            take: 3,
+            select: { score: true, weekly_bought: true, orders_quantity: true, snapshot_at: true },
           },
         },
       },
@@ -53,11 +53,36 @@ async function buildDigestForAccount(accountId: string): Promise<string | null> 
   });
 
   const topProducts = tracked
-    .map((t) => ({
-      title: t.product.title,
-      score: t.product.snapshots[0] ? Number(t.product.snapshots[0].score ?? 0) : 0,
-      weekly_bought: t.product.snapshots[0]?.weekly_bought ?? 0,
-    }))
+    .map((t) => {
+      const snaps = t.product.snapshots;
+      const s0 = snaps[0];
+      const s1 = snaps[1];
+
+      let dailySold: number | null = null;
+      let dailySoldDelta: number | null = null;
+
+      if (s0 && s1) {
+        const daysDiff = Math.max(0.5, (new Date(s0.snapshot_at).getTime() - new Date(s1.snapshot_at).getTime()) / (1000 * 60 * 60 * 24));
+        const ordersDiff = Math.max(0, Number(s0.orders_quantity ?? 0) - Number(s1.orders_quantity ?? 0));
+        dailySold = Math.round(ordersDiff / daysDiff);
+
+        const s2 = snaps[2];
+        if (s2) {
+          const daysDiff2 = Math.max(0.5, (new Date(s1.snapshot_at).getTime() - new Date(s2.snapshot_at).getTime()) / (1000 * 60 * 60 * 24));
+          const ordersDiff2 = Math.max(0, Number(s1.orders_quantity ?? 0) - Number(s2.orders_quantity ?? 0));
+          const prevDailySold = Math.round(ordersDiff2 / daysDiff2);
+          dailySoldDelta = dailySold - prevDailySold;
+        }
+      }
+
+      return {
+        title: t.product.title,
+        score: s0 ? Number(s0.score ?? 0) : 0,
+        weekly_bought: s0?.weekly_bought ?? 0,
+        daily_sold: dailySold,
+        daily_sold_delta: dailySoldDelta,
+      };
+    })
     .sort((a, b) => b.score - a.score)
     .slice(0, TOP_PRODUCTS_COUNT);
 
@@ -84,8 +109,11 @@ async function buildDigestForAccount(accountId: string): Promise<string | null> 
     lines.push(``, `📊 <b>Top mahsulotlar:</b>`);
     for (let i = 0; i < topProducts.length; i++) {
       const p = topProducts[i];
-      const title = p.title.length > 40 ? p.title.slice(0, 37) + '...' : p.title;
-      lines.push(`${i + 1}. ${title} — score: ${p.score.toFixed(1)}, haftalik: ${p.weekly_bought}`);
+      const title = p.title.length > 35 ? p.title.slice(0, 32) + '...' : p.title;
+      const dailyStr = p.daily_sold !== null
+        ? ` | bugun: ${p.daily_sold} ta${p.daily_sold_delta !== null ? ` (${p.daily_sold_delta >= 0 ? '+' : ''}${p.daily_sold_delta})` : ''}`
+        : '';
+      lines.push(`${i + 1}. ${title} — score: ${p.score.toFixed(1)}${dailyStr}`);
     }
   } else {
     lines.push(``, `ℹ️ Kuzatilayotgan mahsulotlar yo'q. /start buyrug'i bilan boshlang.`);

@@ -67,16 +67,10 @@ export function AccountDrawer({ account, users, onClose, onRefresh }: AccountDra
 
         <div className="p-4 space-y-4">
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <div className="bg-base-300/50 rounded-xl p-3 text-center">
-              <p className="text-xs text-base-content/50">Balans</p>
-              <p className="font-bold text-lg tabular-nums">{Number(account.balance).toLocaleString()}</p>
-              <p className="text-[10px] text-base-content/40">so'm</p>
-            </div>
-            <div className="bg-base-300/50 rounded-xl p-3 text-center">
-              <p className="text-xs text-base-content/50">Kunlik</p>
-              <p className="font-bold text-lg tabular-nums">{account.daily_fee ? Number(account.daily_fee).toLocaleString() : 'global'}</p>
-              <p className="text-[10px] text-base-content/40">so'm</p>
+              <p className="text-xs text-base-content/50">Plan</p>
+              <p className="font-bold text-lg tabular-nums">{account.plan ?? 'FREE'}</p>
             </div>
             <div className="bg-base-300/50 rounded-xl p-3 text-center">
               <p className="text-xs text-base-content/50">Tranzaksiyalar</p>

@@ -171,3 +171,4 @@ border-primary/20      → Subtle primary border
 8. Mobile-first responsive: base → sm: → lg:
 9. Language: Uzbek (UI labels in Uzbek, code in English)
 10. No external icon packages — use custom SVG components from icons.tsx
+

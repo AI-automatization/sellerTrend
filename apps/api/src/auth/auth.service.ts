@@ -77,7 +77,7 @@ export class AuthService {
       }
     }
 
-    const access_token = this.signAccessToken(user.id, account.id, user.role, dto.email);
+    const access_token = this.signAccessToken(user.id, account.id, user.role, dto.email, account.plan);
     const refresh_token = await this.createRefreshToken(user.id);
     return { access_token, refresh_token, account_id: account.id };
   }
@@ -106,7 +106,7 @@ export class AuthService {
       this.logger.warn(`Failed to record login streak: ${err instanceof Error ? err.message : String(err)}`);
     });
 
-    const access_token = this.signAccessToken(user.id, user.account_id, user.role, user.email);
+    const access_token = this.signAccessToken(user.id, user.account_id, user.role, user.email, user.account.plan);
     const refresh_token = await this.createRefreshToken(user.id);
     return {
       access_token,
@@ -142,6 +142,7 @@ export class AuthService {
       session.user.account_id,
       session.user.role,
       session.user.email,
+      session.user.account.plan,
     );
     const refresh_token = await this.createRefreshToken(session.user.id);
     return { access_token, refresh_token };
@@ -355,9 +356,9 @@ export class AuthService {
     return account;
   }
 
-  private signAccessToken(userId: string, accountId: string, role: string, email?: string): string {
+  private signAccessToken(userId: string, accountId: string, role: string, email?: string, plan = 'FREE'): string {
     return this.jwt.sign(
-      { sub: userId, account_id: accountId, role, email },
+      { sub: userId, account_id: accountId, role, email, plan },
       { expiresIn: ACCESS_TOKEN_TTL },
     );
   }

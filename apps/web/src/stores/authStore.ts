@@ -1,10 +1,13 @@
 import { create } from 'zustand';
 
+export type PlanTier = 'FREE' | 'PRO' | 'MAX' | 'COMPANY';
+
 export interface TokenPayload {
   sub: string;
   email?: string;
   role: string;
   account_id: string;
+  plan: PlanTier;
   exp: number;
   iat?: number;
 }

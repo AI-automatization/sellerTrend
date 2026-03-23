@@ -143,10 +143,26 @@ export function ProductsTable({ products, sortedProducts, sortKey, setSortKey, o
                       {p.orders_quantity ? Number(p.orders_quantity).toLocaleString() : '—'}
                     </td>
                     <td className="text-right tabular-nums text-sm">
-                      {p.sell_price != null
-                        ? <span className="text-accent font-medium">{p.sell_price.toLocaleString()}</span>
-                        : <span className="text-base-content/10">—</span>
-                      }
+                      {p.sell_price != null ? (
+                        <div className="flex flex-col items-end gap-0.5">
+                          <span className={`font-medium ${p.uzum_card_price != null && p.uzum_card_price < p.sell_price ? 'text-base-content/40 line-through text-xs' : 'text-accent'}`}>
+                            {p.sell_price.toLocaleString()}
+                          </span>
+                          {p.uzum_card_price != null && p.uzum_card_price < p.sell_price && (
+                            <span className="text-[9px] font-bold text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded-full leading-tight">
+                              {p.uzum_card_price.toLocaleString()}
+                              {p.uzum_card_discount != null ? ` −${p.uzum_card_discount}%` : ''}
+                            </span>
+                          )}
+                          {p.is_best_price && (
+                            <span className="text-[9px] font-bold text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded-full leading-tight">
+                              best
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-base-content/10">—</span>
+                      )}
                     </td>
                     <td className="text-right text-sm hidden sm:table-cell">
                       <span className="text-yellow-400/60">★</span>

@@ -1,10 +1,8 @@
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../stores/authStore';
+import { useAuthStore, type PlanTier } from '../stores/authStore';
 import { LockClosedIcon } from './icons';
 import { useI18n } from '../i18n/I18nContext';
-
-type PlanTier = 'FREE' | 'PRO' | 'MAX' | 'COMPANY';
 
 const PLAN_HIERARCHY: Record<PlanTier, number> = {
   FREE: 0,
@@ -27,8 +25,7 @@ export function PlanGuard({ requiredPlan, children }: PlanGuardProps) {
   const { t } = useI18n();
   const payload = useAuthStore((s) => s.payload);
 
-  // Extract plan from token payload or default to FREE
-  const currentPlan = ((payload as unknown as Record<string, unknown>)?.plan as PlanTier) || 'FREE';
+  const currentPlan: PlanTier = payload?.plan ?? 'FREE';
   const currentLevel = PLAN_HIERARCHY[currentPlan] ?? 0;
   const requiredLevel = PLAN_HIERARCHY[requiredPlan];
 

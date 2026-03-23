@@ -98,6 +98,60 @@ export interface TrackedProduct {
   sell_price: number | null;
   tracked_since: string;
   photo_url?: string | null;
+  // New fields from latest product snapshot (T-435/T-436)
+  uzum_card_price?: number | null;
+  uzum_card_discount?: number | null;
+  seller_discount?: number | null;
+  is_best_price?: boolean | null;
+  delivery_type?: string | null;
+  delivery_date?: string | null;
+}
+
+// ─── Installment Domain ───────────────────────────────────────────────────────
+
+export interface InstallmentTier {
+  monthly: number;
+  total: number;
+  rate: number | null;
+}
+
+export interface InstallmentSkuData {
+  sku_id: string;
+  sell_price: number;
+  installments: {
+    m3: InstallmentTier | null;
+    m6: InstallmentTier | null;
+    m12: InstallmentTier | null;
+    m24: InstallmentTier | null;
+  };
+  snapshot_at: string;
+}
+
+// ─── Product Detail (from GET /products/:id) ─────────────────────────────────
+
+export interface ProductDetail {
+  product_id: string;
+  title: string;
+  rating: number | null;
+  feedback_quantity: number | null;
+  orders_quantity: string | null;
+  shop_name: string | null;
+  score: number | null;
+  weekly_bought: number | null;
+  daily_sold: number | null;
+  daily_sold_delta: number | null;
+  sell_price: number | null;
+  stock_type: string | null;
+  photo_url: string | null;
+  total_available_amount: string | null;
+  ai_explanation: string[] | null;
+  last_updated: string | null;
+  uzum_card_price: number | null;
+  uzum_card_discount: number | null;
+  seller_discount: number | null;
+  is_best_price: boolean | null;
+  delivery_type: string | null;
+  delivery_date: string | null;
 }
 
 // ─── Search Domain ──────────────────────────────────────────────────────────
@@ -152,9 +206,8 @@ export interface Account {
   id: string;
   name: string;
   phone: string | null;
-  status: 'ACTIVE' | 'PAYMENT_DUE' | 'SUSPENDED';
-  balance: string;
-  daily_fee: string | null;
+  status: 'ACTIVE' | 'SUSPENDED';
+  plan: string;
   created_at: string;
   users: { id: string; email: string; role: Role }[];
   transaction_count: number;

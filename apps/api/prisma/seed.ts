@@ -4,9 +4,23 @@ import * as bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 const ADMIN_EMAIL    = process.env.SEED_ADMIN_EMAIL ?? 'admin@ventra.uz';
-const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? 'Admin123!';
 const DEMO_EMAIL     = process.env.SEED_DEMO_EMAIL ?? 'demo@ventra.uz';
-const DEMO_PASSWORD  = process.env.SEED_DEMO_PASSWORD ?? 'Demo123!';
+
+// In production, passwords MUST be provided via env vars — no insecure defaults
+function requireSeedPassword(envVar: string, devFallback: string): string {
+  const val = process.env[envVar];
+  if (!val) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(`${envVar} env var is required in production. Set it in .env`);
+    }
+    console.warn(`⚠️  ${envVar} not set — using default "${devFallback}" (development only)`);
+    return devFallback;
+  }
+  return val;
+}
+
+const ADMIN_PASSWORD = requireSeedPassword('SEED_ADMIN_PASSWORD', 'Admin123!');
+const DEMO_PASSWORD  = requireSeedPassword('SEED_DEMO_PASSWORD', 'Demo123!');
 
 async function main() {
   console.log('🌱 Seeding database...\n');

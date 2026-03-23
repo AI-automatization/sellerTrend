@@ -79,7 +79,7 @@ export class AliExpressClient {
       });
 
       // AliExpress TOP API HMAC-SHA256 signature
-      params.set('timestamp', new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14));
+      params.set('timestamp', new Date().toISOString().replace('T', ' ').slice(0, 19));
       params.set('sign_method', 'sha256');
 
       const sortedKeys = [...params.keys()].sort();

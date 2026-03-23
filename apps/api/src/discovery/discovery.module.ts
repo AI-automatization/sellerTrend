@@ -8,5 +8,6 @@ import { UzumModule } from '../uzum/uzum.module';
   imports: [UzumModule],
   providers: [DiscoveryService, NicheService],
   controllers: [DiscoveryController],
+  exports: [DiscoveryService, NicheService],
 })
 export class DiscoveryModule {}

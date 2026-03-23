@@ -5,6 +5,7 @@ import { ReportsTab } from './enterprise/ReportsTab';
 import { WatchlistTab } from './enterprise/WatchlistTab';
 import { CommunityTab } from './enterprise/CommunityTab';
 import { useI18n } from '../i18n/I18nContext';
+import { PlanGuard } from '../components/PlanGuard';
 
 type Tab = 'ads' | 'team' | 'reports' | 'watchlist' | 'community';
 
@@ -57,8 +58,8 @@ export function EnterprisePage() {
 
       {/* Tab content */}
       {tab === 'ads' && <AdsTab />}
-      {tab === 'team' && <TeamTab />}
-      {tab === 'reports' && <ReportsTab />}
+      {tab === 'team' && <PlanGuard requiredPlan="COMPANY"><TeamTab /></PlanGuard>}
+      {tab === 'reports' && <PlanGuard requiredPlan="MAX"><ReportsTab /></PlanGuard>}
       {tab === 'watchlist' && <WatchlistTab />}
       {tab === 'community' && <CommunityTab />}
     </div>

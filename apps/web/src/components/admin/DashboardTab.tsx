@@ -16,10 +16,8 @@ const PLAN_COLORS: Record<string, string> = {
 export interface DashboardTabProps {
   accounts: { length: number };
   activeAccounts: number;
-  dueAccounts: number;
   users: { length: number };
   activeUsers: number;
-  totalBalance: number;
   overview: OverviewStats | null;
   revenue: RevenueStats | null;
   growth: GrowthStats | null;
@@ -27,8 +25,8 @@ export interface DashboardTabProps {
 }
 
 export function DashboardTab({
-  accounts, activeAccounts, dueAccounts,
-  users, activeUsers, totalBalance,
+  accounts, activeAccounts,
+  users, activeUsers,
   overview, revenue, growth, realtime,
 }: DashboardTabProps) {
   const planPieData = useMemo(() => {
@@ -47,7 +45,7 @@ export function DashboardTab({
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <StatCard label="Jami accountlar" value={accounts.length} sub={`${activeAccounts} faol / ${dueAccounts} to'lov`} />
+        <StatCard label="Jami accountlar" value={accounts.length} sub={`${activeAccounts} faol`} />
         <StatCard label="Jami userlar" value={users.length} sub={`${activeUsers} faol`} />
         <StatCard label="Bugun aktiv" value={overview?.today_active_users ?? '-'} color="text-primary" />
         <StatCard label="Tracked products" value={overview?.total_tracked_products ?? '-'} />
@@ -78,7 +76,7 @@ export function DashboardTab({
               <StatCard label="Churn rate" value={`${(growth?.churn_rate_pct ?? 0).toFixed(1)}%`} color="text-error" />
               <StatCard label="Churn bo'lgan" value={growth?.churned_accounts ?? 0} color="text-warning" />
               <StatCard label="O'rtacha yangilanish" value={growth?.avg_days_to_renewal != null ? `${growth.avg_days_to_renewal.toFixed(0)} kun` : '-'} color="text-info" />
-              <StatCard label="Jami balance" value={totalBalance.toLocaleString()} sub="so'm" />
+              <StatCard label="Plan taqsimoti" value={planTotal} sub="akkaunt" />
             </div>
           </div>
         </div>

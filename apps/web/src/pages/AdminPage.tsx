@@ -73,8 +73,8 @@ export function AdminPage() {
         {/* Tab content */}
         {d.activeTab === 'dashboard' && (
           <DashboardTab
-            accounts={d.accounts} activeAccounts={d.activeAccounts} dueAccounts={d.dueAccounts}
-            users={d.users} activeUsers={d.activeUsers} totalBalance={d.totalBalance}
+            accounts={d.accounts} activeAccounts={d.activeAccounts}
+            users={d.users} activeUsers={d.activeUsers}
             overview={d.overview} revenue={d.revenue} growth={d.growth} realtime={d.realtime}
           />
         )}
@@ -82,8 +82,8 @@ export function AdminPage() {
         {d.activeTab === 'accounts' && (
           <AccountsTab
             accounts={d.accounts} users={d.users}
-            activeAccounts={d.activeAccounts} dueAccounts={d.dueAccounts}
-            suspendedAccounts={d.suspendedAccounts} totalBalance={d.totalBalance}
+            activeAccounts={d.activeAccounts}
+            suspendedAccounts={d.suspendedAccounts}
             globalFeeInput={d.globalFeeInput} savingGlobalFee={d.savingGlobalFee}
             onGlobalFeeChange={d.setGlobalFeeInput} onSaveGlobalFee={d.saveGlobalFee}
             onShowCreateAccount={() => d.setShowCreateAccount(true)}

@@ -17,7 +17,8 @@ export function CargoCalculator({
   providers, rates, prefillName, prefillItemCostUzs,
 }: CargoCalculatorProps) {
   const { t } = useI18n();
-  const usdRate = rates?.USD ?? 12900;
+  const DEFAULT_USD_RATE = 12900; // Fallback rate — updated via /api/v1/currency endpoint
+  const usdRate = rates?.USD ?? DEFAULT_USD_RATE;
   const [form, setForm] = useState({
     item_name: prefillName ?? '',
     item_cost_usd: prefillItemCostUzs ? (prefillItemCostUzs / usdRate).toFixed(2) : '',

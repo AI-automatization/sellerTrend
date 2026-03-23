@@ -3,6 +3,7 @@ import { useI18n } from '../i18n/I18nContext';
 import { useSearchParams } from 'react-router-dom';
 import { sourcingApi } from '../api/client';
 import { logError } from '../utils/handleError';
+import { PlanGuard } from '../components/PlanGuard';
 import {
   ImportAnalysis,
   JobsList,
@@ -52,6 +53,7 @@ export function SourcingPage() {
   }
 
   return (
+    <PlanGuard requiredPlan="PRO">
     <div className="w-full space-y-4 lg:space-y-6">
       <PageHint page="sourcing">{t('hints.sourcing')}</PageHint>
 
@@ -122,5 +124,6 @@ export function SourcingPage() {
       {tab === 'jobs' && <JobsList />}
       {tab === 'history' && <CalculationHistory />}
     </div>
+    </PlanGuard>
   );
 }

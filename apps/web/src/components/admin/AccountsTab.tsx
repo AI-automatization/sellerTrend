@@ -10,9 +10,7 @@ export interface AccountsTabProps {
   accounts: Account[];
   users: User[];
   activeAccounts: number;
-  dueAccounts: number;
   suspendedAccounts: number;
-  totalBalance: number;
   globalFeeInput: string;
   savingGlobalFee: boolean;
   onGlobalFeeChange: (val: string) => void;
@@ -37,20 +35,19 @@ export interface AccountsTabProps {
 }
 
 export function AccountsTab({
-  accounts, users, activeAccounts, dueAccounts, suspendedAccounts, totalBalance,
+  accounts, users, activeAccounts, suspendedAccounts,
   globalFeeInput, savingGlobalFee, onGlobalFeeChange, onSaveGlobalFee,
   onShowCreateAccount, onDepositTarget, onDrawerAccount,
   onStatusChange, onRoleChange, onToggleActive, onPasswordTarget,
   onSaveFee, editingFee, feeInput, onEditingFeeChange, onFeeInputChange,
   editingPhone, phoneInput, onEditingPhoneChange, onPhoneInputChange, onSavePhone,
 }: AccountsTabProps) {
-  const [accountFilter, setAccountFilter] = useState<'all' | 'active' | 'due' | 'suspended'>('all');
+  const [accountFilter, setAccountFilter] = useState<'all' | 'active' | 'suspended'>('all');
   const [accountSearch, setAccountSearch] = useState('');
   const [expandedAccountId, setExpandedAccountId] = useState<string | null>(null);
 
   const filteredAccounts = accounts.filter((a) => {
     if (accountFilter === 'active' && a.status !== 'ACTIVE') return false;
-    if (accountFilter === 'due' && a.status !== 'PAYMENT_DUE') return false;
     if (accountFilter === 'suspended' && a.status !== 'SUSPENDED') return false;
     if (accountSearch) {
       const q = accountSearch.toLowerCase();
@@ -67,9 +64,7 @@ export function AccountsTab({
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <StatCard label="Jami akkauntlar" value={accounts.length} />
         <StatCard label="Faol" value={activeAccounts} color="text-success" />
-        <StatCard label="To'lov kerak" value={dueAccounts} color="text-error" />
         <StatCard label="Bloklangan" value={suspendedAccounts} />
-        <StatCard label="Jami balans" value={totalBalance.toLocaleString()} sub="so'm" color="text-primary" />
       </div>
 
       {/* Toolbar */}
@@ -87,10 +82,10 @@ export function AccountsTab({
         <button onClick={onShowCreateAccount} className="btn btn-primary btn-sm">+ Yangi Account</button>
         <div className="flex-1" />
         <div className="join">
-          {(['all', 'active', 'due', 'suspended'] as const).map((f) => (
+          {(['all', 'active', 'suspended'] as const).map((f) => (
             <button key={f} className={`join-item btn btn-xs ${accountFilter === f ? 'btn-primary' : 'btn-ghost'}`}
               onClick={() => setAccountFilter(f)}>
-              {{ all: 'Barchasi', active: 'Faol', due: "To'lov", suspended: 'Bloklangan' }[f]}
+              {{ all: 'Barchasi', active: 'Faol', suspended: 'Bloklangan' }[f]}
             </button>
           ))}
         </div>

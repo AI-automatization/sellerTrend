@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, type FormEvent } from 'react';
+import { useState, useEffect, useRef, useCallback, lazy, Suspense, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { productsApi, uzumApi } from '../api/client';
 import { MagnifyingGlassIcon, FireIcon } from './icons';
@@ -6,7 +6,8 @@ import { useI18n } from '../i18n/I18nContext';
 import { useTrackedProducts } from '../hooks/useTrackedProducts';
 import { getErrorMessage } from '../utils/getErrorMessage';
 import { toast } from 'react-toastify';
-import { ScoreChart } from './ScoreChart';
+
+const ScoreChart = lazy(() => import('./ScoreChart'));
 import type { SearchProduct, AnalyzeResult, Snapshot, ChartPoint } from '../api/types';
 
 const MIN_QUERY_LENGTH = 2;
@@ -390,7 +391,9 @@ export function SearchDrawer({ isOpen, onClose }: Props) {
                       <div className="h-px bg-base-300/30" />
                       <div>
                         <p className="text-xs text-base-content/40 mb-2">{t('analyze.scoreHistory')}</p>
-                        <ScoreChart data={analyzeState.snapshots} />
+                        <Suspense fallback={<div className="h-[200px] skeleton" />}>
+                          <ScoreChart data={analyzeState.snapshots} />
+                        </Suspense>
                       </div>
                     </>
                   )}

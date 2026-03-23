@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useI18n } from '../i18n/I18nContext';
+import { PlanGuard } from '../components/PlanGuard';
 import {
   TABS,
   CannibalizationTab,
@@ -33,6 +34,7 @@ export function SignalsPage() {
   } as Record<Tab, string>)[key] ?? key;
 
   return (
+    <PlanGuard requiredPlan="PRO">
     <div className="w-full space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -97,5 +99,6 @@ export function SignalsPage() {
       {tab === 'price-test' && <PriceTestTab />}
       {tab === 'replenishment' && <ReplenishmentTab />}
     </div>
+    </PlanGuard>
   );
 }

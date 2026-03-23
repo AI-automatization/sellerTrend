@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { uzumApi, productsApi } from '../api/client';
 import { getErrorMessage } from '../utils/getErrorMessage';
 import { MagnifyingGlassIcon, FireIcon } from './icons';
-import { ScoreChart } from './ScoreChart';
+
+const ScoreChart = lazy(() => import('./ScoreChart'));
 import { useI18n } from '../i18n/I18nContext';
 import type { AnalyzeResult, Snapshot, ChartPoint } from '../api/types';
 
@@ -228,7 +229,9 @@ export function AnalyzeModal({ isOpen, onClose, initialUrl }: Props) {
                   <div className="h-px bg-base-300/30" />
                   <div>
                     <p className="text-xs text-base-content/40 mb-2">{t('analyze.scoreHistory')}</p>
-                    <ScoreChart data={snapshots} />
+                    <Suspense fallback={<div className="h-[200px] skeleton" />}>
+                      <ScoreChart data={snapshots} />
+                    </Suspense>
                   </div>
                 </>
               )}

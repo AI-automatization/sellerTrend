@@ -23,7 +23,8 @@ function formatDay(dateStr: string): string {
   return `${d.getDate()} ${UZ_MONTHS[d.getMonth()]}`;
 }
 
-export function ScoreChart({ data }: { data: ChartPoint[] }) {
+// Default export for React.lazy() code-splitting at usage sites
+export default function ScoreChart({ data }: { data: ChartPoint[] }) {
   // Aggregate by day — take last score per day to avoid zigzag
   const dailyData = useMemo(() => {
     if (!data || data.length === 0) return [];

@@ -24,14 +24,15 @@ import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
 
 const CUSTOMS_DUTY_RATE = parseFloat(process.env.CUSTOMS_DUTY_RATE ?? '0.10');
 const VAT_RATE = parseFloat(process.env.VAT_RATE ?? '0.12');
-const BANGGOOD_LOAD_WAIT_MS = 8000;
-const BANGGOOD_SCROLL_WAIT_MS = 2000;
-const SHOPEE_LOAD_WAIT_MS = 6000;
-const SHOPEE_SCROLL_WAIT_MS = 2000;
-const DHGATE_LOAD_WAIT_MS = 6000;
-const DHGATE_SCROLL_WAIT_MS = 2000;
-const ALIEXPRESS_LOAD_WAIT_MS = 7000;
-const ALIEXPRESS_SCROLL_WAIT_MS = 2000;
+// Playwright wait times — configurable for slower/faster environments
+const BANGGOOD_LOAD_WAIT_MS   = parseInt(process.env.BANGGOOD_LOAD_WAIT_MS   ?? '8000');
+const BANGGOOD_SCROLL_WAIT_MS = parseInt(process.env.BANGGOOD_SCROLL_WAIT_MS ?? '2000');
+const SHOPEE_LOAD_WAIT_MS     = parseInt(process.env.SHOPEE_LOAD_WAIT_MS     ?? '6000');
+const SHOPEE_SCROLL_WAIT_MS   = parseInt(process.env.SHOPEE_SCROLL_WAIT_MS   ?? '2000');
+const DHGATE_LOAD_WAIT_MS     = parseInt(process.env.DHGATE_LOAD_WAIT_MS     ?? '6000');
+const DHGATE_SCROLL_WAIT_MS   = parseInt(process.env.DHGATE_SCROLL_WAIT_MS   ?? '2000');
+const ALIEXPRESS_LOAD_WAIT_MS  = parseInt(process.env.ALIEXPRESS_LOAD_WAIT_MS  ?? '7000');
+const ALIEXPRESS_SCROLL_WAIT_MS = parseInt(process.env.ALIEXPRESS_SCROLL_WAIT_MS ?? '2000');
 const PIPELINE_TIMEOUT_MS = 90_000; // T-461: global pipeline timeout
 
 // T-462/T-463: currency per platform
