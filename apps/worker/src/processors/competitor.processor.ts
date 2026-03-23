@@ -2,6 +2,7 @@ import { Worker, Job } from 'bullmq';
 import { redisConnection } from '../redis';
 import { prisma } from '../prisma';
 import { fetchProductDetail } from './uzum-scraper';
+import { uzumGraphQLClient } from '../clients/uzum-graphql.client';
 import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
 
 const BATCH_SIZE = 5;
@@ -141,4 +142,25 @@ export function createCompetitorWorker() {
   worker.on('stalled', (jobId) => console.error(`[competitor-queue] stalled: ${jobId}`));
 
   return worker;
+}
+
+// ─── T-438: GraphQL competitor discovery ─────────────────────────────────────
+
+/**
+ * Tracked mahsulot uchun GraphQL orqali o'xshash mahsulotlarni topadi.
+ * Haftada 1 marta ishga tushirilishi tavsiya etiladi.
+ */
+export async function discoverCompetitorsForProduct(productId: bigint): Promise<number> {
+  try {
+    const similar = await uzumGraphQLClient.getSimilarProducts(Number(productId), 10);
+    if (similar.length === 0) return 0;
+
+    logJobInfo('competitor-queue', '-', 'discover',
+      `Product ${productId}: ${similar.length} ta o'xshash — [${similar.map((s) => s.productId).join(', ')}]`);
+
+    return similar.length;
+  } catch (err) {
+    logJobError('competitor-queue', '-', 'discover', err);
+    return 0;
+  }
 }

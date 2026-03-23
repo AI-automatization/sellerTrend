@@ -19,7 +19,7 @@ import { prisma } from '../prisma';
 import { calculateScore, getSupplyPressure, sleep, SNAPSHOT_MIN_GAP_MS, SCORE_VERSION } from '@uzum/utils';
 import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
 import { scrapeWeeklyBought, createWeeklyScrapeContext } from './weekly-scraper';
-import { fetchUzumProductRaw } from './uzum-scraper';
+import { fetchProductFull } from './uzum-scraper';
 import { acquireScrapeLock, releaseScrapeLock } from '../scrape-lock';
 
 const QUEUE_NAME = 'weekly-scrape-queue';
@@ -53,21 +53,26 @@ async function scrapeAndSaveProduct(
   sharedContext?: BrowserContext,
 ): Promise<{ scraped: boolean; weeklyBought: number | null }> {
   const numId = Number(productId);
+  if (!Number.isSafeInteger(numId)) {
+    throw new Error(`Product ID ${productId} exceeds safe integer range — cannot convert BigInt to Number`);
+  }
 
   // 1. Playwright scrape for banner
   const scrapeResult = await scrapeWeeklyBought(numId, jobId, sharedContext);
   const scrapedWb = scrapeResult.value;
 
-  // 2. Fetch REST API data
-  const detail = await fetchUzumProductRaw(numId);
-  if (!detail) {
-    logJobInfo(QUEUE_NAME, jobId, jobName, `REST API failed for product ${numId}`);
+  // 2. Fetch product data: GraphQL + REST parallel (fetchProductFull)
+  const productFull = await fetchProductFull(numId);
+  if (!productFull) {
+    logJobInfo(QUEUE_NAME, jobId, jobName, `Product data fetch failed for ${numId}`);
     await prisma.trackedProduct.updateMany({
       where: { product_id: productId },
       data: { next_scrape_at: getRetryScrapeAt() },
     });
     return { scraped: false, weeklyBought: null };
   }
+  const isGraphQL = productFull.source === 'graphql+rest';
+  logJobInfo(QUEUE_NAME, jobId, jobName, `Product ${numId} fetched via ${productFull.source}`);
 
   // Determine weekly_bought: prefer scraped, fallback to last scraped value
   let weeklyBought: number | null = scrapedWb;
@@ -135,49 +140,28 @@ async function scrapeAndSaveProduct(
   }
 
   // 4. Calculate score
-  const currentOrders = detail.ordersAmount ?? 0;
-  const skuList = detail.skuList ?? [];
-  const primarySku = skuList[0];
-  const stockType = primarySku?.stock?.type === 'FBO' ? 'FBO' as const : 'FBS' as const;
+  const currentOrders = productFull.ordersAmountExact || productFull.ordersQuantity;
+  const primarySku = productFull.skus[0];
+  const stockType = primarySku?.stockType === 'FBO' ? 'FBO' as const : 'FBS' as const;
   const supplyPressure = getSupplyPressure(stockType);
 
   const score = calculateScore({
     weekly_bought: weeklyBought,
     orders_quantity: currentOrders,
-    rating: detail.rating ?? 0,
+    rating: productFull.rating ?? 0,
     supply_pressure: supplyPressure,
   });
 
-  // 5. Extract new fields from raw detail
-  const title = detail.localizableTitle?.ru || detail.title;
-  const titleUz: string | null = detail.localizableTitle?.uz ?? null;
-  const totalAvailable = detail.totalAvailableAmount != null
-    ? BigInt(detail.totalAvailableAmount)
+  // 5. Extract fields
+  const title = productFull.titleRu || productFull.title;
+  const titleUz: string | null = productFull.titleUz || null;
+  const totalAvailable = productFull.totalAvailableAmount != null
+    ? BigInt(productFull.totalAvailableAmount)
     : null;
-
-  // Category path: root → leaf (nested parent chain)
-  const categoryPath: Array<{ id: number; title: string }> = [];
-  {
-    let node: { id: number; title: string; parent?: { id: number; title: string; parent?: unknown } | null } | null | undefined = detail.category;
-    while (node) {
-      categoryPath.unshift({ id: node.id, title: node.title });
-      node = (node as { parent?: typeof node }).parent ?? null;
-    }
-  }
-
-  // Photos: extract high-res URLs in priority order
-  const photoSizes = ['720', '800', '540', '480', '240'];
-  const photoUrls: string[] = (detail.photos ?? []).map((p) => {
-    for (const s of photoSizes) {
-      const url = p.photo?.[s]?.high;
-      if (url) return url;
-    }
-    const first = Object.values(p.photo ?? {})[0];
-    return first?.high ?? null;
-  }).filter((u): u is string => u !== null);
+  const categoryPath = productFull.categoryPath;
+  const photoUrls = productFull.photoUrls;
   const mainPhotoUrl = photoUrls[0] ?? null;
-
-  const badges = detail.badges ?? [];
+  const badges = productFull.badges ?? [];
 
   // 6. Atomic: update product + upsert SKUs + create snapshots + update scrape timestamps
   await prisma.$transaction(async (tx) => {
@@ -190,23 +174,23 @@ async function scrapeAndSaveProduct(
         badges: badges.length > 0 ? badges : undefined,
         photo_url: mainPhotoUrl ?? undefined,
         photo_urls: photoUrls,
-        rating: detail.rating ?? null,
-        feedback_quantity: detail.reviewsAmount ?? 0,
+        rating: productFull.rating ?? null,
+        feedback_quantity: productFull.feedbackQuantity ?? 0,
         orders_quantity: BigInt(currentOrders),
         total_available_amount: totalAvailable,
       },
     });
 
     // Upsert SKUs + create SkuSnapshot
-    for (const sku of skuList) {
+    for (const sku of productFull.skus) {
       if (sku.id == null) continue;
-      const skuStockType = sku.stock?.type === 'FBO' ? 'FBO' : 'FBS';
+      const skuStockType = sku.stockType === 'FBO' ? 'FBO' : 'FBS';
       const skuId = BigInt(sku.id);
 
       await tx.sku.upsert({
         where: { id: skuId },
         update: {
-          min_sell_price: BigInt(sku.purchasePrice ?? 0),
+          min_sell_price: BigInt(sku.sellPrice ?? 0),
           min_full_price: BigInt(sku.fullPrice ?? 0),
           stock_type: skuStockType,
           is_available: sku.availableAmount > 0,
@@ -214,35 +198,41 @@ async function scrapeAndSaveProduct(
         create: {
           id: skuId,
           product_id: productId,
-          min_sell_price: BigInt(sku.purchasePrice ?? 0),
+          min_sell_price: BigInt(sku.sellPrice ?? 0),
           min_full_price: BigInt(sku.fullPrice ?? 0),
           stock_type: skuStockType,
           is_available: sku.availableAmount > 0,
         },
       });
 
-      // Installment options for this SKU
-      const installOpts = (sku.productOptionDtos ?? []).filter(
-        (o) => o.type === 'UZUM_INSTALLMENT' && o.active,
-      );
-      const inst0 = installOpts[0] ?? null;
-      const inst1 = installOpts[1] ?? null;
       const discountPct =
-        sku.fullPrice && sku.purchasePrice && sku.fullPrice > sku.purchasePrice
-          ? Math.round((1 - sku.purchasePrice / sku.fullPrice) * 100)
+        sku.fullPrice && sku.sellPrice && sku.fullPrice > sku.sellPrice
+          ? Math.round((1 - sku.sellPrice / sku.fullPrice) * 100)
           : null;
+
+      // installmentWidget: 3/6/12/24 oy (GraphQL dan)
+      const getInstallment = (month: number): bigint | null => {
+        const inst = sku.installments.find((i) => i.month === month);
+        if (!inst) return null;
+        const num = parseInt(inst.text.replace(/\D/g, ''), 10);
+        return isNaN(num) ? null : BigInt(num);
+      };
 
       await tx.skuSnapshot.create({
         data: {
           sku_id: skuId,
-          sell_price: sku.purchasePrice ? BigInt(sku.purchasePrice) : null,
+          sell_price: sku.sellPrice ? BigInt(sku.sellPrice) : null,
           full_price: sku.fullPrice ? BigInt(sku.fullPrice) : null,
           discount_percent: discountPct,
-          discount_badge: sku.discountBadge ?? null,
-          charge_price: inst0?.paymentPerMonth ? BigInt(inst0.paymentPerMonth) : null,
-          charge_quantity: inst0?.period ?? null,
-          charge_quantity_alt: inst1?.period ?? null,
+          discount_badge: sku.discountBadgeText ?? null,
+          charge_price: isGraphQL ? getInstallment(12) : null,
+          charge_quantity: isGraphQL ? 12 : null,
+          charge_quantity_alt: isGraphQL ? 24 : null,
           stock_type: skuStockType,
+          installment_3m: getInstallment(3),
+          installment_6m: getInstallment(6),
+          installment_12m: getInstallment(12),
+          installment_24m: getInstallment(24),
         },
       });
     }
@@ -266,10 +256,13 @@ async function scrapeAndSaveProduct(
         weekly_bought_source: source,
         weekly_bought_raw_text: rawText,
         weekly_bought_confidence: confidence,
-        rating: detail.rating ?? null,
-        feedback_quantity: detail.reviewsAmount ?? 0,
+        rating: productFull.rating ?? null,
+        feedback_quantity: productFull.feedbackQuantity ?? 0,
         score,
         score_version: SCORE_VERSION,
+        // is_best_price comes from makeSearch (marketplace-intelligence.processor), not productPage
+        is_best_price: null,
+        delivery_type: primarySku?.stockType ?? null,
       },
     });
   } catch (err: unknown) {

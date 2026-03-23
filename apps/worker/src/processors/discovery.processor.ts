@@ -8,11 +8,15 @@ import {
   fetchProductDetail,
   type ProductDetail,
 } from './uzum-scraper';
+import { uzumGraphQLClient } from '../clients/uzum-graphql.client';
 import {
   extractCategoryName,
   filterByCategory,
 } from './uzum-ai-scraper';
 import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
+
+// Feature flag: set USE_GRAPHQL_DISCOVERY=false to force Playwright-only mode
+const USE_GRAPHQL_DISCOVERY = process.env.USE_GRAPHQL_DISCOVERY !== 'false';
 
 /**
  * Fetch product details in parallel batches with rate limiting.
@@ -51,15 +55,27 @@ async function processDiscovery(data: CategoryDiscoveryJobData, jobId: string, j
   });
   logJobInfo('discovery-queue', jobId, jobName, `Category name: "${categoryName}"`);
 
-  // Step 1: Scrape product IDs from the category page via Playwright
-  logJobInfo('discovery-queue', jobId, jobName, `Scraping category ${categoryId} from ${url}`);
+  // Step 1: GraphQL makeSearch first, Playwright fallback (feature flag: USE_GRAPHQL_DISCOVERY)
+  logJobInfo('discovery-queue', jobId, jobName, `Discovering category ${categoryId} (graphql=${USE_GRAPHQL_DISCOVERY})`);
   let productIds: number[];
   try {
-    const { ids } = await scrapeCategoryProductIds(url);
-    productIds = ids;
-  } catch (err) {
-    logJobError('discovery-queue', jobId, jobName, err);
-    throw new Error(`Playwright scraping failed: ${(err as Error).message}`);
+    if (!USE_GRAPHQL_DISCOVERY) throw new Error('GraphQL discovery disabled by USE_GRAPHQL_DISCOVERY=false');
+    const cards = await uzumGraphQLClient.searchAllProducts({
+      categoryId,
+      sort: 'BY_ORDERS_NUMBER_DESC',
+      maxProducts: 500,
+    });
+    productIds = cards.map((c) => c.productId);
+    logJobInfo('discovery-queue', jobId, jobName, `GraphQL discovery: ${productIds.length} mahsulot (source=graphql)`);
+  } catch {
+    logJobInfo('discovery-queue', jobId, jobName, 'GraphQL failed — Playwright fallback (source=playwright)');
+    try {
+      const { ids } = await scrapeCategoryProductIds(url);
+      productIds = ids;
+    } catch (err) {
+      logJobError('discovery-queue', jobId, jobName, err);
+      throw new Error(`Discovery failed (GraphQL + Playwright): ${(err as Error).message}`);
+    }
   }
 
   if (productIds.length === 0) {

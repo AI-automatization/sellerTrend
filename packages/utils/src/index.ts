@@ -70,6 +70,24 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Calculate installment interest rate (T-436).
+ * Returns the markup percentage: (monthlyPayment × months / price - 1) × 100
+ *
+ * Example: price=18_900_000, monthlyPayment=1_300_000, months=24
+ *   → (1_300_000 × 24 / 18_900_000 - 1) × 100 ≈ 65%
+ *
+ * @returns number (e.g. 65.08) or null if price is 0
+ */
+export function calcInstallmentRate(
+  price: number,
+  monthlyPayment: number,
+  months: number,
+): number | null {
+  if (price <= 0 || monthlyPayment <= 0 || months <= 0) return null;
+  return ((monthlyPayment * months) / price - 1) * 100;
+}
+
 // ============================================================
 // Weekly Bought Banner Parser (Playwright scraping)
 // ============================================================

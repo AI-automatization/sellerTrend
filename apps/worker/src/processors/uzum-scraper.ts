@@ -18,6 +18,8 @@
 import { ProxyAgent } from 'undici';
 import { logJobInfo } from '../logger';
 import { browserPool } from '../browser-pool';
+import { uzumGraphQLClient } from '../clients/uzum-graphql.client';
+import type { InstallmentWidget } from '@uzum/types';
 
 const REST_BASE = 'https://api.uzum.uz/api/v2';
 
@@ -254,5 +256,129 @@ export async function fetchProductDetail(
     feedbackQuantity: p.reviewsAmount ?? 0,
     sellPrice,
     stockType,
+  };
+}
+
+// ─── T-434: GraphQL + REST hybrid ────────────────────────────────────────────
+
+export interface ProductFullData {
+  title: string;
+  titleRu: string;
+  titleUz: string;
+  ordersQuantity: number;
+  ordersAmountExact: number;
+  rating: number;
+  feedbackQuantity: number;
+  isBlockedOrArchived: boolean;
+  categoryId: number;
+  categoryTitle: string;
+  categoryPath: Array<{ id: number; title: string }>;
+  shopId: number;
+  shopTitle: string;
+  shopRating: number;
+  shopOrdersQuantity: number;
+  shopOfficial: boolean;
+  shopUrl: string;
+  badges: Array<{ id: string; text: string; textColor: string; backgroundColor: string }>;
+  photoUrls: string[];
+  skus: Array<{
+    id: number;
+    fullPrice: number;
+    sellPrice: number;
+    availableAmount: number;
+    discountBadgeText: string | null;
+    stockType: string;
+    installments: Array<{ month: number; text: string }>;
+  }>;
+  installmentWidget: InstallmentWidget;
+  totalAvailableAmount: number;
+  source: 'graphql+rest' | 'rest_only';
+}
+
+/**
+ * GraphQL productPage + REST totalAvailableAmount parallel.
+ * GraphQL fail bo'lsa → REST-only fallback.
+ */
+export async function fetchProductFull(productId: number): Promise<ProductFullData | null> {
+  const [graphqlResult, restResult] = await Promise.allSettled([
+    uzumGraphQLClient.getProductPage(productId),
+    fetchUzumProductRaw(productId),
+  ]);
+
+  const rest = restResult.status === 'fulfilled' ? restResult.value : null;
+
+  if (graphqlResult.status === 'rejected') {
+    if (!rest) return null;
+    return {
+      title: rest.localizableTitle?.ru ?? rest.title ?? '',
+      titleRu: rest.localizableTitle?.ru ?? rest.title ?? '',
+      titleUz: rest.localizableTitle?.uz ?? '',
+      ordersQuantity: rest.rOrdersAmount ?? 0,
+      ordersAmountExact: rest.ordersAmount ?? 0,
+      rating: rest.rating ?? 0,
+      feedbackQuantity: rest.reviewsAmount ?? 0,
+      isBlockedOrArchived: false,
+      categoryId: 0,
+      categoryTitle: '',
+      categoryPath: [],
+      shopId: 0,
+      shopTitle: '',
+      shopRating: 0,
+      shopOrdersQuantity: 0,
+      shopOfficial: false,
+      shopUrl: '',
+      badges: [],
+      photoUrls: [],
+      skus: [],
+      installmentWidget: { calculationsPairs: [] },
+      totalAvailableAmount: rest.totalAvailableAmount ?? 0,
+      source: 'rest_only',
+    };
+  }
+
+  const gql = graphqlResult.value.product;
+  const installmentWidget = graphqlResult.value.installmentWidget;
+
+  const categoryPath: Array<{ id: number; title: string }> = [];
+  let cat: typeof gql.category | undefined = gql.category;
+  while (cat) {
+    categoryPath.unshift({ id: cat.id, title: cat.title });
+    cat = cat.parent;
+  }
+
+  return {
+    title: gql.title,
+    titleRu: gql.localizableTitle.titleRu,
+    titleUz: gql.localizableTitle.titleUz,
+    ordersQuantity: gql.ordersQuantity,
+    ordersAmountExact: rest?.ordersAmount ?? 0,
+    rating: gql.rating,
+    feedbackQuantity: gql.feedbackQuantity,
+    isBlockedOrArchived: gql.isBlockedOrArchived,
+    categoryId: gql.category.id,
+    categoryTitle: gql.category.title,
+    categoryPath,
+    shopId: gql.shop.id,
+    shopTitle: gql.shop.title,
+    shopRating: gql.shop.rating,
+    shopOrdersQuantity: gql.shop.ordersQuantity,
+    shopOfficial: gql.shop.official,
+    shopUrl: gql.shop.url,
+    badges: gql.badges,
+    photoUrls: gql.photos.map((p) => p.link.high).filter(Boolean),
+    skus: gql.skuList.map((sku) => ({
+      id: sku.id,
+      fullPrice: sku.fullPrice,
+      sellPrice: sku.sellPrice,
+      availableAmount: sku.availableAmount,
+      discountBadgeText: sku.discountBadge?.text ?? null,
+      stockType: sku.stock.type,
+      installments: (installmentWidget.calculationsPairs
+        .find((pair) => pair.skuId === sku.id)?.calculations ?? [])
+        .map((c) => ({ month: c.month, text: c.text })),
+    })),
+    installmentWidget,
+    totalAvailableAmount: rest?.totalAvailableAmount ?? 0,
+    source: 'graphql+rest',
   };
 }
