@@ -16,6 +16,7 @@ import { createCurrencyUpdateWorker } from './processors/currency-update.process
 import { createDataCleanupWorker } from './processors/data-cleanup.processor';
 import { createOnboardingReminderWorker } from './processors/onboarding-reminder.processor';
 import { createWeeklyDigestWorker } from './processors/weekly-digest.processor';
+import { createMarketplaceIntelligenceWorker } from './processors/marketplace-intelligence.processor';
 import { scheduleCompetitorSnapshots } from './jobs/competitor-snapshot.job';
 import { scheduleWeeklyScrape } from './jobs/weekly-scrape.job';
 import { scheduleAlertDelivery } from './jobs/alert-delivery.job';
@@ -25,8 +26,11 @@ import { scheduleCurrencyUpdate } from './jobs/currency-update.job';
 import { scheduleDataCleanup } from './jobs/data-cleanup.job';
 import { scheduleOnboardingReminder } from './jobs/onboarding-reminder.job';
 import { scheduleWeeklyDigest } from './jobs/weekly-digest.job';
+import { scheduleMarketplaceIntelligence } from './jobs/marketplace-intelligence.job';
 import { logProcess } from './logger';
 import { browserPool } from './browser-pool';
+import { tokenManager } from './clients/token-manager';
+import { uzumGraphQLClient } from './clients/uzum-graphql.client';
 import { prisma } from './prisma';
 import { getHealthRedis } from './redis';
 
@@ -54,6 +58,17 @@ process.on('unhandledRejection', (reason) => {
 async function bootstrap() {
   logProcess('info', 'Worker starting...');
 
+  // GraphQL token pre-warm (non-blocking — REST fallback if fails)
+  tokenManager.getToken().then((token) => {
+    if (token) {
+      logProcess('info', 'GraphQL token olindi (5 soat keshda)');
+    } else {
+      logProcess('info', 'GraphQL token olinmadi — REST fallback rejimida');
+    }
+  }).catch(() => {
+    logProcess('info', 'GraphQL token warm-up xato — REST fallback rejimida');
+  });
+
   // Start workers (consumers)
   const discoveryWorker = createDiscoveryWorker();
   const sourcingWorker = createSourcingWorker();
@@ -67,6 +82,7 @@ async function bootstrap() {
   const dataCleanupWorker = createDataCleanupWorker();
   const onboardingReminderWorker = createOnboardingReminderWorker();
   const weeklyDigestWorker = createWeeklyDigestWorker();
+  const marketplaceIntelligenceWorker = createMarketplaceIntelligenceWorker();
 
   // Schedule cron jobs
   await scheduleCompetitorSnapshots();
@@ -78,6 +94,7 @@ async function bootstrap() {
   await scheduleDataCleanup();
   await scheduleOnboardingReminder();
   await scheduleWeeklyDigest();
+  await scheduleMarketplaceIntelligence();
 
   logProcess('info', 'Workers running: discovery, sourcing, competitor, import, weekly-scrape, alert-delivery, monitoring, morning-digest, currency-update, data-cleanup, onboarding-reminder, weekly-digest');
   logProcess('info', 'Crons: competitor 6h, weekly-scrape 15min, alert-delivery 5min, monitoring 6h, digest 07:00, currency 00:30, cleanup 02:00, onboarding-reminder 10:00, weekly-digest Mon/08:00');
@@ -89,16 +106,24 @@ async function bootstrap() {
   const server = http.createServer(async (req, res) => {
     if (req.url === '/health' && req.method === 'GET') {
       let redisOk = false;
+      let graphqlTokenOk = false;
       try {
         await redis.ping();
         redisOk = true;
       } catch { /* redis down */ }
+
+      try {
+        const token = await tokenManager.getToken();
+        graphqlTokenOk = token != null;
+      } catch { /* token fetch failed */ }
 
       const status = redisOk ? 'ok' : 'degraded';
       res.writeHead(redisOk ? 200 : 503, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         status,
         redis: redisOk ? 'ok' : 'unreachable',
+        graphql_token: graphqlTokenOk ? 'ok' : 'unavailable',
+        graphql_stats: uzumGraphQLClient.getStats(),
         workers: 13,
         timestamp: new Date().toISOString(),
       }));
@@ -134,6 +159,7 @@ async function bootstrap() {
         dataCleanupWorker.close(),
         onboardingReminderWorker.close(),
         weeklyDigestWorker.close(),
+        marketplaceIntelligenceWorker.close(),
       ]);
       await browserPool.shutdown();
       await redis.quit();

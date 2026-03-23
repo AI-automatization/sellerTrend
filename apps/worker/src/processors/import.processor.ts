@@ -3,7 +3,7 @@ import { redisConnection } from '../redis';
 import { prisma } from '../prisma';
 import { parseUzumProductId, calculateScore, getSupplyPressure, calcWeeklyBought, weeklyBoughtWithFallback, sleep, SNAPSHOT_MIN_GAP_MS, SCORE_VERSION } from '@uzum/utils';
 import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
-import { fetchUzumProductRaw } from './uzum-scraper';
+import { fetchProductFull } from './uzum-scraper';
 
 interface ImportBatchJobData {
   accountId: string;
@@ -18,81 +18,54 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
   }
 
   try {
-    const detail = await fetchUzumProductRaw(productId);
+    const detail = await fetchProductFull(productId);
     if (!detail) {
       logJobInfo('import-batch', jobId, jobName, `API failed for product ${productId}`);
       return null;
     }
 
-    const shopData = detail.seller || detail.shop;
-    const shopId = shopData?.id ? BigInt(shopData.id) : null;
+    logJobInfo('import-batch', jobId, jobName, `Product ${productId} fetched via ${detail.source}`);
+
+    const shopId = detail.shopId ? BigInt(detail.shopId) : null;
 
     // Upsert shop
-    if (shopId && shopData) {
-      const shopOrders = shopData.orders ?? shopData.ordersCount ?? null;
+    if (shopId && detail.shopTitle) {
       await prisma.shop.upsert({
         where: { id: shopId },
         update: {
-          title: shopData.title || shopData.name,
-          rating: shopData.rating ?? null,
-          orders_quantity: shopOrders ? BigInt(shopOrders) : null,
+          title: detail.shopTitle,
+          rating: detail.shopRating ?? null,
+          orders_quantity: detail.shopOrdersQuantity ? BigInt(detail.shopOrdersQuantity) : null,
         },
         create: {
           id: shopId,
-          title: shopData.title || shopData.name,
-          rating: shopData.rating ?? null,
-          orders_quantity: shopOrders ? BigInt(shopOrders) : null,
+          title: detail.shopTitle,
+          rating: detail.shopRating ?? null,
+          orders_quantity: detail.shopOrdersQuantity ? BigInt(detail.shopOrdersQuantity) : null,
         },
       });
     }
 
     // Upsert product
-    const title =
-      detail.localizableTitle?.ru ||
-      detail.title ||
-      `Product ${productId}`;
-    const titleUz: string | null = detail.localizableTitle?.uz ?? null;
     const pid = BigInt(productId);
     const totalAvailable = detail.totalAvailableAmount != null
       ? BigInt(detail.totalAvailableAmount)
       : null;
+    const mainPhotoUrl = detail.photoUrls[0] ?? null;
 
-    // Category path: root → leaf (nested parent chain)
-    const categoryPath: Array<{ id: number; title: string }> = [];
-    {
-      let node: { id: number; title: string; parent?: unknown } | null | undefined = detail.category;
-      while (node) {
-        categoryPath.unshift({ id: node.id, title: (node as { title: string }).title });
-        node = (node as { parent?: typeof node }).parent ?? null;
-      }
-    }
-
-    // Photos: extract high-res URLs
-    const photoSizes = ['720', '800', '540', '480', '240'];
-    const photoUrls: string[] = (detail.photos ?? []).map((p) => {
-      for (const s of photoSizes) {
-        const url = p.photo?.[s]?.high;
-        if (url) return url;
-      }
-      const first = Object.values(p.photo ?? {})[0];
-      return first?.high ?? null;
-    }).filter((u): u is string => u !== null);
-    const mainPhotoUrl = photoUrls[0] ?? null;
-
-    const badges = detail.badges ?? [];
     const productData = {
-      title,
-      title_uz: titleUz,
-      category_path: categoryPath.length > 0 ? categoryPath : undefined,
-      badges: badges.length > 0 ? badges : undefined,
+      title: detail.titleRu || detail.title,
+      title_uz: detail.titleUz || null,
+      category_path: detail.categoryPath.length > 0 ? detail.categoryPath : undefined,
+      badges: detail.badges.length > 0 ? detail.badges : undefined,
       photo_url: mainPhotoUrl ?? undefined,
-      photo_urls: photoUrls,
+      photo_urls: detail.photoUrls,
       rating: detail.rating ?? null,
-      feedback_quantity: detail.reviewsAmount ?? 0,
-      orders_quantity: detail.ordersAmount ? BigInt(detail.ordersAmount) : BigInt(0),
+      feedback_quantity: detail.feedbackQuantity ?? 0,
+      orders_quantity: detail.ordersQuantity ? BigInt(detail.ordersQuantity) : BigInt(0),
       total_available_amount: totalAvailable,
       shop_id: shopId,
-      category_id: detail.category?.id ? BigInt(detail.category.id) : null,
+      category_id: detail.categoryId ? BigInt(detail.categoryId) : null,
     };
 
     await prisma.product.upsert({
@@ -102,7 +75,7 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
     });
 
     // Centralized weekly_bought: prefer stored scraped, fallback to calculated (T-207)
-    const currentOrders = detail.ordersAmount ?? 0;
+    const currentOrders = detail.ordersQuantity ?? 0;
 
     const recentSnapshots = await prisma.productSnapshot.findMany({
       where: { product_id: pid },
@@ -116,7 +89,6 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
     if (lastSnap && Date.now() - lastSnap.snapshot_at.getTime() < SNAPSHOT_MIN_GAP_MS) {
       logJobInfo('import-batch', jobId, jobName, `Snapshot dedup: product ${productId}, skip — last snap ${Math.round((Date.now() - lastSnap.snapshot_at.getTime()) / 1000)}s ago`);
     } else {
-      // Prefer last scraped weekly_bought; fallback to calculation (transitional)
       let weeklyBought: number | null = null;
       let wbSource = 'calculated';
       let wbConfidence = 0.30;
@@ -132,9 +104,9 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
         wbConfidence = recentSnapshots.length >= 7 ? 0.50 : 0.30;
       }
 
-      const stockType = detail.skuList?.[0]?.stock?.type;
+      const primarySku = detail.skus[0];
       const supplyPressure = getSupplyPressure(
-        stockType === 'FBO' ? 'FBO' : 'FBS',
+        primarySku?.stockType === 'FBO' ? 'FBO' : 'FBS',
       );
       const score = calculateScore({
         weekly_bought: weeklyBought,
@@ -152,9 +124,10 @@ async function processUrl(url: string, accountId: string, jobId: string, jobName
             weekly_bought_source: wbSource,
             weekly_bought_confidence: wbConfidence,
             rating: detail.rating ?? null,
-            feedback_quantity: detail.reviewsAmount ?? 0,
+            feedback_quantity: detail.feedbackQuantity ?? 0,
             score,
             score_version: SCORE_VERSION,
+            delivery_type: primarySku?.stockType ?? null,
           },
         });
       } catch (err: unknown) {
