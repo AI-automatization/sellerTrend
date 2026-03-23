@@ -5,7 +5,6 @@ import {
   GlobeAltIcon,
   CalculatorIcon,
   MagnifyingGlassIcon,
-  SparklesIcon,
   ArrowTrendingUpIcon,
   ArrowTopRightOnSquareIcon,
   ChevronLeftIcon,
@@ -43,17 +42,16 @@ export function GlobalPriceComparison({
     return null;
   }
 
-  function marginInfo(extPriceUzs: number): { text: string; cls: string; bg: string } | null {
+  function marginInfo(extPriceUzs: number): { text: string; cls: string } | null {
     if (!uzumPrice || uzumPrice <= 0) return null;
     const landed = extPriceUzs * 1.3;
     const margin = ((uzumPrice - landed) / uzumPrice) * 100;
-    if (margin >= 30) return { text: `+${margin.toFixed(0)}%`, cls: 'text-success', bg: 'bg-success/10 border-success/30' };
-    if (margin >= 15) return { text: `+${margin.toFixed(0)}%`, cls: 'text-warning', bg: 'bg-warning/10 border-warning/30' };
-    if (margin > 0)   return { text: `+${margin.toFixed(0)}%`, cls: 'text-orange-400', bg: 'bg-orange-400/10 border-orange-400/30' };
-    return { text: 'Zarar', cls: 'text-error', bg: 'bg-error/10 border-error/30' };
+    if (margin >= 30) return { text: `+${margin.toFixed(0)}%`, cls: 'text-success' };
+    if (margin >= 15) return { text: `+${margin.toFixed(0)}%`, cls: 'text-warning' };
+    if (margin > 0)   return { text: `+${margin.toFixed(0)}%`, cls: 'text-orange-400' };
+    return null;
   }
 
-  // Narx bo'yicha o'sish tartibida sort (null narxlar oxirida)
   const sorted = [...items].sort((a, b) => {
     const pa = parsePrice(a) ?? Infinity;
     const pb = parsePrice(b) ?? Infinity;
@@ -62,9 +60,8 @@ export function GlobalPriceComparison({
 
   const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
   const visible = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
   const allPrices = sorted.map(parsePrice).filter((p): p is number => p !== null);
-  const minExtPrice = allPrices.length ? allPrices[0] : null; // sorted, so first = min
+  const minExtPrice = allPrices.length ? allPrices[0] : null;
 
   return (
     <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-6 space-y-5">
@@ -102,25 +99,17 @@ export function GlobalPriceComparison({
 
       {/* Loading skeleton */}
       {loading && (
-        <div className="space-y-3">
-          <p className="text-xs text-base-content/50 flex items-center gap-2">
-            <span className="loading loading-spinner loading-xs" />
-            Global platformalardan narxlar qidirilmoqda...
-          </p>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="bg-base-300/50 rounded-xl p-3 animate-pulse space-y-2">
-                <div className="flex gap-2">
-                  <div className="w-12 h-12 shrink-0 rounded-lg bg-base-content/10" />
-                  <div className="flex-1 space-y-1.5 pt-0.5">
-                    <div className="h-2.5 bg-base-content/10 rounded w-2/3" />
-                    <div className="h-2.5 bg-base-content/10 rounded w-1/2" />
-                  </div>
-                </div>
-                <div className="h-4 bg-base-content/10 rounded w-1/3" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="bg-base-100 rounded-xl overflow-hidden animate-pulse">
+              <div className="aspect-square bg-base-300/60" />
+              <div className="p-2.5 space-y-2">
+                <div className="h-3 bg-base-300/60 rounded w-full" />
+                <div className="h-3 bg-base-300/60 rounded w-2/3" />
+                <div className="h-4 bg-base-300/60 rounded w-1/2 mt-1" />
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -147,10 +136,10 @@ export function GlobalPriceComparison({
         </div>
       )}
 
-      {/* Product grid */}
+      {/* Product grid — uzum.uz card style */}
       {!loading && sorted.length > 0 && (
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {visible.map((item, i) => {
               const sourceKey = (item.platform ?? item.source ?? '').toUpperCase();
               const meta = SOURCE_META[sourceKey] ?? { label: sourceKey || 'Global', flag: '🌐', color: 'badge-ghost' };
@@ -158,98 +147,101 @@ export function GlobalPriceComparison({
               const mg = extPriceUzs ? marginInfo(extPriceUzs) : null;
               const rank = (page - 1) * PAGE_SIZE + i + 1;
               const isLowest = rank === 1 && page === 1;
+              const imageUrl = item.image ?? item.image_url;
+              const link = item.link ?? item.url;
 
               return (
                 <div
                   key={`${page}-${i}`}
-                  className={`group relative flex flex-col gap-2 bg-base-100/60 border rounded-xl p-3 transition-all duration-200 hover:shadow-md hover:bg-base-100/90 ${
-                    isLowest ? 'border-success/40 bg-success/5' : 'border-base-300/40 hover:border-primary/30'
-                  }`}
+                  className="group bg-base-100 rounded-xl overflow-hidden border border-base-300/30 hover:border-primary/40 hover:shadow-md transition-all duration-200 cursor-pointer"
                 >
-                  {/* Rank badge */}
-                  <span className="absolute top-2 right-2 text-[10px] font-bold text-base-content/20 tabular-nums">
-                    #{rank}
-                  </span>
+                  {/* Image — square, like uzum */}
+                  <div className="relative aspect-square bg-base-200 overflow-hidden">
+                    {imageUrl ? (
+                      <img
+                        src={imageUrl}
+                        alt={item.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          const el = e.target as HTMLImageElement;
+                          el.style.display = 'none';
+                          el.parentElement!.classList.add('flex', 'items-center', 'justify-center');
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <CubeIcon className="w-10 h-10 text-base-content/15" />
+                      </div>
+                    )}
 
-                  {/* Image + platform */}
-                  <div className="flex gap-2 items-start">
-                    <div className="shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-base-200 border border-base-300/30 flex items-center justify-center">
-                      {(item.image ?? item.image_url) ? (
-                        <img
-                          src={item.image ?? item.image_url}
-                          alt={item.title}
-                          className="w-full h-full object-contain"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
+                    {/* Top-left: platform badge */}
+                    <div className="absolute top-1.5 left-1.5">
+                      <span className={`badge badge-xs ${meta.color} shadow-sm`}>
+                        {meta.flag} {meta.label}
+                      </span>
+                    </div>
+
+                    {/* Top-right: eng arzon OR rank */}
+                    <div className="absolute top-1.5 right-1.5">
+                      {isLowest ? (
+                        <span className="badge badge-xs badge-success shadow-sm">🏆 Eng arzon</span>
                       ) : (
-                        <CubeIcon className="w-6 h-6 text-base-content/20" />
+                        <span className="bg-black/40 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                          #{rank}
+                        </span>
                       )}
                     </div>
-                    <div className="flex-1 min-w-0 pt-0.5 space-y-1">
-                      <div className="flex items-center gap-1 flex-wrap">
-                        <span className={`badge badge-xs ${meta.color} gap-0.5 shrink-0`}>
-                          {meta.flag} {meta.label}
+
+                    {/* Hover: Ko'rish button */}
+                    {link && link !== '#' && (
+                      <a
+                        href={link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute inset-0 flex items-end justify-center pb-3 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <span className="btn btn-primary btn-sm gap-1.5 shadow-lg">
+                          Ko'rish
+                          <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
                         </span>
-                        {isLowest && (
-                          <span className="badge badge-xs badge-success shrink-0">Eng arzon</span>
-                        )}
-                      </div>
-                      <p className="text-xs leading-snug line-clamp-2 text-base-content/80 font-medium">
-                        {item.title}
-                      </p>
-                    </div>
+                      </a>
+                    )}
                   </div>
 
-                  {/* Price row */}
-                  <div className="flex items-end justify-between gap-1 mt-auto">
-                    <div>
-                      <p className="font-bold text-base text-primary leading-none">
+                  {/* Info */}
+                  <div className="p-2.5 space-y-1">
+                    {/* Title */}
+                    <p className="text-xs font-medium text-base-content/85 line-clamp-2 leading-snug min-h-[2.5rem]">
+                      {item.title}
+                    </p>
+
+                    {/* Price */}
+                    <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <span className="font-bold text-sm text-primary">
                         {item.price ?? `$${(item.price_usd as number)?.toFixed(2)}`}
-                      </p>
-                      {extPriceUzs && (
-                        <p className="text-[11px] text-base-content/40 mt-0.5">
-                          ≈ {extPriceUzs.toLocaleString()} so'm
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
+                      </span>
                       {mg && (
-                        <span className={`text-[10px] font-bold px-1 py-0.5 rounded border ${mg.bg} ${mg.cls}`}>
+                        <span className={`text-[10px] font-semibold ${mg.cls}`}>
                           {mg.text}
                         </span>
                       )}
-                      {(item.link ?? item.url) && (item.link ?? item.url) !== '#' && (
-                        <a
-                          href={item.link ?? item.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn btn-primary btn-xs p-1 min-h-0 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Ko'rish"
-                        >
-                          <ArrowTopRightOnSquareIcon className="w-3 h-3" />
-                        </a>
-                      )}
                     </div>
-                  </div>
 
-                  {/* Store + AI match */}
-                  {(item.store ?? item.seller_name ?? item.ai_match_score != null) && (
-                    <div className="flex items-center justify-between gap-1 pt-1 border-t border-base-300/20">
-                      {(item.store ?? item.seller_name) && (
-                        <span className="text-[10px] text-base-content/35 truncate">
-                          {item.store ?? item.seller_name}
-                        </span>
-                      )}
-                      {item.ai_match_score != null && (
-                        <span className="text-[10px] text-base-content/35 flex items-center gap-0.5 shrink-0 ml-auto">
-                          <SparklesIcon className="w-2.5 h-2.5" />
-                          {(item.ai_match_score * 100).toFixed(0)}%
-                        </span>
-                      )}
-                    </div>
-                  )}
+                    {/* UZS price */}
+                    {extPriceUzs && (
+                      <p className="text-[11px] text-base-content/40">
+                        ≈ {extPriceUzs.toLocaleString()} so'm
+                      </p>
+                    )}
+
+                    {/* Store */}
+                    {(item.store ?? item.seller_name) && (
+                      <p className="text-[10px] text-base-content/30 truncate">
+                        {item.store ?? item.seller_name}
+                      </p>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -263,7 +255,7 @@ export function GlobalPriceComparison({
               </p>
               <div className="join">
                 <button
-                  className="join-item btn btn-sm btn-ghost rounded-l-lg"
+                  className="join-item btn btn-sm btn-ghost"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
                 >
@@ -282,15 +274,15 @@ export function GlobalPriceComparison({
                     ) : (
                       <button
                         key={p}
-                        className={`join-item btn btn-sm rounded-lg ${page === p ? 'btn-primary' : 'btn-ghost'}`}
-                        onClick={() => { setPage(p as number); }}
+                        className={`join-item btn btn-sm ${page === p ? 'btn-primary' : 'btn-ghost'}`}
+                        onClick={() => setPage(p as number)}
                       >
                         {p}
                       </button>
                     )
                   )}
                 <button
-                  className="join-item btn btn-sm btn-ghost rounded-r-lg"
+                  className="join-item btn btn-sm btn-ghost"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
                 >

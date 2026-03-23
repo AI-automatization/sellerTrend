@@ -56,6 +56,20 @@ export class SourcingService {
       return fresh;
     }
 
+    // 24 soatdan eski bo'lsa — CBU dan yangilaymiz
+    const oldest = await this.prisma.currencyRate.findFirst({
+      where: { to_code: 'UZS' },
+      orderBy: { updated_at: 'asc' },
+    });
+    if (oldest && Date.now() - oldest.updated_at.getTime() > 24 * 60 * 60 * 1000) {
+      try {
+        const fresh = await this.fetchCbuRates();
+        return fresh;
+      } catch {
+        // eskisini qaytaramiz
+      }
+    }
+
     return {
       USD: map['USD'] ?? 12900,
       CNY: map['CNY'] ?? 1780,
@@ -69,7 +83,7 @@ export class SourcingService {
 
   private async fetchCbuRates(): Promise<{ USD: number; CNY: number; EUR: number }> {
     try {
-      const res = await fetch('https://cbu.uz/arkhiv-kursov-valyut/json/');
+      const res = await fetch('https://cbu.uz/uz/arkhiv-kursov-valyut/json/');
       if (!res.ok) throw new Error('CBU API unavailable');
       const data = await res.json() as Array<{ Ccy: string; Rate: string }>;
 
