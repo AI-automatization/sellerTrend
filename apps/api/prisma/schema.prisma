@@ -52,6 +52,7 @@ model Account {
   user_activities        UserActivity[]
   telegram_links         TelegramLink[]
   search_logs            SearchLog[]
+  chat_conversations     ChatConversation[]
 
   @@map("accounts")
 }
@@ -80,6 +81,7 @@ model User {
   login_streak      LoginStreak?
   user_achievements UserAchievement[]
   weekly_digests    WeeklyDigest[]
+  chat_conversations ChatConversation[]
 
   @@index([account_id])
   @@map("users")
@@ -225,6 +227,13 @@ model ProductSnapshot {
   feedback_quantity    Int?
   score                Decimal? @db.Decimal(8, 4)
   score_version        Int      @default(2)      // scoring formula version (T-388)
+  // T-435: GraphQL yangi fieldlar
+  uzum_card_price      BigInt?                   // Uzum Card bilan haqiqiy narx (so'm)
+  uzum_card_discount   Int?                      // Uzum Card % chegirma
+  seller_discount      Int?                      // Sotuvchi % chegirma
+  is_best_price        Boolean?                  // Eng arzon sotuvchi belgisi
+  delivery_type        String?  @db.VarChar(10)  // FBO | FBS | DBS
+  delivery_date        String?  @db.VarChar(50)  // "Завтра", "25 марта"
   snapshot_at          DateTime @default(now()) @db.Timestamptz
   snapshot_bucket      DateTime? @db.Timestamptz // GENERATED ALWAYS AS (5-min truncation) — DB managed
 
@@ -244,6 +253,7 @@ model ProductSnapshotDaily {
   max_weekly_bought Int?
   avg_rating        Decimal? @db.Decimal(3, 2)
   max_orders        BigInt?
+  daily_orders_delta BigInt?                    // max_orders(today) - max_orders(yesterday)
   min_price         BigInt?                     // lowest SKU sell_price that day
   snapshot_count    Int      @default(1)        // how many raw snapshots aggregated
   score_version     Int      @default(2)
@@ -266,11 +276,30 @@ model SkuSnapshot {
   charge_quantity     Int?                        // Key 10: asosiy variant oylari (12)
   charge_quantity_alt Int?                        // Key 11: qo'shimcha variant oylari (24)
   stock_type          String?  @db.VarChar(10)
+  // T-435: installmentWidget (GraphQL) — 4 davr × barcha SKU
+  installment_3m      BigInt?                     // 3 oylik to'lov (so'm)
+  installment_6m      BigInt?                     // 6 oylik to'lov (so'm)
+  installment_12m     BigInt?                     // 12 oylik to'lov (so'm)
+  installment_24m     BigInt?                     // 24 oylik to'lov (so'm)
   snapshot_at         DateTime @default(now()) @db.Timestamptz
 
   sku Sku @relation(fields: [sku_id], references: [id], onDelete: Cascade)
 
   @@map("sku_snapshots")
+}
+
+// ============================================================
+// MARKETPLACE INTELLIGENCE (T-437)
+// ============================================================
+
+model MarketplaceSnapshot {
+  id          Int      @id @default(autoincrement())
+  captured_at DateTime @default(now()) @db.Timestamptz
+  type        String   @db.VarChar(50) // "top_products" | "trending_search"
+  data        Json
+
+  @@index([type, captured_at])
+  @@map("marketplace_snapshots")
 }
 
 // ============================================================
@@ -1261,4 +1290,58 @@ model SearchLog {
   @@index([created_at])
   @@index([query])
   @@map("search_logs")
+}
+
+// ============================================================
+// RAG CHAT PIPELINE (T-428)
+// ============================================================
+
+enum ChatRole {
+  USER
+  ASSISTANT
+}
+
+enum ChatFeedback {
+  UP
+  DOWN
+}
+
+model ChatConversation {
+  id         String   @id @default(cuid())
+  account_id String
+  user_id    String
+  title      String?
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @updatedAt @db.Timestamptz
+
+  account  Account       @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  user     User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@index([account_id, updated_at(sort: Desc)])
+  @@index([user_id])
+  @@map("chat_conversations")
+}
+
+model ChatMessage {
+  id              String        @id @default(cuid())
+  conversation_id String
+  role            ChatRole
+  content         String        @db.Text
+  context_json    Json?
+  intent          String?
+  product_ids     BigInt[]
+  model           String?
+  input_tokens    Int?
+  output_tokens   Int?
+  cost_usd        Decimal?      @db.Decimal(10, 6)
+  feedback        ChatFeedback?
+  feedback_text   String?
+  created_at      DateTime      @default(now()) @db.Timestamptz
+
+  conversation ChatConversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+
+  @@index([conversation_id, created_at])
+  @@map("chat_messages")
 }

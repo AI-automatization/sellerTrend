@@ -42,6 +42,8 @@ import { NotificationModule } from './notification/notification.module';
 import { PlatformsModule } from './platforms/platforms.module';
 // v7.0 Engagement
 import { AchievementsModule } from './achievements/achievements.module';
+// v8.0 RAG Chat
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -88,6 +90,8 @@ import { AchievementsModule } from './achievements/achievements.module';
     PlatformsModule,
     // v7.0 Engagement
     AchievementsModule,
+    // v8.0 RAG Chat
+    ChatModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: CustomThrottlerGuard }],
   controllers: [HealthController],
