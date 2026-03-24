@@ -10,10 +10,10 @@
 ## STATISTIKA
 
 ```
-Ochiq:       ~33 ta
+Ochiq:       ~37 ta
 Bajarilgan:  ~184+ ta (Done.md)
-Oxirgi T-#:  T-464
-Keyingi T-#: T-465 dan boshlash
+Oxirgi T-#:  T-468
+Keyingi T-#: T-469 dan boshlash
 ```
 
 ---
@@ -2314,4 +2314,162 @@ Hozir JWT payloadda `plan` field yo'q. Frontend plan ni bilmaydi — `/auth/me` 
 
 ---
 
-*Tasks.md | VENTRA Analytics Platform | 2026-03-15*
+---
+
+# ═══════════════════════════════════════════════════════════
+# ZIYODA KOD FIXES (T-465..T-468) — kod-audit natijasi
+# ═══════════════════════════════════════════════════════════
+#
+# Manba: Claude kod-audit (2026-03-25) — Ziyoda bajargan tasklardagi kamchiliklar
+# Ketma-ketlik: T-465 → T-466 → T-467 → T-468
+
+### T-465 | P1 | FRONTEND | ChatWidget — SUPER_ADMIN plan bypass yo'q | 15min
+
+**Sana:** 2026-03-25
+**Manba:** kod-audit (Claude audit, 2026-03-25)
+**Topilgan joyda:** `apps/web/src/components/chat/ChatWidget.tsx:18`
+**Mas'ul:** Ziyoda
+
+**Tahlil:**
+`ChatWidget` da plan tekshiruvi faqat `payload?.plan` orqali qilinadi. `SUPER_ADMIN` roli
+exempt qilinmagan. Admin user `FREE` planda bo'lgani uchun chat bloklanadi va "Chat MAX
+tarif rejasida mavjud" xabari ko'rsatiladi. Bu admin tomonidan chat ni test qilishni
+to'liq bloklaydi. `PlanGuard` backend da SUPER_ADMIN ni exempt qiladi, lekin frontend
+komponent qilmaydi — ikki tizim nomuvofiq.
+
+**Muammo:**
+`apps/web/src/components/chat/ChatWidget.tsx:18`:
+```ts
+const canUseChat = hasAccess(payload?.plan, 'MAX');
+// role tekshirilmaydi — SUPER_ADMIN ham bloklanadi
+```
+
+**Yechim:**
+```ts
+const canUseChat = payload?.role === 'SUPER_ADMIN' || hasAccess(payload?.plan, 'MAX');
+```
+
+**Fayllar:** `apps/web/src/components/chat/ChatWidget.tsx`
+
+---
+
+### T-466 | P1 | WORKER | marketplace-intelligence — p.title null crash | 15min
+
+**Sana:** 2026-03-25
+**Manba:** kod-audit (Claude audit, 2026-03-25)
+**Topilgan joyda:** `apps/worker/src/processors/marketplace-intelligence.processor.ts:48`
+**Mas'ul:** Ziyoda
+
+**Tahlil:**
+`MarketplaceIntelligenceProcessor` kuniga 2 marta (08:00 va 20:00) ishlaydi. Log
+xabarida `p.title.slice(0, 20)` chaqiriladi. Uzum GraphQL `getSuggestions` dan
+kelgan mahsulotlarda `title` ba'zan `null` yoki `undefined` bo'lishi mumkin
+(yangi qo'shilgan yoki noto'liq ma'lumotli mahsulotlar). Bu holda `.slice()` chaqiruvi
+`TypeError: Cannot read properties of null` xatosi bilan butun cron job ni to'xtatadi.
+Kuniga 2 marta ishlaydigon job uchun bu production da real xavf.
+
+**Muammo:**
+```ts
+// marketplace-intelligence.processor.ts:48
+`TOP ${products.length} mahsulot saqlandi. Top-3: ${products.slice(0, 3).map((p) => `${p.productId}:${p.title.slice(0, 20)}`).join(', ')}`
+// p.title null bo'lsa → TypeError → cron crash
+```
+
+**Yechim:**
+```ts
+`TOP ${products.length} mahsulot saqlandi. Top-3: ${products.slice(0, 3).map((p) => `${p.productId}:${(p.title ?? 'N/A').slice(0, 20)}`).join(', ')}`
+```
+
+**Fayllar:** `apps/worker/src/processors/marketplace-intelligence.processor.ts`
+
+---
+
+### T-467 | P1 | WORKER | uzum-graphql client — 429 exponential backoff yo'q | 30min
+
+**Sana:** 2026-03-25
+**Manba:** kod-audit (Claude audit, 2026-03-25)
+**Topilgan joyda:** `apps/worker/src/clients/uzum-graphql.client.ts:145`
+**Mas'ul:** Ziyoda
+
+**Tahlil:**
+GraphQL client da 429 (rate limit) xatosi kelganda faqat 1 marta retry qilinadi
+(`isRetry` flag bilan). Ikkinchi urinishda ham 429 kelsa — `throw` qilinadi va
+butun discovery/scraping job fail bo'ladi. Exponential backoff (2^n * base_delay)
+standart pattern bo'lib, Uzum server yuklanishini kamaytiradi va job muvaffaqiyatini
+oshiradi. Hozir: `isRetry=true` bo'lsa retry umuman qilinmaydi.
+
+**Muammo:**
+```ts
+// uzum-graphql.client.ts:145
+if (res.status === 429 && !isRetry) {
+  await sleep(RATE_LIMIT_WAIT_MS);
+  return this._execute<T>(..., true); // faqat 1 marta
+}
+// isRetry=true holda ikkinchi 429 → throw → job fail
+```
+
+**Yechim:**
+`isRetry: boolean` parametrini `retryCount: number` ga o'zgartirish:
+```ts
+private async _execute<T>(
+  operationName: string,
+  queryString: string,
+  variables: Record<string, unknown>,
+  token: string,
+  retryCount = 0,
+): Promise<T> {
+  // ...
+  if (res.status === 429 && retryCount < 3) {
+    const waitMs = RATE_LIMIT_WAIT_MS * Math.pow(2, retryCount); // 3s, 6s, 12s
+    logJobInfo(LOG_CTX, '-', operationName, `429 rate limit — ${waitMs}ms kutilmoqda (retry ${retryCount + 1}/3)`);
+    await new Promise(r => setTimeout(r, waitMs));
+    return this._execute<T>(operationName, queryString, variables, token, retryCount + 1);
+  }
+}
+```
+
+**Fayllar:** `apps/worker/src/clients/uzum-graphql.client.ts`
+
+---
+
+### T-468 | P1 | BACKEND | chat.service — classify try-catch yo'q, stream xato yutiladi | 15min
+
+**Sana:** 2026-03-25
+**Manba:** kod-audit (Claude audit, 2026-03-25)
+**Topilgan joyda:** `apps/api/src/chat/chat.service.ts:80`
+**Mas'ul:** Ziyoda
+
+**Tahlil:**
+`sendMessage()` generator funksiyasida `this.classifier.classify()` chaqiruvi
+try-catch ichida emas. Classifier ichida `BigInt(num)` konvertatsiya qilinadi
+(`chat-classifier.service.ts:65`) — agar xabardan noto'g'ri format raqam olinsa
+(masalan `"9999999999999999999999"`) `BigInt` exception chiqarishi mumkin.
+Bu holda SSE stream to'xtaydi va foydalanuvchiga hech qanday xato xabari
+ko'rsatilmaydi — chat "muzlab" qoladi. Bundan tashqari `logger` e'lon qilingan
+(`chat.service.ts:34`) lekin hech qachon ishlatilmagan — dead code.
+
+**Muammo:**
+```ts
+// chat.service.ts:80
+const classified = this.classifier.classify(message, trackedIds);
+// try-catch yo'q — exception → stream silent fail
+```
+
+**Yechim:**
+1. `classify()` ni try-catch ichiga olish, xato bo'lsa GENERAL intent fallback:
+```ts
+let classified: ClassifiedIntent;
+try {
+  classified = this.classifier.classify(message, trackedIds);
+} catch {
+  this.logger.warn(`Classify failed, GENERAL fallback`);
+  classified = { intent: ChatIntent.GENERAL, confidence: 0, product_ids: trackedIds.slice(0, 5), keywords_matched: [] };
+}
+```
+2. `private readonly logger` ni ishlatish (warn uchun) yoki o'chirish
+
+**Fayllar:** `apps/api/src/chat/chat.service.ts`, `apps/api/src/chat/chat-classifier.service.ts`
+
+---
+
+*Tasks.md | VENTRA Analytics Platform | 2026-03-25*
