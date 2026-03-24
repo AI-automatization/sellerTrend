@@ -22,6 +22,7 @@ export interface SourcingSearchJobData {
   productTitle?: string;
   accountId?: string;
   platforms?: string[];
+  productImageUrl?: string;
 }
 
 export interface ExternalProduct {

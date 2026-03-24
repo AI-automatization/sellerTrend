@@ -74,7 +74,7 @@ export function GlobalPriceComparison({
             Global Bozor Taqqoslash
           </h2>
           <p className="text-xs text-base-content/50 mt-0.5">
-            Alibaba · AliExpress · DHgate · Shopee · Google Shopping
+            AliExpress · Alibaba · DHgate · Wildberries · Ozon · Trendyol · Hepsiburada
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">

@@ -273,6 +273,13 @@ export class SourcingService {
       };
     }
 
+    // Get product image URL for image-based search
+    const productRecord = await this.prisma.product.findFirst({
+      where: { id: BigInt(product_id) },
+      select: { photo_url: true },
+    });
+    const productImageUrl = productRecord?.photo_url ?? undefined;
+
     // Create job record
     const job = await this.prisma.externalSearchJob.create({
       data: {
@@ -292,6 +299,7 @@ export class SourcingService {
       productTitle: product_title,
       accountId: account_id,
       platforms: job.platforms,
+      productImageUrl,
     });
 
     return {

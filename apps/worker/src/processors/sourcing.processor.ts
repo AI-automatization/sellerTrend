@@ -33,16 +33,30 @@ const DHGATE_LOAD_WAIT_MS     = parseInt(process.env.DHGATE_LOAD_WAIT_MS     ?? 
 const DHGATE_SCROLL_WAIT_MS   = parseInt(process.env.DHGATE_SCROLL_WAIT_MS   ?? '2000');
 const ALIEXPRESS_LOAD_WAIT_MS  = parseInt(process.env.ALIEXPRESS_LOAD_WAIT_MS  ?? '7000');
 const ALIEXPRESS_SCROLL_WAIT_MS = parseInt(process.env.ALIEXPRESS_SCROLL_WAIT_MS ?? '2000');
+const WILDBERRIES_LOAD_WAIT_MS  = parseInt(process.env.WILDBERRIES_LOAD_WAIT_MS  ?? '6000');
+const OZON_LOAD_WAIT_MS         = parseInt(process.env.OZON_LOAD_WAIT_MS         ?? '7000');
+const TRENDYOL_LOAD_WAIT_MS     = parseInt(process.env.TRENDYOL_LOAD_WAIT_MS     ?? '6000');
+const HEPSIBURADA_LOAD_WAIT_MS  = parseInt(process.env.HEPSIBURADA_LOAD_WAIT_MS  ?? '6000');
+const IMAGE_LOAD_WAIT_MS        = parseInt(process.env.IMAGE_LOAD_WAIT_MS        ?? '8000');
 const PIPELINE_TIMEOUT_MS = 90_000; // T-461: global pipeline timeout
+
+// Currency conversion fallbacks (env-overridable)
+const RUB_TO_USD = parseFloat(process.env.RUB_TO_USD ?? '0.011'); // ~1 RUB = $0.011
+const TRY_TO_USD = parseFloat(process.env.TRY_TO_USD ?? '0.030'); // ~1 TRY = $0.030
 
 // T-462/T-463: currency per platform
 const PLATFORM_CURRENCY: Record<string, string> = {
-  google_shopping: 'USD',
-  aliexpress:      'USD',
-  dhgate:          'USD',
-  baidu:           'CNY',
-  '1688':          'CNY',
-  taobao:          'CNY',
+  aliexpress:   'USD',
+  dhgate:       'USD',
+  banggood:     'USD',
+  shopee:       'USD',
+  alibaba:      'USD',
+  '1688':       'CNY',
+  taobao:       'CNY',
+  wildberries:  'RUB',
+  ozon:         'RUB',
+  trendyol:     'TRY',
+  hepsiburada:  'TRY',
 };
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -55,6 +69,7 @@ interface SourcingSearchJobData {
   productTitle?: string;
   accountId?: string;
   platforms?: string[];
+  productImageUrl?: string;
 }
 
 export interface ExternalProduct {
@@ -138,50 +153,6 @@ async function aiScoreResults(
     logJobInfo('sourcing-search', '-', 'aiScoreResults', `AI scoring failed: ${err}`);
   }
   return map;
-}
-
-// ─── SerpAPI Client ──────────────────────────────────────────────────────────
-
-async function serpApiSearch(
-  query: string,
-  engine: string,
-  platformCode: string,
-  queryParam: 'q' | 'search_query' = 'q', // T-462: aliexpress_search uses search_query
-): Promise<Array<{ title: string; price_usd: number; currency: string; url: string; image: string; seller: string | null; external_id: string | null; platform_code: string }>> {
-  const apiKey = process.env.SERPAPI_API_KEY;
-  if (!apiKey) {
-    logJobInfo('sourcing-search', '-', 'searchSerpApi', `SERPAPI_API_KEY not set`);
-    return [];
-  }
-  try {
-    const params = new URLSearchParams({ api_key: apiKey, engine, [queryParam]: query, num: '10' });
-    const res = await fetch(`https://serpapi.com/search.json?${params}`);
-    if (!res.ok) {
-      logJobInfo('sourcing-search', '-', 'searchSerpApi', `SerpAPI HTTP ${res.status} for engine=${engine}`);
-      return [];
-    }
-    const data = await res.json() as any;
-    if (data.error) logJobInfo('sourcing-search', '-', 'searchSerpApi', `SerpAPI error: ${data.error}`);
-    const items = data.organic_results ?? data.shopping_results ?? data.products_results ?? [];
-    const currency = PLATFORM_CURRENCY[platformCode] ?? 'USD'; // T-462/T-463
-    return items.slice(0, 10).map((item: any) => {
-      const raw = item.price ?? item.extracted_price ?? item.offer_price ?? '0';
-      const priceNum = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/[^0-9.]/g, '')) || 0;
-      return {
-        title: item.title ?? item.name ?? '',
-        price_usd: priceNum,
-        currency,
-        url: item.link ?? item.product_link ?? item.url ?? '',
-        image: item.thumbnail ?? item.image ?? '',
-        seller: item.source ?? item.seller ?? item.shop_name ?? null,
-        external_id: item.product_id ?? item.id ? String(item.product_id ?? item.id) : null,
-        platform_code: platformCode,
-      };
-    }).filter((p: any) => p.title && p.price_usd > 0);
-  } catch (err) {
-    logJobInfo('sourcing-search', '-', 'searchSerpApi', `SerpAPI:${engine} failed: ${err}`);
-    return [];
-  }
 }
 
 // ─── Playwright Scrapers ─────────────────────────────────────────────────────
@@ -515,6 +486,394 @@ async function scrapeAliExpress(
   }
 }
 
+// ─── Wildberries REST API ─────────────────────────────────────────────────────
+
+async function searchWildberries(query: string): Promise<ExternalProduct[]> {
+  try {
+    const encoded = encodeURIComponent(query);
+    const url = `https://search.wb.ru/exactmatch/ru/common/v4/search?query=${encoded}&resultset=catalog&limit=20&sort=popular&page=1&appType=1&curr=rub&lang=ru&dest=-1257786`;
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) return [];
+    const data = await res.json() as any;
+    const products: any[] = data?.data?.products ?? [];
+    return products.slice(0, 10).map((p: any) => {
+      const priceRub = (p.salePriceU ?? p.priceU ?? 0) / 100;
+      const priceUsd = priceRub * RUB_TO_USD;
+      return {
+        title: String(p.name ?? ''),
+        price: `$${priceUsd.toFixed(2)}`,
+        source: 'WILDBERRIES',
+        link: `https://www.wildberries.ru/catalog/${p.id}/detail.aspx`,
+        image: '',
+        store: String(p.brand ?? 'Wildberries'),
+      };
+    }).filter((i: ExternalProduct) => i.title.length > 0 && i.price !== '$0.00');
+  } catch (err) {
+    logJobInfo('sourcing-search', '-', 'searchWildberries', `WB API failed: ${err}`);
+    return [];
+  }
+}
+
+// ─── Ozon Playwright ─────────────────────────────────────────────────────────
+
+async function scrapeOzon(query: string, context: BrowserContext): Promise<ExternalProduct[]> {
+  const page = await context.newPage();
+  try {
+    const url = `https://www.ozon.ru/search/?text=${encodeURIComponent(query)}&from_global=true`;
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25_000 }).catch(() => {});
+    const finalUrl = page.url();
+    if (finalUrl.includes('captcha') || finalUrl.includes('challenge')) return [];
+    await page.waitForTimeout(OZON_LOAD_WAIT_MS);
+    await page.evaluate(() => window.scrollTo(0, 400));
+    await page.waitForTimeout(2000);
+
+    const items: ExternalProduct[] = await page.evaluate((rubToUsd: number) => {
+      const selectors = ['[data-widget="searchResultsV2"] > div > div', '[class*="tile-root"]', '[class*="j3k"]'];
+      let cards: Element[] = [];
+      for (const sel of selectors) {
+        const found = document.querySelectorAll(sel);
+        if (found.length >= 2) { cards = Array.from(found).slice(0, 10); break; }
+      }
+      return cards.map((card) => {
+        const titleEl = card.querySelector('[class*="tsBody"], [class*="title"], span[class*="eCFs"]');
+        const priceEl = card.querySelector('[class*="price"], [class*="tsBodyControl500Medium"]');
+        const linkEl = card.querySelector('a') as HTMLAnchorElement | null;
+        const imgEl = card.querySelector('img') as HTMLImageElement | null;
+        const href = linkEl?.getAttribute('href') ?? '';
+        const priceRaw = priceEl?.textContent?.replace(/[^\d]/g, '') ?? '0';
+        const priceRub = parseInt(priceRaw, 10) || 0;
+        const priceUsd = priceRub * rubToUsd;
+        return {
+          title: titleEl?.textContent?.trim() ?? '',
+          price: priceUsd > 0 ? `$${priceUsd.toFixed(2)}` : (priceEl?.textContent?.trim() ?? ''),
+          source: 'OZON',
+          link: href.startsWith('http') ? href : `https://www.ozon.ru${href}`,
+          image: imgEl?.getAttribute('src') ?? imgEl?.getAttribute('data-src') ?? '',
+          store: 'Ozon',
+        };
+      });
+    }, RUB_TO_USD);
+    const filtered = items.filter((i) => i.title.length > 0 && i.price.length > 0);
+    logJobInfo('sourcing-search', '-', 'scrapeOzon', `DOM: ${items.length} cards, ${filtered.length} valid`);
+    return filtered;
+  } finally {
+    await page.close();
+  }
+}
+
+// ─── Trendyol Playwright ──────────────────────────────────────────────────────
+
+async function scrapeTrendyol(query: string, context: BrowserContext): Promise<ExternalProduct[]> {
+  const page = await context.newPage();
+  let trendyolItems: any[] = [];
+
+  page.on('response', async (response) => {
+    try {
+      const url = response.url();
+      const ct = response.headers()['content-type'] ?? '';
+      if (url.includes('trendyol.com') && ct.includes('application/json') &&
+          (url.includes('search') || url.includes('filter'))) {
+        const json = await response.json();
+        const items = json?.result?.products ?? json?.products;
+        if (Array.isArray(items) && items.length > 0 && trendyolItems.length === 0) trendyolItems = items;
+      }
+    } catch { /* ignore */ }
+  });
+
+  try {
+    const url = `https://www.trendyol.com/sr?q=${encodeURIComponent(query)}&qt=${encodeURIComponent(query)}&st=${encodeURIComponent(query)}`;
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25_000 }).catch(() => {});
+    const finalUrl = page.url();
+    if (finalUrl.includes('captcha') || finalUrl.includes('challenge')) return [];
+    await page.waitForTimeout(TRENDYOL_LOAD_WAIT_MS);
+    await page.evaluate(() => window.scrollTo(0, 400));
+    await page.waitForTimeout(2000);
+
+    if (trendyolItems.length > 0) {
+      return trendyolItems.slice(0, 8).map((item: any) => {
+        const priceObj = item.price ?? {};
+        const priceTry = priceObj.discountedPrice?.value ?? priceObj.originalPrice?.value ?? item.discountedPrice ?? 0;
+        const priceUsd = Number(priceTry) * TRY_TO_USD;
+        return {
+          title: String(item.name ?? ''),
+          price: priceUsd > 0 ? `$${priceUsd.toFixed(2)}` : String(priceTry),
+          source: 'TRENDYOL',
+          link: item.url ? `https://www.trendyol.com${item.url}` : url,
+          image: item.images?.[0] ? `https://cdn.dsmcdn.com/${item.images[0]}` : '',
+          store: String(item.merchantName ?? 'Trendyol'),
+        };
+      }).filter((i: ExternalProduct) => i.title.length > 0);
+    }
+
+    const items: ExternalProduct[] = await page.evaluate((tryToUsd: number) => {
+      const cards = Array.from(
+        document.querySelectorAll('.p-card-wrppr, [class*="productCard"], [class*="product-card"]')
+      ).slice(0, 10);
+      return cards.map((card) => {
+        const titleEl = card.querySelector('[class*="product-title"], [class*="title"]');
+        const priceEl = card.querySelector('[class*="prc-box-dscntd"], [class*="price"]');
+        const linkEl = card.querySelector('a') as HTMLAnchorElement | null;
+        const imgEl = card.querySelector('img') as HTMLImageElement | null;
+        const href = linkEl?.getAttribute('href') ?? '';
+        const priceTry = parseFloat((priceEl?.textContent ?? '0').replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+        const priceUsd = priceTry * tryToUsd;
+        return {
+          title: titleEl?.textContent?.trim() ?? '',
+          price: priceUsd > 0 ? `$${priceUsd.toFixed(2)}` : (priceEl?.textContent?.trim() ?? ''),
+          source: 'TRENDYOL',
+          link: href.startsWith('http') ? href : `https://www.trendyol.com${href}`,
+          image: imgEl?.getAttribute('src') ?? imgEl?.getAttribute('data-src') ?? '',
+          store: 'Trendyol',
+        };
+      });
+    }, TRY_TO_USD);
+    return items.filter((i) => i.title.length > 0 && i.price.length > 0);
+  } finally {
+    await page.close();
+  }
+}
+
+// ─── Hepsiburada Playwright ───────────────────────────────────────────────────
+
+async function scrapeHepsiburada(query: string, context: BrowserContext): Promise<ExternalProduct[]> {
+  const page = await context.newPage();
+  let hepsiItems: any[] = [];
+
+  page.on('response', async (response) => {
+    try {
+      const url = response.url();
+      const ct = response.headers()['content-type'] ?? '';
+      if ((url.includes('hepsiburada.com') || url.includes('hepsiapigateway.com')) && ct.includes('application/json')) {
+        const json = await response.json();
+        const items = json?.data?.products ?? json?.data ?? json?.products ?? json?.result?.products;
+        if (Array.isArray(items) && items.length > 0 && hepsiItems.length === 0) hepsiItems = items;
+      }
+    } catch { /* ignore */ }
+  });
+
+  try {
+    const url = `https://www.hepsiburada.com/ara?q=${encodeURIComponent(query)}`;
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25_000 }).catch(() => {});
+    const finalUrl = page.url();
+    if (finalUrl.includes('captcha') || finalUrl.includes('challenge')) return [];
+    await page.waitForTimeout(HEPSIBURADA_LOAD_WAIT_MS);
+    await page.evaluate(() => window.scrollTo(0, 400));
+    await page.waitForTimeout(2000);
+
+    if (hepsiItems.length > 0) {
+      return hepsiItems.slice(0, 8).map((item: any) => {
+        const priceTry = item.price ?? item.finalPrice ?? item.campaignPrice ?? 0;
+        const priceUsd = Number(priceTry) * TRY_TO_USD;
+        return {
+          title: String(item.name ?? item.displayName ?? ''),
+          price: priceUsd > 0 ? `$${priceUsd.toFixed(2)}` : String(priceTry),
+          source: 'HEPSIBURADA',
+          link: item.url ? `https://www.hepsiburada.com${item.url}` : url,
+          image: String(item.images?.[0] ?? item.imageUrl ?? ''),
+          store: String(item.merchantName ?? 'Hepsiburada'),
+        };
+      }).filter((i: ExternalProduct) => i.title.length > 0);
+    }
+
+    const items: ExternalProduct[] = await page.evaluate((tryToUsd: number) => {
+      const cards = Array.from(
+        document.querySelectorAll('[data-test-id="product-card-wrapper"], li[class*="productListItem"]')
+      ).slice(0, 10);
+      return cards.map((card) => {
+        const titleEl = card.querySelector('[data-test-id="product-title"], [class*="title"]');
+        const priceEl = card.querySelector('[data-test-id="price-current-price"], [class*="price"]');
+        const linkEl = card.querySelector('a') as HTMLAnchorElement | null;
+        const imgEl = card.querySelector('img') as HTMLImageElement | null;
+        const href = linkEl?.getAttribute('href') ?? '';
+        const priceTry = parseFloat((priceEl?.textContent ?? '0').replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+        const priceUsd = priceTry * tryToUsd;
+        return {
+          title: titleEl?.textContent?.trim() ?? '',
+          price: priceUsd > 0 ? `$${priceUsd.toFixed(2)}` : (priceEl?.textContent?.trim() ?? ''),
+          source: 'HEPSIBURADA',
+          link: href.startsWith('http') ? href : `https://www.hepsiburada.com${href}`,
+          image: imgEl?.getAttribute('src') ?? imgEl?.getAttribute('data-src') ?? '',
+          store: 'Hepsiburada',
+        };
+      });
+    }, TRY_TO_USD);
+    return items.filter((i) => i.title.length > 0 && i.price.length > 0);
+  } finally {
+    await page.close();
+  }
+}
+
+// ─── Image Search Scrapers ────────────────────────────────────────────────────
+
+/** Google Lens via SerpAPI — cross-platform visual search (NOT google_shopping) */
+async function serpApiLensSearch(imageUrl: string): Promise<ExternalProduct[]> {
+  const apiKey = process.env.SERPAPI_API_KEY;
+  if (!apiKey) return [];
+  try {
+    const params = new URLSearchParams({ api_key: apiKey, engine: 'google_lens', url: imageUrl });
+    const res = await fetch(`https://serpapi.com/search.json?${params}`, {
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (!res.ok) return [];
+    const data = await res.json() as any;
+    const items: any[] = data?.visual_matches ?? data?.image_results ?? [];
+    return items.slice(0, 15).map((item: any) => ({
+      title: String(item.title ?? ''),
+      price: item.price ? `$${parseFloat(String(item.price).replace(/[^0-9.]/g, '')).toFixed(2)}` : '',
+      source: 'GOOGLE_LENS',
+      link: String(item.link ?? ''),
+      image: String(item.thumbnail ?? item.image ?? ''),
+      store: String(item.source ?? 'Google Lens'),
+    })).filter((i: ExternalProduct) => i.title.length > 0 && i.link.length > 0);
+  } catch (err) {
+    logJobInfo('sourcing-search', '-', 'serpApiLensSearch', `Google Lens failed: ${err}`);
+    return [];
+  }
+}
+
+/** AliExpress image search — Playwright */
+async function scrapeAliExpressImage(imageUrl: string, context: BrowserContext): Promise<ExternalProduct[]> {
+  const page = await context.newPage();
+  let aeItems: any[] = [];
+
+  page.on('response', async (response) => {
+    try {
+      const url = response.url();
+      const ct = response.headers()['content-type'] ?? '';
+      if (url.includes('aliexpress.com') && ct.includes('application/json') &&
+          (url.includes('search') || url.includes('fn/') || url.includes('image'))) {
+        const json = await response.json();
+        const list =
+          json?.result?.mods?.itemList?.content ??
+          json?.data?.result?.resultList ??
+          json?.result?.resultList ??
+          json?.items;
+        if (Array.isArray(list) && list.length > 0 && aeItems.length === 0) aeItems = list;
+      }
+    } catch { /* ignore */ }
+  });
+
+  try {
+    const searchUrl = `https://www.aliexpress.com/searchengine/searchnow?SearchText=&imageUrl=${encodeURIComponent(imageUrl)}&tabCode=imgSearch`;
+    await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 25_000 }).catch(() => {});
+    const finalUrl = page.url();
+    if (finalUrl.includes('captcha') || finalUrl.includes('challenge') || finalUrl.includes('login')) return [];
+    await page.waitForTimeout(IMAGE_LOAD_WAIT_MS);
+    await page.evaluate(() => window.scrollTo(0, 400));
+    await page.waitForTimeout(2000);
+
+    if (aeItems.length > 0) {
+      return aeItems.slice(0, 8).map((item: Record<string, any>) => {
+        const itemId = String(item.itemId ?? item.productId ?? '');
+        const priceStr: string =
+          (item.prices as any)?.salePrice?.formattedPrice ??
+          (item.price as any)?.formattedPrice ??
+          String(item.salePrice ?? '');
+        return {
+          title: String(item.title ?? item.productTitle ?? item.name ?? ''),
+          price: priceStr,
+          source: 'ALIEXPRESS',
+          link: itemId ? `https://www.aliexpress.com/item/${itemId}.html` : searchUrl,
+          image: String(item.image ?? item.productImageUrl ?? ''),
+          store: String((item.store as any)?.storeName ?? 'AliExpress'),
+        };
+      }).filter((i: ExternalProduct) => i.title.length > 0);
+    }
+
+    // DOM fallback
+    const items: ExternalProduct[] = await page.evaluate(() => {
+      const cards = Array.from(
+        document.querySelectorAll('[class*="manhattan--container"], [class*="product-item"], [class*="item-wrap"]')
+      ).slice(0, 10);
+      return cards.map((card) => {
+        const titleEl = card.querySelector('[class*="title"], h3, [class*="name"]');
+        const priceEl = card.querySelector('[class*="price"]');
+        const linkEl = (card.tagName === 'A' ? card : card.querySelector('a')) as HTMLAnchorElement | null;
+        const imgEl = card.querySelector('img') as HTMLImageElement | null;
+        const href = linkEl?.getAttribute('href') ?? '';
+        return {
+          title: titleEl?.textContent?.trim() ?? '',
+          price: priceEl?.textContent?.trim() ?? '',
+          source: 'ALIEXPRESS',
+          link: href.startsWith('http') ? href : `https://www.aliexpress.com${href}`,
+          image: imgEl?.getAttribute('src') ?? imgEl?.getAttribute('data-src') ?? '',
+          store: 'AliExpress',
+        };
+      });
+    });
+    return items.filter((i) => i.title.length > 0 && i.price.length > 0);
+  } finally {
+    await page.close();
+  }
+}
+
+/** 1688 image search — Playwright */
+async function scrape1688Image(imageUrl: string, context: BrowserContext): Promise<ExternalProduct[]> {
+  const page = await context.newPage();
+  let items1688: any[] = [];
+
+  page.on('response', async (response) => {
+    try {
+      const url = response.url();
+      const ct = response.headers()['content-type'] ?? '';
+      if (url.includes('1688.com') && ct.includes('application/json')) {
+        const json = await response.json();
+        const list = json?.data?.offerList ?? json?.offerList ?? json?.data?.data;
+        if (Array.isArray(list) && list.length > 0 && items1688.length === 0) items1688 = list;
+      }
+    } catch { /* ignore */ }
+  });
+
+  try {
+    const searchUrl = `https://s.1688.com/selloffer/offer_search.htm?keywords=&imageAddress=${encodeURIComponent(imageUrl)}`;
+    await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 25_000 }).catch(() => {});
+    const finalUrl = page.url();
+    if (finalUrl.includes('login') || finalUrl.includes('captcha')) return [];
+    await page.waitForTimeout(IMAGE_LOAD_WAIT_MS);
+    await page.evaluate(() => window.scrollTo(0, 400));
+    await page.waitForTimeout(2000);
+
+    if (items1688.length > 0) {
+      return items1688.slice(0, 8).map((item: any) => ({
+        title: String(item.offerName ?? item.subject ?? ''),
+        price: item.price ? `$${(parseFloat(String(item.price)) * 0.138).toFixed(2)}` : '',
+        source: '1688',
+        link: String(item.offerUrl ?? item.detailUrl ?? `https://www.1688.com`),
+        image: String(item.image?.imgUrl ?? item.mainImage ?? ''),
+        store: String(item.company?.name ?? item.sellerLogin ?? '1688'),
+      })).filter((i: ExternalProduct) => i.title.length > 0);
+    }
+
+    // DOM fallback
+    const domItems: ExternalProduct[] = await page.evaluate(() => {
+      const cards = Array.from(
+        document.querySelectorAll('[class*="offer-list-item"], [class*="list-item"], .offer-list-snap-item')
+      ).slice(0, 10);
+      return cards.map((card) => {
+        const titleEl = card.querySelector('[class*="offer-title"], a[title], h3');
+        const priceEl = card.querySelector('[class*="price"]');
+        const linkEl = card.querySelector('a') as HTMLAnchorElement | null;
+        const imgEl = card.querySelector('img') as HTMLImageElement | null;
+        const href = linkEl?.getAttribute('href') ?? '';
+        return {
+          title: titleEl?.getAttribute('title') ?? titleEl?.textContent?.trim() ?? '',
+          price: priceEl?.textContent?.trim() ?? '',
+          source: '1688',
+          link: href.startsWith('http') ? href : `https:${href}`,
+          image: imgEl?.getAttribute('src') ?? imgEl?.getAttribute('data-src') ?? '',
+          store: '1688.com',
+        };
+      });
+    });
+    return domItems.filter((i) => i.title.length > 0 && i.price.length > 0);
+  } finally {
+    await page.close();
+  }
+}
+
 // ─── Full Pipeline ───────────────────────────────────────────────────────────
 
 async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalProduct[]> {
@@ -543,24 +902,9 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
   const platforms = await prisma.externalPlatform.findMany({ where: { is_active: true } });
   const platformMap = new Map(platforms.map((p) => [p.code, p.id]));
 
-  // Step 3: Parallel search — SerpAPI + Playwright (T-461/T-462/T-463/T-464)
-  const serpApiKey = process.env.SERPAPI_API_KEY;
-  const apiSearches: Promise<any[]>[] = [];
-
-  if (serpApiKey) {
-    // Google Shopping — inglizcha va xitoycha qidiruv (global + Alibaba/AliExpress natijalari)
-    apiSearches.push(serpApiSearch(enQuery, 'google_shopping', 'google_shopping'));
-    apiSearches.push(serpApiSearch(cnQuery, 'google_shopping', 'google_shopping'));
-    // T-462: Wholesale-targeted qidiruv — ulgurji narxlar (Alibaba, AliExpress, DHgate)
-    apiSearches.push(serpApiSearch(`${enQuery} wholesale bulk price`, 'google_shopping', 'aliexpress'));
-    // T-463: Xitoy ulgurji bozori — cnQuery + "批发" (wholesale) keyword
-    apiSearches.push(serpApiSearch(`${cnQuery} 批发`, 'google_shopping', 'alibaba'));
-  }
-
-  // T-464: Banggood/Shopee — bot protection, disabled by default
-  const playwrightEnabled = !serpApiKey || process.env.ENABLE_PLAYWRIGHT_SCRAPERS === 'true';
-  // T-465: DHgate/AliExpress wholesale scrapers — enabled by default, disable with ENABLE_WHOLESALE_SCRAPERS=false
-  const wholesaleEnabled = process.env.ENABLE_WHOLESALE_SCRAPERS !== 'false';
+  // Step 3: Parallel search — REST APIs + Playwright scrapers
+  const playwrightEnabled = process.env.ENABLE_PLAYWRIGHT_SCRAPERS !== 'false';
+  const wholesaleEnabled  = process.env.ENABLE_WHOLESALE_SCRAPERS  !== 'false';
   const needsPlaywright = playwrightEnabled || wholesaleEnabled;
 
   let browser: import('playwright').Browser | null = null;
@@ -588,10 +932,26 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
 
   try {
     // T-461: Global 90s timeout — prevent Playwright hang
-    const playwrightCalls = context ? [
+    const apiFetches: Promise<ExternalProduct[]>[] = [
+      searchWildberries(enQuery),
+      searchWildberries(cnQuery),
+    ];
+
+    const playwrightCalls: Promise<ExternalProduct[]>[] = context ? [
       ...(playwrightEnabled ? [scrapeBanggood(enQuery, context), scrapeShopee(enQuery, context)] : []),
-      // T-465: Wholesale scrapers — DHgate (inglizcha) + AliExpress (inglizcha)
-      ...(wholesaleEnabled ? [scrapeDHgate(enQuery, context), scrapeAliExpress(enQuery, context)] : []),
+      ...(wholesaleEnabled  ? [scrapeDHgate(enQuery, context), scrapeAliExpress(enQuery, context)] : []),
+      scrapeOzon(enQuery, context),
+      scrapeTrendyol(enQuery, context),
+      scrapeHepsiburada(enQuery, context),
+    ] : [];
+
+    // Image-based searches (when productImageUrl is available)
+    const imageFetches: Promise<ExternalProduct[]>[] = data.productImageUrl ? [
+      serpApiLensSearch(data.productImageUrl),
+      ...(context ? [
+        scrapeAliExpressImage(data.productImageUrl, context),
+        scrape1688Image(data.productImageUrl, context),
+      ] : []),
     ] : [];
 
     const timeoutPromise: Promise<never> = new Promise((_, reject) =>
@@ -599,33 +959,25 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
     );
 
     const allResults = await Promise.race([
-      Promise.allSettled([...apiSearches, ...playwrightCalls]),
+      Promise.allSettled([...apiFetches, ...playwrightCalls, ...imageFetches]),
       timeoutPromise,
     ]);
 
-    // Collect results — type-based routing (price_usd = SerpAPI, price string = Playwright)
-    const serpResults: Array<{ title: string; price_usd: number; currency: string; url: string; image: string; seller: string | null; external_id: string | null; platform_code: string }> = [];
-    const playwrightProducts: ExternalProduct[] = [];
-
+    // Collect all as ExternalProduct[]
+    const allProducts: ExternalProduct[] = [];
     for (const result of allResults) {
       if (result.status === 'rejected') {
         logJobInfo('sourcing-search', jobId ?? '-', 'processSearch', `Search failed: ${String(result.reason)}`);
         continue;
       }
-      const val = result.value as any[];
-      if (!val.length) continue;
-      if ('price_usd' in (val[0] ?? {})) {
-        serpResults.push(...(val as typeof serpResults));
-      } else {
-        playwrightProducts.push(...(val as ExternalProduct[]));
-      }
+      allProducts.push(...result.value);
     }
 
-    logJobInfo('sourcing-search', jobId ?? '-', 'processSearch', `SerpAPI: ${serpResults.length}, Playwright: ${playwrightProducts.length}`);
+    logJobInfo('sourcing-search', jobId ?? '-', 'processSearch', `Total products collected: ${allProducts.length}`);
 
-    // Step 4: Save results to DB (if full mode)
+    // Step 4: Save ALL results to DB (if full mode)
     if (jobId) {
-      // T-463: CNY → USD conversion rate (from DB or fallback)
+      // CNY → USD conversion rate
       const cnyRateRow = await prisma.currencyRate.findUnique({
         where: { from_code_to_code: { from_code: 'CNY', to_code: 'UZS' } },
       });
@@ -636,40 +988,21 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
         ? Number(cnyRateRow.rate) / Number(usdRateRow.rate)
         : 0.138; // fallback: ~1 CNY = 0.138 USD
 
-      // Save SerpAPI results
-      for (const item of serpResults) {
-        const platId = platformMap.get(item.platform_code);
-        if (!platId) continue;
-        const priceUsd = item.currency === 'CNY' ? item.price_usd * cnyToUsd : item.price_usd;
-        await prisma.externalSearchResult.create({
-          data: {
-            job_id: jobId,
-            platform_id: platId,
-            external_id: item.external_id,
-            title: item.title,
-            price_usd: priceUsd,          // USD da saqlanadi (cargo calc uchun)
-            price_local: item.price_usd,  // original (CNY yoki USD)
-            currency: item.currency,
-            url: item.url,
-            image_url: item.image || null,
-            seller_name: item.seller,
-          },
-        });
-      }
-
-      // Save Playwright results
-      for (const item of playwrightProducts) {
-        const code = item.source.toLowerCase(); // BANGGOOD→banggood, DHGATE→dhgate, ALIEXPRESS→aliexpress, etc.
+      for (const item of allProducts) {
+        const code = item.source.toLowerCase();
         const platId = platformMap.get(code);
         if (!platId) continue;
+        const currency = PLATFORM_CURRENCY[code] ?? 'USD';
         const priceNum = parseFloat(String(item.price).replace(/[^0-9.]/g, '')) || 0;
+        const priceUsd = currency === 'CNY' ? priceNum * cnyToUsd : priceNum;
         await prisma.externalSearchResult.create({
           data: {
             job_id: jobId,
             platform_id: platId,
             title: item.title,
-            price_usd: priceNum,
-            currency: 'USD',
+            price_usd: priceUsd,
+            price_local: priceNum,
+            currency,
             url: item.link,
             image_url: item.image || null,
             seller_name: item.store,
@@ -830,20 +1163,7 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
       });
     }
 
-    // Return ExternalProduct[] for backward compatibility
-    const combined: ExternalProduct[] = [
-      ...serpResults.map((r) => ({
-        title: r.title,
-        price: `$${r.price_usd.toFixed(2)}`,
-        source: r.platform_code.toUpperCase(),
-        link: r.url,
-        image: r.image,
-        store: r.seller ?? r.platform_code,
-      })),
-      ...playwrightProducts,
-    ];
-
-    return combined;
+    return allProducts;
   } finally {
     if (context) await context.close().catch(() => {});
     if (needsPlaywright) await browserPool.release().catch(() => {});

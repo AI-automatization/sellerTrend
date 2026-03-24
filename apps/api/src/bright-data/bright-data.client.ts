@@ -58,6 +58,10 @@ export class BrightDataClient {
       taobao:
         this.config.get<string>('BRIGHT_DATA_DATASET_TAOBAO') ??
         PLATFORMS_CONFIG.taobao.datasetId,
+      wildberries:  PLATFORMS_CONFIG.wildberries.datasetId,
+      ozon:         PLATFORMS_CONFIG.ozon.datasetId,
+      trendyol:     PLATFORMS_CONFIG.trendyol.datasetId,
+      hepsiburada:  PLATFORMS_CONFIG.hepsiburada.datasetId,
     };
   }
 
@@ -112,9 +116,13 @@ export class BrightDataClient {
     limit?: number,
   ): Promise<Record<PlatformKey, BrightDataProduct[]>> {
     const results: Record<PlatformKey, BrightDataProduct[]> = {
-      aliexpress: [],
-      '1688': [],
-      taobao: [],
+      aliexpress:  [],
+      '1688':      [],
+      taobao:      [],
+      wildberries: [],
+      ozon:        [],
+      trendyol:    [],
+      hepsiburada: [],
     };
 
     if (!this.apiKey) return results;
@@ -238,6 +246,9 @@ export class BrightDataClient {
         return this.normalize1688(rawResults as BrightData1688Raw[]);
       case 'taobao':
         return this.normalizeTaobao(rawResults as BrightDataTaobaoRaw[]);
+      default:
+        // New platforms (wildberries, ozon, trendyol, hepsiburada) use REST/Playwright — not Bright Data
+        return [];
     }
   }
 

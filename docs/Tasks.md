@@ -10,10 +10,10 @@
 ## STATISTIKA
 
 ```
-Ochiq:       ~37 ta
+Ochiq:       ~38 ta
 Bajarilgan:  ~184+ ta (Done.md)
-Oxirgi T-#:  T-468
-Keyingi T-#: T-469 dan boshlash
+Oxirgi T-#:  T-469
+Keyingi T-#: T-470 dan boshlash
 ```
 
 ---
@@ -2469,6 +2469,45 @@ try {
 2. `private readonly logger` ni ishlatish (warn uchun) yoki o'chirish
 
 **Fayllar:** `apps/api/src/chat/chat.service.ts`, `apps/api/src/chat/chat-classifier.service.ts`
+
+---
+
+---
+
+### T-469 | P1 | WORKER | Global sourcing — Google Shopping olib tashlash + Wildberries/Ozon/Trendyol/Hepsiburada qo'shish | 2h | pending[Sardor]
+
+**Sana:** 2026-03-25
+**Manba:** user-feedback (Sardor, 2026-03-25)
+**Mas'ul:** Sardor
+
+**Tahlil:**
+Hozirgi sourcing pipeline `SerpAPI google_shopping` engine orqali barcha qidiruvlarni amalga oshiradi.
+Bu yondashuv noto'g'ri — google_shopping har platformani birga ko'rsatadi, platforma-specific
+narxlar aniq emas. Foydalanuvchi to'g'ridan-to'g'ri manba platformalarini xohlaydi:
+Wildberries/Ozon (Rossiya), Trendyol/Hepsiburada (Turkiya), mavjud: AliExpress/DHgate/Banggood/Shopee.
+
+**Muammo:**
+```
+sourcing.processor.ts:550-558 — barcha qidiruvlar google_shopping orqali
+```
+
+**Yechim:**
+1. `serpApiSearch(google_shopping)` bloklarini olib tashlash
+2. `searchWildberries()` — REST API (search.wb.ru)
+3. `scrapeOzon()` — Playwright (ozon.ru)
+4. `scrapeTrendyol()` — Playwright (trendyol.com)
+5. `scrapeHepsiburada()` — Playwright (hepsiburada.com)
+6. `seed.ts` — wildberries, ozon, trendyol, hepsiburada externalPlatform qo'shish
+7. `platforms.config.ts` — yangi platformalar
+8. `types.ts` (web) — SOURCE_META yangilash
+9. `GlobalPriceComparison.tsx` — subtitle yangilash
+
+**Fayllar:**
+- `apps/worker/src/processors/sourcing.processor.ts`
+- `apps/api/prisma/seed.ts`
+- `apps/api/src/bright-data/platforms.config.ts`
+- `apps/web/src/components/product/types.ts`
+- `apps/web/src/components/product/GlobalPriceComparison.tsx`
 
 ---
 
