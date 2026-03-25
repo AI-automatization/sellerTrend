@@ -1,7 +1,39 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
-# Yangilangan: 2026-03-23
+# Yangilangan: 2026-03-25
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
+
+### T-468 | BACKEND | chat.service — classify try-catch + GENERAL fallback (2026-03-25)
+
+**Manba:** kod-audit (2026-03-25)
+**Muammo:** `classify()` try-catch ichida emas edi — BigInt parse xatosi SSE stream ni "muzlatib" qo'yardi, foydalanuvchiga hech qanday xabar ko'rsatilmasdi.
+**Yechim:** `classify()` try-catch ichiga olindi. Xato bo'lsa `GENERAL` intent bilan fallback. `ClassifiedIntent` import qo'shildi.
+**Fayllar:** `apps/api/src/chat/chat.service.ts`
+**Ta'sir:** Classifier xatosi endi stream ni to'xtatmaydi — GENERAL intent bilan chat ishlayveradi.
+
+### T-467 | WORKER | uzum-graphql — 429 exponential backoff (2026-03-25)
+
+**Manba:** kod-audit (2026-03-25)
+**Muammo:** `_execute()` da `isRetry: boolean` — 429 faqat 1 marta retry qilinardi. Ikkinchi 429 → throw → job fail.
+**Yechim:** `isRetry: boolean` → `retryCount: number`. 429 da 3 marta retry: 5s, 10s, 20s (2^n * RATE_LIMIT_WAIT_MS). 401 retry ham `retryCount === 0` bilan bir marta.
+**Fayllar:** `apps/worker/src/clients/uzum-graphql.client.ts`
+**Ta'sir:** Rate limit sharoitida scraping job muvaffaqiyat darajasi oshadi. Uzum server yuklanishi ham kamayadi (progressive wait).
+
+### T-466 | WORKER | marketplace-intelligence — p.title null crash fix (2026-03-25)
+
+**Manba:** kod-audit (2026-03-25)
+**Muammo:** `p.title.slice(0, 20)` — title null bo'lsa TypeError → cron job crash.
+**Yechim:** `(p.title ?? 'N/A').slice(0, 20)` — null safe null coalescing.
+**Fayllar:** `apps/worker/src/processors/marketplace-intelligence.processor.ts`
+**Ta'sir:** Kuniga 2 marta ishlaydigan marketplace-intelligence cron null title dan crash olmaydi.
+
+### T-465 | FRONTEND | ChatWidget — SUPER_ADMIN plan bypass (2026-03-25)
+
+**Manba:** kod-audit (2026-03-25)
+**Muammo:** `canUseChat = hasAccess(plan, 'MAX')` — SUPER_ADMIN ham MAX planda bo'lmasa chat bloklanardi.
+**Yechim:** `payload?.role === 'SUPER_ADMIN' || hasAccess(payload?.plan, 'MAX')`
+**Fayllar:** `apps/web/src/components/chat/ChatWidget.tsx`
+**Ta'sir:** Admin chat ni test qila oladi — billing sahifasiga yo'naltirilmaydi.
 
 ### T-464 | BACKEND | Sourcing — Playwright scrapers ixtiyoriy (2026-03-23)
 

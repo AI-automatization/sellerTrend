@@ -15,7 +15,7 @@ export function ChatWidget() {
   const { t } = useI18n();
   const navigate = useNavigate();
   const payload = useAuthStore(s => s.payload);
-  const canUseChat = hasAccess(payload?.plan, 'MAX');
+  const canUseChat = payload?.role === 'SUPER_ADMIN' || hasAccess(payload?.plan, 'MAX');
   const [isOpen, setIsOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [input, setInput] = useState('');

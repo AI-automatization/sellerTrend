@@ -99,7 +99,7 @@ class UzumGraphQLClient {
       throw new Error(`GraphQL: token yo'q — REST fallback kerak (${operationName})`);
     }
 
-    return this._execute<T>(operationName, queryString, variables, token, false);
+    return this._execute<T>(operationName, queryString, variables, token, 0);
   }
 
   private async _execute<T>(
@@ -107,12 +107,12 @@ class UzumGraphQLClient {
     queryString: string,
     variables: Record<string, unknown> | undefined,
     token: string,
-    isRetry: boolean,
+    retryCount = 0,
   ): Promise<T> {
     const body = JSON.stringify({ operationName, query: queryString, variables: variables ?? {} });
     const startMs = Date.now();
 
-    if (!isRetry) {
+    if (retryCount === 0) {
       this.stats.requests_total++;
     }
 
@@ -129,7 +129,7 @@ class UzumGraphQLClient {
     }
 
     // 401 — token yangilash + 1 marta retry
-    if (res.status === 401 && !isRetry) {
+    if (res.status === 401 && retryCount === 0) {
       this.incrementError('401');
       this.stats.token_refreshes_total++;
       logJobInfo(LOG_CTX, '-', operationName, '401 — token yangilanmoqda...');
@@ -138,15 +138,16 @@ class UzumGraphQLClient {
       if (!newToken) {
         throw new Error(`GraphQL: 401, token yangilanmadi (${operationName})`);
       }
-      return this._execute<T>(operationName, queryString, variables, newToken, true);
+      return this._execute<T>(operationName, queryString, variables, newToken, retryCount + 1);
     }
 
-    // 429 — rate limit, 1 marta kutib retry
-    if (res.status === 429 && !isRetry) {
+    // 429 — exponential backoff, 3 marta retry
+    if (res.status === 429 && retryCount < 3) {
       this.incrementError('429');
-      logJobInfo(LOG_CTX, '-', operationName, `429 rate limit — ${RATE_LIMIT_WAIT_MS}ms kutilmoqda`);
-      await new Promise((resolve) => setTimeout(resolve, RATE_LIMIT_WAIT_MS));
-      return this._execute<T>(operationName, queryString, variables, token, true);
+      const waitMs = RATE_LIMIT_WAIT_MS * Math.pow(2, retryCount);
+      logJobInfo(LOG_CTX, '-', operationName, `429 rate limit — ${waitMs}ms kutilmoqda (retry ${retryCount + 1}/3)`);
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+      return this._execute<T>(operationName, queryString, variables, token, retryCount + 1);
     }
 
     // 400 — query xatosi (retry qilinmaydi)

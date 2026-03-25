@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
 import { ChatClassifierService } from './chat-classifier.service';
 import { ChatRetrieverService } from './chat-retriever.service';
-import { ChatIntent } from './types/chat.types';
+import { ChatIntent, ClassifiedIntent } from './types/chat.types';
 import { FeedbackValue } from './dto/chat-feedback.dto';
 
 const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
@@ -77,7 +77,13 @@ export class ChatService {
     const trackedIds = trackedProducts.map(tp => tp.product_id);
 
     // 5. Classify
-    const classified = this.classifier.classify(message, trackedIds);
+    let classified: ClassifiedIntent;
+    try {
+      classified = this.classifier.classify(message, trackedIds);
+    } catch {
+      this.logger.warn(`Classify failed, GENERAL fallback`);
+      classified = { intent: ChatIntent.GENERAL, confidence: 0, product_ids: trackedIds.slice(0, 5) as bigint[], keywords_matched: [] };
+    }
 
     // 6. Retrieve context
     const context = await this.retriever.retrieve(classified, accountId);

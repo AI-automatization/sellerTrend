@@ -45,7 +45,7 @@ async function processTopProducts(jobId: string, jobName: string): Promise<numbe
   }
 
   logJobInfo(QUEUE_NAME, jobId, jobName,
-    `TOP ${products.length} mahsulot saqlandi. Top-3: ${products.slice(0, 3).map((p) => `${p.productId}:${p.title.slice(0, 20)}`).join(', ')}`);
+    `TOP ${products.length} mahsulot saqlandi. Top-3: ${products.slice(0, 3).map((p) => `${p.productId}:${(p.title ?? 'N/A').slice(0, 20)}`).join(', ')}`);
 
   return products.length;
 }
