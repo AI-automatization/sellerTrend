@@ -1,5 +1,5 @@
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList,
 } from 'recharts';
 import { useI18n } from '../../i18n/I18nContext';
 import { GlassTooltip, FadeIn } from './index';
@@ -27,21 +27,15 @@ export function ActivityChart({ activityData, totalWeekly }: Props) {
         </div>
         <div className="p-4 lg:p-5">
           <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={activityData} margin={{ top: 8, right: 16, left: -10, bottom: 0 }}>
-              <defs>
-                <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#22c55e" stopOpacity={0.25} />
-                  <stop offset="100%" stopColor="#22c55e" stopOpacity={0.01} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+            <BarChart data={activityData} margin={{ top: 20, right: 16, left: -10, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
               <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
               <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
               <Tooltip content={<GlassTooltip fmt={(v: number) => v.toLocaleString() + ' ' + t('dashboard.perWeek')} />} />
-              <Area type="monotone" dataKey="sales" stroke="#22c55e" strokeWidth={2} fill="url(#salesGrad)"
-                dot={{ r: 3, fill: '#22c55e', strokeWidth: 2, stroke: 'var(--color-base-100)' }}
-                activeDot={{ r: 5 }} animationDuration={CHART_ANIMATION_MS} />
-            </AreaChart>
+              <Bar dataKey="sales" fill="#22c55e" fillOpacity={0.85} radius={[6, 6, 0, 0]} animationDuration={CHART_ANIMATION_MS}>
+                <LabelList dataKey="sales" position="top" style={{ fontSize: 10, fill: 'var(--chart-tick)' }} formatter={(v: number) => v > 0 ? v.toLocaleString() : ''} />
+              </Bar>
+            </BarChart>
           </ResponsiveContainer>
         </div>
       </div>

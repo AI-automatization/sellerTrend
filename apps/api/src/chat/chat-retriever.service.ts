@@ -3,6 +3,7 @@ import { ProductsService } from '../products/products.service';
 import { SignalsService } from '../signals/signals.service';
 import { DiscoveryService } from '../discovery/discovery.service';
 import { NicheService } from '../discovery/niche.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { DeadStockResult, FlashSaleResult } from '@uzum/utils';
 import { ChatIntent, ClassifiedIntent, RetrievedContext } from './types/chat.types';
 
@@ -17,6 +18,7 @@ export class ChatRetrieverService {
     private readonly signalsService: SignalsService,
     private readonly discoveryService: DiscoveryService,
     private readonly nicheService: NicheService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async retrieve(classified: ClassifiedIntent, accountId: string): Promise<RetrievedContext> {
@@ -178,19 +180,69 @@ export class ChatRetrieverService {
   }
 
   private async retrieveCompetitor(accountId: string): Promise<RetrievedContext> {
-    const result = await this.signalsService.getCannibalization(accountId).catch(() => ({ groups: [] }));
-    const groups = (result as Record<string, unknown[]>).groups ?? [];
-    const summary = groups.length === 0
-      ? 'Raqobat (cannibalization) topilmadi.'
-      : `Raqobatdosh mahsulot guruhlari (${groups.length} ta):\n` +
-        groups.slice(0, 3).map((g: unknown) => JSON.stringify(g)).join('\n');
+    const tracked = await this.productsService.getTrackedProducts(accountId).catch(() => []);
+    const trackedIds = (tracked as Array<{ id: bigint }>).map(p => p.id);
 
+    type TrackingRow = {
+      product_id: bigint;
+      competitor_product_id: bigint;
+      product: { title: string };
+      competitor: { title: string; orders_quantity: bigint | null };
+    };
+
+    const trackings: TrackingRow[] = trackedIds.length > 0
+      ? await this.prisma.competitorTracking.findMany({
+          where: { account_id: accountId, product_id: { in: trackedIds }, is_active: true },
+          select: {
+            product_id: true,
+            competitor_product_id: true,
+            product: { select: { title: true } },
+            competitor: { select: { title: true, orders_quantity: true } },
+          },
+          take: 15,
+        }).catch(() => []) as TrackingRow[]
+      : [];
+
+    const data: Record<string, unknown> = {};
+    const parts: string[] = [];
+
+    if (trackings.length > 0) {
+      data.competitors = trackings;
+      parts.push(`Kuzatilayotgan raqobatchilar (${trackings.length} ta):`);
+      trackings.forEach(t => {
+        const orders = t.competitor.orders_quantity != null ? `, buyurtma ${t.competitor.orders_quantity}` : '';
+        parts.push(`• ${t.product.title} uchun raqobatchi: ${t.competitor.title}${orders}`);
+      });
+    } else {
+      // Fallback: kategoriya liderlari
+      const leaderboard = await this.discoveryService.getLeaderboard(accountId).catch(() => []);
+      const items = Array.isArray(leaderboard) ? leaderboard : [];
+      data.leaderboard = items;
+      if (items.length > 0) {
+        parts.push(`Kategoriya liderlari (raqobatchilar sifatida, ${items.length} ta):`);
+        (items as Array<Record<string, unknown>>).slice(0, 5).forEach(p =>
+          parts.push(`• ${p.title ?? p.product_id}: score=${p.score}, haftalik=${p.weekly_bought}`)
+        );
+      } else {
+        parts.push('Raqobatchi ma\'lumotlari topilmadi.');
+      }
+    }
+
+    // Cannibalization qo'shimcha bo'lim sifatida
+    const cannibalization = await this.signalsService.getCannibalization(accountId).catch(() => ({ groups: [] }));
+    const groups = (cannibalization as Record<string, unknown[]>).groups ?? [];
+    if (groups.length > 0) {
+      data.cannibalization = groups;
+      parts.push(`\nO'z mahsulotlari orasidagi raqobat (${groups.length} ta guruh) — narx kanibalizmiga e'tibor bering.`);
+    }
+
+    const summary = parts.join('\n');
     return {
       intent: ChatIntent.COMPETITOR,
       summary: summary.slice(0, MAX_CONTEXT_CHARS),
-      data: { cannibalization: groups },
+      data,
       token_estimate: Math.ceil(summary.length / 4),
-      sources: ['getCannibalization'],
+      sources: ['competitorTracking', 'getLeaderboard', 'getCannibalization'],
     };
   }
 
@@ -275,19 +327,58 @@ export class ChatRetrieverService {
   }
 
   private async retrievePortfolioSummary(accountId: string): Promise<RetrievedContext> {
-    const tracked = await this.productsService.getTrackedProducts(accountId).catch(() => []);
-    const count = tracked.length;
-    const avgScore = count > 0
-      ? (tracked.reduce((s: number, p: Record<string, unknown>) => s + ((p.score as number) ?? 0), 0) / count).toFixed(1)
-      : '0';
-    const summary = `Portfolio: ${count} ta mahsulot kuzatilmoqda. O'rtacha score: ${avgScore}.`;
+    const [tracked, deadStock, flashSales] = await Promise.allSettled([
+      this.productsService.getTrackedProducts(accountId),
+      this.signalsService.getDeadStockRisk(accountId),
+      this.signalsService.getFlashSales(accountId),
+    ]);
 
+    const trackedItems = tracked.status === 'fulfilled' ? (tracked.value as Array<Record<string, unknown>>) : [];
+    const count = trackedItems.length;
+    const avgScore = count > 0
+      ? (trackedItems.reduce((s, p) => s + ((p.score as number) ?? 0), 0) / count).toFixed(1)
+      : '0';
+
+    const parts: string[] = [];
+    parts.push(`Portfolio: ${count} ta mahsulot kuzatilmoqda. O'rtacha score: ${avgScore}.`);
+
+    // Top 3 mahsulot
+    const top3 = trackedItems
+      .slice()
+      .sort((a, b) => ((b.score as number) ?? 0) - ((a.score as number) ?? 0))
+      .slice(0, 3);
+    if (top3.length > 0) {
+      parts.push('Top mahsulotlar:');
+      top3.forEach(p =>
+        parts.push(`• ${p.title ?? p.product_id}: score=${p.score ?? '?'}, haftalik=${p.weekly_bought ?? '?'} ta`)
+      );
+    }
+
+    // Dead stock
+    if (deadStock.status === 'fulfilled') {
+      const ds = Array.isArray(deadStock.value) ? deadStock.value : [];
+      if (ds.length > 0) parts.push(`Dead stock xavfi: ${ds.length} ta mahsulot`);
+    }
+
+    // Flash sale
+    if (flashSales.status === 'fulfilled') {
+      const fs = Array.isArray(flashSales.value) ? flashSales.value : [];
+      if (fs.length > 0) parts.push(`Flash sale: ${fs.length} ta mahsulot narxi keskin tushgan`);
+    }
+
+    const summary = parts.join('\n');
     return {
       intent: ChatIntent.GENERAL,
-      summary,
-      data: { tracked_count: count, avg_score: avgScore },
+      summary: summary.slice(0, MAX_CONTEXT_CHARS),
+      data: {
+        tracked_count: count,
+        avg_score: avgScore,
+        top_products: top3,
+        dead_stock_count: deadStock.status === 'fulfilled' ? (deadStock.value as unknown[]).length : 0,
+        flash_sale_count: flashSales.status === 'fulfilled' ? (flashSales.value as unknown[]).length : 0,
+      },
       token_estimate: Math.ceil(summary.length / 4),
-      sources: ['getTrackedProducts'],
+      sources: ['getTrackedProducts', 'getDeadStockRisk', 'getFlashSales'],
     };
   }
 }

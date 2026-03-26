@@ -1,6 +1,6 @@
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell, PieChart, Pie,
+  ResponsiveContainer, Cell,
 } from 'recharts';
 import type { TrackedProduct } from '../../api/types';
 import { scoreColor } from '../../utils/formatters';
@@ -65,38 +65,29 @@ export function ChartsSection({ scoreChartData, trendPieData, stats, products }:
 
         {/* Right column */}
         <div className="xl:col-span-4 flex flex-col gap-4">
-          {/* Trend donut */}
+          {/* Trend distribution — 3 mini stats */}
           <div className="rounded-2xl bg-base-200/50 border border-base-300/40 overflow-hidden ventra-card flex-1">
             <div className="px-5 py-4 border-b border-base-300/20">
               <h2 className="font-semibold text-sm font-heading">{t('dashboard.trendDistribution')}</h2>
               <p className="text-[10px] text-base-content/25 mt-0.5">{products.length} {t('dashboard.products')}</p>
             </div>
-            <div className="p-4">
+            <div className="p-4 flex flex-col gap-3">
               {trendPieData.length > 0 ? (
                 <>
-                  <ResponsiveContainer width="100%" height={170}>
-                    <PieChart>
-                      <Pie data={trendPieData} cx="50%" cy="50%" innerRadius={50} outerRadius={70}
-                        paddingAngle={3} dataKey="value" strokeWidth={0} animationDuration={CHART_ANIMATION_MS}>
-                        {trendPieData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
-                      </Pie>
-                      <Tooltip content={<GlassTooltip />} />
-                      <text x="50%" y="46%" textAnchor="middle" dominantBaseline="central" className="fill-base-content text-2xl font-bold font-heading">
-                        {products.length}
-                      </text>
-                      <text x="50%" y="58%" textAnchor="middle" dominantBaseline="central" className="fill-base-content/25 text-[9px]">
-                        {t('dashboard.products')}
-                      </text>
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="flex justify-center gap-4 mt-1">
-                    {trendPieData.map((d) => (
-                      <div key={d.name} className="flex items-center gap-1.5 text-[10px]">
-                        <span className="w-2 h-2 rounded-full" style={{ background: d.fill }} />
-                        <span className="text-base-content/40">{d.name}</span>
-                        <span className="font-bold tabular-nums text-base-content/60">{d.value}</span>
-                      </div>
-                    ))}
+                  <div className="flex items-center justify-between rounded-xl bg-success/8 border border-success/15 px-4 py-3">
+                    <span className="text-sm">↑</span>
+                    <span className="font-bold text-lg tabular-nums text-success">{stats.rising}</span>
+                    <span className="text-xs text-base-content/50">{t('dashboard.rising')}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-xl bg-base-300/40 border border-base-300/30 px-4 py-3">
+                    <span className="text-sm">→</span>
+                    <span className="font-bold text-lg tabular-nums">{stats.flat}</span>
+                    <span className="text-xs text-base-content/50">Barqaror</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-xl bg-error/8 border border-error/15 px-4 py-3">
+                    <span className="text-sm">↓</span>
+                    <span className={`font-bold text-lg tabular-nums ${stats.falling > 0 ? 'text-error' : 'text-success'}`}>{stats.falling}</span>
+                    <span className="text-xs text-base-content/50">{t('dashboard.falling')}</span>
                   </div>
                 </>
               ) : (
@@ -127,6 +118,9 @@ export function ChartsSection({ scoreChartData, trendPieData, stats, products }:
                   </div>
                 </div>
                 <div className="flex-1 space-y-2.5">
+                  <p className={`text-xs font-medium ${stats.avgScore >= 6 ? 'text-success' : stats.avgScore >= 4 ? 'text-warning' : 'text-error'}`}>
+                    {stats.avgScore >= 6 ? 'Portfel kuchli' : stats.avgScore >= 4 ? "O'rtacha portfel" : "E'tibor kerak"}
+                  </p>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-base-content/35">{t('dashboard.highest')}</span>
                     <span className="font-bold text-success tabular-nums">

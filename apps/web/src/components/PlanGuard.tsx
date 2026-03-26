@@ -29,7 +29,7 @@ export function PlanGuard({ requiredPlan, children }: PlanGuardProps) {
   const currentLevel = PLAN_HIERARCHY[currentPlan] ?? 0;
   const requiredLevel = PLAN_HIERARCHY[requiredPlan];
 
-  if (currentLevel >= requiredLevel) {
+  if (payload?.role === 'SUPER_ADMIN' || currentLevel >= requiredLevel) {
     return <>{children}</>;
   }
 

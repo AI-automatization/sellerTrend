@@ -292,7 +292,7 @@ export function ProductPage() {
           </div>
           <div className="shrink-0 text-center space-y-1">
             <ScoreRadial score={result.score} />
-            <p className="text-xs text-base-content/40">Trend Score</p>
+            <p className="text-xs text-base-content/40">{t('product.scoreLabel')}</p>
           </div>
         </div>
 
@@ -572,7 +572,7 @@ export function ProductPage() {
               </div>
               {weeklyTrend.score_change != null && (
                 <p className={`text-xs mt-1 ${weeklyTrend.score_change > 0 ? 'text-success' : weeklyTrend.score_change < 0 ? 'text-error' : 'text-base-content/40'}`}>
-                  Score {weeklyTrend.score_change > 0 ? '+' : ''}{weeklyTrend.score_change.toFixed(2)}
+                  Reyting {weeklyTrend.score_change > 0 ? '+' : ''}{weeklyTrend.score_change.toFixed(2)} ball
                 </p>
               )}
             </div>
@@ -639,16 +639,16 @@ export function ProductPage() {
       </ErrorBoundary>
 
       {/* ML Forecast — Feature 11 (collapsible) */}
-      <ErrorBoundary variant="section" label="ML Prognoz">
+      <ErrorBoundary variant="section" label="Sotuv bashorati">
       {(mlForecast || mlLoading) && (
         <div className="rounded-2xl bg-base-200/60 border border-primary/20 p-4 lg:p-6 space-y-4">
           <button
             onClick={() => setShowMlDetail((v) => !v)}
             className="flex items-center gap-2 w-full text-left"
           >
-            <span className="text-xl">🧠</span>
+            <span className="text-xl">📊</span>
             <h2 className="font-bold text-base lg:text-lg">{t('product.mlForecast')}</h2>
-            <span className="badge badge-primary badge-sm">AI+ML</span>
+            <span className="badge badge-primary badge-sm">Bashorat</span>
             <span className="ml-auto text-base-content/40 text-sm">{showMlDetail ? '▲' : '▼'}</span>
           </button>
 
@@ -659,7 +659,7 @@ export function ProductPage() {
           ) : showMlDetail && mlForecast && (
             <>
               {/* Score & Sales forecast summaries */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3">
                   <p className="text-xs text-base-content/50">{t('product.score7d')}</p>
                   <p className={`font-bold text-lg tabular-nums ${
@@ -676,28 +676,16 @@ export function ProductPage() {
                     mlForecast.sales_forecast.trend === 'up' ? 'text-success' :
                     mlForecast.sales_forecast.trend === 'down' ? 'text-error' : ''
                   }`}>
-                    {mlForecast.sales_forecast.predictions?.[6]?.value?.toFixed(0) ?? '—'}
+                    ~{mlForecast.sales_forecast.predictions?.[6]?.value?.toFixed(0) ?? '—'} ta
                   </p>
                   <TrendBadge trend={mlForecast.sales_forecast.trend} />
-                </div>
-                <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3">
-                  <p className="text-xs text-base-content/50">{t('product.confidence')}</p>
-                  <p className="font-bold text-lg tabular-nums">
-                    {(mlForecast.score_forecast.confidence * 100).toFixed(0)}%
-                  </p>
-                  <p className="text-xs text-base-content/40">{t('product.accuracy')}</p>
-                </div>
-                <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3">
-                  <p className="text-xs text-base-content/50">{t('product.analysisCount')}</p>
-                  <p className="font-bold text-lg tabular-nums">{mlForecast.data_points}</p>
-                  <p className="text-xs text-base-content/40">{t('product.analyses')}</p>
                 </div>
               </div>
 
               {/* Confidence interval chart */}
               {mlForecast.score_forecast.predictions?.length > 0 && (
                 <div>
-                  <p className="text-xs text-base-content/50 mb-2">Score prognoz (95% ishonch intervali)</p>
+                  <p className="text-xs text-base-content/50 mb-2">Reyting o'zgarishi bashorati <span className="text-base-content/30">━ O'tgan · ╌ Bashorat</span></p>
                   <ResponsiveContainer width="100%" height={180}>
                     <AreaChart
                       data={[
@@ -722,10 +710,8 @@ export function ProductPage() {
                       <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
                       <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
                       <Tooltip {...glassTooltip} />
-                      <Area type="monotone" dataKey="score" stroke="#a78bfa" strokeWidth={2} fill="none" dot={false} animationDuration={CHART_ANIMATION_MS} />
-                      <Area type="monotone" dataKey="upper" stroke="none" fill="url(#confGrad)" dot={false} animationDuration={CHART_ANIMATION_MS} />
-                      <Area type="monotone" dataKey="lower" stroke="none" fill="none" dot={false} animationDuration={CHART_ANIMATION_MS} />
-                      <Area type="monotone" dataKey="predicted" stroke="#6366f1" strokeWidth={2} strokeDasharray="5 5" fill="none" dot={{ r: 3, fill: '#6366f1' }} animationDuration={CHART_ANIMATION_MS} />
+                      <Area type="monotone" dataKey="score" stroke="#a78bfa" strokeWidth={2} fill="none" dot={false} name="O'tgan reyting" animationDuration={CHART_ANIMATION_MS} />
+                      <Area type="monotone" dataKey="predicted" stroke="#6366f1" strokeWidth={2} strokeDasharray="5 5" fill="none" dot={{ r: 3, fill: '#6366f1' }} name="Bashorat" animationDuration={CHART_ANIMATION_MS} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -753,9 +739,6 @@ export function ProductPage() {
                 </div>
               )}
 
-              <p className="text-xs text-base-content/30">
-                AI prognoz · O'rtacha xatolik: {mlForecast.score_forecast.metrics?.mae?.toFixed(2) ?? '—'}
-              </p>
             </>
           )}
         </div>
@@ -779,6 +762,7 @@ export function ProductPage() {
                 <Suspense fallback={<div className="h-[200px] skeleton" />}>
                   <ScoreChart data={snapshots} />
                 </Suspense>
+                <p className="text-xs text-base-content/30 mt-1">Reyting qanchalik yuqori bo'lsa, mahsulot ko'proq ko'rinadi</p>
               </div>
               <div>
                 <p className="text-xs text-base-content/50 mb-2">{t('product.salesHistory')}</p>

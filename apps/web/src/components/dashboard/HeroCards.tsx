@@ -15,7 +15,7 @@ export function HeroCards({ best, mostActive }: Props) {
 
   return (
     <FadeIn delay={280}>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         {best && (
           <div className="group relative rounded-2xl overflow-hidden ventra-card border border-primary/10 bg-gradient-to-br from-primary/5 via-base-200/60 to-base-200/30">
             <div className="absolute top-0 right-0 w-40 h-40 bg-primary/4 rounded-full -translate-y-1/2 translate-x-1/3 blur-2xl group-hover:scale-125 transition-transform duration-700" />
@@ -28,17 +28,16 @@ export function HeroCards({ best, mostActive }: Props) {
                 className="font-bold text-[15px] leading-snug hover:text-primary transition-colors line-clamp-2 block">
                 {best.title}
               </Link>
-              <div className="flex items-center gap-3 mt-4">
-                <span className="text-3xl font-bold text-primary tabular-nums tracking-tight font-heading">
+              <div className="flex items-center gap-2 mt-3 flex-wrap">
+                <span className="text-2xl font-bold text-primary tabular-nums tracking-tight font-heading">
                   {best.score?.toFixed(2) ?? '—'}
                 </span>
+                <span className="text-xs text-base-content/40">/ 10</span>
                 <TrendChip trend={best.trend} />
-                {best.sell_price && (
-                  <span className="text-xs text-base-content/30 ml-auto tabular-nums">
-                    {best.sell_price.toLocaleString()} {t('common.som')}
-                  </span>
-                )}
               </div>
+              <p className={`text-xs mt-1 font-medium ${(best.score ?? 0) >= 7 ? 'text-success' : (best.score ?? 0) >= 4 ? 'text-warning' : 'text-error'}`}>
+                {(best.score ?? 0) >= 7 ? '🟢 Kuchli mahsulot' : (best.score ?? 0) >= 4 ? '🟡 O\'rtacha mahsulot' : '🔴 Zaif mahsulot'}
+              </p>
             </div>
           </div>
         )}

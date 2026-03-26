@@ -7,6 +7,7 @@ export interface ChatMessage {
   content: string;
   feedback?: 'UP' | 'DOWN' | null;
   streaming?: boolean;
+  intent?: string | null;
 }
 
 export function useChat() {
@@ -77,6 +78,7 @@ export function useChat() {
           role: m.role,
           content: m.content,
           feedback: m.feedback,
+          intent: m.intent,
         }))
       );
     } catch {

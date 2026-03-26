@@ -7,6 +7,18 @@ interface Props {
   onFeedback?: (id: string, feedback: 'UP' | 'DOWN') => void;
 }
 
+const INTENT_LABELS: Record<string, string> = {
+  PRODUCT_ANALYSIS: '🔍 Mahsulot tahlili',
+  PRICE_ADVICE: '💰 Narx maslahati',
+  COMPETITOR: '⚔️ Raqobat tahlili',
+  NICHE: '🎯 Niche tahlili',
+  FORECAST: '📈 Bashorat',
+  DEAD_STOCK: '⚠️ Dead stock',
+  REVENUE: '💵 Daromad',
+  CATEGORY_TREND: '📊 Kategoriya trendi',
+  RECOMMENDATION: '💡 Tavsiya',
+};
+
 // Simple markdown renderer — no external library needed
 function renderMarkdown(text: string): string {
   return text
@@ -56,13 +68,20 @@ export const ChatMessage = memo(function ChatMessage({ message, onFeedback }: Pr
           <span className="inline-block w-0.5 h-4 bg-current animate-pulse ml-0.5 align-middle" />
         )}
       </div>
-      {!isUser && !message.streaming && message.id && onFeedback && (
-        <div className="chat-footer mt-1">
-          <ChatFeedback
-            messageId={message.id}
-            currentFeedback={message.feedback ?? null}
-            onFeedback={onFeedback}
-          />
+      {!isUser && !message.streaming && (
+        <div className="chat-footer mt-1 flex items-center gap-2 flex-wrap">
+          {message.intent && INTENT_LABELS[message.intent] && (
+            <span className="badge badge-ghost badge-sm text-base-content/50">
+              {INTENT_LABELS[message.intent]}
+            </span>
+          )}
+          {message.id && onFeedback && (
+            <ChatFeedback
+              messageId={message.id}
+              currentFeedback={message.feedback ?? null}
+              onFeedback={onFeedback}
+            />
+          )}
         </div>
       )}
     </div>
