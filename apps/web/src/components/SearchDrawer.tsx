@@ -220,10 +220,11 @@ export function SearchDrawer({ isOpen, onClose }: Props) {
     setTrackingIds(prev => new Set(prev).add(uzumId));
     try {
       await trackProduct(uzumId);
-      toast.success(t('search.trackSuccess'));
+      window.dispatchEvent(new CustomEvent('product-tracked'));
+      onClose();
+      navigate('/');
     } catch {
       toast.error(t('search.trackError'));
-    } finally {
       setTrackingIds(prev => { const n = new Set(prev); n.delete(uzumId); return n; });
     }
   }
@@ -259,8 +260,9 @@ export function SearchDrawer({ isOpen, onClose }: Props) {
     if (!analyzeState?.result) return;
     try {
       await productsApi.track(String(analyzeState.result.product_id));
-      setAnalyzeState(prev => prev ? { ...prev, tracked: true } : null);
       window.dispatchEvent(new CustomEvent('product-tracked'));
+      onClose();
+      navigate('/');
     } catch { /* already tracked */ }
   }
 

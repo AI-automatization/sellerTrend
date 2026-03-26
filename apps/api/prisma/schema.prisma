@@ -527,14 +527,16 @@ model ExternalPlatform {
 }
 
 model ExternalSearchJob {
-  id          String               @id @default(uuid())
-  account_id  String
-  product_id  BigInt
-  query       String               @db.Text
-  status      ExternalSearchStatus @default(PENDING)
-  platforms   String[]
-  created_at  DateTime             @default(now()) @db.Timestamptz
-  finished_at DateTime?            @db.Timestamptz
+  id                String               @id @default(uuid())
+  account_id        String
+  product_id        BigInt
+  query             String               @db.Text
+  status            ExternalSearchStatus @default(PENDING)
+  platforms         String[]
+  search_type       String               @default("text") @db.VarChar(20) // "text" | "visual"
+  source_image_url  String?              @db.Text                          // visual search uchun Uzum rasm URL
+  created_at        DateTime             @default(now()) @db.Timestamptz
+  finished_at       DateTime?            @db.Timestamptz
 
   account            Account                @relation(fields: [account_id], references: [id], onDelete: Cascade)
   product            Product                @relation(fields: [product_id], references: [id], onDelete: Cascade)
@@ -567,9 +569,10 @@ model ExternalSearchResult {
   seller_rating  Decimal? @db.Decimal(3, 2)
   min_order_qty  Int?     @default(1)
   shipping_days  Int?
-  ai_match_score Decimal? @db.Decimal(4, 3) // 0.000 - 1.000
-  ai_notes       String?  @db.Text
-  rank           Int?
+  ai_match_score     Decimal? @db.Decimal(4, 3) // 0.000 - 1.000
+  visual_match_score Decimal? @db.Decimal(4, 3) // AI rasm solishtirish natijasi (0.000 - 1.000)
+  ai_notes           String?  @db.Text
+  rank               Int?
   created_at     DateTime @default(now()) @db.Timestamptz
 
   job                ExternalSearchJob  @relation(fields: [job_id], references: [id], onDelete: Cascade)

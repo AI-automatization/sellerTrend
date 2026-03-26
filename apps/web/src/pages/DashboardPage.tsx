@@ -108,6 +108,7 @@ export function DashboardPage() {
       <EmptyState
         userEmail={tokenPayload?.email ?? 'user'}
         onStartAnalysis={() => onOpenAnalyze?.()}
+        onStartSearch={() => onOpenSearch?.()}
       />
     );
   }

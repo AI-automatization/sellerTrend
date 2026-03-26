@@ -6,6 +6,7 @@ import { useI18n } from '../../i18n/I18nContext';
 interface Props {
   userEmail: string;
   onStartAnalysis: () => void;
+  onStartSearch: () => void;
 }
 
 const EXAMPLE_PRODUCTS = [
@@ -54,7 +55,7 @@ function CheckItem({ done, step, label, action }: CheckItemProps) {
   );
 }
 
-export function EmptyState({ userEmail, onStartAnalysis }: Props) {
+export function EmptyState({ userEmail, onStartAnalysis, onStartSearch }: Props) {
   const { t } = useI18n();
   const userName = userEmail.split('@')[0];
 
@@ -92,13 +93,21 @@ export function EmptyState({ userEmail, onStartAnalysis }: Props) {
               step={2}
               label={t('empty.step2')}
               action={
-                <button
-                  onClick={onStartAnalysis}
-                  className="btn btn-primary btn-sm gap-1.5 shadow-md shadow-primary/15 text-xs"
-                >
-                  <MagnifyingGlassIcon className="w-3.5 h-3.5" />
-                  {t('empty.start')}
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={onStartSearch}
+                    className="btn btn-ghost btn-sm border border-base-300/40 gap-1.5 hover:border-primary/20 transition-all text-xs"
+                  >
+                    <MagnifyingGlassIcon className="w-3.5 h-3.5" />
+                    {t('empty.search')}
+                  </button>
+                  <button
+                    onClick={onStartAnalysis}
+                    className="btn btn-primary btn-sm gap-1.5 shadow-md shadow-primary/15 text-xs"
+                  >
+                    {t('empty.start')}
+                  </button>
+                </div>
               }
             />
             <CheckItem

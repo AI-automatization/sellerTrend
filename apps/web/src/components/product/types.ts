@@ -25,4 +25,5 @@ export const SOURCE_META: Record<string, { label: string; flag: string; color: s
   '1688':        { label: '1688.com',      flag: '\uD83C\uDDE8\uD83C\uDDF3', color: 'badge-accent' },
   TAOBAO:        { label: 'Taobao',        flag: '\uD83C\uDDE8\uD83C\uDDF3', color: 'badge-warning' },
   GOOGLE_LENS:   { label: 'Visual Search', flag: '\uD83D\uDD0D', color: 'badge-ghost' },
+  SERPAPI:       { label: 'Google',        flag: '\uD83D\uDD0D', color: 'badge-info' },
 };

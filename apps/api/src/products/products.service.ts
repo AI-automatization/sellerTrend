@@ -6,6 +6,7 @@ import { BrightDataClient } from '../bright-data/bright-data.client';
 import { REDIS_CLIENT } from '../common/redis/redis.module';
 import { forecastEnsemble, calcWeeklyBought, calcInstallmentRate } from '@uzum/utils';
 import { RevenueEstimateResponse } from './dto/revenue-estimate.dto';
+import { enqueueVisualSourcing } from './visual-sourcing.queue';
 
 type SnapWithWeeklyBought = {
   weekly_bought: number | null;
@@ -859,6 +860,21 @@ export class ProductsService {
         next_scrape_at: new Date(),
       },
     });
+
+    // Visual sourcing job — rasm mavjud bo'lsa navbatga qo'shish
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      select: { title: true, photo_url: true },
+    });
+    if (product?.photo_url) {
+      enqueueVisualSourcing({
+        productId: Number(productId),
+        productTitle: product.title,
+        imageUrl: product.photo_url,
+        accountId,
+      }).catch((err) => this.logger.warn(`visual-sourcing enqueue failed: ${err}`));
+    }
+
     return { ...tp, product_id: tp.product_id.toString() };
   }
 

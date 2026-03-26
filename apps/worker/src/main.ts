@@ -17,6 +17,7 @@ import { createDataCleanupWorker } from './processors/data-cleanup.processor';
 import { createOnboardingReminderWorker } from './processors/onboarding-reminder.processor';
 import { createWeeklyDigestWorker } from './processors/weekly-digest.processor';
 import { createMarketplaceIntelligenceWorker } from './processors/marketplace-intelligence.processor';
+import { createVisualSourcingWorker } from './processors/visual-sourcing.processor';
 import { scheduleCompetitorSnapshots } from './jobs/competitor-snapshot.job';
 import { scheduleWeeklyScrape } from './jobs/weekly-scrape.job';
 import { scheduleAlertDelivery } from './jobs/alert-delivery.job';
@@ -83,6 +84,7 @@ async function bootstrap() {
   const onboardingReminderWorker = createOnboardingReminderWorker();
   const weeklyDigestWorker = createWeeklyDigestWorker();
   const marketplaceIntelligenceWorker = createMarketplaceIntelligenceWorker();
+  const visualSourcingWorker = createVisualSourcingWorker();
 
   // Schedule cron jobs
   await scheduleCompetitorSnapshots();
@@ -96,7 +98,7 @@ async function bootstrap() {
   await scheduleWeeklyDigest();
   await scheduleMarketplaceIntelligence();
 
-  logProcess('info', 'Workers running: discovery, sourcing, competitor, import, weekly-scrape, alert-delivery, monitoring, morning-digest, currency-update, data-cleanup, onboarding-reminder, weekly-digest');
+  logProcess('info', 'Workers running: discovery, sourcing, competitor, import, weekly-scrape, alert-delivery, monitoring, morning-digest, currency-update, data-cleanup, onboarding-reminder, weekly-digest, marketplace-intelligence, visual-sourcing');
   logProcess('info', 'Crons: competitor 6h, weekly-scrape 15min, alert-delivery 5min, monitoring 6h, digest 07:00, currency 00:30, cleanup 02:00, onboarding-reminder 10:00, weekly-digest Mon/08:00');
 
   // Health check HTTP server — reuse shared Redis from redis.ts
@@ -124,7 +126,7 @@ async function bootstrap() {
         redis: redisOk ? 'ok' : 'unreachable',
         graphql_token: graphqlTokenOk ? 'ok' : 'unavailable',
         graphql_stats: uzumGraphQLClient.getStats(),
-        workers: 13,
+        workers: 14,
         timestamp: new Date().toISOString(),
       }));
     } else {
@@ -160,6 +162,7 @@ async function bootstrap() {
         onboardingReminderWorker.close(),
         weeklyDigestWorker.close(),
         marketplaceIntelligenceWorker.close(),
+        visualSourcingWorker.close(),
       ]);
       await browserPool.shutdown();
       await redis.quit();

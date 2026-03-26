@@ -57,6 +57,43 @@ Foydalanuvchi uchun professional ko'rinish muhim — extension VENTRA ning "yuz"
 
 ---
 
+# BACKEND BUG FIX
+
+### T-473 | P1 | BACKEND | sourcing.processor.ts — SerpAPI HTTP 200 + error body logging | 30min
+
+**Sana:** 2026-03-26
+**Manba:** kod-audit (Sardor, 2026-03-26)
+**Topilgan joyda:** `apps/worker/src/processors/sourcing.processor.ts` — `serpApiLensSearch()`
+**Mas'ul:** Sardor
+
+**Tahlil:**
+SerpAPI kredit tugaganda HTTP 200 + `{"error":"Your account has run out of searches"}` qaytaradi.
+`serpApiLensSearch()` faqat `!res.ok` tekshirganligi uchun bu xato log qilinmaydi, `[]` qaytaradi.
+Natijada: rasm orqali qidiruv ishlamaydi, lekin logda hech qanday xato ko'rinmaydi.
+Debugging va monitoring imkonsiz — muammo qayerda ekanini aniqlash qiyin.
+
+**Muammo:**
+```ts
+if (!res.ok) return [];  // faqat HTTP 4xx/5xx uchun
+// HTTP 200 + {"error":"..."} hollari o'tkazib yuboriladi
+```
+
+**Yechim:**
+1. `serpApiLensSearch()` da response JSON parse qilgandan keyin `data.error` tekshirish:
+   ```ts
+   if (data.error) {
+     this.logger.error(`SerpAPI Lens error: ${data.error}`);
+     return [];
+   }
+   ```
+2. Xuddi shu tekshiruvni `searchEngine()` va `searchAmazonDE()` ga ham qo'shish
+
+**Fayllar:**
+- `apps/worker/src/processors/sourcing.processor.ts` — `serpApiLensSearch()`
+- `apps/api/src/sourcing/platforms/serpapi.client.ts` — `searchEngine()`, `searchAmazonDE()`
+
+---
+
 # BACKEND REFACTOR
 
 ### T-446 | P3 | BACKEND | weekly_bought logikasini bitta helper ga chiqarish (DRY) | 30min

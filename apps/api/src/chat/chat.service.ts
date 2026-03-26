@@ -9,7 +9,7 @@ import { ChatIntent, ClassifiedIntent } from './types/chat.types';
 import { FeedbackValue } from './dto/chat-feedback.dto';
 
 const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
-const SONNET_MODEL = 'claude-sonnet-4-6';
+const SONNET_MODEL = 'claude-sonnet-4-5-20251001';
 const MAX_HISTORY = 10;
 const MAX_CONVERSATIONS = 50;
 

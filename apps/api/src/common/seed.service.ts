@@ -100,8 +100,16 @@ export class SeedService implements OnApplicationBootstrap {
       { code: 'amazon_de', name: 'Amazon.de', country: 'DE', base_url: 'https://www.amazon.de', api_type: 'serpapi' },
       { code: 'banggood', name: 'Banggood', country: 'CN', base_url: 'https://www.banggood.com', api_type: 'playwright' },
       { code: 'shopee', name: 'Shopee', country: 'CN', base_url: 'https://shopee.com', api_type: 'playwright' },
-      { code: 'google_shopping', name: 'Google Shopping', country: 'GLOBAL', base_url: 'https://shopping.google.com', api_type: 'serpapi' },
       { code: 'baidu', name: 'Baidu Mall', country: 'CN', base_url: 'https://mall.baidu.com', api_type: 'serpapi' },
+      // Sprint 1 — Visual Search platformalar
+      { code: 'wildberries', name: 'Wildberries', country: 'RU', base_url: 'https://www.wildberries.ru', api_type: 'direct_api', is_active: true },
+      { code: 'ozon', name: 'Ozon', country: 'RU', base_url: 'https://www.ozon.ru', api_type: 'playwright', is_active: true },
+      { code: 'ebay', name: 'eBay', country: 'US', base_url: 'https://www.ebay.com', api_type: 'serpapi', is_active: true },
+      { code: 'trendyol', name: 'Trendyol', country: 'TR', base_url: 'https://www.trendyol.com', api_type: 'playwright', is_active: true },
+      { code: 'hepsiburada', name: 'Hepsiburada', country: 'TR', base_url: 'https://www.hepsiburada.com', api_type: 'playwright', is_active: true },
+      { code: 'amazon_us', name: 'Amazon US', country: 'US', base_url: 'https://www.amazon.com', api_type: 'serpapi', is_active: true },
+      { code: 'temu', name: 'Temu', country: 'CN', base_url: 'https://www.temu.com', api_type: 'playwright', is_active: false },
+      { code: 'pinduoduo', name: 'Pinduoduo', country: 'CN', base_url: 'https://www.pinduoduo.com', api_type: 'playwright', is_active: false },
     ];
     for (const p of platforms) {
       await this.prisma.externalPlatform.upsert({

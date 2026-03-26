@@ -44,7 +44,7 @@ export interface SerpApiProduct {
 }
 
 /**
- * SerpAPI client — covers 1688, Taobao, Alibaba, Google Shopping, Amazon.
+ * SerpAPI client — covers 1688, Taobao, Alibaba, Amazon.
  * Requires SERPAPI_API_KEY env var. When not set, returns empty results gracefully.
  */
 @Injectable()
@@ -73,41 +73,6 @@ export class SerpApiClient {
 
   async searchAlibaba(query: string): Promise<SerpApiProduct[]> {
     return this.searchEngine(query, 'alibaba', 'alibaba');
-  }
-
-  async searchGoogleShopping(query: string): Promise<SerpApiProduct[]> {
-    if (!this.apiKey) return [];
-    try {
-      const params = new URLSearchParams({
-        api_key: this.apiKey,
-        engine: 'google_shopping',
-        q: query,
-        num: '10',
-      });
-      const res = await fetch(`https://serpapi.com/search.json?${params}`);
-      if (!res.ok) {
-        this.logger.error(`SerpAPI google_shopping HTTP ${res.status}`);
-        return [];
-      }
-      const data = await res.json() as SerpApiResponse;
-      const results = data.shopping_results ?? [];
-      return results.slice(0, 10).map((item) => ({
-        title: item.title ?? '',
-        price_usd: this.parsePrice(item.extracted_price ?? item.price),
-        price_local: null,
-        currency: 'USD',
-        url: item.link ?? item.product_link ?? '',
-        image_url: item.thumbnail ?? null,
-        seller_name: item.source ?? null,
-        seller_rating: item.rating ? parseFloat(String(item.rating)) : null,
-        min_order_qty: null,
-        external_id: item.product_id ? String(item.product_id) : null,
-        platform_code: 'google_shopping',
-      } satisfies SerpApiProduct)).filter((p) => p.title && p.price_usd > 0);
-    } catch (err: unknown) {
-      this.logger.error(`SerpAPI google_shopping error: ${err instanceof Error ? err.message : String(err)}`);
-      return [];
-    }
   }
 
   async searchAmazonDE(query: string): Promise<SerpApiProduct[]> {

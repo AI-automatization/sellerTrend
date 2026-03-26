@@ -51,6 +51,7 @@ const PLATFORM_CURRENCY: Record<string, string> = {
   banggood:     'USD',
   shopee:       'USD',
   alibaba:      'USD',
+  baidu:        'CNY',
   '1688':       'CNY',
   taobao:       'CNY',
   wildberries:  'RUB',
@@ -154,6 +155,51 @@ async function aiScoreResults(
   }
   return map;
 }
+
+// ─── SerpAPI Client ──────────────────────────────────────────────────────────
+
+async function serpApiSearch(
+  query: string,
+  engine: string,
+  platformCode: string,
+  queryParam: string = 'q',
+): Promise<Array<{ title: string; price_usd: number; currency: string; url: string; image: string; seller: string | null; external_id: string | null; platform_code: string }>> {
+  const apiKey = process.env.SERPAPI_API_KEY;
+  if (!apiKey) {
+    logJobInfo('sourcing-search', '-', 'searchSerpApi', `SERPAPI_API_KEY not set`);
+    return [];
+  }
+  try {
+    const params = new URLSearchParams({ api_key: apiKey, engine, [queryParam]: query, num: '10' });
+    const res = await fetch(`https://serpapi.com/search.json?${params}`);
+    if (!res.ok) {
+      logJobInfo('sourcing-search', '-', 'searchSerpApi', `SerpAPI HTTP ${res.status} for engine=${engine}`);
+      return [];
+    }
+    const data = await res.json() as any;
+    if (data.error) logJobInfo('sourcing-search', '-', 'searchSerpApi', `SerpAPI error: ${data.error}`);
+    const items = data.organic_results ?? data.shopping_results ?? data.products_results ?? [];
+    const currency = PLATFORM_CURRENCY[platformCode] ?? 'USD';
+    return items.slice(0, 10).map((item: any) => {
+      const raw = item.price ?? item.extracted_price ?? item.offer_price ?? '0';
+      const priceNum = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/[^0-9.]/g, '')) || 0;
+      return {
+        title: item.title ?? item.name ?? '',
+        price_usd: priceNum,
+        currency,
+        url: item.link ?? item.product_link ?? item.url ?? '',
+        image: item.thumbnail ?? item.image ?? '',
+        seller: item.source ?? item.seller ?? item.shop_name ?? null,
+        external_id: item.product_id ?? item.id ? String(item.product_id ?? item.id) : null,
+        platform_code: platformCode,
+      };
+    }).filter((p: any) => p.title && p.price_usd > 0);
+  } catch (err) {
+    logJobInfo('sourcing-search', '-', 'searchSerpApi', `SerpAPI:${engine} failed: ${err}`);
+    return [];
+  }
+}
+
 
 // ─── Playwright Scrapers ─────────────────────────────────────────────────────
 
@@ -902,9 +948,14 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
   const platforms = await prisma.externalPlatform.findMany({ where: { is_active: true } });
   const platformMap = new Map(platforms.map((p) => [p.code, p.id]));
 
-  // Step 3: Parallel search — REST APIs + Playwright scrapers
-  const playwrightEnabled = process.env.ENABLE_PLAYWRIGHT_SCRAPERS !== 'false';
-  const wholesaleEnabled  = process.env.ENABLE_WHOLESALE_SCRAPERS  !== 'false';
+  // Step 3: Parallel search — SerpAPI + Playwright (T-461/T-462/T-463/T-464)
+  const serpApiKey = process.env.SERPAPI_API_KEY;
+  const apiSearches: Promise<any[]>[] = [];
+
+  // T-464: Banggood/Shopee — bot protection, disabled by default
+  const playwrightEnabled = !serpApiKey || process.env.ENABLE_PLAYWRIGHT_SCRAPERS === 'true';
+  // T-465: DHgate/AliExpress wholesale scrapers — enabled by default, disable with ENABLE_WHOLESALE_SCRAPERS=false
+  const wholesaleEnabled = process.env.ENABLE_WHOLESALE_SCRAPERS !== 'false';
   const needsPlaywright = playwrightEnabled || wholesaleEnabled;
 
   let browser: import('playwright').Browser | null = null;

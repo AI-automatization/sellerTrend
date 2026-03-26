@@ -10,10 +10,10 @@
 ## STATISTIKA
 
 ```
-Ochiq:       ~26 ta
-Bajarilgan:  ~196+ ta (Done.md)
-Oxirgi T-#:  T-469
-Keyingi T-#: T-470 dan boshlash
+Ochiq:       ~34 ta
+Bajarilgan:  ~188+ ta (Done.md)
+Oxirgi T-#:  T-477
+Keyingi T-#: T-478 dan boshlash
 ```
 
 ---
@@ -748,6 +748,320 @@ Yoki Chrome popup lifecycle issue — service worker timeout.
 
 > ~~T-424~~ DONE (2026-03-09) — useTrackedProducts hook, commit 9d47b75
 > ~~T-425~~ DONE (2026-03-09) — SearchLog model + admin endpoint, commit 0268999
+
+---
+
+# ═══════════════════════════════════════════════════════════
+# ZIYODA — CHAT PIPELINE IMPROVEMENTS (T-470..T-472)
+# ═══════════════════════════════════════════════════════════
+
+### T-470 | P1 | BACKEND | Chat COMPETITOR retriever — real raqobatchi mahsulotlar | 1.5h
+
+**Sana:** 2026-03-26
+**Manba:** kod-audit (Sardor, 2026-03-26)
+**Topilgan joyda:** `apps/api/src/chat/chat-retriever.service.ts:180`
+**Mas'ul:** Ziyoda
+
+**Tahlil:**
+`retrieveCompetitor()` da `getCannibalization()` chaqiriladi. Bu sotuvchining o'z mahsulotlari
+ichidagi narx raqobatini (cannibalization) tekshiradi. Lekin foydalanuvchi "raqobatchilarim kim?"
+deganda boshqa sotuvchilarning mahsulotlarini nazarda tutadi. Semantik mismatch — javob hech qachon
+foydali bo'lmaydi, foydalanuvchi noto'g'ri ma'lumot oladi.
+
+**Muammo:**
+`chat-retriever.service.ts:180` — `getCannibalization()` → seller o'z mahsulotlari ichidagi
+narx raqobati, EMAS tashqi raqobatchilar.
+
+**Yechim:**
+1. `retrieveCompetitor()` ni qayta yozish:
+   - `CompetitorProduct` jadvalidan tracked mahsulotlar uchun raqobatchilar olish
+   - Agar `CompetitorProduct` bo'sh bo'lsa → `getLeaderboard()` dan kategoriya liderlari fallback
+   - Cannibalization ma'lumotini alohida bo'lim sifatida qo'shish (agar bor bo'lsa)
+2. Context format:
+   ```
+   Raqobatchilar (mahsulot: {title}):
+   • {competitor_title}: narx {price}, buyurtma {orders}
+   ```
+
+**Fayllar:**
+- `apps/api/src/chat/chat-retriever.service.ts` — `retrieveCompetitor()`
+
+---
+
+### T-471 | P1 | BACKEND | Chat GENERAL context enrichment — portfolio summary boyitish | 1h
+
+**Sana:** 2026-03-26
+**Manba:** kod-audit (Sardor, 2026-03-26)
+**Topilgan joyda:** `apps/api/src/chat/chat-retriever.service.ts:277`
+**Mas'ul:** Ziyoda
+
+**Tahlil:**
+`retrievePortfolioSummary()` da AI ga beriladigan kontekst juda kam:
+`"Portfolio: 5 ta mahsulot. O'rtacha score: 72.3."` — bu bilan AI hech qanday
+foydali tavsiya bera olmaydi. Foydalanuvchi umumiy savol bersa (salom, qanday ahvol, nima maslahat),
+AI context yo'qligi sababli bo'sh yoki umumiy javob qaytaradi.
+
+**Muammo:**
+`retrievePortfolioSummary()` faqat `count` va `avg_score` qaytaradi.
+Top mahsulotlar, dead stock, flash sale, signal ma'lumotlari yo'q.
+
+**Yechim:**
+`retrievePortfolioSummary()` ni boyitish — parallel so'rovlar:
+1. `getTrackedProducts()` — top 3 mahsulot (nomi + score + weekly_bought)
+2. `getDeadStockRisk()` — dead stock soni
+3. `getFlashSales()` — flash sale soni
+4. Context format:
+   ```
+   Portfolio: 5 ta mahsulot. O'rtacha score: 72.3.
+   Top mahsulotlar: • Iphone 15: score=89, haftalik=142 ta
+   Dead stock xavfi: 2 ta mahsulot
+   Flash sale: 1 ta mahsulot narxi keskin tushgan
+   ```
+
+**Fayllar:**
+- `apps/api/src/chat/chat-retriever.service.ts` — `retrievePortfolioSummary()`
+
+---
+
+### T-472 | P2 | FRONTEND | Chat — intent badge ChatMessage da ko'rsatish | 1h
+
+**Sana:** 2026-03-26
+**Manba:** kod-audit (Sardor, 2026-03-26)
+**Topilgan joyda:** `apps/web/src/components/chat/ChatMessage.tsx`
+**Mas'ul:** Ziyoda
+
+**Tahlil:**
+`ChatMessage` DB modelida `intent` field mavjud (PRODUCT_ANALYSIS, COMPETITOR, NICHE, GENERAL...).
+Bu field API dan qaytariladi (`getMessages` select da bor) lekin frontend UI da hech narsa ko'rsatilmaydi.
+Foydalanuvchi qaysi kontekst (mahsulot tahlili? narx maslahati? bashorat?) ishlatilganini bilmaydi.
+Bu transparency va trust uchun muhim — professional SaaS da AI javob manbai ko'rinishi kerak.
+
+**Muammo:**
+`ChatMessage.tsx` da `intent` prop qabul qilinmaydi va ko'rsatilmaydi.
+
+**Yechim:**
+1. ASSISTANT xabar ostida kichik badge:
+   - `PRODUCT_ANALYSIS` → `🔍 Mahsulot tahlili`
+   - `PRICE_ADVICE` → `💰 Narx maslahati`
+   - `COMPETITOR` → `⚔️ Raqobat tahlili`
+   - `NICHE` → `🎯 Niche tahlili`
+   - `FORECAST` → `📈 Bashorat`
+   - `DEAD_STOCK` → `⚠️ Dead stock`
+   - `GENERAL` → ko'rsatmaslik (umumiy savol)
+2. Badge: kichik, neytral rang, DaisyUI `badge badge-ghost badge-sm`
+
+**Fayllar:**
+- `apps/web/src/components/chat/ChatMessage.tsx`
+
+---
+
+# ═══════════════════════════════════════════════════════════
+# ZIYODA — PRODUCT DETAIL UX (T-474)
+# ═══════════════════════════════════════════════════════════
+
+### T-474 | P1 | FRONTEND | Product detail — Score o'zbek tili + seller-friendly grafika va ML blok | 4h
+
+**Sana:** 2026-03-26
+**Manba:** user-feedback (Sardor, 2026-03-26)
+**Topilgan joyda:** `apps/web/src/pages/ProductPage.tsx`
+**Mas'ul:** Ziyoda
+
+**Tahlil:**
+Sotuvchilar product detail sahifasida ko'rsatilgan ma'lumotlarni tushunmaydi:
+1. "Score" so'zi inglizcha, o'zbek sotuvchilar uchun ma'nosiz
+2. "ML Prognoz", "95% ishonch intervali", "MAE", "Ensemble", "data_points" — developer terminlari
+3. Grafikalar (score tarixi, ishonch intervali) kontekstsiz — seller "score pasaydi" ko'rib nima qilishini bilmaydi
+4. "Score +1.89" — absolyut raqam, ma'nosiz
+5. "Tahlillar soni 12 ta tahlil", "O'rtacha xatolik: 0.XX" — seller uchun keraksiz texnik info
+
+**Muammo:**
+```
+ProductPage.tsx:295  — "Trend Score" (inglizcha, tushunarsiz)
+ProductPage.tsx:574  — "Score +1.89" (kontekstsiz raqam)
+ProductPage.tsx:650  — "ML Prognoz (Ensemble)" + "AI+ML" badge
+ProductPage.tsx:700  — "Score prognoz (95% ishonch intervali)" chart
+ProductPage.tsx:757  — "AI prognoz · O'rtacha xatolik: 0.XX"
+ProductPage.tsx:772  — "Score tarixi / Haftalik sotuvlar tarixi"
+```
+
+**Yechim:**
+
+1. **"Score" → o'zbek tiliga o'tkazish:**
+   - `Trend Score` → `Mahsulot reytingi`
+   - `Score tarixi` → `Reyting tarixi`
+   - `Score +1.89` → `Reyting +1.89 ball` yoki raqamni olib tashlash
+   - `score_change` label → `Reyting o'zgarishi`
+   - `7 kun score` → `7 kundan keyin reytingi`
+
+2. **Score darajasini matn bilan izohlash:**
+   - 7–10 → `🟢 Kuchli mahsulot`
+   - 4–7 → `🟡 O'rtacha mahsulot`
+   - 0–4 → `🔴 Zaif mahsulot`
+   - Hozirgi `scoreLevel.text` (product.scoreExcellent/Good/Average/Poor) shu formatga o'tkazish
+
+3. **ML Prognoz blokni seller tiliga o'tkazish:**
+   - `ML Prognoz (Ensemble)` → `📊 Sotuv bashorati`
+   - `AI+ML` badge → `Bashorat` badge
+   - `7 kun score 4.99` → `7 kundan keyin reytingi: 4.99`
+   - `7 kun sotuv 74` → `Kutilayotgan sotuv: ~74 ta`
+   - `Ishonchlilik 86% aniqlik` → olib tashlash yoki `Ishonchlilik: yuqori`
+   - `Tahlillar soni 12 ta tahlil` → olib tashlash
+   - `AI prognoz · O'rtacha xatolik: 0.XX` → olib tashlash
+
+4. **"Score prognoz (95% ishonch intervali)" chart:**
+   - Sarlavhani o'zgartirish: `Reyting o'zgarishi bashorati`
+   - `upper`/`lower` ishonch oraligi chiziqlarini olib tashlash — sotuvchi uchun keraksiz
+   - Faqat `score` (o'tgan) va `predicted` (bashorat, puntir chiziq) qoldirib, izoh qo'shish:
+     `━ O'tgan reyting   ╌ Bashorat`
+
+5. **"Score tarixi / Haftalik sotuvlar tarixi" collapse:**
+   - Sarlavha: `Reyting tarixi / Sotuv tarixi`
+   - Score grafikasiga izoh qo'shish: `Reyting qanchalik yuqori bo'lsa, mahsulot ko'proq ko'rinadi`
+
+6. **i18n kalitlarini yangilash** (uz.ts, ru.ts, en.ts):
+   - `product.mlForecast` → `Sotuv bashorati` / `Прогноз продаж`
+   - `product.score7d` → `7 kundan keyin reytingi` / `Рейтинг через 7 дней`
+   - `product.confidence` + `product.accuracy` → olib tashlash yoki `Ishonchlilik`
+   - `product.analysisCount` + `product.analyses` → olib tashlash
+   - `product.scoreHistory` → `Reyting tarixi`
+
+**Fayllar:**
+- `apps/web/src/pages/ProductPage.tsx`
+- `apps/web/src/i18n/uz.ts`
+- `apps/web/src/i18n/ru.ts`
+- `apps/web/src/i18n/en.ts`
+
+---
+
+# ═══════════════════════════════════════════════════════════
+# ZIYODA — DASHBOARD + GLOBAL UX (T-475..T-477)
+# ═══════════════════════════════════════════════════════════
+
+### T-475 | P1 | FRONTEND | Dashboard UX overhaul — HeroCards, grafika, score tushuntirish | 3h
+
+**Sana:** 2026-03-26
+**Manba:** user-feedback (Sardor, 2026-03-26)
+**Topilgan joyda:** `apps/web/src/components/dashboard/`
+**Mas'ul:** Ziyoda
+
+**Tahlil:**
+Dashboard seller uchun juda tushunarsiz. Grafikalar kontekstsiz raqamlar, HeroCards butun ekranni
+egallaydi, score hulosa kartasidagi raqamlar nima ekanini hech kim tushunmaydi. Seller dashboardga
+kirib nima qilishini bilmaydi.
+
+**Muammo:**
+```
+HeroCards.tsx      — ikkita katta karta, md:grid-cols-2, haddan ortiq joy oladi
+ChartsSection.tsx  — Score hulosa: avg score raqami yolg'iz, kontekst yo'q
+                   — Trend taqsimot donut: markazda "5 ta" — nima uchun donut?
+ActivityChart.tsx  — Area chart ishlatilgan, lekin X o'qi mahsulot nomlari (vaqt emas!) — semantik xato
+KPICards.tsx       — Mini sparkline axes/tooltip yo'q — nima ko'rsatyapti tushunarsiz
+```
+
+**Yechim:**
+
+1. **HeroCards kichraytirish:**
+   - Grid: `grid-cols-1 md:grid-cols-2` → `grid-cols-2 md:grid-cols-4` yoki compact card formatiga o'tkazish
+   - Score raqami yoniga context: `8.43 / 10 • 🟢 Kuchli`
+   - Mahsulot nomiga "→ Ko'rish" hint qo'shish (hover effekti)
+
+2. **Score hulosa kartasi:**
+   - Avg score yonida matn: `7.2 — Portfel kuchli` / `4.5 — O'rtacha` / `2.1 — Eʼtibor kerak`
+   - "Eng yuqori" va "Eng past" yonida mahsulot nomi (qisqa, link)
+
+3. **Trend taqsimot — donut o'rniga 3 ta kichik stat:**
+   ```
+   ↑ 3 ta ko'tarilmoqda    → 1 ta barqaror    ↓ 1 ta tushmoqda
+   ```
+   Yoki donut qoldirib, har segmentga hover tooltip + "Ko'rish" link qo'shish
+
+4. **ActivityChart — Area → Bar chart:**
+   - `AreaChart` → `BarChart` (mahsulot nomlari X o'qida vaqt emas, bar to'g'riroq)
+   - Har bar ustida sotuv soni ko'rinadi (`label={{ position: 'top' }}`)
+   - Tooltip da to'liq mahsulot nomi + link
+
+5. **KPICards sparkline:**
+   - Sparkline olib tashlash yoki minimal tooltip qo'shish
+   - "Ko'tarilayotganlar: 2" → klik qilganda filtr qo'llansin (yoki tooltip: mahsulot nomlari)
+
+6. **i18n:** `dashboard.bestScore` → `Eng yaxshi mahsulot`, `dashboard.mostActive` → `Eng ko'p sotilgan`
+
+**Fayllar:**
+- `apps/web/src/components/dashboard/HeroCards.tsx`
+- `apps/web/src/components/dashboard/ChartsSection.tsx`
+- `apps/web/src/components/dashboard/ActivityChart.tsx`
+- `apps/web/src/components/dashboard/KPICards.tsx`
+- `apps/web/src/i18n/uz.ts`, `ru.ts`, `en.ts`
+
+---
+
+### T-476 | P0 | FRONTEND | PlanGuard — SUPER_ADMIN bypass yo'q, admin sahifalarni ko'ra olmaydi | 30min
+
+**Sana:** 2026-03-26
+**Manba:** production-bug (Sardor, 2026-03-26)
+**Topilgan joyda:** `apps/web/src/components/PlanGuard.tsx:32`
+**Mas'ul:** Ziyoda
+
+**Tahlil:**
+`PlanGuard` komponentida `SUPER_ADMIN` role uchun bypass tekshiruvi yo'q. JWT payloadda
+`plan` field mavjud emas (T-444 bajarilmagan) — shuning uchun admin `plan = undefined → FREE`.
+Natijada admin hisobida Discovery, Signals, Sourcing sahifalarida "PRO rejasini sotib oling"
+xabari chiqadi va sahifa ishlamaydi. Bu kritik bug — admin o'z platformasini test qila olmaydi.
+
+`ChatWidget` da bu to'g'ri yozilgan:
+```ts
+const canUseChat = payload?.role === 'SUPER_ADMIN' || hasAccess(payload?.plan, 'MAX');
+```
+Lekin `PlanGuard` komponentida unutilgan.
+
+**Muammo:**
+```ts
+// PlanGuard.tsx:32 — SUPER_ADMIN tekshiruvi yo'q:
+if (currentLevel >= requiredLevel) {
+  return <>{children}</>;
+}
+```
+
+**Yechim:**
+```ts
+if (payload?.role === 'SUPER_ADMIN' || currentLevel >= requiredLevel) {
+  return <>{children}</>;
+}
+```
+
+**Fayllar:**
+- `apps/web/src/components/PlanGuard.tsx` — 1 qator o'zgarish
+
+---
+
+### T-477 | P1 | FRONTEND | ChatWidget — product detail da "tepaga chiqish" tugmasini to'sib turadi | 30min
+
+**Sana:** 2026-03-26
+**Manba:** user-feedback (Sardor, 2026-03-26)
+**Topilgan joyda:** `apps/web/src/components/chat/ChatWidget.tsx:84`
+**Mas'ul:** Ziyoda
+
+**Tahlil:**
+ChatWidget floating button `fixed bottom-20 right-4` pozitsiyasida turadi. Product detail
+sahifasida va boshqa sahifalarda "tepaga chiqish" (scroll-to-top) tugmasi ham o'ng pastda
+joylashgan. Ikkalasi ustma-ust tushib, tepaga chiqish tugmasi ko'rinmay qoladi yoki bosilmaydi.
+
+**Muammo:**
+```tsx
+// ChatWidget.tsx:84
+className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-50 btn btn-circle ..."
+```
+
+**Yechim:**
+1. Chat button pozitsiyasini chapga siljitish: `right-4` → chat button chap tarafga (`left-4`) — lekin bu konvensiyaga xilof
+2. Yaxshiroq yechim: scroll-to-top tugmasi mavjud bo'lsa, chat button undan yuqoriroq joylashsin:
+   - Chat button: `bottom-20 right-4` (mobil), `bottom-6 right-6` (desktop) — hozirgi
+   - Scroll-to-top: `bottom-36 right-4` (mobil), `bottom-20 right-6` (desktop) → yoki aksincha
+3. Layout.tsx da scroll-to-top button pozitsiyasini tekshirish va ikkala tugma bir-birini to'smasligi uchun `bottom` offset moslashtirish
+
+**Fayllar:**
+- `apps/web/src/components/chat/ChatWidget.tsx`
+- `apps/web/src/components/Layout.tsx` (scroll-to-top button pozitsiyasi)
 
 ---
 
