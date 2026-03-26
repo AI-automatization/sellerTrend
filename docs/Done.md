@@ -3,6 +3,22 @@
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
 
+### T-428..T-433 | FULLSTACK | RAG Chat Pipeline — classifier, retriever, streaming, UI (2026-03-20)
+
+**Manba:** yangi-feature (docs/RAG-PIPELINE-PLAN.md)
+**Muammo:** Platformada AI chat yo'q edi — foydalanuvchilar mahsulot tahlili uchun ChatGPT ga chiqib ketardi.
+**Yechim:** To'liq RAG pipeline: Prisma schema (ChatConversation, ChatMessage), keyword-based classifier (10 intent, 3 til), context retriever, Anthropic streaming service, SSE controller, React chat widget (floating, history, feedback, i18n).
+**Fayllar:** `apps/api/src/chat/` (5 fayl), `apps/web/src/components/chat/` (4 fayl), `apps/web/src/api/chat.ts`, `apps/web/src/hooks/useChat.ts`
+**Ta'sir:** Foydalanuvchilar platforma ichida AI bilan o'zbek/rus/ingliz tilida mahsulot tahlili, trend so'rash, narx maslahati olishi mumkin. Cost tracking va quota tizimi bilan integrasiya.
+
+### T-432..T-439 | BACKEND | GraphQL Scraping v2 — TokenManager, client, discovery, productPage (2026-03-20)
+
+**Manba:** ai-tahlil (Claude recon session — graphql.uzum.uz introspection, 2026-03-20)
+**Muammo:** REST discovery 500 xato qaytarardi. Playwright sekin va ishonchsiz. Worker da GraphQL integratsiya yo'q edi.
+**Yechim:** TokenManager (guest JWT, 5h cache), UzumGraphQLClient singleton, makeSearch (discovery), productPage (hybrid GraphQL+REST), Prisma migration (uzum_card_price, is_best_price, delivery_type, installment_3m..24m), installmentWidget, marketplace-intelligence cron (TOP-45, kuniga 2x), similarProducts competitor discovery, discovery migration (GraphQL-first, Playwright fallback).
+**Fayllar:** `apps/worker/src/clients/token-manager.ts`, `apps/worker/src/clients/uzum-graphql.client.ts`, `apps/worker/src/graphql/queries.ts`, `apps/worker/src/jobs/marketplace-intelligence.job.ts`, `apps/worker/src/processors/marketplace-intelligence.processor.ts`, `packages/types/src/uzum-graphql.types.ts`, Prisma migration
+**Ta'sir:** Discovery 500 xato yo'qoldi. Product detail GraphQL+REST hybrid 40% tezroq. TOP-45 marketplace monitoring kuniga 2 marta. Competitor discovery avtomatik.
+
 ### T-468 | BACKEND | chat.service — classify try-catch + GENERAL fallback (2026-03-25)
 
 **Manba:** kod-audit (2026-03-25)

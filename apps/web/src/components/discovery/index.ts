@@ -1,9 +1,9 @@
 export { StatusBadge } from './StatusBadge';
 export { ScoreBadge } from './ScoreBadge';
 export { ProgressBar } from './ProgressBar';
-export { ScannerTab } from './ScannerTab';
+export { ScannerTab, ScannerTabGuarded } from './ScannerTab';
 export { SeasonalCalendarTab } from './SeasonalCalendarTab';
-export { NicheFinderTab } from './NicheFinderTab';
+export { NicheFinderTab, NicheFinderTabGuarded } from './NicheFinderTab';
 
 export type {
   Run,

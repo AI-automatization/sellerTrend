@@ -10,6 +10,7 @@ import { ScoreBadge } from './ScoreBadge';
 import { ProgressBar } from './ProgressBar';
 import type { Run, RunDetail } from './types';
 import { POPULAR_CATEGORIES } from './types';
+import { PlanGuard } from '../PlanGuard';
 
 export function ScannerTab() {
   const { t } = useI18n();
@@ -234,5 +235,13 @@ export function ScannerTab() {
         </div>
       )}
     </>
+  );
+}
+
+export function ScannerTabGuarded() {
+  return (
+    <PlanGuard requiredPlan="PRO">
+      <ScannerTab />
+    </PlanGuard>
   );
 }

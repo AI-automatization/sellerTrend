@@ -7,6 +7,28 @@ import { REDIS_CLIENT } from '../common/redis/redis.module';
 import { forecastEnsemble, calcWeeklyBought, calcInstallmentRate } from '@uzum/utils';
 import { RevenueEstimateResponse } from './dto/revenue-estimate.dto';
 
+type SnapWithWeeklyBought = {
+  weekly_bought: number | null;
+  weekly_bought_source: string | null;
+  orders_quantity: bigint | number | null;
+  snapshot_at: Date;
+};
+
+/** Resolve weekly_bought: scraped → any non-zero stored → calculated fallback */
+function resolveWeeklyBought(
+  snaps: SnapWithWeeklyBought[],
+  fallbackOrders: number,
+  fallbackTime: number,
+): number | null {
+  const scrapedSnap = snaps.find((s) => s.weekly_bought_source === 'scraped' && s.weekly_bought != null);
+  if (scrapedSnap) return scrapedSnap.weekly_bought;
+
+  const anyWbSnap = snaps.find((s) => s.weekly_bought != null && s.weekly_bought > 0);
+  if (anyWbSnap) return anyWbSnap.weekly_bought;
+
+  return calcWeeklyBought(snaps, fallbackOrders, fallbackTime);
+}
+
 /** Map niche keyword to Uzum category IDs */
 const NICHE_CATEGORY_MAP: Record<string, number[]> = {
   kosmetika: [10012, 10091, 10165],
@@ -490,21 +512,11 @@ export class ProductsService {
             : 'flat'
           : null;
 
-      // Prefer stored scraped weekly_bought; then any stored non-zero; fallback to calculated
-      let weeklyBought: number | null = null;
-      const scrapedSnap = snaps.find((s) => s.weekly_bought_source === 'scraped' && s.weekly_bought != null);
-      if (scrapedSnap) {
-        weeklyBought = scrapedSnap.weekly_bought;
-      } else {
-        const anyWbSnap = snaps.find((s) => s.weekly_bought != null && s.weekly_bought > 0);
-        if (anyWbSnap) {
-          weeklyBought = anyWbSnap.weekly_bought;
-        } else {
-          const currentOrders = Number(latest?.orders_quantity ?? t.product.orders_quantity ?? 0);
-          const currentTime = latest?.snapshot_at?.getTime() ?? Date.now();
-          weeklyBought = calcWeeklyBought(snaps, currentOrders, currentTime);
-        }
-      }
+      const weeklyBought = resolveWeeklyBought(
+        snaps,
+        Number(latest?.orders_quantity ?? t.product.orders_quantity ?? 0),
+        latest?.snapshot_at?.getTime() ?? Date.now(),
+      );
 
       // Daily sold: delta between last 2 snapshots
       let dailySold: number | null = null;
@@ -599,22 +611,11 @@ export class ProductsService {
       }
     }
 
-    // Prefer stored scraped weekly_bought; then any stored non-zero; fallback to calculated
-    let weeklyBought: number | null = null;
-    const scrapedSnap = snaps.find((s) => s.weekly_bought_source === 'scraped' && s.weekly_bought != null);
-    if (scrapedSnap) {
-      weeklyBought = scrapedSnap.weekly_bought;
-    } else {
-      // Use any stored non-zero weekly_bought (e.g. from 'stored_scraped' or 'calculated')
-      const anyWbSnap = snaps.find((s) => s.weekly_bought != null && s.weekly_bought > 0);
-      if (anyWbSnap) {
-        weeklyBought = anyWbSnap.weekly_bought;
-      } else {
-        const currentOrders = Number(latest?.orders_quantity ?? product.orders_quantity ?? 0);
-        const currentTime = latest?.snapshot_at?.getTime() ?? Date.now();
-        weeklyBought = calcWeeklyBought(snaps, currentOrders, currentTime);
-      }
-    }
+    const weeklyBought = resolveWeeklyBought(
+      snaps,
+      Number(latest?.orders_quantity ?? product.orders_quantity ?? 0),
+      latest?.snapshot_at?.getTime() ?? Date.now(),
+    );
 
     // Daily sold: delta between last 2 snapshots
     let dailySold: number | null = null;
@@ -690,21 +691,11 @@ export class ProductsService {
     const latest = product.snapshots[0];
     const sku = product.skus[0];
 
-    // Prefer stored scraped weekly_bought; then any stored non-zero; fallback to calculated
-    let weeklyBought: number | null = null;
-    const scrapedSnap = product.snapshots.find((s) => s.weekly_bought_source === 'scraped' && s.weekly_bought != null);
-    if (scrapedSnap) {
-      weeklyBought = scrapedSnap.weekly_bought;
-    } else {
-      const anyWbSnap = product.snapshots.find((s) => s.weekly_bought != null && s.weekly_bought > 0);
-      if (anyWbSnap) {
-        weeklyBought = anyWbSnap.weekly_bought;
-      } else {
-        const currentOrders = Number(latest?.orders_quantity ?? product.orders_quantity ?? 0);
-        const currentTime = latest?.snapshot_at?.getTime() ?? Date.now();
-        weeklyBought = calcWeeklyBought(product.snapshots, currentOrders, currentTime);
-      }
-    }
+    const weeklyBought = resolveWeeklyBought(
+      product.snapshots,
+      Number(latest?.orders_quantity ?? product.orders_quantity ?? 0),
+      latest?.snapshot_at?.getTime() ?? Date.now(),
+    );
 
     return {
       product_id: product.id.toString(),

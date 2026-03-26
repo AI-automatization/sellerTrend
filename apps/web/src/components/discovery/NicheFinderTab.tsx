@@ -5,6 +5,7 @@ import { logError } from '../../utils/handleError';
 import { useI18n } from '../../i18n/I18nContext';
 import type { NicheItem, GapItem } from './types';
 import { POPULAR_CATEGORIES } from './types';
+import { PlanGuard } from '../PlanGuard';
 
 export function NicheFinderTab() {
   const { t } = useI18n();
@@ -173,5 +174,13 @@ export function NicheFinderTab() {
         </>
       )}
     </div>
+  );
+}
+
+export function NicheFinderTabGuarded() {
+  return (
+    <PlanGuard requiredPlan="PRO">
+      <NicheFinderTab />
+    </PlanGuard>
   );
 }

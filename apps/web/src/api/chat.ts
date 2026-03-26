@@ -57,14 +57,15 @@ export const chatApi = {
 
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue;
+        let json: { text?: string; done?: boolean; error?: string };
         try {
-          const json = JSON.parse(line.slice(6)) as { text?: string; done?: boolean; error?: string };
-          if (json.done) return;
-          if (json.error) throw new Error(json.error);
-          if (json.text) yield json.text;
+          json = JSON.parse(line.slice(6));
         } catch {
-          // malformed JSON line — skip
+          continue; // malformed JSON — skip
         }
+        if (json.done) return;
+        if (json.error) throw new Error(json.error);
+        if (json.text) yield json.text;
       }
     }
   },
