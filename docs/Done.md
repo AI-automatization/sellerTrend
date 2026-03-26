@@ -1,7 +1,22 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
-# Yangilangan: 2026-03-25
+# Yangilangan: 2026-03-26
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
+
+### T-470..T-477 | FRONTEND + BACKEND | Chat AI va Dashboard UX improvements (2026-03-26)
+
+**Manba:** kod-audit + user-feedback (Sardor, 2026-03-26)
+**Muammo:** Chat AI noto'g'ri kontekst (cannibalization → raqobatchi sifatida), GENERAL javoblar zaif; PlanGuard SUPER_ADMIN ni bloklaydi; ScrollToTop ChatWidget bilan ustma-ust; ProductPage da developer terminlari; Dashboard tushunarsiz.
+**Yechim:**
+- T-476: `PlanGuard` ga `SUPER_ADMIN` bypass qo'shildi (1 qator)
+- T-477: `ScrollToTop` `bottom-36 lg:bottom-20` ga ko'tarildi — ChatWidget bilan to'qnashmaydi
+- T-470: `retrieveCompetitor()` — `CompetitorTracking` dan real raqobatchilar, fallback: `getLeaderboard()`
+- T-471: `retrievePortfolioSummary()` — top 3 mahsulot + dead stock soni + flash sale soni
+- T-472: `ChatMessage` da intent badge (🔍 Mahsulot tahlili, ⚔️ Raqobat tahlili va h.k.)
+- T-474: `ProductPage` — "Trend Score"→"Mahsulot reytingi", "ML Prognoz"→"Sotuv bashorati", MAE/confidence/analyses olib tashlandi, upper/lower interval olib tashlandi
+- T-475: Dashboard — HeroCards compact grid, Trend donut→3 mini stat, ActivityChart Area→Bar + label
+**Fayllar:** `apps/api/src/chat/chat-retriever.service.ts`, `apps/web/src/components/PlanGuard.tsx`, `apps/web/src/components/ScrollToTop.tsx`, `apps/web/src/components/chat/ChatMessage.tsx`, `apps/web/src/hooks/useChat.ts`, `apps/web/src/pages/ProductPage.tsx`, `apps/web/src/components/dashboard/` (3 fayl), `apps/web/src/i18n/` (3 fayl)
+**Ta'sir:** Admin o'z platformasini to'liq ko'ra oladi. Chat AI raqobat tahlilida real raqobatchilarni ko'rsatadi. GENERAL javoblar boyroq kontekst bilan. UI seller tilida — texnik atamalar yo'q.
 
 ### T-428..T-433 | FULLSTACK | RAG Chat Pipeline — classifier, retriever, streaming, UI (2026-03-20)
 
