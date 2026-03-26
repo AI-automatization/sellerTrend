@@ -866,6 +866,11 @@ Bu transparency va trust uchun muhim — professional SaaS da AI javob manbai ko
 **Topilgan joyda:** `apps/web/src/pages/ProductPage.tsx`
 **Mas'ul:** Ziyoda
 
+> ⚠️ **BOSHLAMDAN OLDIN Sardor bilan gaplash:**
+> - ML blokdan qaysi elementlarni to'liq olib tashlash, qaysinisini qoldirish
+> - Ishonch oraliq grafigi (`upper/lower`) olib tashlansinmi?
+> - "Mahsulot reytingi" so'zi tasdiqlansimi?
+
 **Tahlil:**
 Sotuvchilar product detail sahifasida ko'rsatilgan ma'lumotlarni tushunmaydi:
 1. "Score" so'zi inglizcha, o'zbek sotuvchilar uchun ma'nosiz
@@ -943,6 +948,11 @@ ProductPage.tsx:772  — "Score tarixi / Haftalik sotuvlar tarixi"
 **Manba:** user-feedback (Sardor, 2026-03-26)
 **Topilgan joyda:** `apps/web/src/components/dashboard/`
 **Mas'ul:** Ziyoda
+
+> ⚠️ **BOSHLAMDAN OLDIN Sardor bilan gaplash:**
+> - HeroCards qanday formatga o'tkazilsin — compact kartami, to'liq redesignmi?
+> - Trend donut olib tashlansinmi yoki 3 ta raqamga almashtirilsinmi?
+> - ActivityChart Area → Bar — tasdiqlansimi?
 
 **Tahlil:**
 Dashboard seller uchun juda tushunarsiz. Grafikalar kontekstsiz raqamlar, HeroCards butun ekranni
