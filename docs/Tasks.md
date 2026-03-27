@@ -925,4 +925,34 @@ sourcing.processor.ts:550-558 — barcha qidiruvlar google_shopping orqali
 
 ---
 
-*Tasks.md | VENTRA Analytics Platform | 2026-03-25*
+### T-478 | P1 | IKKALASI | getSourcingComparison — Worker pipeline ga o'tkazish | 2h | pending[Sardor]
+
+**Sana:** 2026-03-27
+**Manba:** ai-tahlil
+**Mas'ul:** Sardor
+
+**Tahlil:**
+`GET /products/:id/sourcing-comparison` hozir `BrightDataClient.searchAllPlatforms()` chaqiradi —
+bu Bright Data Web Scraper API (dataset ID lar) ishlatadi. Dataset IDlar yo'q/noto'g'ri → bo'sh natija.
+Worker da esa Playwright + Bright Data proxy (USERNAME/PASSWORD) orqali to'g'ridan
+aliexpress.com, 1688.com, dhgate.com, ozon.ru, wildberries va boshqalarni scrape qiladi — bu ishlaydi.
+
+**Muammo:**
+API endpoint sinxron BrightDataClient ishlatadi (dataset IDlar yo'q) → barcha platformalar `[]` qaytaradi.
+Worker pipeline mavjud va ishlaydi lekin frontend unga ulanmagan.
+
+**Yechim:**
+1. `products.service.ts` — `getSourcingComparison()` → `enqueueSourcingJob()` chaqirsin, jobId qaytarsin
+2. `products.controller.ts` — `POST /:id/sourcing-comparison/start` + `GET /:id/sourcing-comparison/results`
+3. `products.ts` (web api) — yangi 2 endpoint ga o'tish
+4. `GlobalPriceComparison.tsx` — polling logikasi (har 3 sek status check, DONE bo'lsa natija)
+
+**Fayllar:**
+- `apps/api/src/products/products.service.ts`
+- `apps/api/src/products/products.controller.ts`
+- `apps/web/src/api/products.ts`
+- `apps/web/src/components/product/GlobalPriceComparison.tsx`
+
+---
+
+*Tasks.md | VENTRA Analytics Platform | 2026-03-27*
