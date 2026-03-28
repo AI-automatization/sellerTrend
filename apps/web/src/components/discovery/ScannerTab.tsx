@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { discoveryApi, productsApi } from '../../api/client';
 import { getErrorMessage } from '../../utils/getErrorMessage';
@@ -19,8 +19,10 @@ export function ScannerTab() {
   const [selectedRun, setSelectedRun] = useState<RunDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [error, setError] = useState('');
   const [trackingId, setTrackingId] = useState<string | null>(null);
+  const [catSuggestions, setCatSuggestions] = useState<Array<{ id: number; title: string }> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   async function loadRuns() {
@@ -41,68 +43,42 @@ export function ScannerTab() {
     }
   }, [runs]);
 
-  async function handleStart(e: React.FormEvent) {
-    e.preventDefault();
-    const input = categoryInput.trim();
-    if (!input) { setError(t('discovery.categoryIdPlaceholder')); return; }
-    // Plain text (not a number and not a URL) — must select from suggestions
-    if (!/^\d+$/.test(input) && !input.startsWith('http')) {
-      setError(t('discovery.selectFromSuggestions'));
-      return;
-    }
-    setError(''); setStarting(true);
+  async function startScan(input: string) {
+    setError(''); setStarting(true); setCatSuggestions(null);
     try { await discoveryApi.startRun(input); setCategoryInput(''); await loadRuns(); }
     catch (err: unknown) { setError(getErrorMessage(err)); }
     finally { setStarting(false); }
   }
 
+  async function handleStart(e: React.FormEvent) {
+    e.preventDefault();
+    const input = categoryInput.trim();
+    if (!input) { setError(t('discovery.categoryIdPlaceholder')); return; }
+
+    // Number or URL → start directly
+    if (/^\d+$/.test(input) || input.startsWith('http')) {
+      await startScan(input);
+      return;
+    }
+
+    // Plain text → search categories first
+    setError(''); setSearching(true); setCatSuggestions(null);
+    try {
+      const res = await discoveryApi.searchCategories(input);
+      const cats = res.data ?? [];
+      if (cats.length === 0) { setError(t('discovery.noCategoriesFound')); return; }
+      if (cats.length === 1) { await startScan(String(cats[0].id)); return; }
+      setCatSuggestions(cats);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
+    } finally {
+      setSearching(false);
+    }
+  }
+
   async function openRun(run: Run) {
     try { const res = await discoveryApi.getRun(run.id); setSelectedRun(res.data); } catch (e) { logError(e); }
   }
-
-  // Category autocomplete state
-  const [catSuggestions, setCatSuggestions] = useState<Array<{ id: number; title: string }>>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const suggestDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const autocompleteRef = useRef<HTMLDivElement>(null);
-
-  const fetchSuggestions = useCallback(async (q: string) => {
-    if (!q.trim() || q.startsWith('http') || /^\d+$/.test(q.trim())) {
-      setCatSuggestions([]); setShowSuggestions(false); return;
-    }
-    try {
-      const res = await discoveryApi.searchCategories(q);
-      setCatSuggestions(res.data ?? []);
-      setShowSuggestions((res.data ?? []).length > 0);
-    } catch { setCatSuggestions([]); setShowSuggestions(false); }
-  }, []);
-
-  function handleCategoryInput(value: string) {
-    setCategoryInput(value);
-    if (suggestDebounceRef.current) clearTimeout(suggestDebounceRef.current);
-    suggestDebounceRef.current = setTimeout(() => fetchSuggestions(value), 300);
-  }
-
-  function selectCategory(cat: { id: number; title: string }) {
-    setCategoryInput(String(cat.id));
-    setCatSuggestions([]); setShowSuggestions(false);
-    // Auto-submit after selection
-    setTimeout(() => {
-      const form = autocompleteRef.current?.closest('form');
-      form?.requestSubmit();
-    }, 0);
-  }
-
-  // Close suggestions on outside click
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (autocompleteRef.current && !autocompleteRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
 
   const [trackedIds, setTrackedIds] = useState<Set<string>>(new Set());
 
@@ -127,39 +103,39 @@ export function ScannerTab() {
             <h2 className="card-title text-base">{t('discovery.newScan')}</h2>
             <div className="flex flex-wrap gap-2 mb-3">
               {POPULAR_CATEGORIES.map((cat) => (
-                <button key={cat.id} onClick={() => setCategoryInput(cat.url ?? String(cat.id))}
+                <button key={cat.id} onClick={() => { setCategoryInput(cat.url ?? String(cat.id)); setCatSuggestions(null); }}
                   className="btn btn-xs btn-ghost border border-base-300">
                   {t(cat.labelKey)} <span className="text-base-content/40 ml-1">#{cat.id}</span>
                 </button>
               ))}
             </div>
             <form onSubmit={handleStart} className="flex gap-3">
-              <div className="relative flex-1" ref={autocompleteRef}>
-                <input type="text" value={categoryInput}
-                  onChange={(e) => handleCategoryInput(e.target.value)}
-                  onFocus={() => catSuggestions.length > 0 && setShowSuggestions(true)}
-                  placeholder={t('discovery.categoryIdPlaceholder')}
-                  className="input input-bordered w-full" />
-                {showSuggestions && (
-                  <ul className="absolute z-50 w-full mt-1 bg-base-100 border border-base-300 rounded-xl shadow-lg overflow-hidden">
-                    {catSuggestions.map((cat) => (
-                      <li key={cat.id}>
-                        <button type="button" onMouseDown={() => selectCategory(cat)}
-                          className="w-full text-left px-4 py-2 hover:bg-base-200 flex items-center justify-between gap-2">
-                          <span className="text-sm">{cat.title}</span>
-                          <span className="text-xs text-base-content/40 font-mono shrink-0">#{cat.id}</span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              <button type="submit" disabled={starting} className="btn btn-primary gap-2">
-                {starting ? <span className="loading loading-spinner loading-sm" /> : <ArrowTrendingUpIcon className="w-4 h-4" />}
-                {starting ? t('discovery.startingBtn') : t('discovery.startBtn')}
+              <input type="text" value={categoryInput}
+                onChange={(e) => { setCategoryInput(e.target.value); setCatSuggestions(null); }}
+                placeholder={t('discovery.categoryIdPlaceholder')}
+                className="input input-bordered flex-1" />
+              <button type="submit" disabled={starting || searching} className="btn btn-primary gap-2">
+                {(starting || searching) ? <span className="loading loading-spinner loading-sm" /> : <ArrowTrendingUpIcon className="w-4 h-4" />}
+                {starting ? t('discovery.startingBtn') : searching ? t('discovery.searchingBtn') : t('discovery.startBtn')}
               </button>
             </form>
             {error && <p className="text-error text-sm mt-1">{error}</p>}
+
+            {/* Category picker */}
+            {catSuggestions && catSuggestions.length > 0 && (
+              <div className="mt-2 border border-base-300 rounded-xl overflow-hidden">
+                <p className="px-4 py-2 text-xs text-base-content/50 bg-base-300/30">{t('discovery.selectCategory')}</p>
+                {catSuggestions.map((cat) => (
+                  <button key={cat.id} type="button"
+                    onClick={() => startScan(String(cat.id))}
+                    className="w-full text-left px-4 py-2.5 hover:bg-base-200 flex items-center justify-between border-t border-base-300/50 first:border-t-0">
+                    <span className="text-sm font-medium">{cat.title}</span>
+                    <span className="text-xs text-base-content/40 font-mono">#{cat.id}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
             <p className="text-xs text-base-content/40">
               {t('discovery.scanner.hint')}
             </p>
