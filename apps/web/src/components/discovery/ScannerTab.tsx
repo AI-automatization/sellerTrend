@@ -45,6 +45,11 @@ export function ScannerTab() {
     e.preventDefault();
     const input = categoryInput.trim();
     if (!input) { setError(t('discovery.categoryIdPlaceholder')); return; }
+    // Plain text (not a number and not a URL) — must select from suggestions
+    if (!/^\d+$/.test(input) && !input.startsWith('http')) {
+      setError(t('discovery.selectFromSuggestions'));
+      return;
+    }
     setError(''); setStarting(true);
     try { await discoveryApi.startRun(input); setCategoryInput(''); await loadRuns(); }
     catch (err: unknown) { setError(getErrorMessage(err)); }
@@ -81,6 +86,11 @@ export function ScannerTab() {
   function selectCategory(cat: { id: number; title: string }) {
     setCategoryInput(String(cat.id));
     setCatSuggestions([]); setShowSuggestions(false);
+    // Auto-submit after selection
+    setTimeout(() => {
+      const form = autocompleteRef.current?.closest('form');
+      form?.requestSubmit();
+    }, 0);
   }
 
   // Close suggestions on outside click
