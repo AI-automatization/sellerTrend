@@ -106,6 +106,20 @@ async function bootstrap() {
   const redis = getHealthRedis();
 
   const server = http.createServer(async (req, res) => {
+    // Internal category search — used by API service
+    if (req.url?.startsWith('/categories/search') && req.method === 'GET') {
+      const q = new URL(req.url, 'http://localhost').searchParams.get('q') ?? '';
+      try {
+        const cats = q.trim() ? await uzumGraphQLClient.searchCategories(q.trim()) : [];
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(cats));
+      } catch {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end('[]');
+      }
+      return;
+    }
+
     if (req.url === '/health' && req.method === 'GET') {
       let redisOk = false;
       let graphqlTokenOk = false;

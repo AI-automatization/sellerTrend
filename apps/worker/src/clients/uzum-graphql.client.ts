@@ -271,6 +271,19 @@ class UzumGraphQLClient {
 
   // ─── T-438: getProductRecommendations ──────────────────────────────────────
 
+  async searchCategories(query: string): Promise<Array<{ id: number; title: string }>> {
+    const data = await this.query<{ getSuggestions: SuggestionsResult }>(
+      'Suggestions',
+      GET_SUGGESTIONS_QUERY,
+      { input: { query: query.trim(), page: 0 }, limit: 10 },
+    );
+    const block = data.getSuggestions.blocks.find(
+      (b): b is { __typename: 'CategorySuggestionsBlock'; categories: Array<{ id: number; title: string }> } =>
+        b.__typename === 'CategorySuggestionsBlock',
+    );
+    return block?.categories ?? [];
+  }
+
   async getSimilarProducts(productId: number, limit = 10): Promise<ProductRecommendationItem[]> {
     const data = await this.query<{ getProductRecommendations: ProductRecommendationsResult }>(
       'getProductRecommendations',

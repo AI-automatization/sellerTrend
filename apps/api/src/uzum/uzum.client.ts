@@ -155,14 +155,6 @@ const HEADERS = {
   'x-iid': SERVER_IID,
 };
 
-/** GraphQL makeSearch with fastCategories — used for category name search */
-const CATEGORY_SEARCH_QUERY = `
-query CategorySearch($queryInput: MakeSearchQueryInput!) {
-  makeSearch(query: $queryInput) {
-    fastCategories { id title }
-  }
-}
-`;
 
 /** GraphQL search query — minimal fields for search results */
 const SEARCH_GRAPHQL_QUERY = `
@@ -864,58 +856,18 @@ export class UzumClient {
   }
 
   /**
-   * Search Uzum categories by name using makeSearch + getFastCategories.
-   * Returns up to 10 matching categories for the category picker.
+   * Search Uzum categories by name.
+   * Delegates to the worker's internal HTTP server (port 3001) which has
+   * a Playwright-obtained GraphQL token that works with Uzum's search-gateway.
    */
   async searchCategories(query: string): Promise<Array<{ id: number; title: string }>> {
     if (!query.trim()) return [];
     try {
-      const token = await this.getAnonymousToken();
-      if (!token) return [];
-
-      const variables = {
-        queryInput: {
-          text: query.trim(),
-          showAdultContent: 'NONE',
-          filters: [],
-          sort: 'BY_RELEVANCE_DESC',
-          pagination: { offset: 0, limit: 1 },
-          correctQuery: true,
-          getFastCategories: true,
-          fastCategoriesLimit: 10,
-          getPromotionItems: false,
-          getFastFacets: false,
-          fastFacetsLimit: 0,
-        },
-      };
-
-      const body = JSON.stringify({
-        operationName: 'CategorySearch',
-        query: CATEGORY_SEARCH_QUERY,
-        variables,
-      });
-
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        'apollographql-client-name': 'web-customers',
-        'apollographql-client-version': '1.63.2',
-        Origin: 'https://uzum.uz',
-        Referer: 'https://uzum.uz/',
-        'User-Agent': HEADERS['User-Agent'],
-        'Accept-Language': 'ru-RU,ru;q=0.9',
-        'x-iid': SERVER_IID,
-      };
-      if (cachedAnonCookies) headers['Cookie'] = cachedAnonCookies;
-
-      const impit = getImpit();
-      const res = await impit.fetch(GRAPHQL_URL, { method: 'POST', headers, body });
+      const workerPort = process.env.WORKER_HEALTH_PORT ?? '3001';
+      const url = `http://localhost:${workerPort}/categories/search?q=${encodeURIComponent(query.trim())}`;
+      const res = await fetchWithTimeout(url, {}, 8_000);
       if (!res.ok) return [];
-
-      const data = (await res.json()) as {
-        data?: { makeSearch?: { fastCategories?: Array<{ id: number; title: string }> } };
-      };
-      return data?.data?.makeSearch?.fastCategories ?? [];
+      return (await res.json()) as Array<{ id: number; title: string }>;
     } catch (err: unknown) {
       this.logger.warn(`searchCategories failed: ${err instanceof Error ? err.message : String(err)}`);
       return [];
