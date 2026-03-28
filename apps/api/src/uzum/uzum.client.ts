@@ -155,6 +155,18 @@ const HEADERS = {
   'x-iid': SERVER_IID,
 };
 
+/** GraphQL suggestions query — returns category, text, shop suggestions */
+const SUGGESTIONS_QUERY = `
+query Suggestions($input: GetSuggestionsInput!, $limit: Int!) {
+  getSuggestions(query: $input) {
+    blocks {
+      __typename
+      ... on CategorySuggestionsBlock { categories { id title } }
+    }
+  }
+}
+`;
+
 /** GraphQL search query — minimal fields for search results */
 const SEARCH_GRAPHQL_QUERY = `
 query getMakeSearch($queryInput: MakeSearchQueryInput!) {
@@ -852,5 +864,54 @@ export class UzumClient {
     }
 
     return null;
+  }
+
+  /**
+   * Search Uzum categories by name using the Suggestions API.
+   * Returns up to 10 matching categories for autocomplete.
+   */
+  async searchCategories(query: string): Promise<Array<{ id: number; title: string }>> {
+    if (!query.trim()) return [];
+    try {
+      const token = await this.getAnonymousToken();
+      if (!token) return [];
+
+      const body = JSON.stringify({
+        operationName: 'Suggestions',
+        query: SUGGESTIONS_QUERY,
+        variables: { input: { query: query.trim(), page: 0 }, limit: 10 },
+      });
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        'apollographql-client-name': 'web-customers',
+        'apollographql-client-version': '1.63.2',
+        Origin: 'https://uzum.uz',
+        Referer: 'https://uzum.uz/',
+        'User-Agent': HEADERS['User-Agent'],
+        'Accept-Language': 'ru-RU,ru;q=0.9',
+        'x-iid': SERVER_IID,
+      };
+      if (cachedAnonCookies) headers['Cookie'] = cachedAnonCookies;
+
+      const impit = getImpit();
+      const res = await impit.fetch(GRAPHQL_URL, { method: 'POST', headers, body });
+      if (!res.ok) return [];
+
+      const data = (await res.json()) as {
+        data?: {
+          getSuggestions?: {
+            blocks?: Array<{ __typename: string; categories?: Array<{ id: number; title: string }> }>;
+          };
+        };
+      };
+      const blocks = data?.data?.getSuggestions?.blocks ?? [];
+      const catBlock = blocks.find((b) => b.__typename === 'CategorySuggestionsBlock');
+      return catBlock?.categories ?? [];
+    } catch (err: unknown) {
+      this.logger.warn(`searchCategories failed: ${err instanceof Error ? err.message : String(err)}`);
+      return [];
+    }
   }
 }

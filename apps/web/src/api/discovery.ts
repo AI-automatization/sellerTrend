@@ -7,6 +7,8 @@ export const discoveryApi = {
   getRun: (id: string) => api.get(`/discovery/runs/${id}`),
   getLeaderboard: (categoryId?: number) =>
     api.get('/discovery/leaderboard', { params: categoryId ? { category_id: categoryId } : {} }),
+  searchCategories: (q: string) =>
+    api.get<Array<{ id: number; title: string }>>('/discovery/categories/search', { params: { q } }),
 };
 
 export const seasonalApi = {

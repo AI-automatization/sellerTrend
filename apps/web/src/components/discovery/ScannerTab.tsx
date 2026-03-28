@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { discoveryApi, productsApi } from '../../api/client';
 import { getErrorMessage } from '../../utils/getErrorMessage';
@@ -55,6 +55,45 @@ export function ScannerTab() {
     try { const res = await discoveryApi.getRun(run.id); setSelectedRun(res.data); } catch (e) { logError(e); }
   }
 
+  // Category autocomplete state
+  const [catSuggestions, setCatSuggestions] = useState<Array<{ id: number; title: string }>>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autocompleteRef = useRef<HTMLDivElement>(null);
+
+  const fetchSuggestions = useCallback(async (q: string) => {
+    if (!q.trim() || q.startsWith('http') || /^\d+$/.test(q.trim())) {
+      setCatSuggestions([]); setShowSuggestions(false); return;
+    }
+    try {
+      const res = await discoveryApi.searchCategories(q);
+      setCatSuggestions(res.data ?? []);
+      setShowSuggestions((res.data ?? []).length > 0);
+    } catch { setCatSuggestions([]); setShowSuggestions(false); }
+  }, []);
+
+  function handleCategoryInput(value: string) {
+    setCategoryInput(value);
+    if (suggestDebounceRef.current) clearTimeout(suggestDebounceRef.current);
+    suggestDebounceRef.current = setTimeout(() => fetchSuggestions(value), 300);
+  }
+
+  function selectCategory(cat: { id: number; title: string }) {
+    setCategoryInput(String(cat.id));
+    setCatSuggestions([]); setShowSuggestions(false);
+  }
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (autocompleteRef.current && !autocompleteRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
   const [trackedIds, setTrackedIds] = useState<Set<string>>(new Set());
 
   async function handleTrack(productId: string) {
@@ -85,8 +124,26 @@ export function ScannerTab() {
               ))}
             </div>
             <form onSubmit={handleStart} className="flex gap-3">
-              <input type="text" value={categoryInput} onChange={(e) => setCategoryInput(e.target.value)}
-                placeholder={t('discovery.categoryIdPlaceholder')} className="input input-bordered flex-1" />
+              <div className="relative flex-1" ref={autocompleteRef}>
+                <input type="text" value={categoryInput}
+                  onChange={(e) => handleCategoryInput(e.target.value)}
+                  onFocus={() => catSuggestions.length > 0 && setShowSuggestions(true)}
+                  placeholder={t('discovery.categoryIdPlaceholder')}
+                  className="input input-bordered w-full" />
+                {showSuggestions && (
+                  <ul className="absolute z-50 w-full mt-1 bg-base-100 border border-base-300 rounded-xl shadow-lg overflow-hidden">
+                    {catSuggestions.map((cat) => (
+                      <li key={cat.id}>
+                        <button type="button" onMouseDown={() => selectCategory(cat)}
+                          className="w-full text-left px-4 py-2 hover:bg-base-200 flex items-center justify-between gap-2">
+                          <span className="text-sm">{cat.title}</span>
+                          <span className="text-xs text-base-content/40 font-mono shrink-0">#{cat.id}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
               <button type="submit" disabled={starting} className="btn btn-primary gap-2">
                 {starting ? <span className="loading loading-spinner loading-sm" /> : <ArrowTrendingUpIcon className="w-4 h-4" />}
                 {starting ? t('discovery.startingBtn') : t('discovery.startBtn')}

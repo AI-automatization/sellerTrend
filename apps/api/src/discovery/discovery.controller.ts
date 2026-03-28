@@ -34,6 +34,12 @@ export class DiscoveryController {
     private readonly reqLogger: RequestLoggerService,
   ) {}
 
+  @Get('categories/search')
+  async searchCategories(@Query('q') q: string) {
+    if (!q?.trim()) return [];
+    return this.uzumClient.searchCategories(q.trim());
+  }
+
   @Post('run')
   @ActivityAction('DISCOVERY_RUN')
   async startRun(
