@@ -272,15 +272,24 @@ class UzumGraphQLClient {
   // ─── T-438: getProductRecommendations ──────────────────────────────────────
 
   async searchCategories(query: string): Promise<Array<{ id: number; title: string }>> {
-    const data = await this.query<{ getSuggestions: SuggestionsResult }>(
-      'Suggestions',
-      GET_SUGGESTIONS_QUERY,
-      { input: { query: query.trim(), page: 0 }, limit: 10 },
+    const CATEGORY_QUERY = `
+      query CategorySuggestions($input: GetSuggestionsInput!) {
+        getSuggestions(query: $input) {
+          blocks {
+            __typename
+            ... on CategorySuggestionsBlock { categories { id title } }
+          }
+        }
+      }
+    `;
+    const data = await this.query<{
+      getSuggestions: { blocks: Array<{ __typename: string; categories?: Array<{ id: number; title: string }> }> };
+    }>(
+      'CategorySuggestions',
+      CATEGORY_QUERY,
+      { input: { text: query.trim(), categorySuggestionsLimit: 10 } },
     );
-    const block = data.getSuggestions.blocks.find(
-      (b): b is { __typename: 'CategorySuggestionsBlock'; categories: Array<{ id: number; title: string }> } =>
-        b.__typename === 'CategorySuggestionsBlock',
-    );
+    const block = data.getSuggestions.blocks.find((b) => b.__typename === 'CategorySuggestionsBlock');
     return block?.categories ?? [];
   }
 
