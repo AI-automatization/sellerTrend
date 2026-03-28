@@ -13,7 +13,7 @@
  */
 
 import { Worker, Job } from 'bullmq';
-import { BrowserContext } from 'playwright';
+import { BrowserContext, Page } from 'playwright';
 import Anthropic from '@anthropic-ai/sdk';
 import { redisConnection } from '../redis';
 import { browserPool } from '../browser-pool';
@@ -780,12 +780,16 @@ async function serpApiLensSearch(imageUrl: string): Promise<ExternalProduct[]> {
   }
 }
 
-/** AliExpress image search — Playwright */
-async function scrapeAliExpressImage(imageUrl: string, context: BrowserContext): Promise<ExternalProduct[]> {
-  const page = await context.newPage();
+/** AliExpress image search — Playwright.
+ *  sharedPage: when provided (Bright Data mode), page is reused — caller manages lifecycle.
+ *  Without sharedPage: creates and closes its own page.
+ */
+async function scrapeAliExpressImage(imageUrl: string, context: BrowserContext, sharedPage?: Page): Promise<ExternalProduct[]> {
+  const ownsPage = !sharedPage;
+  const page = sharedPage ?? await context.newPage();
   let aeItems: any[] = [];
 
-  page.on('response', async (response) => {
+  const responseHandler = async (response: import('playwright').Response) => {
     try {
       const url = response.url();
       const ct = response.headers()['content-type'] ?? '';
@@ -800,7 +804,8 @@ async function scrapeAliExpressImage(imageUrl: string, context: BrowserContext):
         if (Array.isArray(list) && list.length > 0 && aeItems.length === 0) aeItems = list;
       }
     } catch { /* ignore */ }
-  });
+  };
+  page.on('response', responseHandler);
 
   try {
     const searchUrl = `https://www.aliexpress.com/searchengine/searchnow?SearchText=&imageUrl=${encodeURIComponent(imageUrl)}&tabCode=imgSearch`;
@@ -852,16 +857,20 @@ async function scrapeAliExpressImage(imageUrl: string, context: BrowserContext):
     });
     return items.filter((i) => i.title.length > 0 && i.price.length > 0);
   } finally {
-    await page.close();
+    page.off('response', responseHandler);
+    if (ownsPage) await page.close();
   }
 }
 
-/** 1688 image search — Playwright */
-async function scrape1688Image(imageUrl: string, context: BrowserContext): Promise<ExternalProduct[]> {
-  const page = await context.newPage();
+/** 1688 image search — Playwright.
+ *  sharedPage: when provided (Bright Data mode), page is reused — caller manages lifecycle.
+ */
+async function scrape1688Image(imageUrl: string, context: BrowserContext, sharedPage?: Page): Promise<ExternalProduct[]> {
+  const ownsPage = !sharedPage;
+  const page = sharedPage ?? await context.newPage();
   let items1688: any[] = [];
 
-  page.on('response', async (response) => {
+  const responseHandler = async (response: import('playwright').Response) => {
     try {
       const url = response.url();
       const ct = response.headers()['content-type'] ?? '';
@@ -871,7 +880,8 @@ async function scrape1688Image(imageUrl: string, context: BrowserContext): Promi
         if (Array.isArray(list) && list.length > 0 && items1688.length === 0) items1688 = list;
       }
     } catch { /* ignore */ }
-  });
+  };
+  page.on('response', responseHandler);
 
   try {
     const searchUrl = `https://s.1688.com/selloffer/offer_search.htm?keywords=&imageAddress=${encodeURIComponent(imageUrl)}`;
@@ -916,7 +926,8 @@ async function scrape1688Image(imageUrl: string, context: BrowserContext): Promi
     });
     return domItems.filter((i) => i.title.length > 0 && i.price.length > 0);
   } finally {
-    await page.close();
+    page.off('response', responseHandler);
+    if (ownsPage) await page.close();
   }
 }
 
@@ -948,15 +959,12 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
   const platforms = await prisma.externalPlatform.findMany({ where: { is_active: true } });
   const platformMap = new Map(platforms.map((p) => [p.code, p.id]));
 
-  // Step 3: Parallel search — SerpAPI + Playwright (T-461/T-462/T-463/T-464)
-  const serpApiKey = process.env.SERPAPI_API_KEY;
-  const apiSearches: Promise<any[]>[] = [];
-
-  // T-464: Banggood/Shopee — bot protection, disabled by default
-  const playwrightEnabled = !serpApiKey || process.env.ENABLE_PLAYWRIGHT_SCRAPERS === 'true';
+  // Step 3: Search — API calls parallel, Playwright sequential on Bright Data
   // T-465: DHgate/AliExpress wholesale scrapers — enabled by default, disable with ENABLE_WHOLESALE_SCRAPERS=false
   const wholesaleEnabled = process.env.ENABLE_WHOLESALE_SCRAPERS !== 'false';
-  const needsPlaywright = playwrightEnabled || wholesaleEnabled;
+  // Ozon/Trendyol/Hepsiburada — disabled by default (not Chinese wholesale), enable with ENABLE_CIS_SCRAPERS=true
+  const cisEnabled = process.env.ENABLE_CIS_SCRAPERS === 'true';
+  const needsPlaywright = wholesaleEnabled || cisEnabled || !!data.productImageUrl;
 
   let browser: import('playwright').Browser | null = null;
   let context: import('playwright').BrowserContext | null = null;
@@ -981,42 +989,81 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
     }
   }
 
+  // Playwright thunks — functions, not promises (to allow sequential execution on Bright Data)
+  // Bright Data image scrapers share a single page to avoid page limit issues.
+  // Order: image scrapers FIRST (highest value for Chinese wholesale)
+  type Thunk = () => Promise<ExternalProduct[]>;
+
+  // For Bright Data: pre-create ONE shared page for image scrapers (avoids page leak on timeout)
+  const isBD = browserPool.isBrightData();
+  let bdImagePage: Page | undefined;
+  if (isBD && context && data.productImageUrl) {
+    try { bdImagePage = await context.newPage(); } catch { /* fallback: each scraper creates own page */ }
+  }
+
+  const playwrightThunks: Thunk[] = context ? [
+    ...(data.productImageUrl ? [
+      () => scrapeAliExpressImage(data.productImageUrl!, context!, bdImagePage),
+      () => scrape1688Image(data.productImageUrl!, context!, bdImagePage),
+    ] : []),
+    ...(wholesaleEnabled  ? [
+      () => scrapeDHgate(enQuery, context!),
+      () => scrapeAliExpress(enQuery, context!),
+    ] : []),
+    ...(cisEnabled ? [
+      () => scrapeOzon(enQuery, context!),
+      () => scrapeTrendyol(enQuery, context!),
+      () => scrapeHepsiburada(enQuery, context!),
+    ] : []),
+  ] : [];
+
   try {
-    // T-461: Global 90s timeout — prevent Playwright hang
+    const timeoutPromise: Promise<never> = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`Pipeline timeout after ${PIPELINE_TIMEOUT_MS}ms`)), PIPELINE_TIMEOUT_MS),
+    );
+
+    // API fetches always run in parallel (no browser pages)
     const apiFetches: Promise<ExternalProduct[]>[] = [
       searchWildberries(enQuery),
       searchWildberries(cnQuery),
     ];
 
-    const playwrightCalls: Promise<ExternalProduct[]>[] = context ? [
-      ...(playwrightEnabled ? [scrapeBanggood(enQuery, context), scrapeShopee(enQuery, context)] : []),
-      ...(wholesaleEnabled  ? [scrapeDHgate(enQuery, context), scrapeAliExpress(enQuery, context)] : []),
-      scrapeOzon(enQuery, context),
-      scrapeTrendyol(enQuery, context),
-      scrapeHepsiburada(enQuery, context),
-    ] : [];
+    // Bright Data: run Playwright scrapers one at a time (page limit constraint)
+    // Local Playwright: run all in parallel for speed
+    logJobInfo('sourcing-search', jobId ?? '-', 'processSearch',
+      `Playwright mode: ${isBD ? 'BrightData sequential' : 'local parallel'}, thunks=${playwrightThunks.length}, imageUrl=${!!data.productImageUrl}, context=${!!context}`);
 
-    // Image-based searches (when productImageUrl is available)
-    const imageFetches: Promise<ExternalProduct[]>[] = data.productImageUrl ? [
-      serpApiLensSearch(data.productImageUrl),
-      ...(context ? [
-        scrapeAliExpressImage(data.productImageUrl, context),
-        scrape1688Image(data.productImageUrl, context),
-      ] : []),
-    ] : [];
+    let playwrightResults: PromiseSettledResult<ExternalProduct[]>[];
+    if (isBD && playwrightThunks.length > 0) {
+      playwrightResults = [];
+      const THUNK_TIMEOUT_MS = 30_000; // 30s per scraper on Bright Data
+      for (const thunk of playwrightThunks) {
+        const thunkTimeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Thunk timeout 30s')), THUNK_TIMEOUT_MS),
+        );
+        try {
+          const res = await Promise.race([thunk(), thunkTimeout]);
+          playwrightResults.push({ status: 'fulfilled', value: res });
+        } catch (err) {
+          logJobInfo('sourcing-search', jobId ?? '-', 'processSearch', `Playwright thunk failed: ${String(err)}`);
+          playwrightResults.push({ status: 'rejected', reason: err });
+        }
+      }
+    } else {
+      playwrightResults = context && playwrightThunks.length > 0
+        ? await Promise.allSettled(playwrightThunks.map((t) => t()))
+        : [];
+    }
 
-    const timeoutPromise: Promise<never> = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(`Pipeline timeout after ${PIPELINE_TIMEOUT_MS}ms`)), PIPELINE_TIMEOUT_MS),
-    );
-
-    const allResults = await Promise.race([
-      Promise.allSettled([...apiFetches, ...playwrightCalls, ...imageFetches]),
+    const apiResults = await Promise.race([
+      Promise.allSettled(apiFetches),
       timeoutPromise,
     ]);
+    const allSettled = [...apiResults, ...playwrightResults];
 
     // Collect all as ExternalProduct[]
     const allProducts: ExternalProduct[] = [];
-    for (const result of allResults) {
+    for (const result of allSettled) {
       if (result.status === 'rejected') {
         logJobInfo('sourcing-search', jobId ?? '-', 'processSearch', `Search failed: ${String(result.reason)}`);
         continue;
@@ -1216,6 +1263,7 @@ async function runFullPipeline(data: SourcingSearchJobData): Promise<ExternalPro
 
     return allProducts;
   } finally {
+    if (bdImagePage) await bdImagePage.close().catch(() => {});
     if (context) await context.close().catch(() => {});
     if (needsPlaywright) await browserPool.release().catch(() => {});
   }

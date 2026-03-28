@@ -6,6 +6,7 @@ import { calculateScore, getSupplyPressure, sleep } from '@uzum/utils';
 import {
   scrapeCategoryProductIds,
   fetchProductDetail,
+  fetchUzumProductRaw,
   type ProductDetail,
 } from './uzum-scraper';
 import { uzumGraphQLClient } from '../clients/uzum-graphql.client';
@@ -47,7 +48,9 @@ async function processDiscovery(data: CategoryDiscoveryJobData, jobId: string, j
   const url =
     categoryUrl ?? `https://uzum.uz/ru/category/c--${categoryId}`;
 
-  const categoryName = extractCategoryName(url);
+  // extractCategoryName parses slug from URL — may return short garbage like "c" if URL was constructed from plain ID
+  let categoryName: string | null = extractCategoryName(url);
+  if (!categoryName || categoryName.length <= 2) categoryName = null;
 
   await prisma.categoryRun.update({
     where: { id: runId },
@@ -105,7 +108,19 @@ async function processDiscovery(data: CategoryDiscoveryJobData, jobId: string, j
     throw new Error('Product detail API returned no results');
   }
 
-  // Step 2b: AI category filter — remove cross-category noise
+  // Step 2b: Resolve real category name from Uzum if still unknown (e.g. plain ID was passed)
+  if (!categoryName && idsToFetch.length > 0) {
+    try {
+      const raw = await fetchUzumProductRaw(idsToFetch[0]);
+      categoryName = raw?.category?.title ?? null;
+      if (categoryName) {
+        await prisma.categoryRun.update({ where: { id: runId }, data: { category_name: categoryName } });
+        logJobInfo('discovery-queue', jobId, jobName, `Category name resolved from product: "${categoryName}"`);
+      }
+    } catch { /* non-critical, continue without name */ }
+  }
+
+  // Step 2c: AI category filter — remove cross-category noise
   if (categoryName) {
     products = await filterByCategory(products, categoryName);
     logJobInfo('discovery-queue', jobId, jobName, `After AI filter: ${products.length} products`);
@@ -144,12 +159,14 @@ async function processDiscovery(data: CategoryDiscoveryJobData, jobId: string, j
           title: product.title,
           rating: product.rating,
           orders_quantity: BigInt(product.ordersAmount),
+          ...(product.photoUrl ? { photo_url: product.photoUrl } : {}),
         },
         create: {
           id: productId,
           title: product.title,
           rating: product.rating,
           orders_quantity: BigInt(product.ordersAmount),
+          ...(product.photoUrl ? { photo_url: product.photoUrl } : {}),
         },
       });
 

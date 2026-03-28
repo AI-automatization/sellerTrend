@@ -206,7 +206,7 @@ export function ScannerTab() {
                               <Link to={`/products/${w.product_id}`} onClick={() => setSelectedRun(null)} className="text-sm font-medium leading-tight line-clamp-2 hover:text-primary transition-colors">{w.title}</Link>
                               <div className="flex items-center gap-2 mt-0.5">
                                 <p className="text-xs text-base-content/40">#{w.product_id}</p>
-                                {w.shop_title && <p className="text-xs text-base-content/30 truncate max-w-[120px]">{w.shop_title}</p>}
+                                {w.shop_title && <p className="text-xs text-base-content/30 truncate max-w-[120px]">{w.shop_title.replace(/^"|"$/g, '')}</p>}
                               </div>
                             </div>
                           </div>

@@ -225,6 +225,7 @@ export interface ProductDetail {
   feedbackQuantity: number;
   sellPrice: bigint | null;
   stockType: 'FBO' | 'FBS';
+  photoUrl: string | null;
 }
 
 /**
@@ -246,6 +247,11 @@ export async function fetchProductDetail(
     ? BigInt(firstSku.purchasePrice)
     : null;
 
+  const firstPhoto = p.photos?.[0];
+  const photoUrl = firstPhoto
+    ? (Object.values(firstPhoto.photo)[0]?.high ?? null)
+    : null;
+
   return {
     id: productId,
     title: p.localizableTitle?.ru ?? p.title ?? '',
@@ -256,6 +262,7 @@ export async function fetchProductDetail(
     feedbackQuantity: p.reviewsAmount ?? 0,
     sellPrice,
     stockType,
+    photoUrl,
   };
 }
 
@@ -337,7 +344,7 @@ export async function fetchProductFull(productId: number): Promise<ProductFullDa
   }
 
   const gql = graphqlResult.value.product;
-  const installmentWidget = graphqlResult.value.installmentWidget;
+  const installmentWidget = graphqlResult.value.installmentWidget ?? { calculationsPairs: [] };
 
   const categoryPath: Array<{ id: number; title: string }> = [];
   let cat: typeof gql.category | undefined = gql.category;
