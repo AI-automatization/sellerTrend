@@ -955,4 +955,33 @@ Worker pipeline mavjud va ishlaydi lekin frontend unga ulanmagan.
 
 ---
 
-*Tasks.md | VENTRA Analytics Platform | 2026-03-27*
+### T-479 | P2 | IKKALASI | Discovery — category name bo'yicha qidiruv (autocomplete) | 2h | pending[Sardor]
+
+**Sana:** 2026-03-29
+**Manba:** user-feedback
+**Mas'ul:** Sardor
+
+**Tahlil:**
+Hozir Discovery Scanner da sotuvchi category ID yoki URL kiritishi kerak. Ammo oddiy sotuvchilar
+`10014`, `https://uzum.uz/ru/category/odezhda-10014` kabi texnik ma'lumotlarni bilishmaydi.
+POPULAR_CATEGORIES quick-select tugmalari faqat 10 ta eng ommabop kategoriyani qoplaydi.
+Qolgan 1000+ kategoriyaga kirish imkoni yo'q. UX juda noqulay.
+
+**Muammo:**
+Input faqat ID/URL qabul qiladi — sotuvchi categoriya nomini yozib qidira olmaydi.
+
+**Yechim:**
+1. `apps/api/src/discovery/discovery.controller.ts` — `GET /discovery/categories/search?q=...` endpoint
+   - Uzum GraphQL yoki REST dan kategoriyalar qidiradi (yoki DB dagi mavjud `category_name` lardan)
+2. `apps/web/src/components/discovery/ScannerTab.tsx` — input ni autocomplete ga almashtirish
+   - Yozganda debounced API so'rov → dropdown ko'rinadi → tanlaganda URL input ga to'ldiriladi
+3. Manual URL/ID kiritish ham qolsin (fallback)
+
+**Fayllar:**
+- `apps/api/src/discovery/discovery.controller.ts`
+- `apps/api/src/discovery/discovery.service.ts`
+- `apps/web/src/components/discovery/ScannerTab.tsx`
+
+---
+
+*Tasks.md | VENTRA Analytics Platform | 2026-03-29*
