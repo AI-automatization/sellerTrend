@@ -155,14 +155,11 @@ const HEADERS = {
   'x-iid': SERVER_IID,
 };
 
-/** GraphQL suggestions query — returns category, text, shop suggestions */
-const SUGGESTIONS_QUERY = `
-query Suggestions($input: GetSuggestionsInput!, $limit: Int!) {
-  getSuggestions(query: $input) {
-    blocks {
-      __typename
-      ... on CategorySuggestionsBlock { categories { id title } }
-    }
+/** GraphQL makeSearch with fastCategories — used for category name search */
+const CATEGORY_SEARCH_QUERY = `
+query CategorySearch($queryInput: MakeSearchQueryInput!) {
+  makeSearch(query: $queryInput) {
+    fastCategories { id title }
   }
 }
 `;
@@ -867,8 +864,8 @@ export class UzumClient {
   }
 
   /**
-   * Search Uzum categories by name using the Suggestions API.
-   * Returns up to 10 matching categories for autocomplete.
+   * Search Uzum categories by name using makeSearch + getFastCategories.
+   * Returns up to 10 matching categories for the category picker.
    */
   async searchCategories(query: string): Promise<Array<{ id: number; title: string }>> {
     if (!query.trim()) return [];
@@ -876,10 +873,26 @@ export class UzumClient {
       const token = await this.getAnonymousToken();
       if (!token) return [];
 
+      const variables = {
+        queryInput: {
+          text: query.trim(),
+          showAdultContent: 'NONE',
+          filters: [],
+          sort: 'BY_RELEVANCE_DESC',
+          pagination: { offset: 0, limit: 1 },
+          correctQuery: true,
+          getFastCategories: true,
+          fastCategoriesLimit: 10,
+          getPromotionItems: false,
+          getFastFacets: false,
+          fastFacetsLimit: 0,
+        },
+      };
+
       const body = JSON.stringify({
-        operationName: 'Suggestions',
-        query: SUGGESTIONS_QUERY,
-        variables: { input: { query: query.trim(), page: 0 }, limit: 10 },
+        operationName: 'CategorySearch',
+        query: CATEGORY_SEARCH_QUERY,
+        variables,
       });
 
       const headers: Record<string, string> = {
@@ -900,15 +913,9 @@ export class UzumClient {
       if (!res.ok) return [];
 
       const data = (await res.json()) as {
-        data?: {
-          getSuggestions?: {
-            blocks?: Array<{ __typename: string; categories?: Array<{ id: number; title: string }> }>;
-          };
-        };
+        data?: { makeSearch?: { fastCategories?: Array<{ id: number; title: string }> } };
       };
-      const blocks = data?.data?.getSuggestions?.blocks ?? [];
-      const catBlock = blocks.find((b) => b.__typename === 'CategorySuggestionsBlock');
-      return catBlock?.categories ?? [];
+      return data?.data?.makeSearch?.fastCategories ?? [];
     } catch (err: unknown) {
       this.logger.warn(`searchCategories failed: ${err instanceof Error ? err.message : String(err)}`);
       return [];
