@@ -78,7 +78,7 @@ export function ScannerTab() {
             <h2 className="card-title text-base">{t('discovery.newScan')}</h2>
             <div className="flex flex-wrap gap-2 mb-3">
               {POPULAR_CATEGORIES.map((cat) => (
-                <button key={cat.id} onClick={() => setCategoryInput(String(cat.id))}
+                <button key={cat.id} onClick={() => setCategoryInput(cat.url ?? String(cat.id))}
                   className="btn btn-xs btn-ghost border border-base-300">
                   {t(cat.labelKey)} <span className="text-base-content/40 ml-1">#{cat.id}</span>
                 </button>
