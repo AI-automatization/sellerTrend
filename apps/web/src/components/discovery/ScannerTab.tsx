@@ -67,21 +67,16 @@ export function ScannerTab() {
       return;
     }
 
-    // Plain text → search categories first, fallback to direct text search
+    // Plain text → search categories, show suggestions + direct search option
     setError(''); setSearching(true); setCatSuggestions(null);
     try {
       const res = await discoveryApi.searchCategories(input);
       const cats = res.data ?? [];
-      if (cats.length === 0) {
-        // Category topilmadi → to'g'ridan text search (Playwright search page)
-        await startScan(input, input, true);
-        return;
-      }
-      if (cats.length === 1) { await startScan(String(cats[0].id), cats[0].title, true); return; }
+      // Always show suggestions list (even if empty — direct search button will be there)
       setCatSuggestions(cats);
-    } catch (err: unknown) {
-      // Category search xato → to'g'ridan text search fallback
-      await startScan(input, input, true);
+    } catch {
+      // Category search failed — show empty list with direct search option
+      setCatSuggestions([]);
     } finally {
       setSearching(false);
     }
@@ -136,10 +131,12 @@ export function ScannerTab() {
             </form>
             {error && <p className="text-error text-sm mt-1">{error}</p>}
 
-            {/* Category picker */}
-            {catSuggestions && catSuggestions.length > 0 && (
+            {/* Category picker + direct search */}
+            {catSuggestions !== null && (
               <div className="mt-2 border border-base-300 rounded-xl overflow-hidden">
-                <p className="px-4 py-2 text-xs text-base-content/50 bg-base-300/30">{t('discovery.selectCategory')}</p>
+                {catSuggestions.length > 0 && (
+                  <p className="px-4 py-2 text-xs text-base-content/50 bg-base-300/30">{t('discovery.selectCategory')}</p>
+                )}
                 {catSuggestions.map((cat) => (
                   <button key={cat.id} type="button"
                     onClick={() => startScan(String(cat.id), cat.title, true)}
@@ -148,6 +145,14 @@ export function ScannerTab() {
                     <span className="text-xs text-base-content/40 font-mono">#{cat.id}</span>
                   </button>
                 ))}
+                <button type="button"
+                  onClick={() => startScan(categoryInput.trim(), categoryInput.trim(), true)}
+                  className="w-full text-left px-4 py-2.5 hover:bg-primary/10 flex items-center gap-2 border-t border-base-300/50 text-primary">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm font-medium">&laquo;{categoryInput.trim()}&raquo; — barcha natijalar bo'yicha qidirish</span>
+                </button>
               </div>
             )}
 
