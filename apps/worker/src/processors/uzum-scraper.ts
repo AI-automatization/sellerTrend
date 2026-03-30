@@ -163,6 +163,91 @@ export async function scrapeCategoryProductIds(
   }
 }
 
+/**
+ * Open Uzum search page in Playwright, scroll to load products,
+ * and return all unique product IDs found on the page.
+ *
+ * Used as fallback when GraphQL text search fails (429 rate limit).
+ * URL: https://uzum.uz/ru/search?query=кроссовки
+ *
+ * @param query  Search text (e.g. "кроссовки", "Красота и уход")
+ * @param scrollCount  Number of scroll attempts
+ */
+export async function scrapeSearchProductIds(
+  query: string,
+  scrollCount = 15,
+): Promise<{ ids: number[] }> {
+  const searchUrl = `https://uzum.uz/ru/search?query=${encodeURIComponent(query)}`;
+  logJobInfo('discovery-queue', '-', 'scraper', `Opening search: ${searchUrl}`);
+
+  const browser = await browserPool.getBrowser();
+  const context = await browser.newContext({
+    userAgent:
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    locale: 'ru-RU',
+    extraHTTPHeaders: { 'Accept-Language': 'ru-RU,ru;q=0.9' },
+  });
+
+  const cookieStr = tokenManager.getCookies();
+  if (cookieStr) {
+    const cookies = cookieStr.split('; ').map((pair) => {
+      const eqIdx = pair.indexOf('=');
+      const name = eqIdx > 0 ? pair.slice(0, eqIdx) : pair;
+      const value = eqIdx > 0 ? pair.slice(eqIdx + 1) : '';
+      return { name, value, domain: '.uzum.uz', path: '/' };
+    });
+    await context.addCookies(cookies);
+  }
+
+  try {
+    const page = await context.newPage();
+
+    await page.goto(searchUrl, {
+      waitUntil: 'domcontentloaded',
+      timeout: 30000,
+    });
+
+    try {
+      await page.waitForSelector('[data-test-id="product-card--default"]', {
+        timeout: 20000,
+      });
+      await page.waitForTimeout(1500);
+    } catch {
+      // No products rendered
+    }
+
+    const ids = new Set<number>();
+
+    for (let i = 0; i < scrollCount; i++) {
+      const hrefs: string[] = await page.$$eval(
+        '[data-test-id="product-card--default"]',
+        (cards) =>
+          cards
+            .map((c) => c.getAttribute('href') ?? '')
+            .filter((h) => h.includes('/product/')),
+      );
+
+      for (const href of hrefs) {
+        const id = parseProductId(href);
+        if (id) ids.add(id);
+      }
+
+      logJobInfo('discovery-queue', '-', 'scraper', `Search scroll ${i + 1}/${scrollCount}: ${ids.size} unique IDs`);
+
+      if (i < scrollCount - 1) {
+        await page.evaluate('window.scrollTo(0, document.body.scrollHeight)');
+        await page.waitForTimeout(2500);
+      }
+    }
+
+    logJobInfo('discovery-queue', '-', 'scraper', `Search total product IDs: ${ids.size}`);
+    return { ids: [...ids] };
+  } finally {
+    await context.close();
+    await browserPool.release();
+  }
+}
+
 /** Raw Uzum product data — superset of fields needed by all processors. */
 interface UzumRawCategoryNode {
   id: number;
@@ -447,7 +532,7 @@ export async function fetchProductFull(productId: number): Promise<ProductFullDa
       availableAmount: sku.availableAmount,
       discountBadgeText: sku.discountBadge?.text ?? null,
       stockType: sku.stock.type,
-      installments: (installmentWidget.calculationsPairs
+      installments: ((installmentWidget?.calculationsPairs ?? [])
         .find((pair) => pair.skuId === sku.id)?.calculations ?? [])
         .map((c) => ({ month: c.month, text: c.text })),
     })),

@@ -5,6 +5,7 @@ import type { CategoryDiscoveryJobData } from '@uzum/types';
 import { calculateScore, getSupplyPressure, sleep } from '@uzum/utils';
 import {
   scrapeCategoryProductIds,
+  scrapeSearchProductIds,
   fetchProductDetail,
   fetchUzumProductRaw,
   fetchCategoryProductIdsREST,
@@ -81,8 +82,21 @@ async function processDiscovery(data: CategoryDiscoveryJobData, jobId: string, j
         throw new Error(`Text search returned 0 products for "${categoryName}"`);
       }
     } catch (err) {
-      logJobError('discovery-queue', jobId, jobName, err);
-      throw new Error(`Text search failed: ${(err as Error).message}`);
+      logJobInfo('discovery-queue', jobId, jobName,
+        `GraphQL text search failed — Playwright search fallback (query="${categoryName}")`);
+      try {
+        const { ids } = await scrapeSearchProductIds(categoryName);
+        productIds = ids;
+        source = 'text-search';
+        logJobInfo('discovery-queue', jobId, jobName,
+          `Playwright search: ${productIds.length} products (query="${categoryName}")`);
+        if (productIds.length === 0) {
+          throw new Error(`Playwright search returned 0 products for "${categoryName}"`);
+        }
+      } catch (playwrightErr) {
+        logJobError('discovery-queue', jobId, jobName, playwrightErr);
+        throw new Error(`Text search failed (GraphQL + Playwright): ${(err as Error).message}`);
+      }
     }
   } else {
     // Step 1: REST (categoryId filter) → GraphQL fallback → Playwright last resort
@@ -227,8 +241,24 @@ async function processDiscovery(data: CategoryDiscoveryJobData, jobId: string, j
         }
       }
     } catch (err) {
+      // GraphQL failed → Playwright search fallback
       logJobInfo('discovery-queue', jobId, jobName,
-        `GraphQL text search failed: ${(err as Error).message} — keeping ${products.length} Playwright products`);
+        `GraphQL text search failed: ${(err as Error).message} — trying Playwright search`);
+      try {
+        const { ids } = await scrapeSearchProductIds(categoryName);
+        if (ids.length > products.length) {
+          const searchProducts = await batchFetchDetails(ids.slice(0, 200));
+          logJobInfo('discovery-queue', jobId, jobName,
+            `Playwright search fallback: ${searchProducts.length} products (query="${categoryName}")`);
+          if (searchProducts.length > products.length) {
+            products = searchProducts;
+            await prisma.categoryRun.update({ where: { id: runId }, data: { total_products: ids.length, processed: products.length } });
+          }
+        }
+      } catch {
+        logJobInfo('discovery-queue', jobId, jobName,
+          `Playwright search also failed — keeping ${products.length} Playwright products`);
+      }
     }
   }
 

@@ -67,16 +67,21 @@ export function ScannerTab() {
       return;
     }
 
-    // Plain text → search categories first
+    // Plain text → search categories first, fallback to direct text search
     setError(''); setSearching(true); setCatSuggestions(null);
     try {
       const res = await discoveryApi.searchCategories(input);
       const cats = res.data ?? [];
-      if (cats.length === 0) { setError(t('discovery.noCategoriesFound')); return; }
+      if (cats.length === 0) {
+        // Category topilmadi → to'g'ridan text search (Playwright search page)
+        await startScan(input, input, true);
+        return;
+      }
       if (cats.length === 1) { await startScan(String(cats[0].id), cats[0].title, true); return; }
       setCatSuggestions(cats);
     } catch (err: unknown) {
-      setError(getErrorMessage(err));
+      // Category search xato → to'g'ridan text search fallback
+      await startScan(input, input, true);
     } finally {
       setSearching(false);
     }
@@ -113,9 +118,9 @@ export function ScannerTab() {
             <h2 className="card-title text-base">{t('discovery.newScan')}</h2>
             <div className="flex flex-wrap gap-2 mb-3">
               {POPULAR_CATEGORIES.map((cat) => (
-                <button key={cat.id} onClick={() => startScan(String(cat.id), cat.title, false)}
+                <button key={cat.title} onClick={() => { setCategoryInput(cat.title); }}
                   className="btn btn-xs btn-ghost border border-base-300">
-                  {t(cat.labelKey)} <span className="text-base-content/40 ml-1">#{cat.id}</span>
+                  {t(cat.labelKey)}
                 </button>
               ))}
             </div>

@@ -73,12 +73,16 @@ export class DiscoveryController {
       throw new BadRequestException('input maydoni kerak (URL yoki kategoriya ID)');
     }
 
-    const categoryId = await this.uzumClient.resolveCategoryId(body.input.trim());
+    const rawInput = body.input.trim();
+    const categoryId = await this.uzumClient.resolveCategoryId(rawInput);
 
-    if (!categoryId) {
-      const isSlugOnly = body.input.trim().startsWith('http') &&
-        /\/category\/[^/?#]+$/.test(body.input.trim()) &&
-        !/--\d+/.test(body.input.trim());
+    // fromSearch + categoryName → text search mode (categoryId shart emas)
+    const isTextSearch = body.fromSearch && body.categoryName && !categoryId;
+
+    if (!categoryId && !isTextSearch) {
+      const isSlugOnly = rawInput.startsWith('http') &&
+        /\/category\/[^/?#]+$/.test(rawInput) &&
+        !/--\d+/.test(rawInput);
       throw new BadRequestException(
         isSlugOnly
           ? "URL'dan kategoriya ID aniqlanmadi. URL'ni brauzerdan to'g'ridan-to'g'ri ko'chiring — ID avtomatik bo'lishi kerak (masalan: smartfony--879). Yoki faqat raqam kiriting (masalan: 10012)."
@@ -86,20 +90,21 @@ export class DiscoveryController {
       );
     }
 
-    this.reqLogger.logDiscovery(accountId, categoryId, body.input.trim());
+    const resolvedCategoryId = categoryId ?? 0;
+    this.reqLogger.logDiscovery(accountId, resolvedCategoryId, rawInput);
 
-    const rawInput = body.input.trim();
     const slug = body.categoryName ? titleToSlug(body.categoryName) : '';
     const categoryUrl = rawInput.startsWith('http')
       ? rawInput
-      : slug
-        ? `https://uzum.uz/ru/category/${slug}--${categoryId}`
-        : `https://uzum.uz/ru/category/c--${categoryId}`;
+      : slug && resolvedCategoryId
+        ? `https://uzum.uz/ru/category/${slug}--${resolvedCategoryId}`
+        : resolvedCategoryId
+          ? `https://uzum.uz/ru/category/c--${resolvedCategoryId}`
+          : `https://uzum.uz/ru/search?query=${encodeURIComponent(body.categoryName ?? rawInput)}`;
 
-    // fromSearch: true → input raqam (getSuggestions ID) → Playwright ishlamaydi, text search kerak
     const fromSearch = body.fromSearch ?? !rawInput.startsWith('http');
 
-    const runId = await this.discoveryService.startRun(accountId, categoryId, categoryUrl, body.categoryName, fromSearch);
+    const runId = await this.discoveryService.startRun(accountId, resolvedCategoryId, categoryUrl, body.categoryName, fromSearch);
     return { run_id: runId, category_id: categoryId, message: 'Discovery run started' };
   }
 

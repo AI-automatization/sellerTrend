@@ -60,14 +60,14 @@ export interface GapItem {
 }
 
 export const POPULAR_CATEGORIES = [
-  { id: 10020, labelKey: 'discovery.cat.electronics', title: 'Электроника' },
-  { id: 879,   labelKey: 'discovery.cat.smartphones', title: 'Смартфоны' },
-  { id: 10014, labelKey: 'discovery.cat.clothing',    title: 'Одежда' },
-  { id: 10012, labelKey: 'discovery.cat.beauty',      title: 'Красота и уход' },
-  { id: 10004, labelKey: 'discovery.cat.appliances',  title: 'Бытовая техника' },
-  { id: 10018, labelKey: 'discovery.cat.household',   title: 'Товары для дома' },
-  { id: 10007, labelKey: 'discovery.cat.kids',        title: 'Детские товары' },
-  { id: 10015, labelKey: 'discovery.cat.sports',      title: 'Спорт и отдых' },
+  { labelKey: 'discovery.cat.electronics', title: 'Электроника' },
+  { labelKey: 'discovery.cat.smartphones', title: 'Смартфоны' },
+  { labelKey: 'discovery.cat.clothing',    title: 'Одежда' },
+  { labelKey: 'discovery.cat.beauty',      title: 'Красота и уход' },
+  { labelKey: 'discovery.cat.appliances',  title: 'Бытовая техника' },
+  { labelKey: 'discovery.cat.household',   title: 'Товары для дома' },
+  { labelKey: 'discovery.cat.kids',        title: 'Детские товары' },
+  { labelKey: 'discovery.cat.sports',      title: 'Спорт и отдых' },
 ];
 
 export const MONTH_NAMES = [
