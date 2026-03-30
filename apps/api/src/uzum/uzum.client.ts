@@ -863,8 +863,11 @@ export class UzumClient {
   async searchCategories(query: string): Promise<Array<{ id: number; title: string }>> {
     if (!query.trim()) return [];
     try {
-      const workerPort = process.env.WORKER_HEALTH_PORT ?? '3001';
-      const url = `http://localhost:${workerPort}/categories/search?q=${encodeURIComponent(query.trim())}`;
+      // WORKER_URL: Railway da internal network URL (masalan http://worker.railway.internal:3001)
+      // Lokal: localhost:3001
+      const workerBase = process.env.WORKER_URL
+        ?? `http://localhost:${process.env.WORKER_HEALTH_PORT ?? '3001'}`;
+      const url = `${workerBase}/categories/search?q=${encodeURIComponent(query.trim())}`;
       const res = await fetchWithTimeout(url, {}, 8_000);
       if (!res.ok) return [];
       return (await res.json()) as Array<{ id: number; title: string }>;
