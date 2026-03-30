@@ -10,10 +10,10 @@
 ## STATISTIKA
 
 ```
-Ochiq:       ~34 ta
+Ochiq:       ~36 ta
 Bajarilgan:  ~188+ ta (Done.md)
-Oxirgi T-#:  T-483
-Keyingi T-#: T-484 dan boshlash
+Oxirgi T-#:  T-485
+Keyingi T-#: T-486 dan boshlash
 ```
 
 ---
@@ -952,6 +952,49 @@ Worker pipeline mavjud va ishlaydi lekin frontend unga ulanmagan.
 - `apps/api/src/products/products.controller.ts`
 - `apps/web/src/api/products.ts`
 - `apps/web/src/components/product/GlobalPriceComparison.tsx`
+
+---
+
+### T-485 | P1 | FRONTEND | Discovery — Imkoniyat topish (Niche Finder) UX tushunarsiz + overflow muammo | 2h
+
+- **Sana:** 2026-03-30
+- **Manba:** user-feedback
+- **Mas'ul:** Ziyoda
+- **Tahlil:** Niche Finder tab da "Bozor imkoniyatlari" blokida overflow yo'q — kontent sig'mayapdi. Segmentlar (niche_score) va Bo'shliqlar (gap_ratio) nima ekanini seller tushunmayapdi. UX sodda va tushunarli bo'lishi kerak.
+- **Muammo:**
+  1. "Bozor imkoniyatlari — Yuqori talab + past raqobat = foydali segment" div da overflow yo'q, kontent toshib ketadi
+  2. Niche (Segmentlar) tab — niche_score foizi nima ekanini seller tushunmaydi, tushuntirish yo'q
+  3. Gap (Bo'shliqlar) tab — gap_ratio (3.5x) nima degani aniq emas, seller uchun tushunarli qilish kerak
+  4. Umumiy UX — seller nimani qilishi kerak (qaysi mahsulotni sotish boshlash) aniq ko'rsatilmagan
+- **Yechim:**
+  1. "Bozor imkoniyatlari" div ga `overflow-x-auto` qo'shish
+  2. Niche score yoniga tooltip yoki tushuntirish: "85% = kam raqobat + yuqori talab"
+  3. Gap ratio ni tushunarli matn bilan: "3.5x = talabga nisbatan 3.5 marta kam sotuvchi"
+  4. Har bir mahsulot yoniga "Imkoniyat darajasi" badge (Yuqori/O'rta/Past) qo'shish
+  5. Bo'sh holatda namuna bilan tushuntirish ko'rsatish
+- **Fayllar:**
+  - `apps/web/src/components/discovery/NicheFinderTab.tsx` — UX qayta ishlash
+
+---
+
+### T-484 | P1 | IKKALASI | Discovery — Mavsumiy kalendar ishlamayapdi va UX tushunarsiz | 3h
+
+- **Sana:** 2026-03-30
+- **Manba:** production-bug + user-feedback
+- **Mas'ul:** Ziyoda
+- **Tahlil:** Mavsumiy kalendar tab da API dan ma'lumot kelmayapdi (seasonalApi.getCalendar / getUpcoming bo'sh qaytaradi). UX jihatdan jadval tushunarsiz — seller nimani qilishi kerakligi aniq emas. Heatmap vizualizatsiya murakkab, oddiy foydalanuvchi uchun qiyin.
+- **Muammo:**
+  1. Backend: seasonal API endpoint yo'q yoki ma'lumot bazasida mavsumiy data to'ldirilmagan
+  2. Frontend: jadval ko'rinishi tushunarsiz, peak oy va score boost nima ekanligi tushuntirilmagan
+  3. Bo'sh holat (empty state) foydalanuvchiga hech narsa bermayapdi
+- **Yechim:**
+  1. Backend: seasonal endpoint tekshirish, O'zbekiston bozori uchun mavsumiy data to'ldirish (maktab, bayramlar, yoz/qish kiyim, Ramadan va h.k.)
+  2. Frontend: UX ni soddalash — heatmap o'rniga aniq, tushunarli kartochkalar, har mavsumga tavsiyalar
+  3. Bo'sh holatda namuna ma'lumot yoki tushuntirish ko'rsatish
+- **Fayllar:**
+  - `apps/api/src/discovery/` — seasonal endpoint
+  - `apps/api/prisma/schema.prisma` — seasonal_events jadvali
+  - `apps/web/src/components/discovery/SeasonalCalendarTab.tsx` — UX qayta ishlash
 
 ---
 
