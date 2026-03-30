@@ -40,9 +40,9 @@ export function NicheFinderTab() {
           <h2 className="card-title text-base">{t('discovery.niche.searchTitle')}</h2>
           <div className="flex flex-wrap gap-2 mb-3">
             {POPULAR_CATEGORIES.map((cat) => (
-              <button key={cat.id} onClick={() => setCatId(String(cat.id))}
+              <button key={cat.title} onClick={() => setCatId(cat.title)}
                 className="btn btn-xs btn-ghost border border-base-300">
-                {t(cat.labelKey)} <span className="text-base-content/40 ml-1">#{cat.id}</span>
+                {t(cat.labelKey)}
               </button>
             ))}
           </div>

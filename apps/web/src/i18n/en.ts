@@ -806,7 +806,6 @@ export const en: Record<string, string> = {
     'product.verdict.good': 'Good product',
     'product.verdict.average': 'Average product',
     'product.verdict.weak': 'Weak product',
-    'product.scoreLabel': 'Trend Score',
     'product.action.tracked': '✓ Tracked',
     'product.action.track': '+ Add to tracking',
     'product.action.refresh': '↻ Refresh',

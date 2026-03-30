@@ -821,7 +821,6 @@ export const uz: Record<string, string> = {
     'product.verdict.good': 'Yaxshi mahsulot',
     'product.verdict.average': "O'rtacha mahsulot",
     'product.verdict.weak': 'Zaif mahsulot',
-    'product.scoreLabel': 'Trend Score',
     'product.action.tracked': '✓ Kuzatuvda',
     'product.action.track': "+ Kuzatuvga qo'shish",
     'product.action.refresh': '↻ Yangilash',

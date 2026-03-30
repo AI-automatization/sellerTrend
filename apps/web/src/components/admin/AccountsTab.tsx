@@ -154,7 +154,7 @@ export function AccountsTab({
                           <button className="btn btn-xs btn-ghost" onClick={() => onEditingFeeChange(null)}>X</button>
                         </div>
                       ) : (
-                        <button className="btn btn-ghost btn-xs font-mono text-base-content/60" onClick={() => { onEditingFeeChange(a.id); onFeeInputChange(a.daily_fee ?? ''); }}>
+                        <button className="btn btn-ghost btn-xs font-mono text-base-content/60" onClick={() => { onEditingFeeChange(a.id); onFeeInputChange(String(a.daily_fee ?? '')); }}>
                           {a.daily_fee ? `${Number(a.daily_fee).toLocaleString()}` : 'global'}
                         </button>
                       )}

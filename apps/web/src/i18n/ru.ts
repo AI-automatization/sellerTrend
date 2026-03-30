@@ -805,7 +805,6 @@ export const ru: Record<string, string> = {
     'product.verdict.good': 'Хороший товар',
     'product.verdict.average': 'Средний товар',
     'product.verdict.weak': 'Слабый товар',
-    'product.scoreLabel': 'Trend Score',
     'product.action.tracked': '✓ Отслеживается',
     'product.action.track': '+ Добавить в отслеживание',
     'product.action.refresh': '↻ Обновить',

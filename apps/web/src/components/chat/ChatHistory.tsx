@@ -20,7 +20,6 @@ export function ChatHistory({
   onSelect,
   onNew,
   onLoad,
-  onDelete,
 }: Props) {
   const { t } = useI18n();
 

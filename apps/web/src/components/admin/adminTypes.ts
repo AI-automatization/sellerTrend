@@ -9,6 +9,8 @@ export interface Account {
   created_at: string;
   users: { id: string; email: string; role: Role }[];
   transaction_count: number;
+  balance?: string | number;
+  daily_fee?: string | number | null;
 }
 
 export interface User {
