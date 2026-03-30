@@ -1,7 +1,21 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
-# Yangilangan: 2026-03-26
+# Yangilangan: 2026-03-30
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
+
+### T-480 | P1 | BACKEND + FRONTEND | Discovery — getSuggestions ID lari bilan text search ishlatish (2026-03-30)
+
+**Manba:** production-bug (Sardor, 2026-03-29)
+**Muammo:** `getSuggestions` GraphQL search-index ID larini qaytaradi (masalan 14237, 15271) — bular Uzum browse sahifalarining haqiqiy category ID lari emas. Playwright yaroqsiz URL ochadi → homepage recommendations widget → noto'g'ri mahsulotlar. GraphQL 429 rate limit, REST search `not-available-001`.
+**Yechim:**
+- `scrapeSearchProductIds()` — Playwright bilan `uzum.uz/ru/search?query=текст` sahifasini scrape qilish (GraphQL/REST fallback)
+- `fromSearch=true` da GraphQL 429 → avtomatik Playwright search fallback
+- Playwright ≤10 products (recommendations widget) → Playwright search fallback
+- Controller: text search uchun `categoryId=0` — categoryId shart emas
+- Frontend: category topilmasa suggestion + "barcha natijalar bo'yicha qidirish" tugmasi
+- POPULAR_CATEGORIES: ishlamaydigan ID lar olib tashlandi, text search orqali ishlaydi
+**Fayllar:** `uzum-scraper.ts`, `discovery.processor.ts`, `discovery.controller.ts`, `ScannerTab.tsx`, `types.ts`
+**Ta'sir:** Discovery endi har qanday text qidiruv bilan ishlaydi — GraphQL/REST down bo'lsa ham Playwright orqali mahsulotlar topiladi. Foydalanuvchi o'zi category tanlashi mumkin.
 
 ### T-470..T-477 | FRONTEND + BACKEND | Chat AI va Dashboard UX improvements (2026-03-26)
 
