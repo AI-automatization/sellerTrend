@@ -60,14 +60,18 @@ export interface GapItem {
 }
 
 export const POPULAR_CATEGORIES = [
-  { labelKey: 'discovery.cat.electronics', title: 'Электроника' },
-  { labelKey: 'discovery.cat.smartphones', title: 'Смартфоны' },
   { labelKey: 'discovery.cat.clothing',    title: 'Одежда' },
-  { labelKey: 'discovery.cat.beauty',      title: 'Красота и уход' },
-  { labelKey: 'discovery.cat.appliances',  title: 'Бытовая техника' },
-  { labelKey: 'discovery.cat.household',   title: 'Товары для дома' },
-  { labelKey: 'discovery.cat.kids',        title: 'Детские товары' },
-  { labelKey: 'discovery.cat.sports',      title: 'Спорт и отдых' },
+  { labelKey: 'discovery.cat.shoes',       title: 'Обувь' },
+  { labelKey: 'discovery.cat.bags',        title: 'Сумка' },
+  { labelKey: 'discovery.cat.beauty',      title: 'Косметика' },
+  { labelKey: 'discovery.cat.kids',        title: 'Детская' },
+  { labelKey: 'discovery.cat.toys',        title: 'Игрушки' },
+  { labelKey: 'discovery.cat.furniture',   title: 'Мебель' },
+  { labelKey: 'discovery.cat.kitchenware', title: 'Посуда' },
+  { labelKey: 'discovery.cat.sports',      title: 'Спорт' },
+  { labelKey: 'discovery.cat.accessories', title: 'Аксессуары' },
+  { labelKey: 'discovery.cat.jewelry',     title: 'Украшения' },
+  { labelKey: 'discovery.cat.tools',       title: 'Инструменты' },
 ];
 
 export const MONTH_NAMES = [
