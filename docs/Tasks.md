@@ -12,8 +12,8 @@
 ```
 Ochiq:       ~34 ta
 Bajarilgan:  ~188+ ta (Done.md)
-Oxirgi T-#:  T-482
-Keyingi T-#: T-483 dan boshlash
+Oxirgi T-#:  T-483
+Keyingi T-#: T-484 dan boshlash
 ```
 
 ---
@@ -952,6 +952,29 @@ Worker pipeline mavjud va ishlaydi lekin frontend unga ulanmagan.
 - `apps/api/src/products/products.controller.ts`
 - `apps/web/src/api/products.ts`
 - `apps/web/src/components/product/GlobalPriceComparison.tsx`
+
+---
+
+### T-483 | P1 | FRONTEND | Sourcing — kurs narxlari sahifa yuklanganda default qiymatda qoladi | 30min
+
+**Sana:** 2026-03-30
+**Manba:** production-bug
+**Mas'ul:** Ziyoda
+
+**Tahlil:**
+Sourcing sahifasiga kirganda valyuta kurslari (USD, CNY) default/hardcoded qiymatda ko'rinadi.
+Faqat "Reload" tugmasini bosgandan keyin haqiqiy kurs yuklanadi. Sahifa ochilganda avtomatik
+haqiqiy kursni olishi kerak.
+
+**Muammo:**
+Foydalanuvchi noto'g'ri kurs bilan hisob-kitob ko'radi — reload bosmaguncha default qiymat turadi.
+
+**Yechim:**
+1. Sahifa yuklanganda (useEffect / onMount) kurs API dan avtomatik olinishi kerak
+2. Reload tugmasi faqat qayta yangilash uchun — birinchi yuklash useEffect da bo'lishi shart
+
+**Fayllar:**
+- `apps/web/src/components/sourcing/` — tegishli komponent (kurs ko'rsatadigan joy)
 
 ---
 
