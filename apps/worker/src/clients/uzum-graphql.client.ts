@@ -293,7 +293,7 @@ class UzumGraphQLClient {
     }>(
       'CategorySuggestions',
       CATEGORY_QUERY,
-      { input: { text: query.trim(), categorySuggestionsLimit: 10 } },
+      { input: { text: query.trim(), categorySuggestionsLimit: 20 } },
     );
     const block = data.getSuggestions.blocks.find((b) => b.__typename === 'CategorySuggestionsBlock');
     return block?.categories ?? [];
