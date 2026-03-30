@@ -256,6 +256,8 @@ export interface CategoryDiscoveryJobData {
   runId: string;
   accountId: string;
   categoryUrl?: string; // full Uzum category URL for Playwright scraping
+  categoryName?: string; // known category name (from search picker) — skip REST lookup
+  fromSearch?: boolean; // true = category selected from getSuggestions → use text search, skip Playwright
 }
 
 export * from './uzum-graphql.types';

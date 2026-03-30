@@ -60,16 +60,14 @@ export interface GapItem {
 }
 
 export const POPULAR_CATEGORIES = [
-  { id: 10020, labelKey: 'discovery.cat.electronics', url: 'https://uzum.uz/ru/category/elektronika-10020' },
-  { id: 879,   labelKey: 'discovery.cat.smartphones', url: 'https://uzum.uz/ru/category/smartfonlar-879' },
-  { id: 10014, labelKey: 'discovery.cat.clothing',    url: 'https://uzum.uz/ru/category/odezhda-10014' },
-  { id: 10012, labelKey: 'discovery.cat.beauty',      url: 'https://uzum.uz/ru/category/krasota-i-ukhod-10012' },
-  { id: 10091, labelKey: 'discovery.cat.makeup',      url: 'https://uzum.uz/ru/category/c--10091' },
-  { id: 10004, labelKey: 'discovery.cat.appliances',  url: 'https://uzum.uz/ru/category/bytovaya-tekhnika-10004' },
-  { id: 10018, labelKey: 'discovery.cat.household',   url: 'https://uzum.uz/ru/category/tovary-dlya-doma-10018' },
-  { id: 10007, labelKey: 'discovery.cat.kids',        url: 'https://uzum.uz/ru/category/detskie-tovary-10007' },
-  { id: 10015, labelKey: 'discovery.cat.sports',      url: 'https://uzum.uz/ru/category/sport-i-otdykh-10015' },
-  { id: 10165, labelKey: 'discovery.cat.haircare',    url: 'https://uzum.uz/ru/category/c--10165' },
+  { id: 10020, labelKey: 'discovery.cat.electronics', title: 'Электроника' },
+  { id: 879,   labelKey: 'discovery.cat.smartphones', title: 'Смартфоны' },
+  { id: 10014, labelKey: 'discovery.cat.clothing',    title: 'Одежда' },
+  { id: 10012, labelKey: 'discovery.cat.beauty',      title: 'Красота и уход' },
+  { id: 10004, labelKey: 'discovery.cat.appliances',  title: 'Бытовая техника' },
+  { id: 10018, labelKey: 'discovery.cat.household',   title: 'Товары для дома' },
+  { id: 10007, labelKey: 'discovery.cat.kids',        title: 'Детские товары' },
+  { id: 10015, labelKey: 'discovery.cat.sports',      title: 'Спорт и отдых' },
 ];
 
 export const MONTH_NAMES = [

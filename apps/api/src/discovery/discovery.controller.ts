@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Delete,
   Param,
   Body,
   Query,
@@ -20,6 +21,28 @@ import { NicheService } from './niche.service';
 import { RequestLoggerService } from '../common/request-logger.service';
 import { UzumClient } from '../uzum/uzum.client';
 import { StartRunDto } from './dto/start-run.dto';
+
+/**
+ * Convert a category title (Russian/Uzbek) to a URL-compatible slug.
+ * e.g. "Смартфоны Android" → "smartfony-android"
+ * Used to construct proper Uzum category URLs (subcategories need slug, not just c--ID).
+ */
+function titleToSlug(title: string): string {
+  const map: Record<string, string> = {
+    а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'yo',ж:'zh',з:'z',
+    и:'i',й:'j',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',
+    с:'s',т:'t',у:'u',ф:'f',х:'h',ц:'ts',ч:'ch',ш:'sh',щ:'sch',
+    ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya',
+    // Uzbek-specific
+    ğ:'g',ş:'sh',ı:'i',ö:'o',ü:'u',
+  };
+  return title.toLowerCase()
+    .split('')
+    .map((c) => map[c] ?? (c.match(/[a-z0-9]/) ? c : '-'))
+    .join('')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
 
 @ApiTags('discovery')
 @ApiBearerAuth()
@@ -66,11 +89,17 @@ export class DiscoveryController {
     this.reqLogger.logDiscovery(accountId, categoryId, body.input.trim());
 
     const rawInput = body.input.trim();
+    const slug = body.categoryName ? titleToSlug(body.categoryName) : '';
     const categoryUrl = rawInput.startsWith('http')
       ? rawInput
-      : `https://uzum.uz/ru/category/c--${categoryId}`;
+      : slug
+        ? `https://uzum.uz/ru/category/${slug}--${categoryId}`
+        : `https://uzum.uz/ru/category/c--${categoryId}`;
 
-    const runId = await this.discoveryService.startRun(accountId, categoryId, categoryUrl);
+    // fromSearch: true → input raqam (getSuggestions ID) → Playwright ishlamaydi, text search kerak
+    const fromSearch = body.fromSearch ?? !rawInput.startsWith('http');
+
+    const runId = await this.discoveryService.startRun(accountId, categoryId, categoryUrl, body.categoryName, fromSearch);
     return { run_id: runId, category_id: categoryId, message: 'Discovery run started' };
   }
 
@@ -85,6 +114,14 @@ export class DiscoveryController {
     @CurrentUser('account_id') accountId: string,
   ) {
     return this.discoveryService.getRun(runId, accountId);
+  }
+
+  @Delete('runs/:id')
+  deleteRun(
+    @Param('id') runId: string,
+    @CurrentUser('account_id') accountId: string,
+  ) {
+    return this.discoveryService.deleteRun(runId, accountId);
   }
 
   @Get('leaderboard')

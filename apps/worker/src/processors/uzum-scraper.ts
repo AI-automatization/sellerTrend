@@ -18,6 +18,7 @@
 import { ProxyAgent } from 'undici';
 import { logJobInfo } from '../logger';
 import { browserPool } from '../browser-pool';
+import { tokenManager } from '../clients/token-manager';
 import { uzumGraphQLClient } from '../clients/uzum-graphql.client';
 import type { InstallmentWidget } from '@uzum/types';
 
@@ -83,6 +84,18 @@ export async function scrapeCategoryProductIds(
     locale: 'ru-RU',
     extraHTTPHeaders: { 'Accept-Language': 'ru-RU,ru;q=0.9' },
   });
+
+  // Uzum session cookies — category sahifalar to'g'ri yuklanishi uchun
+  const cookieStr = tokenManager.getCookies();
+  if (cookieStr) {
+    const cookies = cookieStr.split('; ').map((pair) => {
+      const eqIdx = pair.indexOf('=');
+      const name = eqIdx > 0 ? pair.slice(0, eqIdx) : pair;
+      const value = eqIdx > 0 ? pair.slice(eqIdx + 1) : '';
+      return { name, value, domain: '.uzum.uz', path: '/' };
+    });
+    await context.addCookies(cookies);
+  }
 
   try {
     const page = await context.newPage();
@@ -192,6 +205,49 @@ export interface UzumRawProduct {
 }
 
 /**
+ * Fetch product IDs for a category via REST search endpoint.
+ * REST /main/search/product?categoryId=X PROPERLY filters by category,
+ * unlike makeSearch GraphQL which ignores categoryId when text is provided.
+ * Paginates automatically (48 per page).
+ */
+export async function fetchCategoryProductIdsREST(
+  categoryId: number,
+  maxProducts = 500,
+): Promise<number[]> {
+  const ids = new Set<number>();
+  const pageSize = 48;
+  let page = 0;
+  const maxPages = Math.ceil(maxProducts / pageSize) + 1;
+
+  while (ids.size < maxProducts && page < maxPages) {
+    const url =
+      `${REST_BASE}/main/search/product` +
+      `?categoryId=${categoryId}&size=${pageSize}&page=${page}&sort=ORDER_COUNT_DESC&showAdultContent=HIDE`;
+    try {
+      const res = await fetchWithTimeout(url, {
+        headers: HEADERS,
+        dispatcher: proxyDispatcher,
+      } as any);
+      if (!res.ok) break;
+      const data = (await res.json()) as any;
+      const products: Array<{ id?: number; productId?: number }> =
+        data?.payload?.products ?? data?.products ?? data?.data?.products ?? [];
+      if (products.length === 0) break;
+      for (const p of products) {
+        const id = p.id ?? p.productId;
+        if (id) ids.add(Number(id));
+      }
+      if (products.length < pageSize) break;
+      page++;
+    } catch {
+      break;
+    }
+  }
+
+  return [...ids].slice(0, maxProducts);
+}
+
+/**
  * Fetch raw product data from the Uzum REST API.
  * Returns the unprocessed payload.data object — use this in all processors
  * to avoid code duplication (T-066).
@@ -226,6 +282,8 @@ export interface ProductDetail {
   sellPrice: bigint | null;
   stockType: 'FBO' | 'FBS';
   photoUrl: string | null;
+  /** Uzum REST dan olingan mahsulotning haqiqiy kategoriya ID (barcha ota-kategoriyalar) */
+  categoryIds: number[];
 }
 
 /**
@@ -252,6 +310,14 @@ export async function fetchProductDetail(
     ? (Object.values(firstPhoto.photo)[0]?.high ?? null)
     : null;
 
+  // Mahsulotning barcha ota-kategoriya ID larini yig'ish (leaf → root)
+  const categoryIds: number[] = [];
+  let cat = p.category;
+  while (cat) {
+    categoryIds.push(cat.id);
+    cat = cat.parent ?? undefined;
+  }
+
   return {
     id: productId,
     title: p.localizableTitle?.ru ?? p.title ?? '',
@@ -263,6 +329,7 @@ export async function fetchProductDetail(
     sellPrice,
     stockType,
     photoUrl,
+    categoryIds,
   };
 }
 

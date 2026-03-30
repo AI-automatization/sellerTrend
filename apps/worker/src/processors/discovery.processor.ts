@@ -7,6 +7,7 @@ import {
   scrapeCategoryProductIds,
   fetchProductDetail,
   fetchUzumProductRaw,
+  fetchCategoryProductIdsREST,
   type ProductDetail,
 } from './uzum-scraper';
 import { uzumGraphQLClient } from '../clients/uzum-graphql.client';
@@ -16,8 +17,8 @@ import {
 } from './uzum-ai-scraper';
 import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
 
-// Feature flag: set USE_GRAPHQL_DISCOVERY=false to force Playwright-only mode
-const USE_GRAPHQL_DISCOVERY = process.env.USE_GRAPHQL_DISCOVERY !== 'false';
+// Feature flag: set USE_REST_DISCOVERY=false to skip REST and go straight to GraphQL/Playwright
+const USE_REST_DISCOVERY = process.env.USE_REST_DISCOVERY !== 'false';
 
 /**
  * Fetch product details in parallel batches with rate limiting.
@@ -42,42 +43,96 @@ async function batchFetchDetails(
 }
 
 async function processDiscovery(data: CategoryDiscoveryJobData, jobId: string, jobName: string) {
-  const { categoryId, runId, categoryUrl } = data;
+  const { categoryId, runId, categoryUrl, categoryName: knownCategoryName, fromSearch } = data;
 
   // Build URL for Playwright (use provided URL or construct a canonical one)
   const url =
     categoryUrl ?? `https://uzum.uz/ru/category/c--${categoryId}`;
 
-  // extractCategoryName parses slug from URL — may return short garbage like "c" if URL was constructed from plain ID
-  let categoryName: string | null = extractCategoryName(url);
+  // Use known name from job data (search picker) → fall back to URL slug extraction
+  let categoryName: string | null = knownCategoryName ?? extractCategoryName(url);
   if (!categoryName || categoryName.length <= 2) categoryName = null;
 
   await prisma.categoryRun.update({
     where: { id: runId },
     data: { status: 'RUNNING', started_at: new Date(), category_name: categoryName ?? undefined },
   });
-  logJobInfo('discovery-queue', jobId, jobName, `Category name: "${categoryName}"`);
+  logJobInfo('discovery-queue', jobId, jobName, `Category name: "${categoryName}", fromSearch=${fromSearch}`);
 
-  // Step 1: GraphQL makeSearch first, Playwright fallback (feature flag: USE_GRAPHQL_DISCOVERY)
-  logJobInfo('discovery-queue', jobId, jobName, `Discovering category ${categoryId} (graphql=${USE_GRAPHQL_DISCOVERY})`);
   let productIds: number[];
-  try {
-    if (!USE_GRAPHQL_DISCOVERY) throw new Error('GraphQL discovery disabled by USE_GRAPHQL_DISCOVERY=false');
-    const cards = await uzumGraphQLClient.searchAllProducts({
-      categoryId,
-      sort: 'BY_ORDERS_NUMBER_DESC',
-      maxProducts: 500,
-    });
-    productIds = cards.map((c) => c.productId);
-    logJobInfo('discovery-queue', jobId, jobName, `GraphQL discovery: ${productIds.length} mahsulot (source=graphql)`);
-  } catch {
-    logJobInfo('discovery-queue', jobId, jobName, 'GraphQL failed — Playwright fallback (source=playwright)');
+  let source: 'rest' | 'graphql' | 'playwright' | 'text-search' = 'rest';
+
+  // Step 1 (fromSearch): getSuggestions ID lari yaroqsiz browse page ID — Playwright ishlatma.
+  // To'g'ridan GraphQL text search ishlatish (category nomi bo'yicha).
+  if (fromSearch && categoryName) {
+    logJobInfo('discovery-queue', jobId, jobName,
+      `fromSearch=true → GraphQL text search (text="${categoryName}")`);
+    source = 'text-search';
     try {
-      const { ids } = await scrapeCategoryProductIds(url);
-      productIds = ids;
+      const cards = await uzumGraphQLClient.searchAllProducts({
+        text: categoryName,
+        sort: 'BY_ORDERS_NUMBER_DESC',
+        maxProducts: 500,
+      });
+      productIds = cards.map((c) => c.productId);
+      logJobInfo('discovery-queue', jobId, jobName,
+        `Text search: ${productIds.length} products (text="${categoryName}")`);
+      if (productIds.length === 0) {
+        throw new Error(`Text search returned 0 products for "${categoryName}"`);
+      }
     } catch (err) {
       logJobError('discovery-queue', jobId, jobName, err);
-      throw new Error(`Discovery failed (GraphQL + Playwright): ${(err as Error).message}`);
+      throw new Error(`Text search failed: ${(err as Error).message}`);
+    }
+  } else {
+    // Step 1: REST (categoryId filter) → GraphQL fallback → Playwright last resort
+    // REST /main/search/product?categoryId=X correctly filters by category.
+    // makeSearch GraphQL ignores categoryId when text is provided → same products for all categories.
+    logJobInfo('discovery-queue', jobId, jobName, `Discovering category ${categoryId} (rest=${USE_REST_DISCOVERY})`);
+
+    if (USE_REST_DISCOVERY) {
+      try {
+        const restIds = await fetchCategoryProductIdsREST(categoryId, 500);
+        if (restIds.length >= 3) {
+          productIds = restIds;
+          logJobInfo('discovery-queue', jobId, jobName, `REST discovery (categoryId=${categoryId}): ${productIds.length} mahsulot`);
+        } else {
+          throw new Error(`REST returned only ${restIds.length} products`);
+        }
+      } catch (restErr) {
+        logJobInfo('discovery-queue', jobId, jobName, `REST failed — GraphQL fallback: ${(restErr as Error).message}`);
+        source = 'graphql';
+        try {
+          const cards = await uzumGraphQLClient.searchAllProducts({
+            categoryId,
+            text: '',
+            sort: 'BY_ORDERS_NUMBER_DESC',
+            maxProducts: 500,
+          });
+          productIds = cards.map((c) => c.productId);
+          logJobInfo('discovery-queue', jobId, jobName, `GraphQL fallback (text="", categoryId=${categoryId}): ${productIds.length} mahsulot`);
+        } catch {
+          logJobInfo('discovery-queue', jobId, jobName, 'GraphQL failed — Playwright fallback');
+          source = 'playwright';
+          try {
+            const { ids } = await scrapeCategoryProductIds(url);
+            productIds = ids;
+          } catch (err) {
+            logJobError('discovery-queue', jobId, jobName, err);
+            throw new Error(`Discovery failed (REST + GraphQL + Playwright): ${(err as Error).message}`);
+          }
+        }
+      }
+    } else {
+      source = 'playwright';
+      logJobInfo('discovery-queue', jobId, jobName, 'REST disabled — Playwright');
+      try {
+        const { ids } = await scrapeCategoryProductIds(url);
+        productIds = ids;
+      } catch (err) {
+        logJobError('discovery-queue', jobId, jobName, err);
+        throw new Error(`Discovery failed (Playwright): ${(err as Error).message}`);
+      }
     }
   }
 
@@ -120,7 +175,64 @@ async function processDiscovery(data: CategoryDiscoveryJobData, jobId: string, j
     } catch { /* non-critical, continue without name */ }
   }
 
-  // Step 2c: AI category filter — remove cross-category noise
+  // Step 2c: Hard category filter — faqat REST va GraphQL uchun
+  // Playwright + session cookies ishonchli: to'g'ridan category URL scrape qiladi.
+  // text-search: AI filter yetarli, hard filter shart emas (categoryId yaroqsiz bo'lishi mumkin).
+  // REST/GraphQL esa ba'zan noto'g'ri (global popular) mahsulotlar qaytaradi.
+  if (source !== 'playwright' && source !== 'text-search') {
+    const beforeHardFilter = products.length;
+    const hardFiltered = products.filter((p) => p.categoryIds.includes(categoryId));
+    logJobInfo('discovery-queue', jobId, jobName,
+      `Hard category filter (${source}): ${beforeHardFilter} → ${hardFiltered.length} products (categoryId=${categoryId})`);
+
+    if (hardFiltered.length >= 3) {
+      products = hardFiltered;
+    } else {
+      // REST/GraphQL noto'g'ri natija → Playwright fallback
+      logJobInfo('discovery-queue', jobId, jobName,
+        `Hard filter yetarsiz (${source}) → Playwright fallback (url=${url})`);
+      const { ids } = await scrapeCategoryProductIds(url);
+      const idsToFetch2 = ids.slice(0, 200);
+      products = await batchFetchDetails(idsToFetch2);
+      await prisma.categoryRun.update({ where: { id: runId }, data: { total_products: ids.length, processed: products.length } });
+      source = 'playwright';
+    }
+  } else {
+    logJobInfo('discovery-queue', jobId, jobName,
+      `Playwright: ${products.length} products (cookies bilan to'g'ri scrape)`);
+  }
+
+  // Step 2c-2: Playwright got ≤ 10 products → likely Uzum's generic recommendations widget
+  // (parent category pages show subcategory grid, not products; Uzum renders 10 "popular" items)
+  // Fallback: GraphQL text search by category name to get real category products.
+  // text-search source uchun shart emas (allaqachon text search ishlatilgan).
+  if (source === 'playwright' && products.length <= 10 && categoryName) {
+    logJobInfo('discovery-queue', jobId, jobName,
+      `Playwright ≤10 products (likely recommendations widget) → GraphQL text search (text="${categoryName}")`);
+    try {
+      const cards = await uzumGraphQLClient.searchAllProducts({
+        text: categoryName,
+        sort: 'BY_ORDERS_NUMBER_DESC',
+        maxProducts: 500,
+      });
+      if (cards.length > 0) {
+        const idsToFetch3 = cards.map((c) => c.productId).slice(0, 200);
+        const textProducts = await batchFetchDetails(idsToFetch3);
+        logJobInfo('discovery-queue', jobId, jobName,
+          `GraphQL text search: ${textProducts.length} products (text="${categoryName}")`);
+        if (textProducts.length > products.length) {
+          products = textProducts;
+          await prisma.categoryRun.update({ where: { id: runId }, data: { total_products: cards.length, processed: products.length } });
+          // source stays 'playwright' — AI filter below will clean cross-category noise
+        }
+      }
+    } catch (err) {
+      logJobInfo('discovery-queue', jobId, jobName,
+        `GraphQL text search failed: ${(err as Error).message} — keeping ${products.length} Playwright products`);
+    }
+  }
+
+  // Step 2d: AI category filter — qolgan cross-category shovqinini tozalash
   if (categoryName) {
     products = await filterByCategory(products, categoryName);
     logJobInfo('discovery-queue', jobId, jobName, `After AI filter: ${products.length} products`);

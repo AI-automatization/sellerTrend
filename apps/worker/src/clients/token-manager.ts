@@ -7,6 +7,7 @@ const TOKEN_TTL_MS = 5 * 60 * 60 * 1000; // 5 soat
 class TokenManager {
   private static instance: TokenManager;
   private token: string | null = null;
+  private cookies: string | null = null;
   private expiresAt: number = 0;
   private refreshing: Promise<string | null> | null = null;
 
@@ -15,6 +16,11 @@ class TokenManager {
       TokenManager.instance = new TokenManager();
     }
     return TokenManager.instance;
+  }
+
+  /** Cached cookie string qaytaradi (search-gateway uchun kerak). */
+  getCookies(): string | null {
+    return this.cookies;
   }
 
   /** Cached token qaytaradi. Muddati o'tgan bo'lsa yangilaydi. */
@@ -64,8 +70,10 @@ class TokenManager {
       }
 
       this.token = tokenCookie.value;
+      // Save full cookie string — search-gateway requires cookies to avoid 429
+      this.cookies = cookies.map((c) => `${c.name}=${c.value}`).join('; ');
       this.expiresAt = Date.now() + TOKEN_TTL_MS;
-      logJobInfo(LOG_CTX, '-', 'refresh', 'Token muvaffaqiyatli olindi (5 soat keshda)');
+      logJobInfo(LOG_CTX, '-', 'refresh', `Token muvaffaqiyatli olindi (5 soat keshda, cookies: ${cookies.length} ta)`);
       return this.token;
     } catch (err) {
       logJobError(LOG_CTX, '-', 'refresh', err);
@@ -76,9 +84,10 @@ class TokenManager {
     }
   }
 
-  /** Token ni majburiy tozalash (test uchun) */
+  /** Token ni majburiy tozalash (401 bo'lganda chaqiriladi) */
   clearToken(): void {
     this.token = null;
+    this.cookies = null;
     this.expiresAt = 0;
   }
 }

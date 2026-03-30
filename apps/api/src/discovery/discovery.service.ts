@@ -12,7 +12,7 @@ export class DiscoveryService {
    * Create a DB record and enqueue to BullMQ worker.
    * Uses ReadCommitted transaction to prevent duplicate run creation.
    */
-  async startRun(accountId: string, categoryId: number, categoryUrl?: string): Promise<string> {
+  async startRun(accountId: string, categoryId: number, categoryUrl?: string, categoryName?: string, fromSearch?: boolean): Promise<string> {
     const run = await this.prisma.$transaction(async (tx) => {
       // Prevent duplicate runs for same category while one is still pending/running
       const existing = await tx.categoryRun.findFirst({
@@ -33,11 +33,12 @@ export class DiscoveryService {
           account_id: accountId,
           category_id: BigInt(categoryId),
           status: 'PENDING',
+          ...(categoryName ? { category_name: categoryName } : {}),
         },
       });
     }, { isolationLevel: 'ReadCommitted' });
 
-    await enqueueDiscovery({ categoryId, runId: run.id, accountId, categoryUrl });
+    await enqueueDiscovery({ categoryId, runId: run.id, accountId, categoryUrl, categoryName, fromSearch });
     this.logger.log(`[run:${run.id}] Enqueued category ${categoryId} → BullMQ`);
 
     return run.id;
@@ -64,6 +65,18 @@ export class DiscoveryService {
       finished_at: r.finished_at,
       created_at: r.created_at,
     }));
+  }
+
+  /** Delete a run and its winners */
+  async deleteRun(runId: string, accountId: string) {
+    const run = await this.prisma.categoryRun.findFirst({
+      where: { id: runId, account_id: accountId },
+    });
+    if (!run) throw new NotFoundException('Run not found');
+
+    await this.prisma.categoryWinner.deleteMany({ where: { run_id: runId } });
+    await this.prisma.categoryRun.delete({ where: { id: runId } });
+    return { deleted: true };
   }
 
   /** Get run details with winners */

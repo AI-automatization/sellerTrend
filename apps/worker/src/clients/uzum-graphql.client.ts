@@ -22,13 +22,17 @@ const REQUEST_TIMEOUT_MS = 15_000;
 const RATE_LIMIT_WAIT_MS = 5_000;
 
 function buildHeaders(token: string): Record<string, string> {
-  return {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${token}`,
     'Accept-Language': 'ru-RU',
     'apollographql-client-name': 'web-customers',
     'apollographql-client-version': '1.63.2',
   };
+  // search-gateway requires cookies to avoid 429 rate limiting
+  const cookies = tokenManager.getCookies();
+  if (cookies) headers['Cookie'] = cookies;
+  return headers;
 }
 
 async function fetchWithTimeout(
@@ -202,7 +206,9 @@ class UzumGraphQLClient {
       filters: params.filters ?? [],
       sort: params.sort ?? 'BY_ORDERS_NUMBER_DESC',
       pagination: { offset: params.offset ?? 0, limit: params.limit ?? 48 },
-      correctQuery: true,
+      // correctQuery: false when categoryId provided — Uzum website uses false for category browsing.
+      // true causes Uzum to "correct" the query by ignoring categoryId → returns global popular products.
+      correctQuery: !params.categoryId,
       getFastCategories: false,
       fastCategoriesLimit: 0,
       getPromotionItems: false,

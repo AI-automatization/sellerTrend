@@ -89,7 +89,7 @@ No explanation, no text — just the JSON array.`;
       .map((i) => products[i]);
 
     logJobInfo('discovery-queue', '-', 'ai-scraper', `Category filter: ${products.length} → ${filtered.length} products kept`);
-    return filtered.length > 0 ? filtered : products; // never return empty if filter fails
+    return filtered;
   } catch (err) {
     logJobInfo('discovery-queue', '-', 'ai-scraper', `Filter error: ${err}`);
     return products; // fallback: return unfiltered

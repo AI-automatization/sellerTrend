@@ -12,8 +12,8 @@
 ```
 Ochiq:       ~34 ta
 Bajarilgan:  ~188+ ta (Done.md)
-Oxirgi T-#:  T-477
-Keyingi T-#: T-478 dan boshlash
+Oxirgi T-#:  T-480
+Keyingi T-#: T-481 dan boshlash
 ```
 
 ---
@@ -955,32 +955,51 @@ Worker pipeline mavjud va ishlaydi lekin frontend unga ulanmagan.
 
 ---
 
-### T-479 | P2 | IKKALASI | Discovery — category name bo'yicha qidiruv (autocomplete) | 2h | pending[Sardor]
+### T-480 | P1 | BACKEND | Discovery — getSuggestions ID lari bilan text search ishlatish | 2h | pending[Sardor]
 
 **Sana:** 2026-03-29
-**Manba:** user-feedback
+**Manba:** production-bug
 **Mas'ul:** Sardor
 
 **Tahlil:**
-Hozir Discovery Scanner da sotuvchi category ID yoki URL kiritishi kerak. Ammo oddiy sotuvchilar
-`10014`, `https://uzum.uz/ru/category/odezhda-10014` kabi texnik ma'lumotlarni bilishmaydi.
-POPULAR_CATEGORIES quick-select tugmalari faqat 10 ta eng ommabop kategoriyani qoplaydi.
-Qolgan 1000+ kategoriyaga kirish imkoni yo'q. UX juda noqulay.
+`getSuggestions` GraphQL search-index ID larini qaytaradi (masalan 14237, 15271) — bular Uzum browse
+sahifalarining haqiqiy category ID lari emas. Playwright `uzum.uz/category/krossovki--14237` sahifasini
+ochganda Uzum bu ID ni tanmaydi → homepage recommendations widget ko'rsatadi → doim bir xil 10 ta
+umumiy mahsulot (non, un, guruch). Shuning uchun text orqali qidirgan barcha categoriyalarda noto'g'ri
+mahsulotlar keladi.
 
 **Muammo:**
-Input faqat ID/URL qabul qiladi — sotuvchi categoriya nomini yozib qidira olmaydi.
+Sotuvchi "кроссовки" yozib tanlaydi → worker Playwright bilan yaroqsiz URL ochadi → bir xil 10 product.
 
 **Yechim:**
-1. `apps/api/src/discovery/discovery.controller.ts` — `GET /discovery/categories/search?q=...` endpoint
-   - Uzum GraphQL yoki REST dan kategoriyalar qidiradi (yoki DB dagi mavjud `category_name` lardan)
-2. `apps/web/src/components/discovery/ScannerTab.tsx` — input ni autocomplete ga almashtirish
-   - Yozganda debounced API so'rov → dropdown ko'rinadi → tanlaganda URL input ga to'ldiriladi
-3. Manual URL/ID kiritish ham qolsin (fallback)
+1. `packages/types/src/index.ts` — `CategoryDiscoveryJobData` ga `fromSearch?: boolean` qo'shish
+2. `apps/api/src/discovery/dto/start-run.dto.ts` — `fromSearch?: boolean` field
+3. `apps/api/src/discovery/discovery.controller.ts` — input raqam bo'lsa `fromSearch: true`
+4. `apps/api/src/discovery/discovery.service.ts` — `fromSearch` ni job data ga uzatish
+5. `apps/worker/src/processors/discovery.processor.ts` — `fromSearch: true` bo'lsa REST/Playwright skip,
+   to'g'ridan `searchAllProducts({ text: categoryName })` → AI filter
 
 **Fayllar:**
+- `packages/types/src/index.ts`
+- `apps/api/src/discovery/dto/start-run.dto.ts`
 - `apps/api/src/discovery/discovery.controller.ts`
 - `apps/api/src/discovery/discovery.service.ts`
-- `apps/web/src/components/discovery/ScannerTab.tsx`
+- `apps/worker/src/processors/discovery.processor.ts`
+
+**Progress (2026-03-30):**
+KOD YOZILDI — tsc tekshiruvi va test qoldi. Barcha fayllar o'zgartirilgan:
+- `packages/types` — `fromSearch`, `categoryName` qo'shildi
+- `dto/start-run.dto.ts` — yangi fieldlar
+- `discovery.controller.ts` — `fromSearch` logikasi + `titleToSlug` + `deleteRun` endpoint
+- `discovery.service.ts` — `startRun` signature + `deleteRun`
+- `discovery.processor.ts` — `fromSearch→text search`, REST→GraphQL→Playwright fallback chain, hard category filter
+- `uzum-scraper.ts` — `fetchCategoryProductIdsREST()` + `categoryIds` field + session cookies
+- `uzum-graphql.client.ts` — `correctQuery` fix + Cookie header
+- `token-manager.ts` — `getCookies()` metodi
+- `ScannerTab.tsx` — `fromSearch` uzatish + delete run button
+- `discovery.ts` (web api) — `startRun` + `deleteRun`
+- `types.ts` — POPULAR_CATEGORIES `title` qo'shildi
+**Keyingi qadam:** `tsc --noEmit` (api + worker + web) → agar pass → Done.md
 
 ---
 

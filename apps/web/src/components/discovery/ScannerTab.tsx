@@ -43,9 +43,9 @@ export function ScannerTab() {
     }
   }, [runs]);
 
-  async function startScan(input: string) {
+  async function startScan(input: string, categoryName?: string, fromSearch?: boolean) {
     setError(''); setStarting(true); setCatSuggestions(null);
-    try { await discoveryApi.startRun(input); setCategoryInput(''); await loadRuns(); }
+    try { await discoveryApi.startRun(input, categoryName, fromSearch); setCategoryInput(''); await loadRuns(); }
     catch (err: unknown) { setError(getErrorMessage(err)); }
     finally { setStarting(false); }
   }
@@ -55,9 +55,15 @@ export function ScannerTab() {
     const input = categoryInput.trim();
     if (!input) { setError(t('discovery.categoryIdPlaceholder')); return; }
 
-    // Number or URL → start directly
-    if (/^\d+$/.test(input) || input.startsWith('http')) {
-      await startScan(input);
+    // URL → start directly (Playwright will handle it)
+    if (input.startsWith('http')) {
+      await startScan(input, undefined, false);
+      return;
+    }
+
+    // Plain number → could be a valid browse ID, use fromSearch=false
+    if (/^\d+$/.test(input)) {
+      await startScan(input, undefined, false);
       return;
     }
 
@@ -67,7 +73,7 @@ export function ScannerTab() {
       const res = await discoveryApi.searchCategories(input);
       const cats = res.data ?? [];
       if (cats.length === 0) { setError(t('discovery.noCategoriesFound')); return; }
-      if (cats.length === 1) { await startScan(String(cats[0].id)); return; }
+      if (cats.length === 1) { await startScan(String(cats[0].id), cats[0].title, true); return; }
       setCatSuggestions(cats);
     } catch (err: unknown) {
       setError(getErrorMessage(err));
@@ -78,6 +84,10 @@ export function ScannerTab() {
 
   async function openRun(run: Run) {
     try { const res = await discoveryApi.getRun(run.id); setSelectedRun(res.data); } catch (e) { logError(e); }
+  }
+
+  async function handleDeleteRun(runId: string) {
+    try { await discoveryApi.deleteRun(runId); await loadRuns(); } catch (e) { logError(e); }
   }
 
   const [trackedIds, setTrackedIds] = useState<Set<string>>(new Set());
@@ -103,7 +113,7 @@ export function ScannerTab() {
             <h2 className="card-title text-base">{t('discovery.newScan')}</h2>
             <div className="flex flex-wrap gap-2 mb-3">
               {POPULAR_CATEGORIES.map((cat) => (
-                <button key={cat.id} onClick={() => { setCategoryInput(cat.url ?? String(cat.id)); setCatSuggestions(null); }}
+                <button key={cat.id} onClick={() => startScan(String(cat.id), cat.title, false)}
                   className="btn btn-xs btn-ghost border border-base-300">
                   {t(cat.labelKey)} <span className="text-base-content/40 ml-1">#{cat.id}</span>
                 </button>
@@ -127,7 +137,7 @@ export function ScannerTab() {
                 <p className="px-4 py-2 text-xs text-base-content/50 bg-base-300/30">{t('discovery.selectCategory')}</p>
                 {catSuggestions.map((cat) => (
                   <button key={cat.id} type="button"
-                    onClick={() => startScan(String(cat.id))}
+                    onClick={() => startScan(String(cat.id), cat.title, true)}
                     className="w-full text-left px-4 py-2.5 hover:bg-base-200 flex items-center justify-between border-t border-base-300/50 first:border-t-0">
                     <span className="text-sm font-medium">{cat.title}</span>
                     <span className="text-xs text-base-content/40 font-mono">#{cat.id}</span>
@@ -187,7 +197,12 @@ export function ScannerTab() {
                         <td className="tabular-nums text-sm">{run.total_products?.toLocaleString() ?? '—'}</td>
                         <td>{run.winner_count > 0 ? <span className="badge badge-success badge-sm">Top {run.winner_count}</span> : <span className="text-base-content/30">—</span>}</td>
                         <td className="text-xs text-base-content/50 whitespace-nowrap">{new Date(run.created_at).toLocaleString('ru-RU')}</td>
-                        <td>{run.status === 'DONE' && <button onClick={() => openRun(run)} className="btn btn-xs btn-primary">{t('discovery.viewBtn')}</button>}</td>
+                        <td>
+                          <div className="flex gap-1">
+                            {run.status === 'DONE' && <button onClick={() => openRun(run)} className="btn btn-xs btn-primary">{t('discovery.viewBtn')}</button>}
+                            <button onClick={() => handleDeleteRun(run.id)} className="btn btn-xs btn-ghost text-error opacity-50 hover:opacity-100">✕</button>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

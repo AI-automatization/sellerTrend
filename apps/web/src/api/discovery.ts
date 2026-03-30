@@ -1,10 +1,15 @@
 import { api } from './base';
 
 export const discoveryApi = {
-  startRun: (input: string | number) =>
-    api.post('/discovery/run', { input: String(input) }, { timeout: 60_000 }),
+  startRun: (input: string | number, categoryName?: string, fromSearch?: boolean) =>
+    api.post('/discovery/run', {
+      input: String(input),
+      ...(categoryName ? { categoryName } : {}),
+      ...(fromSearch !== undefined ? { fromSearch } : {}),
+    }, { timeout: 60_000 }),
   listRuns: () => api.get('/discovery/runs'),
   getRun: (id: string) => api.get(`/discovery/runs/${id}`),
+  deleteRun: (id: string) => api.delete(`/discovery/runs/${id}`),
   getLeaderboard: (categoryId?: number) =>
     api.get('/discovery/leaderboard', { params: categoryId ? { category_id: categoryId } : {} }),
   searchCategories: (q: string) =>
