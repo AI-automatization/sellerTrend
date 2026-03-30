@@ -12,8 +12,8 @@
 ```
 Ochiq:       ~34 ta
 Bajarilgan:  ~188+ ta (Done.md)
-Oxirgi T-#:  T-481
-Keyingi T-#: T-482 dan boshlash
+Oxirgi T-#:  T-482
+Keyingi T-#: T-483 dan boshlash
 ```
 
 ---
@@ -952,6 +952,32 @@ Worker pipeline mavjud va ishlaydi lekin frontend unga ulanmagan.
 - `apps/api/src/products/products.controller.ts`
 - `apps/web/src/api/products.ts`
 - `apps/web/src/components/product/GlobalPriceComparison.tsx`
+
+---
+
+### T-482 | P1 | IKKALASI | Shops — do'kon nomi bo'yicha qidirish | 2h
+
+**Sana:** 2026-03-30
+**Manba:** user-feedback
+**Mas'ul:** Ziyoda
+
+**Tahlil:**
+Hozir Shops sahifasida faqat do'kon ID si orqali qidirish mumkin. Seller lar o'z do'kon ID sini
+bilmaydi — faqat do'kon nomini biladi. Shuning uchun input ga do'kon nomini yozib qidirish
+imkoniyati bo'lishi kerak.
+
+**Muammo:**
+Seller do'kon nomini biladi, ID sini bilmaydi. Shops sahifasida nom bo'yicha qidirish yo'q.
+
+**Yechim:**
+1. Input ga nom yozilganda (raqam emas) → Uzum API dan do'kon qidirish
+2. Natijalar ro'yxatini ko'rsatish (suggestion lar) — seller kerakli do'konni tanlaydi
+3. Tanlangan do'konning ID si bilan hozirgi flow davom etadi
+
+**Fayllar:**
+- `apps/api/src/uzum/uzum.client.ts` — do'kon nomi bo'yicha qidirish metodi
+- `apps/api/src/shops/` — yangi endpoint (yoki mavjud controller ga qo'shish)
+- `apps/web/src/components/shops/` — input + suggestion UI
 
 ---
 
