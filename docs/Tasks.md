@@ -12,8 +12,8 @@
 ```
 Ochiq:       ~34 ta
 Bajarilgan:  ~188+ ta (Done.md)
-Oxirgi T-#:  T-480
-Keyingi T-#: T-481 dan boshlash
+Oxirgi T-#:  T-481
+Keyingi T-#: T-482 dan boshlash
 ```
 
 ---
@@ -952,6 +952,34 @@ Worker pipeline mavjud va ishlaydi lekin frontend unga ulanmagan.
 - `apps/api/src/products/products.controller.ts`
 - `apps/web/src/api/products.ts`
 - `apps/web/src/components/product/GlobalPriceComparison.tsx`
+
+---
+
+### T-481 | P2 | IKKALASI | Discovery — skanerlangan category nomlarini uz/ru/en tillarida ko'rsatish | 2h
+
+**Sana:** 2026-03-30
+**Manba:** self-improve
+**Mas'ul:** Ziyoda
+
+**Tahlil:**
+Hozir `categoryRun.category_name` faqat ruscha saqlanadi (Uzum API dan keladi). Frontend da
+foydalanuvchi tili uz/en bo'lsa ham category nomi ruscha ko'rinadi. Seller lar uchun tushunarli
+bo'lishi uchun category nomini 3 tilda ko'rsatish kerak.
+
+**Muammo:**
+Discovery "Skanerlashlar" ro'yxatida category nomlari faqat ruscha (masalan "Кроссовки").
+O'zbekcha yoki inglizcha tanlagan foydalanuvchilar uchun noqulay.
+
+**Yechim:**
+1. Uzum API `Accept-Language` headerini o'zgartirib uz/en nomlarni olish (Uzum 3 tilda ishlaydi)
+2. `categoryRun` jadvaliga `category_name_uz`, `category_name_en` fieldlar qo'shish (yoki JSON field)
+3. Worker da discovery job tugaganda — Uzum API dan uz/en nomlarni olish
+4. Frontend da foydalanuvchi tiliga qarab tegishli nomni ko'rsatish
+
+**Fayllar:**
+- `apps/api/prisma/schema.prisma` — categoryRun modeliga fieldlar
+- `apps/worker/src/processors/discovery.processor.ts` — til bo'yicha nom olish
+- `apps/web/src/components/discovery/ScannerTab.tsx` — til bo'yicha ko'rsatish
 
 ---
 
