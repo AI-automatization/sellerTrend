@@ -150,8 +150,8 @@ async function bootstrap() {
     }
   });
 
-  server.listen(healthPort, () => {
-    logProcess('info', `Worker health check: http://localhost:${healthPort}/health`);
+  server.listen(healthPort, '0.0.0.0', () => {
+    logProcess('info', `Worker health check: http://0.0.0.0:${healthPort}/health`);
   });
 
   // Graceful shutdown (SIGTERM + SIGINT + fatal errors via shutdownFn)
