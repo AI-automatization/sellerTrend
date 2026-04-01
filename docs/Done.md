@@ -1,7 +1,48 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
-# Yangilangan: 2026-03-30
+# Yangilangan: 2026-04-02
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
+
+### T-486..T-489 | P2 | FRONTEND | Leaderboard, Compare, BottomNav, Signals — UX va i18n tuzatish (2026-04-02)
+
+**Manba:** user-feedback (Sardor, 2026-04-02)
+**Muammo:** 4 ta sahifada bir-biriga bog'liq UX va i18n muammolar: tabs ko'rinmaydi, xatoliklar, buzilgan nav, tushunarsiz terminlar.
+**Yechim:**
+
+- **T-486 — Leaderboard:**
+  - Tab tugmalari `btn-primary`/`btn-ghost` toggle stiliga o'zgardi + ikonkalar qo'shildi
+  - `getPublicCategories`: `top` → `leaders`, `category_name` `category_path` leaf dan olinadi
+  - `category_id` null mahsulotlar `category_path` orqali guruhlanadi (`#unknown` yo'qoldi)
+  - `sell_price` `skus.min_sell_price` dan olinadi
+  - Ustun sarlavhalari: `Ball` → `Reyting bali (0–10)`, `Haftalik` → `Haftalik sotuvlar (dona)`
+  - "Kategoriya bo'yicha" tab qayta qurildi — top 20 kategoriya haftalik sotuvlar bo'yicha jadval
+  - `/analyze` route yo'q edi — barcha shu linkli buttonlar olib tashlandi
+
+- **T-487 — Compare:**
+  - URL regex xatosi: `[^?]*?` (non-greedy, birinchi raqam) → `.*` (greedy, oxirgi raqam) — `product/luxvisage-13-gel-9876543` → `13` o'rniga `9876543` olinadi
+  - `"Score"` hardcoded → `t('dashboard.score')`
+  - `compare.field`: `Maydon` → `Ko'rsatkich`, `Поле` → `Показатель`, `Field` → `Metric`
+  - `dashboard.score` uz: `Score` → `Reyting bali` (dashboard.rating bilan aralashmasligi uchun)
+
+- **T-488 — BottomNav:**
+  - DaisyUI v5 da `btm-nav` → `dock`, `btm-nav-label` → `dock-label` (shu sabab chapga siljigan edi)
+  - Mavjud bo'lmagan `/search`, `/analyze` routelari olib tashlandi
+  - Yangi itemlar: Asosiy · Kashfiyot · Reyting · Signallar · Do'konlar
+
+- **T-489 — Signals:**
+  - Emoji → React iconlar: `ScaleIcon`, `CubeIcon`, `ChartBarIcon`, `FireIcon`, `SparklesIcon`, `BellIcon`, `TrophyIcon`, `CheckIcon`, `CalculatorIcon`, `ServerStackIcon`
+  - Texnik terminlar oddiy o'zbekchaga: `Kannibalizatsiya`→`Ichki raqobat`, `Saturatsiya`→`To'yingan bozor`, `Flash sotuv`→`Keskin narx tushishi`, `O'lik stok`→`Qotib qolgan tovar`, `Stok signali`→`Zaxira signali`
+  - uz.ts: 9 ta inglizcha kalit tarjima qilindi (`Dead Stock`, `Flash Sale`, `Stock Alert`, `Ranking`, `Checklist`, `Overlap`, `Product ID` ×2, `Score`)
+  - ru.ts: 5 ta kalit tarjima qilindi
+  - `StockCliffsTab`: `/kun` → `t('signals.stock.perDay')`, `severity` qiymatlari (`critical`/`warning`/`ok`) tarjima qilindi
+
+**Fayllar:**
+`apps/web/src/pages/LeaderboardPage.tsx`, `apps/api/src/leaderboard/leaderboard.service.ts`, `apps/web/src/api/types.ts`,
+`apps/web/src/pages/ComparePage.tsx`, `apps/web/src/components/BottomNav.tsx`,
+`apps/web/src/components/signals/types.ts`, `apps/web/src/components/signals/StockCliffsTab.tsx`, `apps/web/src/pages/SignalsPage.tsx`,
+`apps/web/src/i18n/uz.ts`, `apps/web/src/i18n/ru.ts`, `apps/web/src/i18n/en.ts`
+
+**Ta'sir:** Seller uchun sahifalar tushunarli tilda — texnik atamalar yo'q. Leaderboard kategoriya tab to'g'ri ishlaydi. Compare URL xatosi tuzatildi. BottomNav mobilda to'g'ri ko'rinadi. Signals iconlari professional ko'rinish oldi.
 
 ### T-480 | P1 | BACKEND + FRONTEND | Discovery — getSuggestions ID lari bilan text search ishlatish (2026-03-30)
 

@@ -1,5 +1,5 @@
 # VENTRA — OCHIQ VAZIFALAR
-# Yangilangan: 2026-03-08
+# Yangilangan: 2026-04-02
 # Developer-specific fayllar:
 #   - Bekzod → docs/Tasks-Bekzod.md
 #   - Sardor → docs/Tasks-Sardor.md
@@ -11,9 +11,9 @@
 
 ```
 Ochiq:       ~36 ta
-Bajarilgan:  ~188+ ta (Done.md)
-Oxirgi T-#:  T-485
-Keyingi T-#: T-486 dan boshlash
+Bajarilgan:  ~192+ ta (Done.md)
+Oxirgi T-#:  T-489
+Keyingi T-#: T-490 dan boshlash
 ```
 
 ---
