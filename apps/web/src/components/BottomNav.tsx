@@ -1,13 +1,13 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { HomeIcon, MagnifyingGlassCircleIcon, MagnifyingGlassIcon, ArrowTrendingUpIcon, SignalIcon } from './icons';
+import { HomeIcon, ArrowTrendingUpIcon, SignalIcon, TrophyIcon, StorefrontIcon } from './icons';
 import { useI18n } from '../i18n/I18nContext';
 
 const NAV_ITEMS = [
   { to: '/', icon: HomeIcon, labelKey: 'nav.dashboard', end: true },
-  { to: '/search', icon: MagnifyingGlassCircleIcon, labelKey: 'nav.search', end: false },
-  { to: '/analyze', icon: MagnifyingGlassIcon, labelKey: 'nav.analyze', end: false },
   { to: '/discovery', icon: ArrowTrendingUpIcon, labelKey: 'nav.discovery', end: false },
+  { to: '/leaderboard', icon: TrophyIcon, labelKey: 'nav.leaderboard', end: false },
   { to: '/signals', icon: SignalIcon, labelKey: 'nav.signals', end: false },
+  { to: '/shops', icon: StorefrontIcon, labelKey: 'nav.shops', end: false },
 ] as const;
 
 export function BottomNav() {
@@ -21,7 +21,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 inset-x-0 z-40 lg:hidden btm-nav btm-nav-sm bg-base-200 border-t border-base-300"
+      className="dock dock-sm lg:hidden bg-base-200 border-t border-base-300 z-40"
       role="navigation"
       aria-label="Bottom navigation"
     >
@@ -36,7 +36,7 @@ export function BottomNav() {
             className={active ? 'active text-primary' : 'text-base-content/50'}
           >
             <Icon className="w-5 h-5" />
-            <span className="btm-nav-label text-[10px]">{t(item.labelKey)}</span>
+            <span className="dock-label text-[10px]">{t(item.labelKey)}</span>
           </NavLink>
         );
       })}

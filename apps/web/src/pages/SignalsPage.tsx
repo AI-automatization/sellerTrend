@@ -63,7 +63,7 @@ export function SignalsPage() {
         >
           {TABS.map((tabItem) => (
             <option key={tabItem.key} value={tabItem.key}>
-              {tabItem.emoji} {tabLabel(tabItem.key)}
+              {tabLabel(tabItem.key)}
             </option>
           ))}
         </select>
@@ -80,7 +80,7 @@ export function SignalsPage() {
                   : 'btn-ghost hover:bg-base-300/50'
               }`}
             >
-              <span className="text-base">{tabItem.emoji}</span>
+              <tabItem.icon className="w-4 h-4 shrink-0" />
               {tabLabel(tabItem.key)}
             </button>
           ))}

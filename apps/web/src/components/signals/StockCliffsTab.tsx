@@ -38,10 +38,10 @@ export function StockCliffsTab() {
             <div key={item.product_id} className="rounded-xl bg-base-300/40 border border-base-300/30 p-4 hover:bg-base-300/60 transition-colors">
               <div className="flex items-start justify-between mb-2">
                 <h3 className="font-semibold text-sm truncate max-w-[70%]">{item.title}</h3>
-                <span className={`badge ${sevColor(item.severity)} badge-sm`}>{item.severity}</span>
+                <span className={`badge ${sevColor(item.severity)} badge-sm`}>{t(`signals.stock.severity.${item.severity}`)}</span>
               </div>
               <div className="flex gap-4 text-xs text-base-content/60">
-                <span>{t('signals.stock.velocity')} <b>{item.current_velocity}</b>/kun</span>
+                <span>{t('signals.stock.velocity')} <b>{item.current_velocity}</b>{t('signals.stock.perDay')}</span>
                 <span>{t('signals.stock.daysLeft').replace('{n}', String(item.estimated_days_left)).replace('~', '~')}</span>
               </div>
             </div>

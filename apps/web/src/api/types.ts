@@ -251,9 +251,12 @@ export interface LeaderItem {
 }
 
 export interface CategoryLeader {
+  rank: number;
   category_id: string;
   category_name: string;
-  leaders: LeaderItem[];
+  total_weekly_sold: number;
+  product_count: number;
+  top_product: { title: string; product_id: string; score: number } | null;
 }
 
 // ─── Feedback Domain ─────────────────────────────────────────────────────────

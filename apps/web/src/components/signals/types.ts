@@ -102,6 +102,8 @@ export interface ReplenishmentItem {
   next_order_date: string;
 }
 
+import type React from 'react';
+
 // ── Tab navigation types ──
 
 export type Tab =
@@ -119,19 +121,32 @@ export type Tab =
 export interface TabConfig {
   key: Tab;
   label: string;
-  emoji: string;
+  icon: React.ComponentType<{ className?: string }>;
   shortLabel: string;
 }
 
+import {
+  ScaleIcon,
+  CubeIcon,
+  ChartBarIcon,
+  FireIcon,
+  SparklesIcon,
+  BellIcon,
+  TrophyIcon,
+  CheckIcon,
+  CalculatorIcon,
+  ServerStackIcon,
+} from '../icons';
+
 export const TABS: TabConfig[] = [
-  { key: 'cannibalization', label: 'Kannibalizatsiya', emoji: '\u{1F500}', shortLabel: 'Kannibal.' },
-  { key: 'dead-stock', label: 'Dead Stock', emoji: '\u{1F480}', shortLabel: 'Dead Stock' },
-  { key: 'saturation', label: 'Saturatsiya', emoji: '\u{1F4CA}', shortLabel: 'Saturats.' },
-  { key: 'flash-sales', label: 'Flash Sale', emoji: '\u26A1', shortLabel: 'Flash' },
-  { key: 'early-signals', label: 'Erta Signal', emoji: '\u{1F331}', shortLabel: 'Erta' },
-  { key: 'stock-cliffs', label: 'Stock Alert', emoji: '\u{1F4E6}', shortLabel: 'Stock' },
-  { key: 'ranking', label: 'Ranking', emoji: '\u{1F4C8}', shortLabel: 'Ranking' },
-  { key: 'checklist', label: 'Checklist', emoji: '\u2705', shortLabel: 'Check' },
-  { key: 'price-test', label: 'Narx Test', emoji: '\u{1F9EA}', shortLabel: 'A/B Test' },
-  { key: 'replenishment', label: 'Zahira', emoji: '\u{1F504}', shortLabel: 'Zahira' },
+  { key: 'cannibalization', label: 'Ichki raqobat',         icon: ScaleIcon,         shortLabel: 'Ichki raqobat' },
+  { key: 'dead-stock',      label: 'Qotib qolgan tovar',    icon: CubeIcon,          shortLabel: 'Qotib qolgan' },
+  { key: 'saturation',      label: "To'yingan bozor",       icon: ChartBarIcon,      shortLabel: "To'yingan" },
+  { key: 'flash-sales',     label: 'Keskin narx tushishi',  icon: FireIcon,          shortLabel: 'Keskin narx' },
+  { key: 'early-signals',   label: 'Erta signal',           icon: SparklesIcon,      shortLabel: 'Erta signal' },
+  { key: 'stock-cliffs',    label: 'Zaxira signali',        icon: BellIcon,          shortLabel: 'Zaxira' },
+  { key: 'ranking',         label: 'Reyting',               icon: TrophyIcon,        shortLabel: 'Reyting' },
+  { key: 'checklist',       label: 'Tekshirish',            icon: CheckIcon,         shortLabel: 'Tekshirish' },
+  { key: 'price-test',      label: 'Narx testi',            icon: CalculatorIcon,    shortLabel: 'Narx testi' },
+  { key: 'replenishment',   label: 'Zahira to\'ldirish',    icon: ServerStackIcon,   shortLabel: 'Zahira' },
 ];

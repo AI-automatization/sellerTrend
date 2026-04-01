@@ -28,7 +28,12 @@ export class LeaderboardService {
       distinct: ['product_id'],
       include: {
         product: {
-          select: { title: true, category_id: true },
+          select: {
+            title: true,
+            category_id: true,
+            category_path: true,
+            skus: { select: { min_sell_price: true }, where: { is_available: true }, take: 1, orderBy: { min_sell_price: 'asc' } },
+          },
         },
       },
     });
@@ -36,12 +41,14 @@ export class LeaderboardService {
     const items = snapshots.map((s, i) => {
       const rank = i + 1;
       const isTop5 = rank <= 5;
+      const minPrice = s.product.skus[0]?.min_sell_price;
       return {
         rank,
         product_id: s.product_id.toString(),
         title: isTop5 ? s.product.title : maskTitle(s.product.title),
         score: isTop5 ? Number(s.score) : null,
         weekly_bought: isTop5 ? s.weekly_bought : null,
+        sell_price: isTop5 && minPrice ? Number(minPrice) : null,
         category_id: s.product.category_id?.toString() ?? null,
       };
     });
@@ -59,35 +66,47 @@ export class LeaderboardService {
     const snapshots = await this.prisma.productSnapshot.findMany({
       where: { snapshot_at: { gte: since } },
       orderBy: { score: 'desc' },
-      take: 500,
+      take: 1000,
       distinct: ['product_id'],
       include: {
         product: {
-          select: { title: true, category_id: true },
+          select: { title: true, category_id: true, category_path: true },
         },
       },
     });
 
-    const byCategory = new Map<string, typeof snapshots>();
+    // Kategoriya bo'yicha guruhlash
+    const byCategory = new Map<string, { catName: string; totalWeeklySold: number; products: typeof snapshots }>();
     for (const s of snapshots) {
-      const catId = s.product.category_id?.toString() ?? 'unknown';
-      if (!byCategory.has(catId)) byCategory.set(catId, []);
-      byCategory.get(catId)!.push(s);
+      const catPath = s.product.category_path as Array<{ id: number; title: string }> | null;
+      const leaf = catPath?.[catPath.length - 1];
+      if (!leaf) continue; // category_path ham yo'q bo'lsa o'tkazib yuborish
+      const catId = s.product.category_id?.toString() ?? leaf.id.toString();
+      if (!byCategory.has(catId)) byCategory.set(catId, { catName: leaf.title, totalWeeklySold: 0, products: [] });
+      const entry = byCategory.get(catId)!;
+      entry.totalWeeklySold += s.weekly_bought ?? 0;
+      entry.products.push(s);
     }
 
-    const result: Array<{ category_id: string; top: Array<{ rank: number; product_id: string; title: string; score: number; weekly_bought: number | null }> }> = [];
-    for (const [catId, items] of byCategory.entries()) {
-      result.push({
+    // Umumiy haftalik sotuvlar bo'yicha tartiblash
+    const sorted = [...byCategory.entries()].sort((a, b) => b[1].totalWeeklySold - a[1].totalWeeklySold);
+
+    const result = sorted.slice(0, 20).map(([catId, entry], i) => {
+      const top = entry.products[0];
+      const category_name = entry.catName;
+      return {
+        rank: i + 1,
         category_id: catId,
-        top: items.slice(0, 3).map((s, i) => ({
-          rank: i + 1,
-          product_id: s.product_id.toString(),
-          title: s.product.title,
-          score: Number(s.score),
-          weekly_bought: s.weekly_bought,
-        })),
-      });
-    }
+        category_name,
+        total_weekly_sold: entry.totalWeeklySold,
+        product_count: entry.products.length,
+        top_product: top ? {
+          title: top.product.title,
+          product_id: top.product_id.toString(),
+          score: Number(top.score),
+        } : null,
+      };
+    });
 
     this.setCache('public-categories', result);
     return result;

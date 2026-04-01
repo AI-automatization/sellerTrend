@@ -54,8 +54,8 @@ function extractProductId(input: string): string | null {
   // Pure numeric ID
   if (/^\d+$/.test(trimmed)) return trimmed;
 
-  // Uzum URL: extract ID from slug ending with -{id}
-  const urlMatch = trimmed.match(/product\/[^?]*?-(\d+)/);
+  // Uzum URL: extract ID from slug ending with -{id} (greedy — oxirgi raqamni olish)
+  const urlMatch = trimmed.match(/product\/.*-(\d+)/);
   if (urlMatch) return urlMatch[1];
 
   // Fallback: any trailing number group
@@ -308,7 +308,7 @@ export function ComparePage() {
                     <span className={`badge ${p.score >= 6 ? 'badge-success' : p.score >= 4 ? 'badge-warning' : 'badge-ghost'} badge-lg font-bold`}>
                       {p.score.toFixed(2)}
                     </span>
-                    <span className="text-xs text-base-content/40">Score</span>
+                    <span className="text-xs text-base-content/40">{t('dashboard.score')}</span>
                   </div>
                 </div>
               </div>
