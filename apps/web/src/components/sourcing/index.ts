@@ -19,4 +19,4 @@ export type {
   Tab,
 } from './types';
 
-export { fmt, fmtUSD, fmtUZS, matchColor, marginColor, METHOD_ICONS, COUNTRY_FLAGS } from './types';
+export { fmt, fmtUSD, fmtUZS, matchColor, marginColor } from './types';

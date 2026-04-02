@@ -178,9 +178,12 @@ export class SourcingService {
     let roi_pct: number | undefined;
 
     if (sell_price_uzs && sell_price_uzs > 0) {
-      profit_uzs = sell_price_uzs - landed_cost_uzs;
+      // sell_price_uzs = 1 dona Uzum narxi, landed_cost_uzs = jami (qty ta dona)
+      // To'g'ri taqqoslash: per-unit vs per-unit
+      const landed_per_unit_uzs = landed_cost_uzs / quantity;
+      profit_uzs = sell_price_uzs - landed_per_unit_uzs;
       gross_margin_pct = (profit_uzs / sell_price_uzs) * 100;
-      roi_pct = (profit_uzs / landed_cost_uzs) * 100;
+      roi_pct = (profit_uzs / landed_per_unit_uzs) * 100;
     }
 
     // DB ga saqlash
@@ -200,8 +203,9 @@ export class SourcingService {
         landed_cost_usd,
         landed_cost_uzs,
         sell_price_uzs: sell_price_uzs ?? null,
-        gross_margin: gross_margin_pct != null ? gross_margin_pct / 100 : null,
-        roi: roi_pct != null ? roi_pct / 100 : null,
+        // Decimal(8,4) → max 9999.9999 — clamp to avoid overflow
+        gross_margin: gross_margin_pct != null ? Math.min(Math.max(gross_margin_pct / 100, -99.9999), 99.9999) : null,
+        roi: roi_pct != null ? Math.min(Math.max(roi_pct / 100, -9999.9999), 9999.9999) : null,
         usd_rate,
       },
     });

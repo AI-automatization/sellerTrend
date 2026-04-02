@@ -14,8 +14,24 @@ import {
 } from '../components/sourcing';
 import { PageHint } from '../components/PageHint';
 import type { CurrencyRates, CargoProvider, Tab } from '../components/sourcing';
+import {
+  RiCalculatorLine,
+  RiSearchLine,
+  RiGlobalLine,
+  RiBarChartLine,
+  RiHistoryLine,
+  RiRefreshLine,
+} from 'react-icons/ri';
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
+
+const TABS: { key: Tab; icon: React.ReactNode; labelKey: string }[] = [
+  { key: 'calculator', icon: <RiCalculatorLine size={15} />, labelKey: 'sourcing.tab.calculator' },
+  { key: 'search',     icon: <RiSearchLine size={15} />,     labelKey: 'sourcing.tab.quickSearch' },
+  { key: 'import',     icon: <RiGlobalLine size={15} />,     labelKey: 'sourcing.tab.importAnalysis' },
+  { key: 'jobs',       icon: <RiBarChartLine size={15} />,   labelKey: 'sourcing.tab.searches' },
+  { key: 'history',   icon: <RiHistoryLine size={15} />,    labelKey: 'sourcing.tab.history' },
+];
 
 export function SourcingPage() {
   const { t } = useI18n();
@@ -28,6 +44,7 @@ export function SourcingPage() {
   const [rates, setRates] = useState<CurrencyRates | null>(null);
   const [providers, setProviders] = useState<CargoProvider[]>([]);
   const [ratesLoading, setRatesLoading] = useState(true);
+  const [ratesError, setRatesError] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -36,17 +53,21 @@ export function SourcingPage() {
     ]).then(([r, p]) => {
       setRates(r.data);
       setProviders(p.data);
-    }).catch(logError)
-      .finally(() => setRatesLoading(false));
+    }).catch((err) => {
+      logError(err);
+      setRatesError(true);
+    }).finally(() => setRatesLoading(false));
   }, []);
 
   async function refreshRates() {
     setRatesLoading(true);
+    setRatesError(false);
     try {
       const r = await sourcingApi.refreshRates();
       setRates(r.data);
     } catch (err: unknown) {
       logError(err);
+      setRatesError(true);
     } finally {
       setRatesLoading(false);
     }
@@ -54,62 +75,76 @@ export function SourcingPage() {
 
   return (
     <PlanGuard requiredPlan="PRO">
-    <div className="w-full space-y-4 lg:space-y-6">
+    <div className="w-full space-y-5">
       <PageHint page="sourcing">{t('hints.sourcing')}</PageHint>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold">{t('sourcing.title')}</h1>
-          <p className="text-base-content/60 text-sm mt-1">
-            {t('sourcing.subtitle')}
-          </p>
+          <h1 className="text-2xl font-bold">{t('sourcing.title')}</h1>
+          <p className="text-base-content/50 text-sm mt-1">{t('sourcing.subtitle')}</p>
         </div>
 
         {/* Live currency rates */}
-        <div className="flex items-center gap-3 bg-base-200 rounded-xl px-4 py-2 text-sm">
+        <div className="flex items-center gap-2 bg-base-200 border border-base-300/60 rounded-xl px-3 py-2 text-sm shrink-0">
           {ratesLoading ? (
-            <span className="loading loading-spinner loading-xs" />
+            <span className="loading loading-spinner loading-xs opacity-50" />
+          ) : ratesError ? (
+            <span className="text-error text-xs">{t('sourcing.ratesNotLoaded')}</span>
           ) : rates ? (
-            <>
-              <span className="font-medium">USD</span>
-              <span className="text-primary font-bold">{fmt(rates.USD)}</span>
-              <span className="text-base-content/30">|</span>
-              <span className="font-medium">CNY</span>
-              <span className="text-warning font-bold">{fmt(rates.CNY)}</span>
-              <span className="text-base-content/30">|</span>
-              <span className="font-medium">EUR</span>
-              <span className="text-success font-bold">{fmt(rates.EUR)}</span>
-              <span className="text-xs text-base-content/40">{t('common.som')}</span>
-            </>
-          ) : <span className="text-base-content/40 text-xs">{t('sourcing.ratesNotLoaded')}</span>}
-          <button onClick={refreshRates} className="btn btn-ghost btn-xs" title={t('sourcing.refreshRatesBtn')}>↻</button>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <span className="text-base-content/40 text-xs">USD</span>
+                <span className="font-bold text-primary text-sm">{fmt(rates.USD)}</span>
+              </div>
+              <span className="text-base-content/20">·</span>
+              <div className="flex items-center gap-1">
+                <span className="text-base-content/40 text-xs">CNY</span>
+                <span className="font-bold text-warning text-sm">{fmt(rates.CNY)}</span>
+              </div>
+              <span className="text-base-content/20">·</span>
+              <div className="flex items-center gap-1">
+                <span className="text-base-content/40 text-xs">EUR</span>
+                <span className="font-bold text-success text-sm">{fmt(rates.EUR)}</span>
+              </div>
+              <span className="text-base-content/30 text-xs">{t('common.som')}</span>
+            </div>
+          ) : null}
+          <button
+            onClick={refreshRates}
+            disabled={ratesLoading}
+            className="btn btn-ghost btn-xs btn-circle"
+            title={t('sourcing.refreshRatesBtn')}
+          >
+            <RiRefreshLine size={13} className={ratesLoading ? 'animate-spin' : ''} />
+          </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="tabs tabs-boxed bg-base-200 w-fit">
-        {([
-          ['calculator', `🧮 ${t('sourcing.tab.calculator')}`],
-          ['search', `🔍 ${t('sourcing.tab.quickSearch')}`],
-          ['import', `🌍 ${t('sourcing.tab.importAnalysis')}`],
-          ['jobs', `📊 ${t('sourcing.tab.searches')}`],
-          ['history', `📋 ${t('sourcing.tab.history')}`],
-        ] as [Tab, string][]).map(([tabKey, label]) => (
+      <div className="flex gap-1 bg-base-200/60 border border-base-300/50 rounded-xl p-1 w-fit flex-wrap">
+        {TABS.map(({ key, icon, labelKey }) => (
           <button
-            key={tabKey}
-            onClick={() => setTab(tabKey)}
-            className={`tab ${tab === tabKey ? 'tab-active' : ''}`}
+            key={key}
+            onClick={() => setTab(key)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              tab === key
+                ? 'bg-base-100 shadow-sm text-base-content'
+                : 'text-base-content/50 hover:text-base-content/80'
+            }`}
           >
-            {label}
+            {icon}
+            {t(labelKey)}
           </button>
         ))}
       </div>
 
+      {/* Tab content */}
       {tab === 'calculator' && (
         <CargoCalculator
           providers={providers}
           rates={rates}
+          ratesLoading={ratesLoading}
           prefillName={prefillName}
           prefillItemCostUzs={prefillPrice ? parseFloat(prefillPrice) : undefined}
         />
