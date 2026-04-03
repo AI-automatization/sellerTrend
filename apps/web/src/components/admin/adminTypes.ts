@@ -153,8 +153,43 @@ export interface SearchResults { users?: SearchUser[]; accounts?: SearchAccount[
 
 export interface DepositEntry { id: string; created_at: string; account_name: string; amount: string | number; balance_before: string | number; balance_after: string | number; description?: string | null; }
 export interface NotificationTemplate { id: string; name: string; message: string; type: string; }
+
+export interface RagAuditStats {
+  period_days: number;
+  total_messages: number;
+  assistant_messages: number;
+  feedback: {
+    up: number;
+    down: number;
+    total: number;
+    satisfaction_pct: number | null;
+  };
+  cost: {
+    total_usd: number;
+    input_tokens: number;
+    output_tokens: number;
+    avg_per_message: number;
+  };
+  by_intent: { intent: string; count: number }[];
+  daily: { date: string; messages: number; cost: number }[];
+}
 export interface CategoryTrend { week: string; categories?: Record<string, { runs?: number }>; }
 export interface HeatmapEntry { category_id: number | string; count: number; avg_score?: number | string; }
+
+export interface MlModelAuditRow {
+  model_name: string;
+  mape: number | null;
+  direction_accuracy: number | null;
+  audit_count: number;
+  last_audit_date: string | null;
+}
+export interface MlAuditStats {
+  period_days: number;
+  models: MlModelAuditRow[];
+  total_predictions: number;
+  avg_mape: number | null;
+  avg_direction_accuracy: number | null;
+}
 
 export const ROLES: Role[] = ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'USER'];
 
@@ -172,5 +207,5 @@ export const PERMISSIONS: Record<Role, string[]> = {
   USER: ['manage_discovery', 'analyze_products', 'manage_tracked', 'view_dashboard'],
 };
 
-export type Tab = 'dashboard' | 'accounts' | 'analytics' | 'system' | 'feedback' | 'notifications' | 'audit' | 'permissions' | 'deposits' | 'whitelabel';
-export const VALID_TABS: Tab[] = ['dashboard', 'accounts', 'analytics', 'system', 'feedback', 'notifications', 'audit', 'permissions', 'deposits', 'whitelabel'];
+export type Tab = 'dashboard' | 'accounts' | 'analytics' | 'system' | 'feedback' | 'notifications' | 'audit' | 'permissions' | 'deposits' | 'whitelabel' | 'ai-audit' | 'ml-audit';
+export const VALID_TABS: Tab[] = ['dashboard', 'accounts', 'analytics', 'system', 'feedback', 'notifications', 'audit', 'permissions', 'deposits', 'whitelabel', 'ai-audit', 'ml-audit'];

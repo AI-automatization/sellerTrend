@@ -400,25 +400,7 @@ export function SearchDrawer({ isOpen, onClose }: Props) {
                     </>
                   )}
 
-                  {/* AI explanation */}
-                  {analyzeState.result.ai_explanation && analyzeState.result.ai_explanation.length > 0 && (
-                    <>
-                      <div className="h-px bg-base-300/30" />
-                      <div>
-                        <p className="text-xs text-base-content/40 mb-2 flex items-center gap-1">
-                          <span>🤖</span> {t('analyze.aiAnalysis')}
-                        </p>
-                        <ul className="space-y-1.5">
-                          {analyzeState.result.ai_explanation.map((bullet, i) => (
-                            <li key={i} className="flex items-start gap-2 text-sm">
-                              <span className="text-primary mt-0.5 shrink-0">•</span>
-                              <span>{bullet}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </>
-                  )}
+                  {/* AI explanation — mahsulot sahifasida ko'rsatiladi */}
 
                   {/* Actions */}
                   <div className="flex justify-between items-center pt-1">

@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useI18n } from '../i18n/I18nContext';
 import { ArrowTrendingUpIcon } from '../components/icons';
-import { ScannerTab, SeasonalCalendarTab, NicheFinderTab } from '../components/discovery';
+import { ScannerTab, SeasonalCalendarTab, NicheFinderTab, CategoryIntelligenceTab } from '../components/discovery';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { PageHint } from '../components/PageHint';
 import { PlanGuard } from '../components/PlanGuard';
 
 export function DiscoveryPage() {
-  const [tab, setTab] = useState<'scanner' | 'seasonal' | 'niche'>('scanner');
+  const [tab, setTab] = useState<'scanner' | 'seasonal' | 'niche' | 'categories'>('scanner');
   const { t } = useI18n();
 
   return (
@@ -40,11 +40,16 @@ export function DiscoveryPage() {
           className={`tab ${tab === 'niche' ? 'tab-active' : ''}`}>
           {t('discovery.tabNiche')}
         </button>
+        <button role="tab" onClick={() => setTab('categories')}
+          className={`tab ${tab === 'categories' ? 'tab-active' : ''}`}>
+          📊 Kategoriyalar
+        </button>
       </div>
 
       {tab === 'scanner' && <ErrorBoundary variant="section" label="Scanner"><ScannerTab /></ErrorBoundary>}
       {tab === 'seasonal' && <ErrorBoundary variant="section" label="Mavsumiy kalendar"><SeasonalCalendarTab /></ErrorBoundary>}
       {tab === 'niche' && <ErrorBoundary variant="section" label="Niche finder"><NicheFinderTab /></ErrorBoundary>}
+      {tab === 'categories' && <ErrorBoundary variant="section" label="Kategoriya intelligence"><CategoryIntelligenceTab /></ErrorBoundary>}
     </div>
     </PlanGuard>
   );

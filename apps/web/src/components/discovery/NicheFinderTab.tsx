@@ -7,6 +7,12 @@ import type { NicheItem, GapItem } from './types';
 import { POPULAR_CATEGORIES } from './types';
 import { PlanGuard } from '../PlanGuard';
 
+function opportunityBadge(score: number): { label: string; cls: string } {
+  if (score >= 0.65) return { label: 'Yuqori', cls: 'badge-success' };
+  if (score >= 0.4)  return { label: "O'rta",  cls: 'badge-warning' };
+  return                    { label: 'Past',   cls: 'badge-ghost' };
+}
+
 export function NicheFinderTab() {
   const { t } = useI18n();
   const [niches, setNiches] = useState<NicheItem[]>([]);
@@ -73,15 +79,21 @@ export function NicheFinderTab() {
           {loading ? (
             <div className="flex justify-center py-12"><span className="loading loading-dots loading-lg text-primary" /></div>
           ) : subTab === 'niches' ? (
-            <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
+            <div className="rounded-2xl bg-base-200/60 border border-base-300/50 overflow-hidden">
               <div className="card-body p-0">
                 <div className="px-4 pt-4 pb-3 border-b border-base-300">
                   <h3 className="font-bold text-sm">{t('discovery.niche.opportunitiesTitle')}</h3>
                   <p className="text-xs text-base-content/40">{t('discovery.niche.hint')}</p>
                 </div>
                 {niches.length === 0 ? (
-                  <div className="flex flex-col items-center py-12 text-base-content/40">
+                  <div className="flex flex-col items-center gap-3 py-12 px-6 text-center text-base-content/40">
                     <p>{t('discovery.niche.nicheEmpty')}</p>
+                    <div className="text-xs bg-base-300/50 rounded-xl p-4 max-w-sm text-left space-y-1">
+                      <p className="font-semibold text-base-content/60 mb-2">Misol natija:</p>
+                      <p>🥇 <span className="font-medium text-base-content/70">Yozgi ko'ylak</span> — <span className="badge badge-success badge-xs">Yuqori</span> 82%</p>
+                      <p>🥈 <span className="font-medium text-base-content/70">Sport poyabzal</span> — <span className="badge badge-warning badge-xs">O'rta</span> 54%</p>
+                      <p className="text-base-content/30 text-xs mt-2">Yuqori foiz = kam raqobat + yuqori talab</p>
+                    </div>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -90,33 +102,46 @@ export function NicheFinderTab() {
                         <tr>
                           <th>{t('discovery.niche.col.num')}</th>
                           <th>{t('discovery.niche.col.product')}</th>
-                          <th className="text-right">{t('discovery.niche.col.nicheScore')}</th>
+                          <th className="text-right">
+                            <div className="tooltip tooltip-left inline-flex items-center gap-1 cursor-help"
+                              data-tip="Niche score = kam raqobat + yuqori talab. 65%+ = Yuqori imkoniyat">
+                              {t('discovery.niche.col.nicheScore')}
+                              <span className="text-base-content/30 text-xs">(?)</span>
+                            </div>
+                          </th>
                           <th className="text-right">{t('discovery.niche.col.weekly')}</th>
                           <th className="text-right">{t('discovery.niche.col.price')}</th>
+                          <th className="text-right">Imkoniyat</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {niches.map((n, i) => (
-                          <tr key={n.product_id} className="hover">
-                            <td className="text-base-content/40 font-bold text-sm">{i + 1}</td>
-                            <td>
-                              <Link to={`/products/${n.product_id}`} className="text-sm font-medium hover:text-primary transition-colors">
-                                {n.title}
-                              </Link>
-                            </td>
-                            <td className="text-right">
-                              <span className={`font-bold tabular-nums ${n.niche_score >= 0.65 ? 'text-success' : n.niche_score >= 0.4 ? 'text-warning' : 'text-base-content/50'}`}>
-                                {(n.niche_score * 100).toFixed(0)}%
-                              </span>
-                            </td>
-                            <td className="text-right tabular-nums text-sm text-success">
-                              {n.weekly_bought?.toLocaleString() ?? '—'}
-                            </td>
-                            <td className="text-right tabular-nums text-xs text-base-content/60">
-                              {n.sell_price ? `${n.sell_price.toLocaleString()} ${t('common.som')}` : '—'}
-                            </td>
-                          </tr>
-                        ))}
+                        {niches.map((n, i) => {
+                          const opp = opportunityBadge(n.niche_score);
+                          return (
+                            <tr key={n.product_id} className="hover">
+                              <td className="text-base-content/40 font-bold text-sm">{i + 1}</td>
+                              <td>
+                                <Link to={`/products/${n.product_id}`} className="text-sm font-medium hover:text-primary transition-colors">
+                                  {n.title}
+                                </Link>
+                              </td>
+                              <td className="text-right">
+                                <span className={`font-bold tabular-nums ${n.niche_score >= 0.65 ? 'text-success' : n.niche_score >= 0.4 ? 'text-warning' : 'text-base-content/50'}`}>
+                                  {(n.niche_score * 100).toFixed(0)}%
+                                </span>
+                              </td>
+                              <td className="text-right tabular-nums text-sm text-success">
+                                {n.weekly_bought?.toLocaleString() ?? '—'}
+                              </td>
+                              <td className="text-right tabular-nums text-xs text-base-content/60">
+                                {n.sell_price ? `${n.sell_price.toLocaleString()} ${t('common.som')}` : '—'}
+                              </td>
+                              <td className="text-right">
+                                <span className={`badge badge-sm ${opp.cls}`}>{opp.label}</span>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -124,15 +149,20 @@ export function NicheFinderTab() {
               </div>
             </div>
           ) : (
-            <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
+            <div className="rounded-2xl bg-base-200/60 border border-base-300/50 overflow-hidden">
               <div className="card-body p-0">
                 <div className="px-4 pt-4 pb-3 border-b border-base-300">
                   <h3 className="font-bold text-sm">{t('discovery.niche.gapTitle')}</h3>
                   <p className="text-xs text-base-content/40">{t('discovery.niche.gapDesc')}</p>
                 </div>
                 {gaps.length === 0 ? (
-                  <div className="flex flex-col items-center py-12 text-base-content/40">
+                  <div className="flex flex-col items-center gap-3 py-12 px-6 text-center text-base-content/40">
                     <p>{t('discovery.niche.gapEmpty')}</p>
+                    <div className="text-xs bg-base-300/50 rounded-xl p-4 max-w-sm text-left space-y-1">
+                      <p className="font-semibold text-base-content/60 mb-2">Misol natija:</p>
+                      <p>🥇 <span className="font-medium text-base-content/70">Bolalar kiyim</span> — <span className="badge badge-success badge-xs">3.5x</span></p>
+                      <p className="text-base-content/30 text-xs mt-2">3.5x = talabga nisbatan 3.5 marta kam sotuvchi bor</p>
+                    </div>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -143,7 +173,13 @@ export function NicheFinderTab() {
                           <th>{t('discovery.niche.col.product')}</th>
                           <th className="text-right">{t('discovery.niche.col.weeklyDemand')}</th>
                           <th className="text-right">{t('discovery.niche.col.sellers')}</th>
-                          <th className="text-right">{t('discovery.niche.col.gapRatio')}</th>
+                          <th className="text-right">
+                            <div className="tooltip tooltip-left inline-flex items-center gap-1 cursor-help"
+                              data-tip="Gap ratio = talab / sotuvchilar soni. 3.5x = talabga nisbatan 3.5 marta kam sotuvchi">
+                              {t('discovery.niche.col.gapRatio')}
+                              <span className="text-base-content/30 text-xs">(?)</span>
+                            </div>
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -160,7 +196,10 @@ export function NicheFinderTab() {
                             </td>
                             <td className="text-right tabular-nums text-sm">{g.seller_count ?? '—'}</td>
                             <td className="text-right">
-                              <span className="badge badge-success badge-sm">{g.gap_ratio.toFixed(1)}x</span>
+                              <div className="tooltip tooltip-left inline-flex"
+                                data-tip={`${g.gap_ratio.toFixed(1)}x = talabga nisbatan ${g.gap_ratio.toFixed(1)} marta kam sotuvchi`}>
+                                <span className="badge badge-success badge-sm">{g.gap_ratio.toFixed(1)}x</span>
+                              </div>
                             </td>
                           </tr>
                         ))}

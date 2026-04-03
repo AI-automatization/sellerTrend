@@ -21,6 +21,7 @@ import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
 import { scrapeWeeklyBought, createWeeklyScrapeContext } from './weekly-scraper';
 import { fetchProductFull } from './uzum-scraper';
 import { acquireScrapeLock, releaseScrapeLock } from '../scrape-lock';
+import { uzumUnlockerClient } from '../clients/uzum-unlocker.client';
 
 const QUEUE_NAME = 'weekly-scrape-queue';
 const BATCH_LIMIT = 50;
@@ -41,6 +42,15 @@ function getNextScrapeAt(): Date {
   return new Date(Date.now() + 24 * 60 * 60 * 1000 + jitterMs);
 }
 
+/**
+ * Yangi qo'shilgan mahsulot uchun birinchi scrape vaqti: +6h.
+ * Odatdagi 24h o'rniga — 2-snapshot tezroq yaratilsin, kunlik sotuv tezroq ko'rinsin.
+ */
+function getFirstScrapeAt(): Date {
+  const jitterMs = randomInt(0, 15) * 60 * 1000;
+  return new Date(Date.now() + 6 * 60 * 60 * 1000 + jitterMs);
+}
+
 /** Calculate retry scrape time on failure: +6h from now. */
 function getRetryScrapeAt(): Date {
   return new Date(Date.now() + 6 * 60 * 60 * 1000);
@@ -57,11 +67,55 @@ async function scrapeAndSaveProduct(
     throw new Error(`Product ID ${productId} exceeds safe integer range — cannot convert BigInt to Number`);
   }
 
-  // 1. Playwright scrape for banner
-  const scrapeResult = await scrapeWeeklyBought(numId, jobId, sharedContext);
-  const scrapedWb = scrapeResult.value;
+  // 1. Bright Data Web Unlocker orqali ordersAmount olish (tez, ishonchli)
+  let weeklyBought: number | null = null;
+  let source: string = 'calculated';
+  let rawText: string | null = null;
+  let confidence: number = 0.30;
 
-  // 2. Fetch product data: GraphQL + REST parallel (fetchProductFull)
+  const unlockerData = await uzumUnlockerClient.fetchProductOrders(numId);
+
+  if (unlockerData) {
+    // ordersAmount delta = weekly_bought (bugungi - avvalgi snapshot)
+    const lastSnapshotForDelta = await prisma.productSnapshot.findFirst({
+      where: { product_id: productId },
+      orderBy: { snapshot_at: 'desc' },
+      select: { orders_quantity: true },
+    });
+
+    if (lastSnapshotForDelta?.orders_quantity != null) {
+      const prevOrders = Number(lastSnapshotForDelta.orders_quantity);
+      const delta = unlockerData.ordersAmount - prevOrders;
+      if (delta > 0) {
+        weeklyBought = delta;
+        source = 'brightdata-unlocker';
+        confidence = 0.90;
+        logJobInfo(QUEUE_NAME, jobId, jobName,
+          `Unlocker delta: product=${numId}, orders=${unlockerData.ordersAmount}, prev=${prevOrders}, delta=${delta}`);
+      }
+    }
+  }
+
+  // 2. Playwright banner scrape — Bright Data delta yo'q bo'lsa yoki delta <= 0 bo'lsa
+  let scrapedWb: number | null = null;
+  const scrapeResult = { value: null as number | null, rawText: null as string | null, confidence: 0 };
+
+  if (weeklyBought === null) {
+    const playwrightResult = await scrapeWeeklyBought(numId, jobId, sharedContext);
+    scrapedWb = playwrightResult.value;
+    scrapeResult.value = scrapedWb;
+    scrapeResult.rawText = playwrightResult.rawText;
+    scrapeResult.confidence = playwrightResult.confidence;
+
+    if (scrapedWb !== null) {
+      weeklyBought = scrapedWb;
+      source = 'scraped';
+      rawText = playwrightResult.rawText;
+      confidence = playwrightResult.confidence;
+    }
+  }
+
+  // 3. Fetch product data: GraphQL + REST parallel (fetchProductFull)
   const productFull = await fetchProductFull(numId);
   if (!productFull) {
     logJobInfo(QUEUE_NAME, jobId, jobName, `Product data fetch failed for ${numId}`);
@@ -72,19 +126,15 @@ async function scrapeAndSaveProduct(
     return { scraped: false, weeklyBought: null };
   }
   const isGraphQL = productFull.source === 'graphql+rest';
-  logJobInfo(QUEUE_NAME, jobId, jobName, `Product ${numId} fetched via ${productFull.source}`);
+  logJobInfo(QUEUE_NAME, jobId, jobName,
+    `Product ${numId} fetched via ${productFull.source}, wb_source=${source}`);
 
-  // Determine weekly_bought: prefer scraped, fallback to last scraped value
-  let weeklyBought: number | null = scrapedWb;
-  let source: string = 'scraped';
-  let rawText: string | null = scrapeResult.rawText;
-  let confidence: number = scrapeResult.confidence;
-
+  // weekly_bought hali ham null bo'lsa — oxirgi scraped qiymatdan olamiz
   if (weeklyBought === null) {
     const lastScrapedSnap = await prisma.productSnapshot.findFirst({
       where: {
         product_id: productId,
-        weekly_bought_source: 'scraped',
+        weekly_bought_source: { in: ['scraped', 'brightdata-unlocker'] },
         weekly_bought: { not: null },
       },
       orderBy: { snapshot_at: 'desc' },
@@ -112,31 +162,41 @@ async function scrapeAndSaveProduct(
   });
 
   if (lastSnap && Date.now() - lastSnap.snapshot_at.getTime() < SNAPSHOT_MIN_GAP_MS) {
-    // Dedup: don't create new snapshot, but UPDATE weekly_bought if scraper found data
-    if (scrapedWb !== null && (lastSnap.weekly_bought == null || lastSnap.weekly_bought_source !== 'scraped')) {
+    // Dedup: don't create new snapshot, but UPDATE weekly_bought if high-quality source found
+    const hasHighQualityWb = weeklyBought !== null &&
+      (source === 'brightdata-unlocker' || source === 'scraped');
+    const existingIsLowerQuality = lastSnap.weekly_bought == null ||
+      (lastSnap.weekly_bought_source !== 'brightdata-unlocker' && lastSnap.weekly_bought_source !== 'scraped');
+
+    if (hasHighQualityWb && existingIsLowerQuality) {
       await prisma.productSnapshot.update({
         where: { id: lastSnap.id },
         data: {
-          weekly_bought: scrapedWb,
-          weekly_bought_source: 'scraped',
+          weekly_bought: weeklyBought,
+          weekly_bought_source: source,
           weekly_bought_raw_text: rawText,
           weekly_bought_confidence: confidence,
         },
       });
       logJobInfo(QUEUE_NAME, jobId, jobName,
-        `Snapshot dedup + wb update: product ${numId}, wb=${scrapedWb} (was ${lastSnap.weekly_bought})`);
+        `Snapshot dedup + wb update: product ${numId}, wb=${weeklyBought}, source=${source} (was ${lastSnap.weekly_bought})`);
     } else {
       logJobInfo(QUEUE_NAME, jobId, jobName, `Snapshot dedup: product ${numId}, skip`);
     }
+
+    // Birinchi snapshot bo'lsa (yangi mahsulot) → 6 soatdan keyin qayta scrape
+    const snapCount = await prisma.productSnapshot.count({ where: { product_id: productId } });
+    const nextScrape = snapCount <= 1 ? getFirstScrapeAt() : getNextScrapeAt();
 
     await prisma.trackedProduct.updateMany({
       where: { product_id: productId },
       data: {
         last_scraped_at: new Date(),
-        next_scrape_at: getNextScrapeAt(),
+        next_scrape_at: nextScrape,
       },
     });
-    return { scraped: scrapedWb !== null, weeklyBought: scrapedWb ?? weeklyBought };
+    const highQualityFound = source === 'brightdata-unlocker' || source === 'scraped';
+    return { scraped: highQualityFound, weeklyBought };
   }
 
   // 4. Calculate score
@@ -276,7 +336,7 @@ async function scrapeAndSaveProduct(
   logJobInfo(QUEUE_NAME, jobId, jobName,
     `Scraped product=${numId}, wb=${weeklyBought}, source=${source}, score=${score.toFixed(4)}`);
 
-  return { scraped: scrapedWb !== null, weeklyBought };
+  return { scraped: source === 'brightdata-unlocker' || source === 'scraped', weeklyBought };
 }
 
 async function processBatch(jobId: string, jobName: string) {

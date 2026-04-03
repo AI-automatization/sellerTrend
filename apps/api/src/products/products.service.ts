@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UzumClient, UzumSearchProduct } from '../uzum/uzum.client';
 import { BrightDataClient } from '../bright-data/bright-data.client';
 import { REDIS_CLIENT } from '../common/redis/redis.module';
-import { forecastEnsemble, calcWeeklyBought, calcInstallmentRate } from '@uzum/utils';
+import { forecastEnsemble, calcWeeklyBought, calcWeeklyBoughtCurrentWeek, calcInstallmentRate, recalcWeeklyBoughtSeries } from '@uzum/utils';
 import { RevenueEstimateResponse } from './dto/revenue-estimate.dto';
 import { enqueueVisualSourcing } from './visual-sourcing.queue';
 
@@ -26,6 +26,10 @@ function resolveWeeklyBought(
 
   const anyWbSnap = snaps.find((s) => s.weekly_bought != null && s.weekly_bought > 0);
   if (anyWbSnap) return anyWbSnap.weekly_bought;
+
+  // Uzum bilan mos: Dushanba 00:00 (UTC+5) dan hozirga qadar delta
+  const cwWb = calcWeeklyBoughtCurrentWeek(snaps, fallbackOrders, fallbackTime);
+  if (cwWb !== null) return cwWb;
 
   return calcWeeklyBought(snaps, fallbackOrders, fallbackTime);
 }
@@ -980,8 +984,11 @@ export class ProductsService {
     });
 
     const scoreValues = rows.map((s) => Number(s.score ?? 0));
-    const wbValues = rows.map((s) => s.weekly_bought ?? 0);
     const dates = rows.map((s) => s.snapshot_at.toISOString());
+    // Use stored weekly_bought if available, otherwise fallback to recalculated delta series
+    const storedWb = rows.map((s) => s.weekly_bought ?? 0);
+    const recalcWb = recalcWeeklyBoughtSeries(rows);
+    const wbValues = storedWb.map((v, i) => v > 0 ? v : (recalcWb[i] ?? 0));
 
     const scoreForecast = forecastEnsemble(scoreValues, dates, 7);
     const salesForecast = forecastEnsemble(wbValues, dates, 7);
@@ -1265,6 +1272,10 @@ export class ProductsService {
     if (daysSinceWeekAgo > 0 && latestOrders >= weekAgoOrders) {
       weeklySold = Math.round(((latestOrders - weekAgoOrders) * 7) / daysSinceWeekAgo);
     }
+    // Fallback: use stored weekly_bought when order-delta is unavailable OR zero (stale data)
+    if ((weeklySold === null || weeklySold === 0) && latest.weekly_bought != null && latest.weekly_bought > 0) {
+      weeklySold = latest.weekly_bought;
+    }
 
     // Find the snapshot closest to 14 days ago for prev week comparison
     const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
@@ -1283,6 +1294,10 @@ export class ProductsService {
     if (daysBetweenWeeks > 0 && weekAgoOrders >= twoWeekOrders) {
       prevWeeklySold = Math.round(((weekAgoOrders - twoWeekOrders) * 7) / daysBetweenWeeks);
     }
+    // Fallback: use stored weekly_bought from week-ago snapshot when delta is unavailable or zero
+    if ((prevWeeklySold === null || prevWeeklySold === 0) && weekAgoSnapshot.weekly_bought != null && weekAgoSnapshot.weekly_bought > 0) {
+      prevWeeklySold = weekAgoSnapshot.weekly_bought;
+    }
 
     // Delta
     const delta = weeklySold != null && prevWeeklySold != null
@@ -1297,19 +1312,27 @@ export class ProductsService {
       delta != null && delta > 5 ? 'up' :
       delta != null && delta < -5 ? 'down' : 'flat';
 
-    // Daily breakdown from snapshots
-    const dailyBreakdown = snapshots.slice(-8).map((snap, i, arr) => {
-      const prevOrders = i > 0 ? Number(arr[i - 1].orders_quantity ?? 0) : Number(snap.orders_quantity ?? 0);
-      const currOrders = Number(snap.orders_quantity ?? 0);
-      const prevTime = i > 0 ? arr[i - 1].snapshot_at.getTime() : snap.snapshot_at.getTime();
-      const currTime = snap.snapshot_at.getTime();
-      const daysDiff = Math.max(0.5, (currTime - prevTime) / (1000 * 60 * 60 * 24));
-      const dailySold = i > 0 ? Math.round((currOrders - prevOrders) / daysDiff) : 0;
+    // Daily breakdown: group snapshots by day (keep max orders per day) → 1 entry per day
+    const dayMap = new Map<string, { orders: number; snapshot_at: Date }>();
+    for (const snap of snapshots) {
+      const day = snap.snapshot_at.toISOString().split('T')[0];
+      const curr = Number(snap.orders_quantity ?? 0);
+      const existing = dayMap.get(day);
+      if (!existing || curr > existing.orders) {
+        dayMap.set(day, { orders: curr, snapshot_at: snap.snapshot_at });
+      }
+    }
+    const dayEntries = Array.from(dayMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-8); // last 8 distinct days
 
+    const dailyBreakdown = dayEntries.map(([date, val], i, arr) => {
+      const prevOrders = i > 0 ? arr[i - 1][1].orders : val.orders;
+      const dailySold = i > 0 ? Math.max(0, val.orders - prevOrders) : 0;
       return {
-        date: snap.snapshot_at.toISOString().split('T')[0],
-        orders: currOrders,
-        daily_sold: Math.max(0, dailySold),
+        date,
+        orders: val.orders,
+        daily_sold: dailySold,
       };
     });
 
@@ -1408,6 +1431,42 @@ export class ProductsService {
       yesterday_date: prev1.snapshot_at.toISOString().split('T')[0],
       last_updated: latest.snapshot_at.toISOString(),
     };
+  }
+
+  /**
+   * Kunlik sotuv tarixi — so'nggi 30 kun, ProductSnapshotDaily dan.
+   * T-497: Bright Data ordersAmount delta → daily_orders_delta.
+   */
+  async getDailySalesHistory(productId: bigint, accountId: string): Promise<Array<{
+    date: string;
+    daily_orders_delta: number | null;
+    max_orders: number | null;
+    avg_score: number | null;
+  }>> {
+    await this.assertProductOwnership(productId, accountId);
+
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const rows = await this.prisma.productSnapshotDaily.findMany({
+      where: {
+        product_id: productId,
+        day: { gte: thirtyDaysAgo },
+      },
+      orderBy: { day: 'asc' },
+      select: {
+        day: true,
+        daily_orders_delta: true,
+        max_orders: true,
+        avg_score: true,
+      },
+    });
+
+    return rows.map((r) => ({
+      date: r.day.toISOString().split('T')[0],
+      daily_orders_delta: r.daily_orders_delta != null ? Number(r.daily_orders_delta) : null,
+      max_orders: r.max_orders != null ? Number(r.max_orders) : null,
+      avg_score: r.avg_score != null ? Number(r.avg_score) : null,
+    }));
   }
 
   /**

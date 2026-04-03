@@ -4,6 +4,8 @@ export interface Run {
   id: string;
   category_id: string;
   category_name?: string | null;
+  category_name_uz?: string | null;
+  category_name_en?: string | null;
   status: 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED';
   total_products: number | null;
   processed: number | null;

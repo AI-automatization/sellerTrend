@@ -127,6 +127,13 @@ export interface InstallmentSkuData {
   snapshot_at: string;
 }
 
+export interface DailySalesPoint {
+  date: string;                     // 'YYYY-MM-DD'
+  daily_orders_delta: number | null; // bugun sotilgan soni
+  max_orders: number | null;         // jami buyurtmalar (cumulative)
+  avg_score: number | null;
+}
+
 // ─── Product Detail (from GET /products/:id) ─────────────────────────────────
 
 export interface ProductDetail {
@@ -306,6 +313,20 @@ export interface SourcingComparison {
     '1688': BrightDataProduct[];
   };
   searchedAt: string;
+}
+
+// ─── ML Predictions Domain ───────────────────────────────────────────────────
+
+export interface PredictionResult {
+  predictions: ForecastPrediction[] | null;
+  model_name: string;
+  mae: number | null;
+  horizon: number;
+}
+
+export interface RiskResult {
+  risk_score: number;
+  risk_level: string;
 }
 
 // ─── Consultation Domain ─────────────────────────────────────────────────────

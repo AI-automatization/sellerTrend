@@ -38,7 +38,7 @@ export interface AuditEvent {
   created_at: string;
 }
 
-export type Tab = 'dashboard' | 'accounts' | 'analytics' | 'system' | 'feedback' | 'notifications' | 'audit' | 'permissions' | 'deposits' | 'whitelabel';
+export type Tab = 'dashboard' | 'accounts' | 'analytics' | 'system' | 'feedback' | 'notifications' | 'audit' | 'permissions' | 'deposits' | 'whitelabel' | 'ai-audit' | 'ml-audit';
 
 export const ROLES: Role[] = ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'USER'];
 
@@ -56,7 +56,7 @@ export const PERMISSIONS: Record<Role, string[]> = {
   USER: ['manage_discovery', 'analyze_products', 'manage_tracked', 'view_dashboard'],
 };
 
-export const VALID_TABS: Tab[] = ['dashboard', 'accounts', 'analytics', 'system', 'feedback', 'notifications', 'audit', 'permissions', 'deposits', 'whitelabel'];
+export const VALID_TABS: Tab[] = ['dashboard', 'accounts', 'analytics', 'system', 'feedback', 'notifications', 'audit', 'permissions', 'deposits', 'whitelabel', 'ai-audit', 'ml-audit'];
 
 export const TAB_TITLES: Record<Tab, { title: string; desc: string }> = {
   dashboard: { title: 'Dashboard', desc: 'Umumiy statistika va real-time ko\'rsatkichlar' },
@@ -69,4 +69,6 @@ export const TAB_TITLES: Record<Tab, { title: string; desc: string }> = {
   permissions: { title: 'Ruxsatlar', desc: 'Rol va huquqlar tizimi' },
   deposits: { title: 'Deposit Log', desc: 'Balans to\'ldirish tarixi' },
   whitelabel: { title: 'White-label', desc: 'Branding, logo, ranglar va custom domain' },
+  'ai-audit': { title: 'AI Audit', desc: 'RAG pipeline sifati — chat xabarlari, feedback va narx statistikasi' },
+  'ml-audit': { title: 'ML Audit', desc: 'Prognoz modellari sifati — MAPE, yo\'nalish aniqligi, qayta o\'qitish' },
 };

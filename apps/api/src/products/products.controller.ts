@@ -142,6 +142,15 @@ export class ProductsController {
     return this.productsService.getWeeklyTrend(productId, accountId);
   }
 
+  /** Kunlik sotuv tarixi — so'nggi 30 kun (T-497) */
+  @Get(':id/daily-sales')
+  dailySalesHistory(
+    @Param('id', ParseBigIntPipe) productId: bigint,
+    @CurrentUser('account_id') accountId: string,
+  ) {
+    return this.productsService.getDailySalesHistory(productId, accountId);
+  }
+
   /** Bugungi kunlik sotuv vs kechagi sotuv taqqoslash */
   @Get(':id/daily-comparison')
   dailyComparison(

@@ -1,5 +1,5 @@
 # VENTRA — OCHIQ VAZIFALAR
-# Yangilangan: 2026-04-02
+# Yangilangan: 2026-03-08
 # Developer-specific fayllar:
 #   - Bekzod → docs/Tasks-Bekzod.md
 #   - Sardor → docs/Tasks-Sardor.md
@@ -10,10 +10,10 @@
 ## STATISTIKA
 
 ```
-Ochiq:       ~36 ta
-Bajarilgan:  ~192+ ta (Done.md)
-Oxirgi T-#:  T-489
-Keyingi T-#: T-490 dan boshlash
+Ochiq:       ~47 ta
+Bajarilgan:  ~191+ ta (Done.md)
+Oxirgi T-#:  T-500
+Keyingi T-#: T-501 dan boshlash
 ```
 
 ---
@@ -703,6 +703,7 @@ Yoki Chrome popup lifecycle issue — service worker timeout.
 
 ---
 
+
 ## FAZA 1 — BACKEND INFRA (P0)
 
 > ~~T-411~~ DONE (2026-03-08) — Route order fix, commit e464044
@@ -802,7 +803,11 @@ Yoki Chrome popup lifecycle issue — service worker timeout.
 | ~~Search + Bright Data Faza 4~~ (T-420..T-423) | ~~4~~ ✅ | ~~6~~ | Sardor |
 | ~~Search + Bright Data Faza 5~~ (T-424..T-425) | ~~2~~ ✅ | ~~2~~ | Sardor |
 | ~~RAG Chat Pipeline~~ (T-428..T-433) | ~~6~~ ✅ | ~~6~~ | Ziyoda |
-| **JAMI task ochiq** | **~25** | | |
+| **MML+RAG Pipeline Faza 1** (T-478..T-483) | 6 | 6 | Ziyoda |
+| **MML+RAG Pipeline Faza 2** (T-484..T-489) | 6 | 6 | Ziyoda |
+| **MML+RAG Pipeline Faza 3** (T-490..T-492) | 3 | 3 | Ziyoda |
+| **MML+RAG Pipeline Faza 4** (T-493..T-496) | 4 | 4 | Ziyoda |
+| **JAMI task ochiq** | **~44** | | |
 | **JAMI bajarilgan** | **~180+** | | → Done.md |
 
 ---
@@ -955,124 +960,117 @@ Worker pipeline mavjud va ishlaydi lekin frontend unga ulanmagan.
 
 ---
 
-### T-485 | P1 | FRONTEND | Discovery — Imkoniyat topish (Niche Finder) UX tushunarsiz + overflow muammo | 2h
+### T-495 | P3 | BACKEND | TimescaleDB + daily_sales materialized view (100K tayyorlik) | 3h
 
-- **Sana:** 2026-03-30
-- **Manba:** user-feedback
-- **Mas'ul:** Ziyoda
-- **Tahlil:** Niche Finder tab da "Bozor imkoniyatlari" blokida overflow yo'q — kontent sig'mayapdi. Segmentlar (niche_score) va Bo'shliqlar (gap_ratio) nima ekanini seller tushunmayapdi. UX sodda va tushunarli bo'lishi kerak.
-- **Muammo:**
-  1. "Bozor imkoniyatlari — Yuqori talab + past raqobat = foydali segment" div da overflow yo'q, kontent toshib ketadi
-  2. Niche (Segmentlar) tab — niche_score foizi nima ekanini seller tushunmaydi, tushuntirish yo'q
-  3. Gap (Bo'shliqlar) tab — gap_ratio (3.5x) nima degani aniq emas, seller uchun tushunarli qilish kerak
-  4. Umumiy UX — seller nimani qilishi kerak (qaysi mahsulotni sotish boshlash) aniq ko'rsatilmagan
-- **Yechim:**
-  1. "Bozor imkoniyatlari" div ga `overflow-x-auto` qo'shish
-  2. Niche score yoniga tooltip yoki tushuntirish: "85% = kam raqobat + yuqori talab"
-  3. Gap ratio ni tushunarli matn bilan: "3.5x = talabga nisbatan 3.5 marta kam sotuvchi"
-  4. Har bir mahsulot yoniga "Imkoniyat darajasi" badge (Yuqori/O'rta/Past) qo'shish
-  5. Bo'sh holatda namuna bilan tushuntirish ko'rsatish
-- **Fayllar:**
-  - `apps/web/src/components/discovery/NicheFinderTab.tsx` — UX qayta ishlash
-
----
-
-### T-484 | P1 | IKKALASI | Discovery — Mavsumiy kalendar ishlamayapdi va UX tushunarsiz | 3h
-
-- **Sana:** 2026-03-30
-- **Manba:** production-bug + user-feedback
-- **Mas'ul:** Ziyoda
-- **Tahlil:** Mavsumiy kalendar tab da API dan ma'lumot kelmayapdi (seasonalApi.getCalendar / getUpcoming bo'sh qaytaradi). UX jihatdan jadval tushunarsiz — seller nimani qilishi kerakligi aniq emas. Heatmap vizualizatsiya murakkab, oddiy foydalanuvchi uchun qiyin.
-- **Muammo:**
-  1. Backend: seasonal API endpoint yo'q yoki ma'lumot bazasida mavsumiy data to'ldirilmagan
-  2. Frontend: jadval ko'rinishi tushunarsiz, peak oy va score boost nima ekanligi tushuntirilmagan
-  3. Bo'sh holat (empty state) foydalanuvchiga hech narsa bermayapdi
-- **Yechim:**
-  1. Backend: seasonal endpoint tekshirish, O'zbekiston bozori uchun mavsumiy data to'ldirish (maktab, bayramlar, yoz/qish kiyim, Ramadan va h.k.)
-  2. Frontend: UX ni soddalash — heatmap o'rniga aniq, tushunarli kartochkalar, har mavsumga tavsiyalar
-  3. Bo'sh holatda namuna ma'lumot yoki tushuntirish ko'rsatish
-- **Fayllar:**
-  - `apps/api/src/discovery/` — seasonal endpoint
-  - `apps/api/prisma/schema.prisma` — seasonal_events jadvali
-  - `apps/web/src/components/discovery/SeasonalCalendarTab.tsx` — UX qayta ishlash
-
----
-
-### T-483 | P1 | FRONTEND | Sourcing — kurs narxlari sahifa yuklanganda default qiymatda qoladi | 30min
-
-**Sana:** 2026-03-30
-**Manba:** production-bug
+**Sana:** 2026-03-28
+**Manba:** ai-tahlil (MML-RAG-STRATEGY.md roadmap)
+**Topilgan joyda:** `docs/MML-RAG-STRATEGY.md:390-415`
 **Mas'ul:** Ziyoda
 
 **Tahlil:**
-Sourcing sahifasiga kirganda valyuta kurslari (USD, CNY) default/hardcoded qiymatda ko'rinadi.
-Faqat "Reload" tugmasini bosgandan keyin haqiqiy kurs yuklanadi. Sahifa ochilganda avtomatik
-haqiqiy kursni olishi kerak.
+100K productga yetganda PostgreSQL analytical query 12-30 soniya ketadi.
+TimescaleDB hypertable + continuous aggregate `daily_sales` view (kunlik delta AVTOMATIK) →
+ClickHouse orqali 50-200 millisekund. Bu task P3 — hozir 10K scale da kerak emas,
+product_count > 50K bo'lganda bajariladi.
 
 **Muammo:**
-Foydalanuvchi noto'g'ri kurs bilan hisob-kitob ko'radi — reload bosmaguncha default qiymat turadi.
+`product_snapshots` oddiy PG jadval — 100K da sekin bo'ladi.
 
 **Yechim:**
-1. Sahifa yuklanganda (useEffect / onMount) kurs API dan avtomatik olinishi kerak
-2. Reload tugmasi faqat qayta yangilash uchun — birinchi yuklash useEffect da bo'lishi shart
+1. TimescaleDB extension yoqish (Railway PG da mavjud)
+2. `product_snapshots` → hypertable
+3. `daily_sales` continuous aggregate (MML-RAG-STRATEGY.md:403-410)
+4. 30 kun eski data auto-compress policy
 
 **Fayllar:**
-- `apps/web/src/components/sourcing/` — tegishli komponent (kurs ko'rsatadigan joy)
+- `apps/api/prisma/migrations/` — TimescaleDB migration SQL
+
+**Eslatma:** product_count > 50K bo'lganda bajariladi (hozir P3).
 
 ---
 
-### T-482 | P1 | IKKALASI | Shops — do'kon nomi bo'yicha qidirish | 2h
+### T-496 | P3 | BACKEND | Model 4 — Risk Assessment LightGBM Classifier | 3h
 
-**Sana:** 2026-03-30
-**Manba:** user-feedback
+**Sana:** 2026-03-28
+**Manba:** ai-tahlil (MML-RAG-STRATEGY.md roadmap)
+**Topilgan joyda:** `docs/MML-RAG-STRATEGY.md:232-243`
 **Mas'ul:** Ziyoda
 
 **Tahlil:**
-Hozir Shops sahifasida faqat do'kon ID si orqali qidirish mumkin. Seller lar o'z do'kon ID sini
-bilmaydi — faqat do'kon nomini biladi. Shuning uchun input ga do'kon nomini yozib qidirish
-imkoniyati bo'lishi kerak.
+Hozir `predictDeadStock()` qoida asosida ishlaydi (packages/utils). ML yaxshilash:
+Tarixda sotuvlari 0 ga tushgan productlar ustida LightGBM Classifier train qilinadi.
+`risk_score` 0-1, `risk_level`: low/medium/high/critical. Kutilgan AUC: 80%+.
 
 **Muammo:**
-Seller do'kon nomini biladi, ID sini bilmaydi. Shops sahifasida nom bo'yicha qidirish yo'q.
+Risk assessment rule-based — yangi pattern larni o'rganolmaydi, AUC taxminan 65%.
 
 **Yechim:**
-1. Input ga nom yozilganda (raqam emas) → Uzum API dan do'kon qidirish
-2. Natijalar ro'yxatini ko'rsatish (suggestion lar) — seller kerakli do'konni tanlaydi
-3. Tanlangan do'konning ID si bilan hozirgi flow davom etadi
+1. `apps/ml/models/lightgbm_risk.py` — binary classifier (dead stock bo'ladimi?)
+2. Features: score traektoriyasi, weekly_bought kamayish, feedback to'xtab qolishi, stok
+3. `POST /predict/risk` endpoint
+4. `PredictionsService` ga `getRiskScore()` metod
+5. ProductPage da risk badge yangilash (ML based)
 
 **Fayllar:**
-- `apps/api/src/uzum/uzum.client.ts` — do'kon nomi bo'yicha qidirish metodi
-- `apps/api/src/shops/` — yangi endpoint (yoki mavjud controller ga qo'shish)
-- `apps/web/src/components/shops/` — input + suggestion UI
+- `apps/ml/models/lightgbm_risk.py` (yangi)
+- `apps/ml/main.py`
+- `apps/api/src/predictions/predictions.service.ts`
 
 ---
 
-### T-481 | P2 | IKKALASI | Discovery — skanerlangan category nomlarini uz/ru/en tillarida ko'rsatish | 2h
+### T-497 | P1 | BACKEND | Bright Data Web Unlocker — uzum.uz kunlik sotuv scraping (Playwright replacement) | 3h
 
-**Sana:** 2026-03-30
-**Manba:** self-improve
-**Mas'ul:** Ziyoda
+**Sana:** 2026-03-29
+**Manba:** ai-tahlil (performance + reliability)
+**Topilgan joyda:** `apps/worker/src/processors/weekly-scrape.processor.ts`, `apps/worker/src/processors/weekly-scraper.ts`
+**Mas'ul:** Ziyoda | pending[Ziyoda]
 
 **Tahlil:**
-Hozir `categoryRun.category_name` faqat ruscha saqlanadi (Uzum API dan keladi). Frontend da
-foydalanuvchi tili uz/en bo'lsa ham category nomi ruscha ko'rinadi. Seller lar uchun tushunarli
-bo'lishi uchun category nomini 3 tilda ko'rsatish kerak.
+Hozirgi `weekly-scrape.processor.ts` Playwright browser orqali uzum.uz sahifasidan `weekly_bought`
+banner ni scrape qiladi. Muammo: Playwright = 300-600MB RAM, sekin (sahifa render kutish),
+Uzum.uz Railway IP ni bloklashi mumkin. Bright Data Web Unlocker esa HTTP proxy sifatida
+`https://api.uzum.uz/api/v2/product/{id}` REST endpointini to'g'ridan chaqiradi — browser siz,
+10-50ms, IP rotation avtomatik. `ordersAmount` (cumulative) dan delta = `weekly_bought`.
+ML pipeline (T-479 CategoryAggregation, T-482 MlPrediction) uchun kunlik aniq data zarur.
 
 **Muammo:**
-Discovery "Skanerlashlar" ro'yxatida category nomlari faqat ruscha (masalan "Кроссовки").
-O'zbekcha yoki inglizcha tanlagan foydalanuvchilar uchun noqulay.
+1. `weekly-scraper.ts` Playwright + SSR banner parse — og'ir va ishonchsiz
+2. Uzum REST API Railway IP bilan bloklanishi mumkin (T-454 faqat sourcing uchun fix qildi)
+3. `ordersAmount` delta hisoblash yo'q — faqat banner qiymati ishlatiladi
 
 **Yechim:**
-1. Uzum API `Accept-Language` headerini o'zgartirib uz/en nomlarni olish (Uzum 3 tilda ishlaydi)
-2. `categoryRun` jadvaliga `category_name_uz`, `category_name_en` fieldlar qo'shish (yoki JSON field)
-3. Worker da discovery job tugaganda — Uzum API dan uz/en nomlarni olish
-4. Frontend da foydalanuvchi tiliga qarab tegishli nomni ko'rsatish
+1. `apps/worker/src/clients/uzum-unlocker.client.ts` yaratish:
+   - `BRIGHT_DATA_USERNAME` + `BRIGHT_DATA_PASSWORD` mavjud bo'lsa → Bright Data Web Unlocker proxy
+   - Fallback: to'g'ridan Uzum REST API (local dev uchun)
+   - `fetchProductOrders(productId: number)` → `{ordersAmount, totalAvailableAmount, sellPrice, rating, reviewsAmount}`
+   - Proxy format: `http://{user}:{pass}@brd.superproxy.io:22225` (undici ProxyAgent)
+
+2. `apps/worker/src/processors/weekly-scrape.processor.ts` yangilash:
+   - Birinchi: `uzumUnlockerClient.fetchProductOrders(id)` → `ordersAmount` olish
+   - Delta: `ordersAmount - prevSnapshot.orders_amount` = `weekly_bought` (agar delta > 0)
+   - Fallback: `weekly_bought` yo'q bo'lsa → mavjud Playwright banner scrape (saqlanadi)
+   - `weekly_bought_source`: `'brightdata-unlocker'` | `'scraped'` | `'calculated'`
+
+3. `apps/worker/src/jobs/daily-sales.job.ts` yaratish:
+   - Cron `0 2 * * *` (02:00 UTC — uzum.uz trafik minimal bo'lgan vaqt)
+   - `weekly-scrape-queue` ga `mode: 'batch'` job yuborish
+   - Bu mavjud 15min batch ni to'ldiradi, lekin kechasi to'liq run ham qiladi
+
+4. `apps/worker/src/app.module.ts` ga `daily-sales.job.ts` qo'shish
 
 **Fayllar:**
-- `apps/api/prisma/schema.prisma` — categoryRun modeliga fieldlar
-- `apps/worker/src/processors/discovery.processor.ts` — til bo'yicha nom olish
-- `apps/web/src/components/discovery/ScannerTab.tsx` — til bo'yicha ko'rsatish
+- `apps/worker/src/clients/uzum-unlocker.client.ts` (yangi)
+- `apps/worker/src/processors/weekly-scrape.processor.ts` (yangilash)
+- `apps/worker/src/jobs/daily-sales.job.ts` (yangi)
+- `apps/worker/src/app.module.ts`
+- `.env.example` — `BRIGHT_DATA_USERNAME`, `BRIGHT_DATA_PASSWORD` (allaqachon bor, eslatma)
+
+**Qo'shimcha kontekst:**
+- `BRIGHT_DATA_USERNAME`/`PASSWORD` allaqachon `.env` da bor (T-454 dan)
+- `browser-pool.ts` Bright Data CDP ishlatadi — bu esa Web Unlocker (HTTP proxy), boshqa credential
+- Web Unlocker endpoint: `brd.superproxy.io:22225` (HTTP), CDP: `brd.superproxy.io:9222` (WebSocket)
+- `undici` ProxyAgent allaqachon `uzum-scraper.ts` da ishlatilgan — import tayyor
 
 ---
 
-*Tasks.md | VENTRA Analytics Platform | 2026-03-30*
+*Tasks.md | VENTRA Analytics Platform | 2026-03-29*

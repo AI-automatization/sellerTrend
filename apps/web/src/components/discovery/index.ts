@@ -4,6 +4,7 @@ export { ProgressBar } from './ProgressBar';
 export { ScannerTab, ScannerTabGuarded } from './ScannerTab';
 export { SeasonalCalendarTab } from './SeasonalCalendarTab';
 export { NicheFinderTab, NicheFinderTabGuarded } from './NicheFinderTab';
+export { CategoryIntelligenceTab } from './CategoryIntelligenceTab';
 
 export type {
   Run,

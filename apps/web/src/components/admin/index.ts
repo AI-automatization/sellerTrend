@@ -26,3 +26,6 @@ export { AuditLogTab } from './AuditLogTab';
 export { PermissionsTab } from './PermissionsTab';
 export { DepositsTab } from './DepositsTab';
 export { WhitelabelTab } from './WhitelabelTab';
+export { AiAuditTab } from './AiAuditTab';
+export { MlAuditTab } from './MlAuditTab';
+export type { RagAuditStats, MlAuditStats, MlModelAuditRow } from './adminTypes';

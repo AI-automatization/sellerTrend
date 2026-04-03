@@ -1,5 +1,5 @@
 import { api } from './base';
-import type { SearchProduct, SourcingComparison, InstallmentSkuData } from './types';
+import type { SearchProduct, SourcingComparison, InstallmentSkuData, DailySalesPoint, PredictionResult, RiskResult } from './types';
 
 export const productsApi = {
   getTracked: () => api.get('/products/tracked'),
@@ -19,6 +19,8 @@ export const productsApi = {
     api.get<SourcingComparison>(`/products/${productId}/sourcing-comparison`),
   getInstallments: (productId: string) =>
     api.get<InstallmentSkuData[]>(`/products/${productId}/installments`),
+  getDailySales: (productId: string) =>
+    api.get<DailySalesPoint[]>(`/products/${productId}/daily-sales`),
 };
 
 export const uzumApi = {
@@ -32,5 +34,12 @@ export const revenueApi = {
 
 export const achievementsApi = {
   getAll: () => api.get('/achievements'),
+};
+
+export const predictionsApi = {
+  getPrediction: (productId: string, horizon = 7) =>
+    api.get<PredictionResult>(`/predictions/${productId}`, { params: { horizon } }),
+  getRisk: (productId: string) =>
+    api.get<RiskResult>(`/predictions/${productId}/risk`),
 };
 

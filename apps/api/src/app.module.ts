@@ -44,6 +44,8 @@ import { PlatformsModule } from './platforms/platforms.module';
 import { AchievementsModule } from './achievements/achievements.module';
 // v8.0 RAG Chat
 import { ChatModule } from './chat/chat.module';
+// v9.0 ML Predictions
+import { PredictionsModule } from './predictions/predictions.module';
 
 @Module({
   imports: [
@@ -92,6 +94,8 @@ import { ChatModule } from './chat/chat.module';
     AchievementsModule,
     // v8.0 RAG Chat
     ChatModule,
+    // v9.0 ML Predictions
+    PredictionsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: CustomThrottlerGuard }],
   controllers: [HealthController],

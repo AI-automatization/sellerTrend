@@ -1348,3 +1348,69 @@ model ChatMessage {
   @@index([conversation_id, created_at])
   @@map("chat_messages")
 }
+
+// ============================================================
+// ML PIPELINE
+// ============================================================
+
+// Kategoriya kunlik metrikalari — ML Model 5 + trend tahlili uchun
+model CategoryMetricSnapshot {
+  id            String   @id @default(uuid())
+  category_id   BigInt
+  product_count Int
+  seller_count  Int
+  avg_score     Decimal  @db.Decimal(8, 4)
+  avg_weekly_sold Float
+  total_orders  BigInt
+  avg_price     BigInt
+  snapshot_at   DateTime @default(now()) @db.Timestamptz
+
+  @@index([category_id, snapshot_at])
+  @@map("category_metric_snapshots")
+}
+
+// ML prognoz natijalari cache — frontend tez olish uchun
+model MlPrediction {
+  id            String   @id @default(uuid())
+  product_id    BigInt
+  model_name    String   @db.VarChar(50)  // 'lightgbm' | 'neuralprophet' | 'chronos' | 'ensemble_legacy'
+  metric        String   @db.VarChar(30)  // 'weekly_bought' | 'price' | 'score'
+  horizon_days  Int
+  predictions   Json     // [{date, value, lower, upper}]
+  mae           Float?
+  mape          Float?
+  created_at    DateTime @default(now()) @db.Timestamptz
+
+  @@index([product_id, model_name, metric])
+  @@map("ml_predictions")
+}
+
+// ML prognoz vs real solishtirish — audit va drift detection uchun
+model MlAuditLog {
+  id              String   @id @default(uuid())
+  product_id      BigInt
+  model_name      String   @db.VarChar(50)
+  metric          String   @db.VarChar(30)
+  predicted_value Float
+  actual_value    Float
+  error_abs       Float
+  error_pct       Float
+  prediction_date DateTime @db.Timestamptz
+  actual_date     DateTime @db.Timestamptz
+  created_at      DateTime @default(now()) @db.Timestamptz
+
+  @@index([model_name, created_at])
+  @@index([product_id, created_at])
+  @@map("ml_audit_logs")
+}
+
+// Product embedding — pgvector RAG semantic search uchun
+model ProductEmbedding {
+  id         String   @id @default(uuid())
+  product_id BigInt   @unique
+  content    String   @db.Text
+  embedding  Unsupported("vector(1536)")?
+  updated_at DateTime @default(now()) @db.Timestamptz
+
+  @@map("product_embeddings")
+}

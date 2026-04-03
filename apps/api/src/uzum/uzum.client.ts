@@ -856,6 +856,46 @@ export class UzumClient {
   }
 
   /**
+   * Search Uzum sellers/shops by name.
+   * NOTE: Uzum has no public seller search API.
+   * Strategy: search products by shop name query → fetch details → match seller name.
+   * Only works if the shop includes their name in product titles.
+   * Returns [] if no name match found — callers should fall back to local DB only.
+   */
+  async searchSellers(query: string, size = 10): Promise<Array<{ id: number; title: string; ordersQuantity: number }>> {
+    try {
+      // Uzum'da seller search API yo'q — mahsulot qidiruvidan seller ajratib olamiz.
+      // MUHIM: shop.title filtri OLIB TASHLANDI — mahsulot tituli != do'kon nomi.
+      // Har qanday topilgan do'konni qaytaramiz, caller title bo'yicha filtrlaydi (DB da).
+      const products = await this.searchProducts(query, 20, 0);
+      if (products.length === 0) return [];
+
+      const ids = products
+        .map((p) => p.productId ?? p.id)
+        .filter((id): id is number => id != null)
+        .slice(0, 10);
+
+      const details = await Promise.all(ids.map((id) => this.fetchProductDetail(id)));
+
+      const seen = new Set<number>();
+      const sellers: Array<{ id: number; title: string; ordersQuantity: number }> = [];
+
+      for (const detail of details) {
+        const shop = detail?.shop;
+        if (!shop?.id || !shop?.title || seen.has(shop.id)) continue;
+        seen.add(shop.id);
+        sellers.push({ id: shop.id, title: shop.title, ordersQuantity: shop.ordersQuantity ?? 0 });
+        if (sellers.length >= size) break;
+      }
+
+      return sellers;
+    } catch (err: unknown) {
+      this.logger.warn(`searchSellers failed: ${err instanceof Error ? err.message : String(err)}`);
+      return [];
+    }
+  }
+
+  /**
    * Search Uzum categories by name.
    * Delegates to the worker's internal HTTP server (port 3001) which has
    * a Playwright-obtained GraphQL token that works with Uzum's search-gateway.

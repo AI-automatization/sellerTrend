@@ -18,6 +18,7 @@ import { createOnboardingReminderWorker } from './processors/onboarding-reminder
 import { createWeeklyDigestWorker } from './processors/weekly-digest.processor';
 import { createMarketplaceIntelligenceWorker } from './processors/marketplace-intelligence.processor';
 import { createVisualSourcingWorker } from './processors/visual-sourcing.processor';
+import { createCategoryAggregationWorker } from './processors/category-aggregation.processor';
 import { scheduleCompetitorSnapshots } from './jobs/competitor-snapshot.job';
 import { scheduleWeeklyScrape } from './jobs/weekly-scrape.job';
 import { scheduleAlertDelivery } from './jobs/alert-delivery.job';
@@ -28,6 +29,18 @@ import { scheduleDataCleanup } from './jobs/data-cleanup.job';
 import { scheduleOnboardingReminder } from './jobs/onboarding-reminder.job';
 import { scheduleWeeklyDigest } from './jobs/weekly-digest.job';
 import { scheduleMarketplaceIntelligence } from './jobs/marketplace-intelligence.job';
+import { scheduleCategoryAggregation } from './jobs/category-aggregation.job';
+import { scheduleDailySales } from './jobs/daily-sales.job';
+import { createDailyAggregationWorker } from './processors/daily-aggregation.processor';
+import { scheduleDailyAggregation } from './jobs/daily-aggregation.job';
+import { createMlPredictionWorker } from './processors/ml-prediction.processor';
+import { scheduleMlPredictions } from './jobs/ml-prediction.job';
+import { createEmbeddingWorker } from './processors/embedding.processor';
+import { scheduleEmbeddings } from './jobs/embedding.job';
+import { createRagAuditWorker } from './processors/rag-audit.processor';
+import { scheduleRagAudit } from './jobs/rag-audit.job';
+import { createSellerIndexWorker } from './processors/seller-index.processor';
+import { scheduleSellerIndex } from './jobs/seller-index.job';
 import { logProcess } from './logger';
 import { browserPool } from './browser-pool';
 import { tokenManager } from './clients/token-manager';
@@ -85,6 +98,12 @@ async function bootstrap() {
   const weeklyDigestWorker = createWeeklyDigestWorker();
   const marketplaceIntelligenceWorker = createMarketplaceIntelligenceWorker();
   const visualSourcingWorker = createVisualSourcingWorker();
+  const categoryAggregationWorker = createCategoryAggregationWorker();
+  const dailyAggregationWorker = createDailyAggregationWorker();
+  const mlPredictionWorker = createMlPredictionWorker();
+  const embeddingWorker = createEmbeddingWorker();
+  const ragAuditWorker = createRagAuditWorker();
+  const sellerIndexWorker = createSellerIndexWorker();
 
   // Schedule cron jobs
   await scheduleCompetitorSnapshots();
@@ -97,9 +116,16 @@ async function bootstrap() {
   await scheduleOnboardingReminder();
   await scheduleWeeklyDigest();
   await scheduleMarketplaceIntelligence();
+  await scheduleCategoryAggregation();
+  await scheduleDailySales();
+  await scheduleDailyAggregation();
+  await scheduleMlPredictions();
+  await scheduleEmbeddings();
+  await scheduleRagAudit();
+  await scheduleSellerIndex();
 
-  logProcess('info', 'Workers running: discovery, sourcing, competitor, import, weekly-scrape, alert-delivery, monitoring, morning-digest, currency-update, data-cleanup, onboarding-reminder, weekly-digest, marketplace-intelligence, visual-sourcing');
-  logProcess('info', 'Crons: competitor 6h, weekly-scrape 15min, alert-delivery 5min, monitoring 6h, digest 07:00, currency 00:30, cleanup 02:00, onboarding-reminder 10:00, weekly-digest Mon/08:00');
+  logProcess('info', 'Workers running: discovery, sourcing, competitor, import, weekly-scrape, alert-delivery, monitoring, morning-digest, currency-update, data-cleanup, onboarding-reminder, weekly-digest, marketplace-intelligence, visual-sourcing, category-aggregation, daily-aggregation, ml-prediction');
+  logProcess('info', 'Crons: competitor 6h, weekly-scrape 15min, daily-sales 02:00UTC, alert-delivery 5min, monitoring 6h, digest 07:00, currency 00:30, cleanup 02:00, onboarding-reminder 10:00, weekly-digest Mon/08:00, category-aggregation 03:00, daily-aggregation 03:30, ml-prediction 04:00');
 
   // Health check HTTP server — reuse shared Redis from redis.ts
   const healthPort = parseInt(process.env.WORKER_HEALTH_PORT || '3001', 10);
@@ -178,6 +204,12 @@ async function bootstrap() {
         weeklyDigestWorker.close(),
         marketplaceIntelligenceWorker.close(),
         visualSourcingWorker.close(),
+        categoryAggregationWorker.close(),
+        dailyAggregationWorker.close(),
+        mlPredictionWorker.close(),
+        embeddingWorker.close(),
+        ragAuditWorker.close(),
+        sellerIndexWorker.close(),
       ]);
       await browserPool.shutdown();
       await redis.quit();

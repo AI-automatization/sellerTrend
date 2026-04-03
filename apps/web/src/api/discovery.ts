@@ -27,3 +27,8 @@ export const nicheApi = {
   findGaps: (categoryId?: number) =>
     api.get('/discovery/niches/gaps', { params: categoryId ? { category_id: categoryId } : {} }),
 };
+
+export const categoryIntelligenceApi = {
+  getIntelligence: (limit = 50) =>
+    api.get('/discovery/categories/intelligence', { params: { limit } }),
+};

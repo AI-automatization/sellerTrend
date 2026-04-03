@@ -67,7 +67,7 @@ async function aggregateOldSnapshots(jobId: string, jobName: string): Promise<nu
           max_weekly_bought: row.max_wb,
           avg_rating: row.avg_rating,
           max_orders: row.max_orders,
-          daily_orders_delta: row.orders_delta ?? null,
+          daily_orders_delta: row.orders_delta != null ? (Number(row.orders_delta) < 0 ? null : Number(row.orders_delta)) : null,
           snapshot_count: row.cnt,
         },
         update: {
@@ -75,7 +75,7 @@ async function aggregateOldSnapshots(jobId: string, jobName: string): Promise<nu
           max_weekly_bought: row.max_wb,
           avg_rating: row.avg_rating,
           max_orders: row.max_orders,
-          daily_orders_delta: row.orders_delta ?? null,
+          daily_orders_delta: row.orders_delta != null ? (Number(row.orders_delta) < 0 ? null : Number(row.orders_delta)) : null,
           snapshot_count: row.cnt,
         },
       });

@@ -141,6 +141,9 @@ export const adminApi = {
   sendNotificationAdvanced: (data: { message: string; type: string; target: 'all' | string[] }) =>
     api.post('/admin/notifications/send', data),
   getAiUsageStats: (period = 30) => api.get('/admin/stats/ai-usage', { params: { period }, timeout: 10_000 }),
+  getRagAuditStats: (period = 7) => api.get('/admin/rag-audit', { params: { period }, timeout: 10_000 }),
+  getMlAuditStats: (period = 7) => api.get('/admin/ml-audit', { params: { period }, timeout: 10_000 }),
+  triggerMlRetrain: () => api.post('/admin/ml-audit/retrain', {}, { timeout: 15_000 }),
   getSystemErrors: (params?: { page?: number; limit?: number; endpoint?: string; status_gte?: number; account_id?: string; period?: number }) =>
     api.get('/admin/system-errors', { params, timeout: 10_000 }),
 

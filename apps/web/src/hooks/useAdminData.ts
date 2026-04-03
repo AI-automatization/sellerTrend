@@ -11,7 +11,7 @@ import {
   type FeedbackTicket, type FeedbackStats, type SearchResults,
   type DepositEntry, type NotificationTemplate,
   type RealtimeStats, type SystemHealth, type AiUsage, type SystemErrors,
-  type OverviewStats,
+  type OverviewStats, type RagAuditStats, type MlAuditStats,
   VALID_TABS, TAB_TITLES, ROLE_META,
 } from '../components/admin';
 
@@ -47,6 +47,18 @@ export interface UseAdminDataReturn {
   systemErrors: SystemErrors | null;
   errorsPage: number;
   loadErrorsPage: (page: number) => void;
+
+  // AI Audit
+  ragAuditStats: RagAuditStats | null;
+  ragAuditLoading: boolean;
+  ragAuditPeriod: number;
+  setRagAuditPeriod: (p: number) => void;
+
+  // ML Audit
+  mlAuditStats: MlAuditStats | null;
+  mlAuditLoading: boolean;
+  mlAuditPeriod: number;
+  setMlAuditPeriod: (p: number) => void;
 
   // Feedback
   feedbackTickets: FeedbackTicket[];
@@ -177,6 +189,34 @@ export function useAdminData(): UseAdminDataReturn {
   const [systemErrors, setSystemErrors] = useState<SystemErrors | null>(null);
   const [errorsPage, setErrorsPage] = useState(1);
 
+  // AI Audit
+  const [ragAuditStats, setRagAuditStats] = useState<RagAuditStats | null>(null);
+  const [ragAuditLoading, setRagAuditLoading] = useState(false);
+  const [ragAuditPeriod, setRagAuditPeriodState] = useState(7);
+
+  const setRagAuditPeriod = useCallback((p: number) => {
+    setRagAuditPeriodState(p);
+    setRagAuditLoading(true);
+    adminApi.getRagAuditStats(p)
+      .then((r) => setRagAuditStats(r.data))
+      .catch(logError)
+      .finally(() => setRagAuditLoading(false));
+  }, []);
+
+  // ML Audit
+  const [mlAuditStats, setMlAuditStats] = useState<MlAuditStats | null>(null);
+  const [mlAuditLoading, setMlAuditLoading] = useState(false);
+  const [mlAuditPeriod, setMlAuditPeriodState] = useState(7);
+
+  const setMlAuditPeriod = useCallback((p: number) => {
+    setMlAuditPeriodState(p);
+    setMlAuditLoading(true);
+    adminApi.getMlAuditStats(p)
+      .then((r) => setMlAuditStats(r.data))
+      .catch(logError)
+      .finally(() => setMlAuditLoading(false));
+  }, []);
+
   // Feedback
   const [feedbackTickets, setFeedbackTickets] = useState<FeedbackTicket[]>([]);
   const [feedbackStats, setFeedbackStats] = useState<FeedbackStats | null>(null);
@@ -282,8 +322,20 @@ export function useAdminData(): UseAdminDataReturn {
         setDepositLog(Array.isArray(r.data?.items) ? r.data.items : []);
         setDepositLogTotal(r.data?.total ?? 0);
       }).catch(logError);
+    } else if (activeTab === 'ai-audit') {
+      setRagAuditLoading(true);
+      adminApi.getRagAuditStats(ragAuditPeriod)
+        .then((r) => setRagAuditStats(r.data))
+        .catch(logError)
+        .finally(() => setRagAuditLoading(false));
+    } else if (activeTab === 'ml-audit') {
+      setMlAuditLoading(true);
+      adminApi.getMlAuditStats(mlAuditPeriod)
+        .then((r) => setMlAuditStats(r.data))
+        .catch(logError)
+        .finally(() => setMlAuditLoading(false));
     }
-  }, [activeTab, depositLogPage]);
+  }, [activeTab, depositLogPage, ragAuditPeriod, mlAuditPeriod]);
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
@@ -467,6 +519,8 @@ export function useAdminData(): UseAdminDataReturn {
     overview, revenue, growth, realtime,
     topUsers, popularProducts, popularCategories, categoryTrends, productHeatmap,
     health, aiUsage, systemErrors, errorsPage, loadErrorsPage,
+    ragAuditStats, ragAuditLoading, ragAuditPeriod, setRagAuditPeriod,
+    mlAuditStats, mlAuditLoading, mlAuditPeriod, setMlAuditPeriod,
     feedbackTickets, feedbackStats, handleFeedbackStatus,
     searchQuery, setSearchQuery, searchResults, setSearchResults, handleSearch,
     depositLog, depositLogTotal, depositLogPage, setDepositLogPage, handleDeleteDeposit,

@@ -1,48 +1,73 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
-# Yangilangan: 2026-04-02
+# Yangilangan: 2026-04-03
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
 
-### T-486..T-489 | P2 | FRONTEND | Leaderboard, Compare, BottomNav, Signals — UX va i18n tuzatish (2026-04-02)
+### T-500 | BACKEND | Shop search — searchSellers noto'g'ri filter olib tashlandi (2026-04-03)
 
-**Manba:** user-feedback (Sardor, 2026-04-02)
-**Muammo:** 4 ta sahifada bir-biriga bog'liq UX va i18n muammolar: tabs ko'rinmaydi, xatoliklar, buzilgan nav, tushunarsiz terminlar.
-**Yechim:**
+**Manba:** production-bug (2026-04-03)
+**Muammo:** `uzum.client.ts` `searchSellers()` da `shop.title.includes(lowerQuery)` filtri bor edi — Uzum API allaqachon saralagan natijalarni qayta filtrlab ko'p natijalarni olib tashlar edi. "Giga Market" kabi do'konlar topilmasdi.
+**Yechim:** `shop.title.includes(lowerQuery)` filtrini olib tashlash — Uzum API qaytargan barcha unique shoplar to'g'ridan to'g'ri qaytariladi.
+**Fayllar:** `apps/api/src/uzum/uzum.client.ts`
+**Commit:** —
+**Vaqt:** 15min (plan: —)
+**Ta'sir:** Dokon qidiruvi endi Uzum da mavjud barcha do'konlarni topadi — noto'g'ri double-filtering yo'qoldi.
 
-- **T-486 — Leaderboard:**
-  - Tab tugmalari `btn-primary`/`btn-ghost` toggle stiliga o'zgardi + ikonkalar qo'shildi
-  - `getPublicCategories`: `top` → `leaders`, `category_name` `category_path` leaf dan olinadi
-  - `category_id` null mahsulotlar `category_path` orqali guruhlanadi (`#unknown` yo'qoldi)
-  - `sell_price` `skus.min_sell_price` dan olinadi
-  - Ustun sarlavhalari: `Ball` → `Reyting bali (0–10)`, `Haftalik` → `Haftalik sotuvlar (dona)`
-  - "Kategoriya bo'yicha" tab qayta qurildi — top 20 kategoriya haftalik sotuvlar bo'yicha jadval
-  - `/analyze` route yo'q edi — barcha shu linkli buttonlar olib tashlandi
+---
 
-- **T-487 — Compare:**
-  - URL regex xatosi: `[^?]*?` (non-greedy, birinchi raqam) → `.*` (greedy, oxirgi raqam) — `product/luxvisage-13-gel-9876543` → `13` o'rniga `9876543` olinadi
-  - `"Score"` hardcoded → `t('dashboard.score')`
-  - `compare.field`: `Maydon` → `Ko'rsatkich`, `Поле` → `Показатель`, `Field` → `Metric`
-  - `dashboard.score` uz: `Score` → `Reyting bali` (dashboard.rating bilan aralashmasligi uchun)
+### T-499 | WORKER | Weekly scrape — yangi mahsulotlar uchun qisqa scrape interval (2026-04-03)
 
-- **T-488 — BottomNav:**
-  - DaisyUI v5 da `btm-nav` → `dock`, `btm-nav-label` → `dock-label` (shu sabab chapga siljigan edi)
-  - Mavjud bo'lmagan `/search`, `/analyze` routelari olib tashlandi
-  - Yangi itemlar: Asosiy · Kashfiyot · Reyting · Signallar · Do'konlar
+**Manba:** production-bug + ai-tahlil (2026-04-03)
+**Muammo:** Yangi track qilingan mahsulotlar 15 daqiqa yoki undan ko'proq kutib scrape bo'lardi — foydalanuvchi mahsulotni qo'shgandan keyin uzoq vaqt bo'sh ko'rardi.
+**Yechim:** `weekly-scrape.processor.ts` da `getFirstScrapeAt()` funksiyasi: birinchi marta track qilingan mahsulotlar (snapshot_count === 0) 6 soat + jitter bilan tezroq navbatga kiritiladi; mavjud mahsulotlar odatdagi interval bilan ishlayveradi.
+**Fayllar:** `apps/worker/src/processors/weekly-scrape.processor.ts`
+**Commit:** —
+**Vaqt:** 30min (plan: —)
+**Ta'sir:** Yangi mahsulotlar birinchi snapshot ni tezroq oladi — foydalanuvchi UX yaxshilandi.
 
-- **T-489 — Signals:**
-  - Emoji → React iconlar: `ScaleIcon`, `CubeIcon`, `ChartBarIcon`, `FireIcon`, `SparklesIcon`, `BellIcon`, `TrophyIcon`, `CheckIcon`, `CalculatorIcon`, `ServerStackIcon`
-  - Texnik terminlar oddiy o'zbekchaga: `Kannibalizatsiya`→`Ichki raqobat`, `Saturatsiya`→`To'yingan bozor`, `Flash sotuv`→`Keskin narx tushishi`, `O'lik stok`→`Qotib qolgan tovar`, `Stok signali`→`Zaxira signali`
-  - uz.ts: 9 ta inglizcha kalit tarjima qilindi (`Dead Stock`, `Flash Sale`, `Stock Alert`, `Ranking`, `Checklist`, `Overlap`, `Product ID` ×2, `Score`)
-  - ru.ts: 5 ta kalit tarjima qilindi
-  - `StockCliffsTab`: `/kun` → `t('signals.stock.perDay')`, `severity` qiymatlari (`critical`/`warning`/`ok`) tarjima qilindi
+---
 
-**Fayllar:**
-`apps/web/src/pages/LeaderboardPage.tsx`, `apps/api/src/leaderboard/leaderboard.service.ts`, `apps/web/src/api/types.ts`,
-`apps/web/src/pages/ComparePage.tsx`, `apps/web/src/components/BottomNav.tsx`,
-`apps/web/src/components/signals/types.ts`, `apps/web/src/components/signals/StockCliffsTab.tsx`, `apps/web/src/pages/SignalsPage.tsx`,
-`apps/web/src/i18n/uz.ts`, `apps/web/src/i18n/ru.ts`, `apps/web/src/i18n/en.ts`
+### T-498 | WORKER | Seller Index — barcha Uzum do'konlarini DB ga indekslash (2026-04-03)
 
-**Ta'sir:** Seller uchun sahifalar tushunarli tilda — texnik atamalar yo'q. Leaderboard kategoriya tab to'g'ri ishlaydi. Compare URL xatosi tuzatildi. BottomNav mobilda to'g'ri ko'rinadi. Signals iconlari professional ko'rinish oldi.
+**Manba:** user-feedback (2026-04-03)
+**Muammo:** Ventra `Shops` qidiruv sahifasida faqat foydalanuvchilar kuzatgan mahsulotlar orqali tasodifan topilgan ~34 ta do'kon bor edi. Uzum da mavjud minglab do'konlarning aksariyati topilmasdi (masalan "Giga Market").
+**Yechim:** `seller-index.processor.ts` yaratildi — 3 bosqichli indekslash: (0) DB mahsulotlaridan, (1) GraphQL makeSearch (429 bo'lsa skip), (2) Playwright bilan uzum.uz/ru dan 21 ta real kategoriya URL discovery + scrapeCategoryProductIds. Har mahsulotdan REST `/api/v2/product/{id}` orqali seller ma'lumoti olinib DB ga upsert qilinadi. Yakshanba 01:00 UTC cron + manual trigger. `seller-index.job.ts` + `main.ts` integratsiya. Birinchi run: 634 mahsulot → 307 yangi do'kon (~11 daqiqa).
+**Fayllar:** `apps/worker/src/processors/seller-index.processor.ts` (yangi), `apps/worker/src/jobs/seller-index.job.ts` (yangi), `apps/worker/src/main.ts`
+**Commit:** —
+**Vaqt:** 3h (plan: —)
+**Ta'sir:** DB da do'konlar 34 → 314 ga o'sdi. Ventra `Shops` qidiruvida Uzum da mavjud barcha do'konlar topiladi. Haftalik avtomatik yangilanadi.
+
+---
+
+### Kunlik sotuv manfiy bug fix | WORKER + FRONTEND | daily_orders_delta counter reset (2026-04-01)
+
+**Manba:** production-bug (Ziyoda, 2026-04-01)
+**Muammo:** `ProductSnapshotDaily.daily_orders_delta` Uzum counter reset bo'lganda manfiy qiymat saqlanardi (`data-cleanup.processor.ts` da clamp yo'q edi). Frontend `dailySales.slice(-1)` sana tekshirmasdan oxirgi elementni "bugun" deb olardi — bugungi data bo'lmasa kechaki va undan oldingi kunni taqqoslab `-20 ta` ko'rsatardi.
+**Yechim:** `data-cleanup.processor.ts` va `daily-aggregation.processor.ts` da `rawDelta < 0` → `null` (0 emas) saqlash. `ProductPage.tsx` da `slice(-1)` o'rniga `find(d => d.date === todayStr)` — sana bo'yicha aniq qidirish. DB fix: `UPDATE product_snapshot_daily SET daily_orders_delta = NULL WHERE daily_orders_delta < 0`.
+**Fayllar:** `apps/worker/src/processors/data-cleanup.processor.ts`, `apps/worker/src/processors/daily-aggregation.processor.ts`, `apps/web/src/pages/ProductPage.tsx`
+**Ta'sir:** Kunlik sotuv kartochkasi endi manfiy ko'rsatmaydi. Counter reset kunlari "—" ko'rinadi. Delta faqat bugun va kecha ikkisi ham mavjud bo'lganda ko'rsatiladi.
+
+---
+
+### T-481..T-485 | FRONTEND + BACKEND | Discovery/Shops/Sourcing UX bug sprint (2026-03-30)
+
+**Manba:** production-bug + user-feedback (Ziyoda, 2026-03-30)
+**Muammo:** 5 ta paralel bug/UX muammo: (1) Discovery skanlar faqat ruscha category nomi ko'rsatadi; (2) Shops sahifasida ID bilmagan seller do'kon nomini qidira olmaydi; (3) Sourcing page ochilganda default kurs bilan hisoblanadi, reload kerak; (4) Mavsumiy kalendar API field nomlari mos kelmaydi (name/start_month → season_name/season_start), bo'sh holat; (5) NicheFinderTab overflow, tushunarsiz niche_score va gap_ratio.
+**Yechim:** (1) `ScannerTab.tsx` — `localizedCategoryName()` uz/en/ru fallback, `Run` tipiga `category_name_uz/en` qo'shish; (2) `shops.service.ts` + `shops.controller.ts` — `GET /shops/search`, `ShopsPage.tsx` debounce suggestion dropdown; (3) `CargoCalculator.tsx` — `useRef` + `useEffect` rates load bo'lganda `item_cost_usd` yangilash; (4) `discovery.service.ts` field mapping fix, `SeasonalCalendarTab.tsx` card grid layout; (5) `NicheFinderTab.tsx` — `overflow-hidden`, tooltip, "Imkoniyat" badge, bo'sh holat namuna.
+**Fayllar:** `ScannerTab.tsx`, `types.ts` (discovery), `shops.service.ts`, `shops.controller.ts`, `tools.ts`, `ShopsPage.tsx`, `CargoCalculator.tsx`, `discovery.service.ts`, `SeasonalCalendarTab.tsx`, `NicheFinderTab.tsx`
+**Ta'sir:** Discovery ko'p tilli, Shops nom qidirish ishlaydi, Sourcing kurs avtomatik, Mavsumiy kalendar to'liq ishlaydi, Niche Finder UX tushunarli.
+
+---
+
+### T-478..T-494 | BACKEND + FRONTEND + WORKER | MML + RAG Pipeline — LightGBM, NeuralProphet, Chronos, pgvector (2026-03-28)
+
+**Manba:** ai-tahlil (docs/MML-RAG-STRATEGY.md, Ziyoda, 2026-03-28)
+**Muammo:** Platformada ML asosida sotuv bashorati, kategoriya intelligence, embedding-based RAG chat va model sifat monitoringi yo'q edi.
+**Yechim:** 17 ta task to'liq implementatsiya: Prisma migration (CategoryMetricSnapshot, MlPrediction, MlAuditLog, ProductEmbedding, ChatConversation, ChatMessage + pgvector HNSW indeks); Python FastAPI ML service (LightGBM sales + risk, NeuralProphet seasonal, Chronos zero-shot); NestJS predictions module + risk endpoint; BullMQ processors (category-aggregation, ml-prediction, embedding, rag-audit); RAG chat pipeline (classifier, retriever, Anthropic SSE streaming); React chat widget (SSE, 👍/👎, suhbat tarixi); CategoryIntelligenceTab; Admin ML Audit page (MAPE, direction, retrain); MODEL_DRIFT/PREDICTION_FAILURE alert tizimi.
+**Fayllar:** `apps/ml/` (4 fayl), `apps/api/src/chat/` (6 fayl), `apps/api/src/predictions/` (3 fayl), `apps/api/src/admin/admin-stats.service.ts`, `apps/api/src/admin/admin.controller.ts`, `apps/worker/src/processors/` (4 yangi processor), `apps/web/src/components/chat/` (4 fayl), `apps/web/src/components/admin/MlAuditTab.tsx`, `apps/web/src/components/discovery/CategoryIntelligenceTab.tsx`, `apps/web/src/hooks/useChat.ts`, prisma schema + migrations
+**Ta'sir:** 7 kunlik ML sotuv bashorati ishlaydi. Kategoriya o'sish/tushish intelligence. AI chat O'zbek tilida RAG bilan. Model sifati kunlik monitoring. Risk assessment badge mahsulotda ko'rinadi.
+
+---
 
 ### T-480 | P1 | BACKEND + FRONTEND | Discovery — getSuggestions ID lari bilan text search ishlatish (2026-03-30)
 

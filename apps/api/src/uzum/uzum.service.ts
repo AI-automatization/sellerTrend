@@ -8,6 +8,7 @@ import {
   SCORE_VERSION,
   getSupplyPressure,
   calcWeeklyBought,
+  calcWeeklyBoughtCurrentWeek,
   weeklyBoughtWithFallback,
   sleep,
   SNAPSHOT_MIN_GAP_MS,
@@ -128,20 +129,31 @@ export class UzumService {
       };
     }
 
-    // 5. Prefer stored scraped weekly_bought; fallback to calculated (transitional)
+    // 5. Prefer stored scraped weekly_bought; fallback to current-week calculation (Uzum formula)
     let weeklyBought: number | null = null;
     let wbSource = 'calculated';
-
     let wbConfidence = 0.30;
+
     const lastScraped = recentSnapshots.find((s) => s.weekly_bought != null && s.weekly_bought_source === 'scraped');
     if (lastScraped) {
+      // Scraper banner qiymatini ishlatish (eng aniq)
       weeklyBought = lastScraped.weekly_bought;
       wbSource = 'stored_scraped';
-      wbConfidence = 0.50;
+      wbConfidence = 0.80;
     } else {
-      const rawWeeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
-      weeklyBought = weeklyBoughtWithFallback(rawWeeklyBought, recentSnapshots);
-      wbConfidence = recentSnapshots.length >= 7 ? 0.50 : 0.30;
+      // Uzum banneri bilan mos: Dushanba 00:00 (UTC+5) dan hozirga qadar delta
+      const currentWeekWb = calcWeeklyBoughtCurrentWeek(recentSnapshots, currentOrders);
+      if (currentWeekWb !== null) {
+        weeklyBought = currentWeekWb;
+        wbSource = 'current_week';
+        wbConfidence = recentSnapshots.length >= 3 ? 0.70 : 0.40;
+      } else {
+        // Fallback: 7-kunlik rolling (eski usul)
+        const rawWeeklyBought = calcWeeklyBought(recentSnapshots, currentOrders);
+        weeklyBought = weeklyBoughtWithFallback(rawWeeklyBought, recentSnapshots);
+        wbSource = 'calculated';
+        wbConfidence = recentSnapshots.length >= 7 ? 0.50 : 0.30;
+      }
     }
     this.logger.log(
       `weekly_bought: product=${productId}, currentOrders=${currentOrders}, ` +
@@ -240,26 +252,23 @@ export class UzumService {
       .extractAttributes(BigInt(productId), detail.title)
       .catch(() => {});
 
-    // 10. AI — seller advice (score > 1 OR 50+ orders — Haiku ~$0.001/call)
-    let aiExplanation: string[] | null = null;
+    // 10. AI — seller advice (barcha mahsulotlar uchun — Haiku ~$0.001/call)
     const ordersQty = detail.ordersQuantity ?? 0;
-    if (scoreNum > 1 || ordersQty > 50) {
-      aiExplanation = await this.aiService
-        .explainWinner({
-          productId: BigInt(productId),
-          snapshotId: snapshot.id,
-          title: detail.title,
-          score: scoreNum,
-          weeklyBought: weeklyBought,
-          ordersQuantity: ordersQty,
-          discountPercent: primaryDiscount,
-          rating: detail.rating ?? 0,
-        })
-        .catch((err) => {
-          this.logger.warn(`AI explanation failed: ${err instanceof Error ? err.message : err}`);
-          return null;
-        });
-    }
+    const aiExplanation = await this.aiService
+      .explainWinner({
+        productId: BigInt(productId),
+        snapshotId: snapshot.id,
+        title: detail.title,
+        score: scoreNum,
+        weeklyBought: weeklyBought,
+        ordersQuantity: ordersQty,
+        discountPercent: primaryDiscount,
+        rating: detail.rating ?? 0,
+      })
+      .catch((err) => {
+        this.logger.warn(`AI explanation failed: ${err instanceof Error ? err.message : err}`);
+        return null;
+      });
 
     return {
       product_id: productId,
@@ -340,8 +349,13 @@ export class UzumService {
           weeklyBought = lastScraped.weekly_bought;
         } else {
           const currentOrders = detail.ordersQuantity ?? 0;
-          const rawWb = calcWeeklyBought(recentSnapshots, currentOrders);
-          weeklyBought = weeklyBoughtWithFallback(rawWb, recentSnapshots);
+          const cwWb = calcWeeklyBoughtCurrentWeek(recentSnapshots, currentOrders);
+          if (cwWb !== null) {
+            weeklyBought = cwWb;
+          } else {
+            const rawWb = calcWeeklyBought(recentSnapshots, currentOrders);
+            weeklyBought = weeklyBoughtWithFallback(rawWb, recentSnapshots);
+          }
         }
 
         const score = calculateScore({

@@ -747,4 +747,165 @@ export class AdminStatsService {
       },
     };
   }
+
+  /** RAG/Chat audit statistikasi — oxirgi N kun uchun */
+  async getRagAuditStats(period = 7) {
+    const since = new Date();
+    since.setDate(since.getDate() - period);
+
+    const [totalMsg, assistantMsg, feedbackUp, feedbackDown, costAgg, byIntent, daily] =
+      await Promise.all([
+        this.prisma.chatMessage.count({ where: { created_at: { gte: since } } }),
+        this.prisma.chatMessage.count({ where: { role: 'ASSISTANT', created_at: { gte: since } } }),
+        this.prisma.chatMessage.count({ where: { role: 'ASSISTANT', feedback: 'UP', created_at: { gte: since } } }),
+        this.prisma.chatMessage.count({ where: { role: 'ASSISTANT', feedback: 'DOWN', created_at: { gte: since } } }),
+        this.prisma.chatMessage.aggregate({
+          where: { role: 'ASSISTANT', cost_usd: { not: null }, created_at: { gte: since } },
+          _sum: { cost_usd: true, input_tokens: true, output_tokens: true },
+        }),
+        this.prisma.chatMessage.groupBy({
+          by: ['intent'],
+          where: { role: 'ASSISTANT', intent: { not: null }, created_at: { gte: since } },
+          _count: { id: true },
+          orderBy: { _count: { id: 'desc' } },
+        }),
+        this.prisma.$queryRaw<{ date: Date; messages: number; cost: number }[]>`
+          SELECT DATE(created_at) as date,
+                 COUNT(*)::int as messages,
+                 COALESCE(SUM(cost_usd::float), 0) as cost
+          FROM chat_messages
+          WHERE created_at >= ${since}
+            AND role = 'ASSISTANT'
+          GROUP BY DATE(created_at)
+          ORDER BY date ASC
+        `,
+      ]);
+
+    const totalFeedback = feedbackUp + feedbackDown;
+    const satisfactionPct = totalFeedback > 0
+      ? Math.round((feedbackUp / totalFeedback) * 100)
+      : null;
+
+    return {
+      period_days: period,
+      total_messages: totalMsg,
+      assistant_messages: assistantMsg,
+      feedback: {
+        up: feedbackUp,
+        down: feedbackDown,
+        total: totalFeedback,
+        satisfaction_pct: satisfactionPct,
+      },
+      cost: {
+        total_usd: Number(Number(costAgg._sum.cost_usd ?? 0).toFixed(4)),
+        input_tokens: costAgg._sum.input_tokens ?? 0,
+        output_tokens: costAgg._sum.output_tokens ?? 0,
+        avg_per_message: assistantMsg > 0
+          ? Number((Number(costAgg._sum.cost_usd ?? 0) / assistantMsg).toFixed(6))
+          : 0,
+      },
+      by_intent: byIntent.map((r) => ({
+        intent: r.intent ?? 'GENERAL',
+        count: r._count.id,
+      })),
+      daily: daily.map((r) => ({
+        date: r.date instanceof Date ? r.date.toISOString().split('T')[0] : String(r.date),
+        messages: r.messages,
+        cost: Number(Number(r.cost).toFixed(6)),
+      })),
+    };
+  }
+
+  /**
+   * T-493 — ML model audit: MAPE, direction accuracy, model comparison.
+   * ml_audit_logs dan so'nggi N kun aggregatsiyasi.
+   */
+  async getMlAuditStats(period = 7): Promise<{
+    period_days: number;
+    models: Array<{
+      model_name: string;
+      avg_mape: number;
+      direction_accuracy: number | null;
+      audit_count: number;
+      last_audit: string | null;
+    }>;
+    total_predictions: number;
+    generated_at: string;
+  }> {
+    const since = new Date();
+    since.setDate(since.getDate() - period);
+
+    const rows = await this.prisma.$queryRaw<Array<{
+      model_name: string;
+      avg_mape: number;
+      audit_count: number;
+      last_audit: Date;
+    }>>`
+      SELECT
+        model_name,
+        AVG(error_pct)::float             AS avg_mape,
+        COUNT(*)::int                     AS audit_count,
+        MAX(created_at)                   AS last_audit
+      FROM ml_audit_logs
+      WHERE created_at >= ${since}
+      GROUP BY model_name
+      ORDER BY audit_count DESC
+    `;
+
+    // Direction accuracy — predicted vs actual increasing/decreasing direction
+    const dirRows = await this.prisma.$queryRaw<Array<{
+      model_name: string;
+      direction_accuracy: number;
+    }>>`
+      SELECT
+        model_name,
+        AVG(CASE
+          WHEN (predicted_value > 0) = (actual_value > 0) THEN 1.0
+          ELSE 0.0
+        END)::float AS direction_accuracy
+      FROM ml_audit_logs
+      WHERE created_at >= ${since}
+        AND actual_value IS NOT NULL
+      GROUP BY model_name
+    `;
+    const dirMap = new Map(dirRows.map((r) => [r.model_name, r.direction_accuracy]));
+
+    const totalPredictions = rows.reduce((s, r) => s + (r.audit_count ?? 0), 0);
+
+    return {
+      period_days: period,
+      models: rows.map((r) => ({
+        model_name: r.model_name,
+        avg_mape: Number(Number(r.avg_mape ?? 0).toFixed(1)),
+        direction_accuracy: dirMap.has(r.model_name)
+          ? Number((dirMap.get(r.model_name)! * 100).toFixed(1))
+          : null,
+        audit_count: r.audit_count,
+        last_audit: r.last_audit ? new Date(r.last_audit).toISOString() : null,
+      })),
+      total_predictions: totalPredictions,
+      generated_at: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * T-493 — ML model retrain trigger: Python ML service ga POST yuboradi.
+   */
+  async triggerMlRetrain(): Promise<{ status: string; message: string }> {
+    const mlServiceUrl = process.env.ML_SERVICE_URL ?? 'http://localhost:8000';
+    try {
+      const res = await fetch(`${mlServiceUrl}/batch/retrain`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ days: 90 }),
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!res.ok) {
+        return { status: 'error', message: `ML service error: ${res.status}` };
+      }
+      return { status: 'ok', message: 'Retrain boshlandi — model yangilanmoqda' };
+    } catch {
+      return { status: 'error', message: 'ML service bilan aloqa yo\'q' };
+    }
+  }
 }

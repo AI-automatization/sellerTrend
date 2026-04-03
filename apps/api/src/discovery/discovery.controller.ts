@@ -185,4 +185,16 @@ export class DiscoveryController {
   getUpcomingSeasons() {
     return this.discoveryService.getUpcomingSeasons();
   }
+
+  // ============================================================
+  // T-492 — Kategoriya Intelligence Dashboard
+  // ============================================================
+
+  @Get('categories/intelligence')
+  getCategoryIntelligence(
+    @Query('limit') limitParam?: string,
+  ) {
+    const limit = limitParam ? parseInt(limitParam, 10) || 50 : 50;
+    return this.discoveryService.getCategoryIntelligence(limit);
+  }
 }

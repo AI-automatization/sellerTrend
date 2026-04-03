@@ -198,10 +198,10 @@ export class DiscoveryService {
     return {
       events: trends.map((t) => ({
         id: t.id,
-        name: t.season_name,
-        start_month: t.season_start,
-        end_month: t.season_end,
-        boost: t.avg_score_boost ? Number(t.avg_score_boost) : null,
+        season_name: t.season_name,
+        season_start: t.season_start,
+        season_end: t.season_end,
+        avg_score_boost: t.avg_score_boost ? Number(t.avg_score_boost) : null,
         peak_week: t.peak_week,
         category_id: t.category_id?.toString() ?? null,
       })),
@@ -239,12 +239,102 @@ export class DiscoveryService {
       current_month: currentMonth,
       events: upcoming.map((t) => ({
         id: t.id,
-        name: t.season_name,
-        start_month: t.season_start,
-        end_month: t.season_end,
-        boost: t.avg_score_boost ? Number(t.avg_score_boost) : null,
+        season_name: t.season_name,
+        season_start: t.season_start,
+        season_end: t.season_end,
+        avg_score_boost: t.avg_score_boost ? Number(t.avg_score_boost) : null,
         peak_week: t.peak_week,
       })),
+    };
+  }
+
+  /**
+   * Kategoriya intelligence: growing/saturating/declining/emerging klassifikatsiya.
+   * category_metric_snapshots dan so'nggi 14 kun dinamikasiga qarab.
+   */
+  async getCategoryIntelligence(limit = 50): Promise<{
+    categories: Array<{
+      category_id: string;
+      product_count: number;
+      avg_score: number;
+      avg_weekly_sold: number;
+      weekly_sold_change_pct: number | null;
+      trend: 'growing' | 'saturating' | 'declining' | 'emerging';
+    }>;
+    generated_at: string;
+  }> {
+    const since = new Date();
+    since.setDate(since.getDate() - 14);
+
+    // Her kategoriya uchun so'nggi 2 ta snapshot
+    const rows = await this.prisma.$queryRaw<Array<{
+      category_id: bigint;
+      product_count: number;
+      avg_score: number;
+      avg_weekly_sold: number;
+      snapshot_at: Date;
+      rn: bigint;
+    }>>`
+      SELECT category_id, product_count,
+             CAST(avg_score AS DOUBLE PRECISION) AS avg_score,
+             avg_weekly_sold,
+             snapshot_at,
+             ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY snapshot_at DESC) AS rn
+      FROM category_metric_snapshots
+      WHERE snapshot_at >= ${since}
+      ORDER BY category_id, snapshot_at DESC
+    `;
+
+    // Kategoriya bo'yicha guruhlashtirish
+    const byCategory = new Map<string, { latest: typeof rows[0]; prev: typeof rows[0] | null }>();
+    for (const row of rows) {
+      const key = row.category_id.toString();
+      const rn = Number(row.rn);
+      if (rn === 1) {
+        byCategory.set(key, { latest: row, prev: null });
+      } else if (rn === 2) {
+        const existing = byCategory.get(key);
+        if (existing) existing.prev = row;
+      }
+    }
+
+    const categories = Array.from(byCategory.entries())
+      .map(([catId, { latest, prev }]) => {
+        const currentWb = latest.avg_weekly_sold;
+        const prevWb = prev?.avg_weekly_sold ?? null;
+
+        let changePct: number | null = null;
+        if (prevWb !== null && prevWb > 0) {
+          changePct = ((currentWb - prevWb) / prevWb) * 100;
+        }
+
+        // Klassifikatsiya
+        let trend: 'growing' | 'saturating' | 'declining' | 'emerging';
+        if (latest.product_count < 10) {
+          trend = 'emerging';
+        } else if (changePct !== null && changePct > 10) {
+          trend = 'growing';
+        } else if (changePct !== null && changePct < -10) {
+          trend = 'declining';
+        } else {
+          trend = 'saturating';
+        }
+
+        return {
+          category_id: catId,
+          product_count: latest.product_count,
+          avg_score: Number(latest.avg_score.toFixed(4)),
+          avg_weekly_sold: Math.round(currentWb),
+          weekly_sold_change_pct: changePct !== null ? Math.round(changePct * 10) / 10 : null,
+          trend,
+        };
+      })
+      .sort((a, b) => b.avg_weekly_sold - a.avg_weekly_sold)
+      .slice(0, limit);
+
+    return {
+      categories,
+      generated_at: new Date().toISOString(),
     };
   }
 }

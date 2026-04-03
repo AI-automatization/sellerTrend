@@ -365,6 +365,24 @@ export class AdminController {
     return this.statsService.getAiUsageStats(period ? parseInt(period) : 30);
   }
 
+  /** T-489 — RAG/Chat audit statistikasi */
+  @Get('rag-audit')
+  getRagAuditStats(@Query('period') period?: string) {
+    return this.statsService.getRagAuditStats(period ? parseInt(period) : 7);
+  }
+
+  /** T-493 — ML model audit: MAPE, direction accuracy, model comparison */
+  @Get('ml-audit')
+  getMlAuditStats(@Query('period') period?: string) {
+    return this.statsService.getMlAuditStats(period ? parseInt(period) : 7);
+  }
+
+  /** T-493 — ML model retrain trigger */
+  @Post('ml-audit/retrain')
+  triggerMlRetrain() {
+    return this.statsService.triggerMlRetrain();
+  }
+
   // ============================================================
   // FEEDBACK ENDPOINTS
   // ============================================================

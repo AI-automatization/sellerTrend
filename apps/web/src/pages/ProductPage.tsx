@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useI18n } from '../i18n/I18nContext';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useParams, useNavigate } from 'react-router-dom';
-import { uzumApi, productsApi, sourcingApi } from '../api/client';
+import { uzumApi, productsApi, sourcingApi, predictionsApi } from '../api/client';
 import { getErrorMessage } from '../utils/getErrorMessage';
 import { logError } from '../utils/handleError';
 import { formatDateTime, formatWeekdayDate } from '../utils/formatDate';
@@ -30,7 +30,7 @@ import {
   GlobalPriceComparison,
 } from '../components/product';
 import type { ExternalItem } from '../components/product';
-import type { AnalyzeResult, WeeklyTrend, Forecast, Snapshot, MlForecast, TrendAnalysis, ProductDetail } from '../api/types';
+import type { AnalyzeResult, WeeklyTrend, Forecast, Snapshot, MlForecast, TrendAnalysis, ProductDetail, DailySalesPoint, PredictionResult, RiskResult } from '../api/types';
 import { glassTooltip, CHART_ANIMATION_MS } from '../utils/formatters';
 
 
@@ -66,8 +66,21 @@ export function ProductPage() {
   const [trendAnalysis, setTrendAnalysis] = useState<TrendAnalysis | null>(null);
   const [mlLoading, setMlLoading] = useState(false);
 
+  // Claude AI analysis — only triggered when "Bu mening mahsulotim" is clicked
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiRequested, setAiRequested] = useState(false);
+
   // Weekly trend state
   const [weeklyTrend, setWeeklyTrend] = useState<WeeklyTrend | null>(null);
+
+  // Kunlik sotuv tarixi (T-497)
+  const [dailySales, setDailySales] = useState<DailySalesPoint[]>([]);
+
+  // ML predictions (T-483) — ensemble fallback
+  const [mlPrediction, setMlPrediction] = useState<PredictionResult | null>(null);
+
+  // ML risk score (T-496)
+  const [riskData, setRiskData] = useState<RiskResult | null>(null);
 
   // UI collapse state
   const [showHistory, setShowHistory] = useState(false);
@@ -111,8 +124,9 @@ export function ProductPage() {
       }
       setSnapshots(
         Array.from(byDay.entries()).map(([key, val]) => {
-          const [, m, day] = key.split('-').map(Number);
-          return { date: `${day} ${MONTHS[m]}`, score: val.score, orders: val.orders };
+          const parts = key.split('-').map(Number);
+          const [year, m, day] = parts;
+          return { date: `${day} ${MONTHS[m]} '${String(year).slice(2)}`, score: val.score, orders: val.orders };
         }),
       );
       if (forecastRes.data) setForecast(forecastRes.data);
@@ -147,14 +161,30 @@ export function ProductPage() {
     setMlLoading(true);
     Promise.all([
       productsApi.getMlForecast(pid).catch(() => ({ data: null })),
-      productsApi.getTrendAnalysis(pid).catch(() => ({ data: null })),
       productsApi.getWeeklyTrend(pid).catch(() => ({ data: null })),
-    ]).then(([mlRes, trendRes, weeklyRes]) => {
+      productsApi.getDailySales(pid).catch(() => ({ data: [] })),
+      predictionsApi.getPrediction(pid).catch(() => ({ data: null })),
+      predictionsApi.getRisk(pid).catch(() => ({ data: null })),
+    ]).then(([mlRes, weeklyRes, dailyRes, predRes, riskRes]) => {
       if (mlRes.data) setMlForecast(mlRes.data);
-      if (trendRes.data) setTrendAnalysis(trendRes.data);
       if (weeklyRes.data) setWeeklyTrend(weeklyRes.data);
+      if (Array.isArray(dailyRes.data) && dailyRes.data.length > 0) setDailySales(dailyRes.data);
+      if (predRes.data?.predictions) setMlPrediction(predRes.data);
+      if (riskRes.data) setRiskData(riskRes.data);
     }).finally(() => setMlLoading(false));
   }, [loadedProductId]);
+
+  // Load Claude AI trend analysis only when user clicks "Bu mening mahsulotim"
+  useEffect(() => {
+    if (!aiRequested || !loadedProductId || trendAnalysis) return;
+    const pid = String(loadedProductId);
+    setAiLoading(true);
+    productsApi.getTrendAnalysis(pid)
+      .then((res) => { if (res.data) setTrendAnalysis(res.data); })
+      .catch(() => {})
+      .finally(() => setAiLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiRequested, loadedProductId]);
 
   // useEffect 1 — job yaratish
   useEffect(() => {
@@ -206,16 +236,27 @@ export function ProductPage() {
     setExtJobId(null);
     setExtJobStatus(null);
     setMlForecast(null);
+    setMlPrediction(null);
     setTrendAnalysis(null);
     setWeeklyTrend(null);
     setProductDetail(null);
-    try { setIsMine(localStorage.getItem(`mine_${id}`) === '1'); } catch { /* ignore */ }
+    setAiLoading(false);
+    try {
+      const savedMine = localStorage.getItem(`mine_${id}`) === '1';
+      setIsMine(savedMine);
+      // Avval "mening mahsulotim" deb belgilangan bo'lsa — AI tahlilni auto-trigger qilish
+      setAiRequested(savedMine);
+    } catch {
+      setAiRequested(false);
+    }
   }, [id]);
 
   function toggleMine() {
     const next = !isMine;
     setIsMine(next);
     try { if (next) { localStorage.setItem(`mine_${id}`, '1'); } else { localStorage.removeItem(`mine_${id}`); } } catch { /* ignore */ }
+    // Trigger Claude AI analysis when marking as mine
+    if (next) setAiRequested(true);
   }
 
   async function handleTrack() {
@@ -286,6 +327,16 @@ export function ProductPage() {
               <span className="badge badge-outline text-xs font-mono">#{result.product_id}</span>
               <span className={`text-xs font-medium ${scoreLevel.color}`}>{scoreLevel.text}</span>
               {isMine && <span className="badge badge-secondary badge-sm">🏪 {t('product.markedMine')}</span>}
+              {riskData && (
+                <span className={`badge badge-sm ${
+                  riskData.risk_level === 'critical' ? 'badge-error' :
+                  riskData.risk_level === 'high' ? 'badge-warning' :
+                  riskData.risk_level === 'medium' ? 'badge-info' :
+                  'badge-success'
+                }`}>
+                  ⚠ Risk: {riskData.risk_level} ({Math.round(riskData.risk_score * 100)}%)
+                </span>
+              )}
             </div>
             <h1 className="font-bold text-xl lg:text-2xl leading-snug">{result.title}</h1>
             <ScoreMeter score={result.score} />
@@ -336,13 +387,64 @@ export function ProductPage() {
       </div>
 
       {/* Key metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
         <StatCard
           label={t('product.totalOrders')}
           value={result.orders_quantity != null ? Number(result.orders_quantity).toLocaleString() : '—'}
           sub={t('product.allTime')} accent="text-primary"
           icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>}
         />
+        {/* Kunlik sotuv (T-497) */}
+        {(() => {
+          // Sanaga asoslanib qidirish — slice(-1) ishonchsiz (bugungi data bo'lmasligi mumkin)
+          const todayStr = new Date().toISOString().split('T')[0];
+          const yesterdayStr = new Date(Date.now() - 86_400_000).toISOString().split('T')[0];
+
+          const todayEntry = dailySales.find((d) => d.date === todayStr);
+          const yesterdayEntry = dailySales.find((d) => d.date === yesterdayStr);
+
+          // fallback: weeklyTrend.daily_breakdown (live snapshot, Math.max(0,...) allaqachon qo'llanilgan)
+          const rawTodaySold = todayEntry?.daily_orders_delta
+            ?? weeklyTrend?.daily_breakdown?.find((d) => d.date === todayStr)?.daily_sold
+            ?? null;
+          const todaySold = rawTodaySold != null ? Math.max(0, rawTodaySold) : null;
+
+          const rawPrevSold = yesterdayEntry?.daily_orders_delta
+            ?? weeklyTrend?.daily_breakdown?.find((d) => d.date === yesterdayStr)?.daily_sold
+            ?? null;
+          const prevSold = rawPrevSold != null ? Math.max(0, rawPrevSold) : null;
+
+          // Delta faqat ikkalasi ham mavjud bo'lganda ko'rsatiladi
+          const delta = todaySold != null && prevSold != null ? todaySold - prevSold : null;
+
+          return (
+            <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 lg:p-4">
+              <div className="flex items-start justify-between mb-1">
+                <p className="text-xs text-base-content/50">Kunlik sotuv</p>
+                <svg className="w-4 h-4 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <p className={`font-bold text-lg tabular-nums leading-tight ${
+                  todaySold != null && todaySold > 0 ? 'text-success' : 'text-base-content/30'
+                }`}>
+                  {todaySold != null ? todaySold.toLocaleString() : '—'}
+                </p>
+                {delta != null && delta !== 0 && (
+                  <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
+                    delta > 0 ? 'bg-success/20 text-success' : 'bg-error/20 text-error'
+                  }`}>
+                    {delta > 0 ? '+' : ''}{delta} ta
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-base-content/40 mt-0.5">
+                {todaySold == null ? 'Ma\'lumot yig\'ilmoqda' : 'bugun / kecha delta'}
+              </p>
+            </div>
+          );
+        })()}
         <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 lg:p-4">
           <div className="flex items-start justify-between mb-1">
             <p className="text-xs text-base-content/50">{t('product.weeklySales')}</p>
@@ -369,7 +471,9 @@ export function ProductPage() {
           <p className="text-xs text-base-content/40 mt-0.5">
             {weeklyTrend?.delta_pct != null
               ? `7 kun ichida ${weeklyTrend.delta_pct > 0 ? '+' : ''}${weeklyTrend.delta_pct}%`
-              : t('product.lastWeek')}
+              : result.weekly_bought == null
+                ? 'Uzum banner yo\'q'
+                : t('product.lastWeek')}
           </p>
         </div>
         <StatCard
@@ -428,7 +532,7 @@ export function ProductPage() {
         />
       </div>
 
-      {/* AI Explanation — sotuvchi uchun eng muhim, metrics dan keyin */}
+      {/* AI Explanation — Uzum AI tahlili, barcha mahsulotlarda ko'rinadi */}
       {result.ai_explanation && result.ai_explanation.filter((b) => typeof b === 'string' && b.trim().length > 0).length > 0 && (() => {
         const bullets = result.ai_explanation!.filter((b) => typeof b === 'string' && b.trim().length > 0);
         const bulletMeta = [
@@ -458,6 +562,89 @@ export function ProductPage() {
                 );
               })}
             </ul>
+          </div>
+        );
+      })()}
+
+      {/* Kunlik sotuv tarixi (T-497) */}
+      {dailySales.length > 0 && (() => {
+        const hasData = dailySales.some((d) => d.daily_orders_delta != null && d.daily_orders_delta > 0);
+        if (!hasData) return null;
+
+        const chartData = dailySales.map((d) => ({
+          date: d.date.slice(5),  // 'MM-DD'
+          sotuv: d.daily_orders_delta ?? 0,
+        }));
+
+        const totalSold = dailySales.reduce((s, d) => s + (d.daily_orders_delta ?? 0), 0);
+        const avgDaily = dailySales.filter((d) => (d.daily_orders_delta ?? 0) > 0).length > 0
+          ? Math.round(totalSold / dailySales.filter((d) => (d.daily_orders_delta ?? 0) > 0).length)
+          : 0;
+        const maxDay = dailySales.reduce(
+          (best, d) => (d.daily_orders_delta ?? 0) > (best.daily_orders_delta ?? 0) ? d : best,
+          dailySales[0],
+        );
+
+        return (
+          <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-base lg:text-lg flex items-center gap-2">
+                <svg className="w-5 h-5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Kunlik sotuv (30 kun)
+              </h2>
+              <span className="text-xs text-base-content/40">delta = bugungi − kechagi buyurtma</span>
+            </div>
+
+            {/* Mini stats */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-base-300/60 rounded-xl p-3 text-center">
+                <p className="text-xs text-base-content/50 mb-1">Jami (30 kun)</p>
+                <p className="font-bold text-lg text-success tabular-nums">{totalSold.toLocaleString()}</p>
+              </div>
+              <div className="bg-base-300/60 rounded-xl p-3 text-center">
+                <p className="text-xs text-base-content/50 mb-1">O'rtacha / kun</p>
+                <p className="font-bold text-lg tabular-nums">{avgDaily.toLocaleString()}</p>
+              </div>
+              <div className="bg-base-300/60 rounded-xl p-3 text-center">
+                <p className="text-xs text-base-content/50 mb-1">Eng yaxshi kun</p>
+                <p className="font-bold text-lg text-primary tabular-nums">
+                  {(maxDay.daily_orders_delta ?? 0).toLocaleString()}
+                </p>
+                <p className="text-[10px] text-base-content/40">{maxDay.date}</p>
+              </div>
+            </div>
+
+            {/* Bar chart */}
+            <ResponsiveContainer width="100%" height={140}>
+              <BarChart data={chartData} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 10, fill: '#ffffff40' }}
+                  interval={Math.floor(chartData.length / 6)}
+                />
+                <YAxis tick={{ fontSize: 10, fill: '#ffffff40' }} />
+                <Tooltip
+                  contentStyle={glassTooltip}
+                  formatter={(v: number) => [`${v} ta`, 'Sotuv']}
+                  labelFormatter={(l: string) => `📅 ${l}`}
+                />
+                <Bar dataKey="sotuv" radius={[3, 3, 0, 0]}>
+                  {chartData.map((entry, i) => (
+                    <Cell
+                      key={i}
+                      fill={entry.sotuv >= avgDaily ? '#34d399' : '#6b7280'}
+                      fillOpacity={entry.sotuv >= avgDaily ? 0.85 : 0.45}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+            <p className="text-xs text-base-content/30 text-center">
+              Yashil = o'rtachadan yuqori ({avgDaily}+ ta/kun)
+            </p>
           </div>
         );
       })()}
@@ -535,34 +722,63 @@ export function ProductPage() {
             )}
           </div>
 
+          {/* No data notice */}
+          {weeklyTrend.weekly_sold == null || weeklyTrend.weekly_sold === 0 ? (
+            result.weekly_bought == null ? (
+              <div className="rounded-xl bg-base-300/40 border border-base-300/60 p-3 text-xs text-base-content/50 space-y-1">
+                <p className="font-semibold text-base-content/70">📊 Haftalik sotuv ma'lumoti yo'q</p>
+                <p>Sabab 1: Uzum bu mahsulot uchun "haftalik sotildi" bannerini ko'rsatmaydi (kam sotuv yoki yangi mahsulot).</p>
+                <p>Sabab 2: Buyurtmalar soni snapshot'lar orasida o'zgarmagan (yangi tracking yoki haqiqatan sotuv yo'q).</p>
+                <p className="text-base-content/40">7–14 kun kuzatishdan keyin ma'lumot to'planadi.</p>
+              </div>
+            ) : null
+          ) : null}
+
           {/* Summary row */}
+          {(() => {
+            // result.weekly_bought = fresh Uzum API data (most accurate)
+            // weeklyTrend.weekly_sold = stored snapshot (may be 0/stale)
+            const effectiveCurrent =
+              weeklyTrend.weekly_sold != null && weeklyTrend.weekly_sold > 0
+                ? weeklyTrend.weekly_sold
+                : (result.weekly_bought ?? null);
+            const effectivePrev = weeklyTrend.prev_weekly_sold;
+            const effectiveDelta =
+              effectiveCurrent != null && effectivePrev != null
+                ? effectiveCurrent - effectivePrev
+                : weeklyTrend.delta;
+            const effectiveDeltaPct =
+              effectiveDelta != null && effectivePrev != null && effectivePrev > 0
+                ? Number(((effectiveDelta / effectivePrev) * 100).toFixed(1))
+                : weeklyTrend.delta_pct;
+            return (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 text-center">
               <p className="text-xs text-base-content/50">{t('product.thisWeek')}</p>
               <p className="font-bold text-xl tabular-nums text-success">
-                {weeklyTrend.weekly_sold != null ? weeklyTrend.weekly_sold.toLocaleString() : '—'}
+                {effectiveCurrent != null ? effectiveCurrent.toLocaleString() : '—'}
               </p>
               <p className="text-xs text-base-content/40">{t('product.sales')}</p>
             </div>
             <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 text-center">
               <p className="text-xs text-base-content/50">{t('product.lastWeek')}</p>
               <p className="font-bold text-xl tabular-nums">
-                {weeklyTrend.prev_weekly_sold != null ? weeklyTrend.prev_weekly_sold.toLocaleString() : '—'}
+                {effectivePrev != null && effectivePrev > 0 ? effectivePrev.toLocaleString() : '—'}
               </p>
               <p className="text-xs text-base-content/40">{t('product.sales')}</p>
             </div>
             <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 text-center">
               <p className="text-xs text-base-content/50">{t('product.difference')}</p>
               <p className={`font-bold text-xl tabular-nums ${
-                weeklyTrend.delta != null && weeklyTrend.delta > 0 ? 'text-success' :
-                weeklyTrend.delta != null && weeklyTrend.delta < 0 ? 'text-error' : ''
+                effectiveDelta != null && effectiveDelta > 0 ? 'text-success' :
+                effectiveDelta != null && effectiveDelta < 0 ? 'text-error' : ''
               }`}>
-                {weeklyTrend.delta != null
-                  ? `${weeklyTrend.delta > 0 ? '+' : ''}${weeklyTrend.delta}`
+                {effectiveDelta != null
+                  ? `${effectiveDelta > 0 ? '+' : ''}${effectiveDelta}`
                   : '—'}
               </p>
               <p className="text-xs text-base-content/40">
-                {weeklyTrend.delta_pct != null ? `${weeklyTrend.delta_pct > 0 ? '+' : ''}${weeklyTrend.delta_pct}%` : t('product.sales')}
+                {effectiveDeltaPct != null ? `${effectiveDeltaPct > 0 ? '+' : ''}${effectiveDeltaPct}%` : t('product.sales')}
               </p>
             </div>
             <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 text-center">
@@ -577,37 +793,46 @@ export function ProductPage() {
               )}
             </div>
           </div>
+            );
+          })()}
 
           {/* Daily sales chart */}
-          {weeklyTrend.daily_breakdown.length > 1 && (
-            <div>
-              <p className="text-xs text-base-content/50 mb-2">{t('product.dailySales')} (taxminiy)</p>
-              <ResponsiveContainer width="100%" height={160}>
-                <BarChart data={weeklyTrend.daily_breakdown} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 10, fill: 'var(--chart-tick)' }}
-                    tickFormatter={(v) => { const d = new Date(v); return `${d.getDate()}/${d.getMonth() + 1}`; }}
-                    tickLine={false} axisLine={false}
-                  />
-                  <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
-                  <Tooltip
-                    {...glassTooltip}
-                    labelFormatter={(v: string) => formatWeekdayDate(v)}
-                    formatter={(value: number) => [`${value} ta`, 'Kunlik sotuv']}
-                  />
-                  <Bar dataKey="daily_sold" radius={[4, 4, 0, 0]} name="Kunlik sotuv" animationDuration={CHART_ANIMATION_MS}>
-                    {weeklyTrend.daily_breakdown.map((_entry, i) => (
-                      <Cell key={i} fill={
-                        i === weeklyTrend.daily_breakdown.length - 1 ? '#a78bfa' : '#34d399'
-                      } />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+          {(() => {
+            // dailySales dan oxirgi 7 kunni ol (bir manba — ProductSnapshotDaily)
+            const last7 = dailySales.slice(-7).filter((d) => d.daily_orders_delta != null);
+            if (last7.length < 2) return null;
+            const chartData7 = last7.map((d) => ({
+              date: d.date,
+              daily_sold: Math.max(0, d.daily_orders_delta ?? 0),
+            }));
+            return (
+              <div>
+                <p className="text-xs text-base-content/50 mb-2">{t('product.dailySales')}</p>
+                <ResponsiveContainer width="100%" height={160}>
+                  <BarChart data={chartData7} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 10, fill: 'var(--chart-tick)' }}
+                      tickFormatter={(v) => { const d = new Date(v); return `${d.getDate()}/${d.getMonth() + 1}`; }}
+                      tickLine={false} axisLine={false}
+                    />
+                    <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
+                    <Tooltip
+                      {...glassTooltip}
+                      labelFormatter={(v: string) => formatWeekdayDate(v)}
+                      formatter={(value: number) => [`${value} ta`, 'Kunlik sotuv']}
+                    />
+                    <Bar dataKey="daily_sold" radius={[4, 4, 0, 0]} name="Kunlik sotuv" animationDuration={CHART_ANIMATION_MS}>
+                      {chartData7.map((_entry, i) => (
+                        <Cell key={i} fill={i === chartData7.length - 1 ? '#a78bfa' : '#34d399'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            );
+          })()}
 
           {/* Seller advice */}
           {weeklyTrend.advice && (
@@ -638,9 +863,45 @@ export function ProductPage() {
       )}
       </ErrorBoundary>
 
-      {/* ML Forecast — Feature 11 (collapsible) */}
+      {/* Claude AI Tahlili — faqat "Bu mening mahsulotim" bosilganda chiqadi */}
+      <ErrorBoundary variant="section" label="Claude AI tahlili">
+      {isMine && (aiLoading || trendAnalysis) && (
+        <div className="rounded-2xl bg-base-200/60 border border-primary/20 p-4 lg:p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🤖</span>
+            <h2 className="font-bold text-base lg:text-lg">Claude AI Tahlili</h2>
+            <span className="badge badge-secondary badge-sm">🏪 Mening mahsulotim</span>
+            <span className="badge badge-primary badge-sm ml-auto">AI</span>
+          </div>
+          {aiLoading && !trendAnalysis ? (
+            <div className="flex items-center gap-3 py-3">
+              <span className="loading loading-dots loading-md text-primary" />
+              <span className="text-sm text-base-content/50">Claude AI tahlil qilmoqda...</span>
+            </div>
+          ) : trendAnalysis?.analysis ? (
+            <div className="space-y-3">
+              <p className="text-sm text-base-content/80 leading-relaxed">{trendAnalysis.analysis}</p>
+              {trendAnalysis.factors.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {trendAnalysis.factors.map((f, i) => (
+                    <span key={i} className="badge badge-outline badge-sm">{f}</span>
+                  ))}
+                </div>
+              )}
+              {trendAnalysis.recommendation && (
+                <div className="bg-primary/10 border border-primary/20 rounded-xl p-3">
+                  <p className="text-sm font-medium text-primary">💡 Tavsiya: {trendAnalysis.recommendation}</p>
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
+      )}
+      </ErrorBoundary>
+
+      {/* ML Forecast — Feature 11 (collapsible). mlPrediction = fallback when mlForecast unavailable */}
       <ErrorBoundary variant="section" label="Sotuv bashorati">
-      {(mlForecast || mlLoading) && (
+      {(mlForecast || mlPrediction || mlLoading) && (
         <div className="rounded-2xl bg-base-200/60 border border-primary/20 p-4 lg:p-6 space-y-4">
           <button
             onClick={() => setShowMlDetail((v) => !v)}
@@ -652,11 +913,53 @@ export function ProductPage() {
             <span className="ml-auto text-base-content/40 text-sm">{showMlDetail ? '▲' : '▼'}</span>
           </button>
 
-          {showMlDetail && mlLoading && !mlForecast ? (
+          {showMlDetail && mlLoading && !mlForecast && !mlPrediction ? (
             <div className="flex justify-center py-8">
               <span className="loading loading-dots loading-lg text-primary" />
             </div>
-          ) : showMlDetail && mlForecast && (
+          ) : showMlDetail && !mlForecast && mlPrediction && mlPrediction.predictions && (
+            /* mlForecast yo'q — mlPrediction (batch ML cache) dan oddiy grafik */
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3">
+                  <p className="text-xs text-base-content/50">7 kunlik sotuv bashorati</p>
+                  <p className="font-bold text-lg tabular-nums text-primary">
+                    ~{Math.round(mlPrediction.predictions[mlPrediction.predictions.length - 1].value)} ta
+                  </p>
+                  <p className="text-xs text-base-content/40 mt-0.5">{mlPrediction.model_name}</p>
+                </div>
+                <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3">
+                  <p className="text-xs text-base-content/50">Model xatoligi (MAE)</p>
+                  <p className="font-bold text-lg tabular-nums">
+                    {mlPrediction.mae != null ? `±${mlPrediction.mae.toFixed(1)}` : '—'}
+                  </p>
+                  <p className="text-xs text-base-content/40 mt-0.5">{mlPrediction.horizon} kunlik</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-base-content/50 mb-2">Sotuv bashorati (keyingi 7 kun)</p>
+                <ResponsiveContainer width="100%" height={140}>
+                  <AreaChart
+                    data={mlPrediction.predictions.map((p, i) => ({ day: `+${i + 1}k`, value: Math.round(p.value) }))}
+                    margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="predGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.25} />
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                    <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                    <Tooltip contentStyle={glassTooltip} formatter={(v: number) => [`${v} ta`, 'Bashorat']} />
+                    <Area type="monotone" dataKey="value" stroke="#6366f1" strokeWidth={2} fill="url(#predGrad)" dot={{ r: 3, fill: '#6366f1' }} animationDuration={CHART_ANIMATION_MS} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+          {showMlDetail && mlForecast && (
             <>
               {/* Score & Sales forecast summaries */}
               <div className="grid grid-cols-2 gap-3">
@@ -672,12 +975,18 @@ export function ProductPage() {
                 </div>
                 <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3">
                   <p className="text-xs text-base-content/50">{t('product.sales7d')}</p>
-                  <p className={`font-bold text-lg tabular-nums ${
-                    mlForecast.sales_forecast.trend === 'up' ? 'text-success' :
-                    mlForecast.sales_forecast.trend === 'down' ? 'text-error' : ''
-                  }`}>
-                    ~{mlForecast.sales_forecast.predictions?.[6]?.value?.toFixed(0) ?? '—'} ta
-                  </p>
+                  {(() => {
+                    const val = mlForecast.sales_forecast.predictions?.[6]?.value;
+                    const isValid = val != null && !isNaN(val);
+                    return (
+                      <p className={`font-bold text-lg tabular-nums ${
+                        mlForecast.sales_forecast.trend === 'up' ? 'text-success' :
+                        mlForecast.sales_forecast.trend === 'down' ? 'text-error' : ''
+                      }`}>
+                        {isValid && val > 0 ? `~${val.toFixed(0)} ta` : isValid ? <span className="text-sm text-base-content/40">Ma'lumot yetarli emas</span> : '—'}
+                      </p>
+                    );
+                  })()}
                   <TrendBadge trend={mlForecast.sales_forecast.trend} />
                 </div>
               </div>
@@ -714,28 +1023,6 @@ export function ProductPage() {
                       <Area type="monotone" dataKey="predicted" stroke="#6366f1" strokeWidth={2} strokeDasharray="5 5" fill="none" dot={{ r: 3, fill: '#6366f1' }} name="Bashorat" animationDuration={CHART_ANIMATION_MS} />
                     </AreaChart>
                   </ResponsiveContainer>
-                </div>
-              )}
-
-              {/* AI Trend Analysis */}
-              {trendAnalysis?.analysis && (
-                <div className="bg-base-300/60 rounded-xl p-4 space-y-2">
-                  <h3 className="text-sm font-bold flex items-center gap-2">
-                    <span>🤖</span> AI Trend Tahlili
-                  </h3>
-                  <p className="text-sm text-base-content/80">{trendAnalysis.analysis}</p>
-                  {trendAnalysis.factors.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {trendAnalysis.factors.map((f, i) => (
-                        <span key={i} className="badge badge-outline badge-sm">{f}</span>
-                      ))}
-                    </div>
-                  )}
-                  {trendAnalysis.recommendation && (
-                    <p className="text-sm text-primary font-medium mt-1">
-                      Tavsiya: {trendAnalysis.recommendation}
-                    </p>
-                  )}
                 </div>
               )}
 

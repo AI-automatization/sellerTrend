@@ -187,6 +187,8 @@ export function Layout() {
         { to: '/admin?tab=notifications', icon: BellIcon, label: t('nav.admin.notifications') },
         { to: '/admin?tab=audit', icon: DocumentTextIcon, label: t('nav.admin.audit') },
         { to: '/admin?tab=deposits', icon: BanknotesIcon, label: t('nav.admin.deposits') },
+        { to: '/admin?tab=ai-audit', icon: SparklesIcon, label: 'AI Audit' },
+        { to: '/admin?tab=ml-audit', icon: SparklesIcon, label: 'ML Audit' },
       ],
     });
   }

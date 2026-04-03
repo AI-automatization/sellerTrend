@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { shopsApi } from '../api/client';
 import { getErrorMessage } from '../utils/getErrorMessage';
@@ -44,16 +44,54 @@ export function ShopsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showAll, setShowAll] = useState(false);
+  const [suggestions, setSuggestions] = useState<Array<{ id: string; title: string }> | null>(null);
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const suggestDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    const id = shopId.trim();
-    if (!id) { setError(t('shops.enterId')); return; }
+  function extractUzumShopId(value: string): string | null {
+    // uzum.uz/ru/seller/shop-name--123456  yoki  uzum.uz/seller/123456
+    const match = value.match(/uzum\.uz\/(?:[a-z]{2}\/)?seller\/(?:[^/]+--)?(\d+)/i);
+    return match ? match[1] : null;
+  }
+
+  function handleInputChange(value: string) {
+    setShopId(value);
+    setSuggestions(null);
+    if (suggestDebounce.current) clearTimeout(suggestDebounce.current);
+
+    const trimmed = value.trim();
+
+    // Uzum URL pasted → ID ni ajratib to'g'ridan yuklash
+    const uzumId = extractUzumShopId(trimmed);
+    if (uzumId) {
+      setShopId(uzumId);
+      void loadShop(uzumId);
+      return;
+    }
+
+    // Raqam emas, 2+ harf → nom bo'yicha qidirish
+    if (trimmed.length >= 2 && !/^\d+$/.test(trimmed)) {
+      setSuggestLoading(true);
+      suggestDebounce.current = setTimeout(async () => {
+        try {
+          const res = await shopsApi.searchByName(trimmed);
+          setSuggestions(res.data ?? []);
+        } catch {
+          setSuggestions([]);
+        } finally {
+          setSuggestLoading(false);
+        }
+      }, 300);
+    }
+  }
+
+  async function loadShop(id: string) {
     setError('');
     setLoading(true);
     setShop(null);
     setProducts([]);
     setShowAll(false);
+    setSuggestions(null);
     try {
       const [shopRes, prodsRes] = await Promise.all([
         shopsApi.getShop(id),
@@ -65,6 +103,22 @@ export function ShopsPage() {
       setError(getErrorMessage(err, t('shops.notFound')));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const id = shopId.trim();
+    if (!id) { setError(t('shops.enterId')); return; }
+    // Raqam bo'lsa → to'g'ridan qidirish
+    if (/^\d+$/.test(id)) {
+      await loadShop(id);
+    } else if (suggestions && suggestions.length > 0) {
+      // Matn bo'lsa va suggestion bor → birinchisini tanlash
+      setShopId(suggestions[0].id);
+      await loadShop(suggestions[0].id);
+    } else {
+      setError(t('shops.enterId'));
     }
   }
 
@@ -87,13 +141,44 @@ export function ShopsPage() {
       <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
         <div className="card-body">
           <form onSubmit={handleSearch} className="flex gap-3">
-            <input
-              type="text"
-              value={shopId}
-              onChange={(e) => setShopId(e.target.value)}
-              placeholder={t('shops.searchPlaceholder')}
-              className="input input-bordered flex-1"
-            />
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={shopId}
+                onChange={(e) => handleInputChange(e.target.value)}
+                placeholder={t('shops.searchPlaceholder')}
+                className="input input-bordered w-full"
+                autoComplete="off"
+              />
+              {suggestLoading && (
+                <span className="loading loading-spinner loading-xs absolute right-3 top-1/2 -translate-y-1/2 text-base-content/40" />
+              )}
+              {/* Suggestion dropdown */}
+              {suggestions !== null && (
+                <div className="absolute z-20 left-0 right-0 top-full mt-1 bg-base-200 border border-base-300 rounded-xl overflow-hidden shadow-lg">
+                  {suggestions.length === 0 ? (
+                    <div className="px-4 py-3">
+                      <p className="text-sm text-base-content/40">Do'kon topilmadi</p>
+                      <p className="text-xs text-base-content/30 mt-1">
+                        Do'kon ID sini kiriting yoki uzum.uz dagi do'kon sahifasi URL ini joylashtiring
+                      </p>
+                    </div>
+                  ) : (
+                    suggestions.map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => { setShopId(s.id); loadShop(s.id); }}
+                        className="w-full text-left px-4 py-2.5 hover:bg-base-300 flex items-center justify-between border-t border-base-300/50 first:border-t-0"
+                      >
+                        <span className="text-sm font-medium">{s.title}</span>
+                        <span className="text-xs text-base-content/40 font-mono">#{s.id}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
             <button type="submit" disabled={loading} className="btn btn-primary">
               {loading ? <span className="loading loading-spinner loading-sm" /> : t('common.search')}
             </button>

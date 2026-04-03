@@ -506,7 +506,13 @@ export class AiService {
       recommendation: '',
     };
 
-    if (opts.snapshots.length < 3) return fallback;
+    if (opts.snapshots.length < 3) {
+      return {
+        analysis: 'Mahsulot hali yetarli tarixiy ma\'lumotga ega emas. Bir necha kun kuzatuvdan so\'ng to\'liq tahlil paydo bo\'ladi.',
+        factors: ['Yangi mahsulot — ma\'lumot to\'planmoqda'],
+        recommendation: 'Mahsulotni kuzatuvda ushlab turing',
+      };
+    }
 
     try {
       const dataPoints = opts.snapshots.slice(-14).map(

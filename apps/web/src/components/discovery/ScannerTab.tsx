@@ -12,8 +12,16 @@ import type { Run, RunDetail } from './types';
 import { POPULAR_CATEGORIES } from './types';
 import { PlanGuard } from '../PlanGuard';
 
+type RunCategoryFields = Pick<Run, 'category_id' | 'category_name' | 'category_name_uz' | 'category_name_en'>;
+
+function localizedCategoryName(run: RunCategoryFields, lang: string): string {
+  if (lang === 'uz' && run.category_name_uz) return run.category_name_uz;
+  if (lang === 'en' && run.category_name_en) return run.category_name_en;
+  return run.category_name ?? `#${run.category_id}`;
+}
+
 export function ScannerTab() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [categoryInput, setCategoryInput] = useState('');
   const [runs, setRuns] = useState<Run[]>([]);
   const [selectedRun, setSelectedRun] = useState<RunDetail | null>(null);
@@ -195,8 +203,8 @@ export function ScannerTab() {
                     {runs.map((run) => (
                       <tr key={run.id} className="hover">
                         <td>
-                          <p className="font-medium text-sm">{run.category_name ?? `${t('discovery.scanner.catPrefix')}${run.category_id}`}</p>
-                          {run.category_name && <p className="text-xs text-base-content/40 font-mono">#{run.category_id}</p>}
+                          <p className="font-medium text-sm">{localizedCategoryName(run, lang)}</p>
+                          <p className="text-xs text-base-content/40 font-mono">#{run.category_id}</p>
                         </td>
                         <td>
                           <div className="flex flex-col gap-1">
@@ -230,9 +238,9 @@ export function ScannerTab() {
           <div className="w-full max-w-2xl bg-base-200 h-full overflow-y-auto flex flex-col shadow-2xl">
             <div className="flex items-center justify-between p-4 border-b border-base-300">
               <div>
-                <h2 className="font-bold">{selectedRun.category_name ?? `${t('discovery.scanner.catPrefix')}${selectedRun.category_id}`}</h2>
+                <h2 className="font-bold">{localizedCategoryName(selectedRun, lang)}</h2>
                 <p className="text-xs text-base-content/40">
-                  {selectedRun.category_name && `#${selectedRun.category_id} · `}
+                  {`#${selectedRun.category_id} · `}
                   Top {selectedRun.winners.length} {t('discovery.scanner.topProducts')}
                   {selectedRun.finished_at && ` · ${new Date(selectedRun.finished_at).toLocaleString('ru-RU')}`}
                 </p>

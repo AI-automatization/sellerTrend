@@ -202,6 +202,54 @@ export function calcWeeklyBought(
 }
 
 /**
+ * Uzum formula bilan mos: joriy hafta Dushanba 00:00 (Toshkent UTC+5) dan hozirgi vaqtgacha.
+ * Bu "X человек купили на этой неделе" banneri bilan bir xil hisoblaydi.
+ *
+ * @param snapshots Ordered by snapshot_at DESC
+ * @param currentOrders Current total orders count
+ * @param currentTime Timestamp (default: Date.now())
+ * @returns Hafta boshi (Dushanba) dan hozirga qadar buyurtmalar soni, yoki null
+ */
+export function calcWeeklyBoughtCurrentWeek(
+  snapshots: Array<{ orders_quantity: bigint | number | null; snapshot_at: Date }>,
+  currentOrders: number,
+  currentTime?: number,
+): number | null {
+  const TASHKENT_OFFSET_MS = 5 * 60 * 60 * 1000; // UTC+5
+  const now = currentTime ?? Date.now();
+
+  // Toshkent vaqtida joriy haftaning Dushanba 00:00 ni topish
+  const tashkentNow = new Date(now + TASHKENT_OFFSET_MS);
+  const dayOfWeek = tashkentNow.getUTCDay(); // 0=yakshanba, 1=dushanba...6=shanba
+  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+
+  const mondayTashkent = new Date(tashkentNow);
+  mondayTashkent.setUTCDate(mondayTashkent.getUTCDate() - daysFromMonday);
+  mondayTashkent.setUTCHours(0, 0, 0, 0);
+
+  // Toshkent Dushanba 00:00 → UTC ga o'girish
+  const mondayStartUTC = mondayTashkent.getTime() - TASHKENT_OFFSET_MS;
+
+  // Dushanbadan OLDINGI eng yaqin snapshotni topish (hafta boshlangida orders soni)
+  let ref: (typeof snapshots)[0] | null = null;
+  for (const snap of snapshots) {
+    if (snap.orders_quantity != null && snap.snapshot_at.getTime() <= mondayStartUTC) {
+      ref = snap;
+      break; // DESC: birinchi mos keluvchi = Dushanbaga eng yaqin
+    }
+  }
+
+  if (!ref || ref.orders_quantity == null) return null;
+
+  const delta = currentOrders - Number(ref.orders_quantity);
+  if (delta < 0) return null;
+
+  // Hafta davomida o'sish soni (Uzum banneri bilan bir xil mantiq)
+  const MAX_REASONABLE = 10_000;
+  return delta <= MAX_REASONABLE ? delta : null;
+}
+
+/**
  * @deprecated Use stored scraped weekly_bought from ProductSnapshot.weekly_bought_source='scraped'.
  * Kept as transitional fallback for products not yet scraped.
  *

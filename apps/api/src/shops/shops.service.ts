@@ -1,10 +1,56 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { UzumClient } from '../uzum/uzum.client';
 import { calculateTrustScore } from '@uzum/utils';
 
 @Injectable()
 export class ShopsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly uzumClient: UzumClient,
+  ) {}
+
+  async searchByName(query: string) {
+    const MAX_SHOP_SEARCH_RESULTS = 10;
+    const dbShops = await this.prisma.shop.findMany({
+      where: { title: { contains: query, mode: 'insensitive' } },
+      select: { id: true, title: true, orders_quantity: true },
+      orderBy: { orders_quantity: 'desc' },
+      take: MAX_SHOP_SEARCH_RESULTS,
+    });
+
+    if (dbShops.length >= 3) {
+      return dbShops.map((s) => ({ id: s.id.toString(), title: s.title }));
+    }
+
+    // Fallback: Uzum API dan qidirish
+    const uzumSellers = await this.uzumClient.searchSellers(query, MAX_SHOP_SEARCH_RESULTS);
+    if (uzumSellers.length === 0) {
+      return dbShops.map((s) => ({ id: s.id.toString(), title: s.title }));
+    }
+
+    // Yangi topilgan do'konlarni DB ga upsert qilish (keyingi qidiruvlarda local DB topsin)
+    await Promise.allSettled(
+      uzumSellers.map((s) =>
+        this.prisma.shop.upsert({
+          where: { id: BigInt(s.id) },
+          update: { title: s.title, orders_quantity: BigInt(s.ordersQuantity) },
+          create: { id: BigInt(s.id), title: s.title, orders_quantity: BigInt(s.ordersQuantity) },
+        }),
+      ),
+    );
+
+    // DB va Uzum natijalarini birlashtirish (takrorlanmasdan)
+    const dbIds = new Set(dbShops.map((s) => s.id.toString()));
+    const merged = [
+      ...dbShops.map((s) => ({ id: s.id.toString(), title: s.title })),
+      ...uzumSellers
+        .filter((s) => !dbIds.has(s.id.toString()))
+        .map((s) => ({ id: s.id.toString(), title: s.title })),
+    ];
+
+    return merged.slice(0, MAX_SHOP_SEARCH_RESULTS);
+  }
 
   async getShopProfile(shopId: bigint) {
     const MAX_SHOP_PROFILE_PRODUCTS = 100;

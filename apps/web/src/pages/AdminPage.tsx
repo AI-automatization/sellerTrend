@@ -4,7 +4,7 @@ import {
   CreateAccountModal, DepositModal, ChangePasswordModal, AccountDrawer,
   DashboardTab, AccountsTab, AnalyticsTab, SystemTab,
   FeedbackTab, NotificationsTab, AuditLogTab, PermissionsTab,
-  DepositsTab, WhitelabelTab,
+  DepositsTab, WhitelabelTab, AiAuditTab, MlAuditTab,
 } from '../components/admin';
 import { useAdminData } from '../hooks/useAdminData';
 
@@ -142,6 +142,24 @@ export function AdminPage() {
         )}
 
         {d.activeTab === 'audit' && <AuditLogTab auditLog={d.auditLog} />}
+
+        {d.activeTab === 'ai-audit' && (
+          <AiAuditTab
+            stats={d.ragAuditStats}
+            loading={d.ragAuditLoading}
+            period={d.ragAuditPeriod}
+            onPeriodChange={d.setRagAuditPeriod}
+          />
+        )}
+
+        {d.activeTab === 'ml-audit' && (
+          <MlAuditTab
+            stats={d.mlAuditStats}
+            loading={d.mlAuditLoading}
+            period={d.mlAuditPeriod}
+            onPeriodChange={d.setMlAuditPeriod}
+          />
+        )}
 
         {d.activeTab === 'permissions' && <PermissionsTab />}
 
