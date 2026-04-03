@@ -50,9 +50,7 @@ export function LoginPage() {
 
         <div className="relative z-10 max-w-md space-y-8">
           <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25">
-              <span className="text-primary-content font-black text-2xl font-heading">V</span>
-            </div>
+            <img src="/logo.svg" alt="VENTRA" className="w-14 h-14" />
             <div>
               <h1 className="text-3xl font-black tracking-tight font-heading">VENTRA</h1>
               <p className="text-base-content/40 text-sm">Analytics Platform</p>
@@ -90,9 +88,7 @@ export function LoginPage() {
         <div className="relative w-full max-w-sm space-y-6">
           {/* Mobile logo */}
           <div className="flex flex-col items-center lg:hidden mb-4">
-            <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25 mb-3">
-              <span className="text-primary-content font-black text-2xl font-heading">V</span>
-            </div>
+            <img src="/logo.svg" alt="VENTRA" className="w-14 h-14 mb-3" />
             <h1 className="text-2xl font-black font-heading tracking-tight">VENTRA</h1>
             <p className="text-base-content/40 text-sm">Analytics Platform</p>
           </div>

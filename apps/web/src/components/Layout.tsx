@@ -291,7 +291,7 @@ export function Layout() {
       {/* ═══ SIDEBAR ═══ */}
       <div className="drawer-side z-40">
         <label htmlFor="drawer" className="drawer-overlay" />
-        <aside className="ventra-sidebar w-[272px] h-screen sticky top-0 flex flex-col border-r border-base-300/60 overflow-hidden">
+        <aside className="ventra-sidebar w-[272px] h-screen sticky top-0 flex flex-col border-r border-base-300/60 overflow-hidden pb-16 lg:pb-0">
 
           {/* ── Logo ── */}
           <div className="px-5 py-4 border-b border-base-300/40">

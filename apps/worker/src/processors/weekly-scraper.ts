@@ -55,6 +55,11 @@ function extractFromHtml(html: string, productId: number, jobId: string): Scrape
  */
 export async function createWeeklyScrapeContext(): Promise<BrowserContext> {
   const browser = await browserPool.getBrowser();
+  // Bright Data CDP: locale/extraHTTPHeaders o'rnatish forbidden
+  if (browserPool.isBrightData()) {
+    const existingContexts = browser.contexts();
+    return existingContexts.length > 0 ? existingContexts[0] : browser.newContext();
+  }
   return browser.newContext({
     userAgent:
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
