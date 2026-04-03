@@ -3,6 +3,18 @@
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
 
+### T-501 | WORKER | Kunlik sotuv delta — Bright Data Web Unlocker + daily-sales cron (2026-04-03)
+
+**Manba:** ai-tahlil + performance (2026-04-03)
+**Muammo:** `weekly-scrape.processor.ts` Playwright (300-600MB RAM) orqali `weekly_bought` banner scrape qilardi — ishonchsiz, sekin, Railway IP bloklanishi xavfi bor. `ordersAmount` kumulative delta hisoblash yo'q edi. Kunlik 02:00 UTC to'liq run ham yo'q edi.
+**Yechim:** `uzum-unlocker.client.ts` — Bright Data Web Unlocker HTTP proxy orqali `/api/v2/product/{id}` chaqiradi (browser yo'q, 100-500ms, IP rotation avtomatik). `weekly-scrape.processor.ts` yangilandi: birinchi Unlocker delta (`ordersAmount - prevOrders = weekly_bought`), fallback Playwright banner. `weekly_bought_source: 'brightdata-unlocker' | 'scraped'`. `daily-sales.job.ts` — `0 2 * * *` to'liq batch run cron.
+**Fayllar:** `apps/worker/src/clients/uzum-unlocker.client.ts` (yangi), `apps/worker/src/jobs/daily-sales.job.ts` (yangi), `apps/worker/src/processors/weekly-scrape.processor.ts`
+**Commit:** —
+**Vaqt:** 2h (plan: 3h)
+**Ta'sir:** RAM 300-600MB tejiladi. `weekly_bought` aniqroq — cumulative delta bilan. IP block xavfi kamaydi (Bright Data proxy). Fallback (Playwright) saqlanib qoldi.
+
+---
+
 ### T-500 | BACKEND | Shop search — searchSellers noto'g'ri filter olib tashlandi (2026-04-03)
 
 **Manba:** production-bug (2026-04-03)

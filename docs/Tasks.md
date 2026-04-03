@@ -10,10 +10,10 @@
 ## STATISTIKA
 
 ```
-Ochiq:       ~47 ta
-Bajarilgan:  ~191+ ta (Done.md)
-Oxirgi T-#:  T-500
-Keyingi T-#: T-501 dan boshlash
+Ochiq:       ~46 ta
+Bajarilgan:  ~192+ ta (Done.md)
+Oxirgi T-#:  T-501
+Keyingi T-#: T-502 dan boshlash
 ```
 
 ---
