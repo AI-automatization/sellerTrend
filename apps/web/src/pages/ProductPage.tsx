@@ -532,8 +532,8 @@ export function ProductPage() {
         />
       </div>
 
-      {/* AI Explanation — Uzum AI tahlili, barcha mahsulotlarda ko'rinadi */}
-      {result.ai_explanation && result.ai_explanation.filter((b) => typeof b === 'string' && b.trim().length > 0).length > 0 && (() => {
+      {/* AI Explanation — faqat "Bu mening mahsulotim" bosilganda ko'rinadi */}
+      {isMine && result.ai_explanation && result.ai_explanation.filter((b) => typeof b === 'string' && b.trim().length > 0).length > 0 && (() => {
         const bullets = result.ai_explanation!.filter((b) => typeof b === 'string' && b.trim().length > 0);
         const bulletMeta = [
           { icon: '📌', label: t('product.ai.bullet.1'), color: 'text-info' },

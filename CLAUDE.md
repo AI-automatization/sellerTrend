@@ -32,6 +32,12 @@ Javob kelgach:
 4. Task boshlashdan oldin **GIT-BASED TASK LOCKING** protokolini bajarish (pastda)
 5. **Mode B** tanlansa → Multi-Agent Protocol (pastda) faollashadi
 
+## Foydalanuvchi
+Agar ish boshlanishida kim ekanligini bilmasam — so'ra:
+"Siz Sardormi yoki boshqa odam?"
+Agar Sardor bo'lsa — telegram.md faylini o'qi va Telegram botni faollashtir.
+Agar boshqa odam bo'lsa — oddiy ishlashni davom et.
+
 ---
 
 ## LOYIHA

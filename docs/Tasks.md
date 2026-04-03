@@ -12,8 +12,8 @@
 ```
 Ochiq:       ~46 ta
 Bajarilgan:  ~192+ ta (Done.md)
-Oxirgi T-#:  T-501
-Keyingi T-#: T-502 dan boshlash
+Oxirgi T-#:  T-502
+Keyingi T-#: T-503 dan boshlash
 ```
 
 ---
@@ -364,6 +364,15 @@ API calls:     ~300ms           API calls:     ~300ms (bypass, o'zgarmaydi*)
 ---
 
 ## P1 — MUHIM
+
+### T-502 | P1 | FRONTEND | Claude AI tahlili faqat tracked mahsulotlarda ko'rinsin | 20min | pending[Sardor]
+
+- **Sana:** 2026-04-03
+- **Manba:** user-feedback
+- **Mas'ul:** Sardor
+- **Muammo:** ProductPage da Claude AI tahlili `isMine` (localStorage) ga bog'langan. Foydalanuvchi mahsulotni track qilmagan bo'lsa ham AI tahlil ko'rinishi mumkin. Faqat API orqali tracked (`is_tracked`) bo'lganda ko'rinishi kerak.
+- **Yechim:** `isMine` o'rniga `tracked` state ishlatish — AI section va trigger logikasida.
+- **Fayllar:** `apps/web/src/pages/ProductPage.tsx`
 
 ### T-178 | DEVOPS | Custom domain + SSL — web service | 10min (manual: domain kerak)
 
