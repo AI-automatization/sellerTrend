@@ -354,8 +354,19 @@ export function ProductPage() {
             {tracked ? t('product.tracking') : t('product.addTracking')}
           </button>
           <button onClick={toggleMine}
-            className={`btn btn-sm gap-2 ${isMine ? 'btn-secondary' : 'btn-outline btn-secondary'}`}>
-            🏪 {isMine ? t('product.markedMine') : t('product.markMine')}
+            className={`btn btn-sm gap-2 ${isMine ? 'btn-error btn-outline' : 'btn-outline btn-secondary'}`}>
+            {isMine ? (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                {t('product.removeFromMine')}
+              </>
+            ) : (
+              <>
+                🏪 {t('product.markMine')}
+              </>
+            )}
           </button>
           <button onClick={() => loadData(true)} disabled={refreshing} className="btn btn-sm btn-outline gap-2">
             {refreshing ? <span className="loading loading-spinner loading-xs" /> : '↻'} {t('product.refresh')}

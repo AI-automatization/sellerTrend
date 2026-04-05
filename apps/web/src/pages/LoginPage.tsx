@@ -34,7 +34,12 @@ export function LoginPage() {
       setTokens(res.data.access_token, res.data.refresh_token ?? '');
       navigate('/');
     } catch (err: unknown) {
-      setError(getErrorMessage(err, t('auth.loginError')));
+      const axErr = err as { response?: { status?: number } };
+      if (axErr.response?.status === 401) {
+        setError(t('auth.invalidCredentials'));
+      } else {
+        setError(getErrorMessage(err, t('auth.loginError')));
+      }
     } finally {
       setLoading(false);
     }
