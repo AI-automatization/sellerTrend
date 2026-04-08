@@ -630,7 +630,7 @@ export function ProductPage() {
                 />
                 <YAxis tick={{ fontSize: 10, fill: '#ffffff40' }} />
                 <Tooltip
-                  contentStyle={glassTooltip}
+                  {...glassTooltip}
                   formatter={(v: number) => [`${v} ta`, 'Sotuv']}
                   labelFormatter={(l: string) => `📅 ${l}`}
                 />
@@ -955,7 +955,7 @@ export function ProductPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                     <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
                     <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
-                    <Tooltip contentStyle={glassTooltip} formatter={(v: number) => [`${v} ta`, 'Bashorat']} />
+                    <Tooltip {...glassTooltip} formatter={(v: number) => [`${v} ta`, 'Bashorat']} />
                     <Area type="monotone" dataKey="value" stroke="#6366f1" strokeWidth={2} fill="url(#predGrad)" dot={{ r: 3, fill: '#6366f1' }} animationDuration={CHART_ANIMATION_MS} />
                   </AreaChart>
                 </ResponsiveContainer>
