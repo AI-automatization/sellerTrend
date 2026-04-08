@@ -32,14 +32,16 @@ export function scoreColor(score: number | null | undefined): string {
   return SCORE_COLORS.poor;
 }
 
+import type { CSSProperties } from 'react';
+
 /** Glass-morphism tooltip (reads CSS variables set in index.css) */
-export const glassTooltip = {
+export const glassTooltip: { contentStyle: CSSProperties; labelStyle: CSSProperties } = {
   contentStyle: {
     background: 'var(--chart-tooltip-bg)',
     backdropFilter: 'blur(8px)',
     border: '1px solid var(--chart-tooltip-border)',
-    borderRadius: 12 as number,
-    fontSize: 12 as number,
+    borderRadius: 12,
+    fontSize: 12,
     color: 'var(--chart-tooltip-text)',
   },
   labelStyle: { color: 'var(--chart-tick)' },
