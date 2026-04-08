@@ -222,7 +222,7 @@ export function SearchDrawer({ isOpen, onClose }: Props) {
       await trackProduct(uzumId);
       window.dispatchEvent(new CustomEvent('product-tracked'));
       onClose();
-      navigate('/');
+      navigate(`/products/${uzumId}`);
     } catch {
       toast.error(t('search.trackError'));
       setTrackingIds(prev => { const n = new Set(prev); n.delete(uzumId); return n; });
