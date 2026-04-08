@@ -108,6 +108,12 @@ export class UzumService {
     });
 
     const lastSnap = recentSnapshots[0];
+
+    // T-503: kechagi sotuv (cached path — last 2 existing snapshots delta)
+    const daily_sold_cached: number | null = recentSnapshots.length >= 2
+      ? Math.max(0, Number(recentSnapshots[0].orders_quantity ?? 0) - Number(recentSnapshots[1].orders_quantity ?? 0))
+      : null;
+
     if (lastSnap && Date.now() - lastSnap.snapshot_at.getTime() < SNAPSHOT_MIN_GAP_MS) {
       this.logger.log(`Snapshot dedup (T-267): product=${productId}, skip — last snap ${Math.round((Date.now() - lastSnap.snapshot_at.getTime()) / 1000)}s ago`);
       // Return cached data from last snapshot instead of creating duplicate
@@ -119,6 +125,7 @@ export class UzumService {
         feedback_quantity: detail.feedbackQuantity,
         orders_quantity: detail.ordersQuantity,
         weekly_bought: lastSnap.weekly_bought,
+        daily_sold: daily_sold_cached,
         score: cachedScore,
         snapshot_id: lastSnap.id,
         sell_price: detail.skuList?.[0]?.sellPrice,
@@ -270,6 +277,11 @@ export class UzumService {
         return null;
       });
 
+    // T-503: kechagi sotuv — currentOrders vs last existing snapshot
+    const daily_sold: number | null = recentSnapshots.length >= 1
+      ? Math.max(0, currentOrders - Number(recentSnapshots[0].orders_quantity ?? 0))
+      : null;
+
     return {
       product_id: productId,
       title: detail.title,
@@ -277,6 +289,7 @@ export class UzumService {
       feedback_quantity: detail.feedbackQuantity,
       orders_quantity: detail.ordersQuantity,
       weekly_bought: weeklyBought,
+      daily_sold,
       score: scoreNum,
       snapshot_id: snapshot.id,
       sell_price: primarySku?.sellPrice,

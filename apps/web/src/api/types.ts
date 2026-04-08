@@ -14,6 +14,7 @@ export interface AnalyzeResult {
   feedback_quantity: number | null;
   orders_quantity: number | null;
   weekly_bought: number | null;
+  daily_sold: number | null;
   score: number;
   sell_price: number | null;
   total_available_amount?: number;
@@ -95,6 +96,7 @@ export interface TrackedProduct {
   prev_score: number | null;
   trend: Trend | null;
   weekly_bought: number | null;
+  daily_sold: number | null;
   sell_price: number | null;
   tracked_since: string;
   photo_url?: string | null;
@@ -145,6 +147,7 @@ export interface ProductDetail {
   shop_name: string | null;
   score: number | null;
   weekly_bought: number | null;
+  daily_sold: number | null;
   sell_price: number | null;
   stock_type: string | null;
   photo_url: string | null;

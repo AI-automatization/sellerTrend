@@ -405,49 +405,23 @@ export function ProductPage() {
           sub={t('product.allTime')} accent="text-primary"
           icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>}
         />
-        {/* Kunlik sotuv (T-497) */}
-        {(() => {
-          // Sanaga asoslanib qidirish — slice(-1) ishonchsiz (bugungi data bo'lmasligi mumkin)
-          const todayStr = new Date().toISOString().split('T')[0];
-          const yesterdayStr = new Date(Date.now() - 86_400_000).toISOString().split('T')[0];
-
-          const todayEntry = dailySales.find((d) => d.date === todayStr);
-          const yesterdayEntry = dailySales.find((d) => d.date === yesterdayStr);
-
-          const todaySold = todayEntry?.daily_orders_delta != null ? Math.max(0, todayEntry.daily_orders_delta) : null;
-          const prevSold = yesterdayEntry?.daily_orders_delta != null ? Math.max(0, yesterdayEntry.daily_orders_delta) : null;
-
-          // Delta faqat ikkalasi ham mavjud bo'lganda ko'rsatiladi
-          const delta = todaySold != null && prevSold != null ? todaySold - prevSold : null;
-
-          return (
-            <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 lg:p-4">
-              <div className="flex items-start justify-between mb-1">
-                <p className="text-xs text-base-content/50">Kunlik sotuv</p>
-                <svg className="w-4 h-4 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <p className={`font-bold text-lg tabular-nums leading-tight ${
-                  todaySold != null && todaySold > 0 ? 'text-success' : 'text-base-content/30'
-                }`}>
-                  {todaySold != null ? todaySold.toLocaleString() : '—'}
-                </p>
-                {delta != null && delta !== 0 && (
-                  <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
-                    delta > 0 ? 'bg-success/20 text-success' : 'bg-error/20 text-error'
-                  }`}>
-                    {delta > 0 ? '+' : ''}{delta} ta
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-base-content/40 mt-0.5">
-                {todaySold == null ? 'Ma\'lumot kechqurun yangilanadi' : 'bugun / kecha delta'}
-              </p>
-            </div>
-          );
-        })()}
+        {/* Kunlik sotuv — oxirgi 2 snapshot delta (T-503) */}
+        <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 lg:p-4">
+          <div className="flex items-start justify-between mb-1">
+            <p className="text-xs text-base-content/50">Kechagi sotuv</p>
+            <svg className="w-4 h-4 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </div>
+          <p className={`font-bold text-lg tabular-nums leading-tight ${
+            result.daily_sold != null && result.daily_sold > 0 ? 'text-success' : 'text-base-content/30'
+          }`}>
+            {result.daily_sold != null ? result.daily_sold.toLocaleString() : '—'}
+          </p>
+          <p className="text-xs text-base-content/40 mt-0.5">
+            {result.daily_sold == null ? 'Ma\'lumot to\'planmoqda' : '~24 soatlik delta'}
+          </p>
+        </div>
         <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 lg:p-4">
           <div className="flex items-start justify-between mb-1">
             <p className="text-xs text-base-content/50">{t('product.weeklySales')}</p>

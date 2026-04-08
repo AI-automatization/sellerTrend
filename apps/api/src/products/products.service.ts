@@ -543,6 +543,12 @@ export class ProductsService {
         ? (weeklyFromDaily > 0 ? weeklyFromDaily : null)
         : getScrapedWeeklyBought(snaps);
 
+      // Kunlik sotuv: oxirgi 2 snapshot orasidagi orders farqi (vaqtga bo'lmasdan)
+      // Bu "kechagi sotuv" — scrape bo'lgandan so'ng darhol ko'rinadi
+      const daily_sold = snaps.length >= 2
+        ? Math.max(0, Number(snaps[0].orders_quantity ?? 0) - Number(snaps[1].orders_quantity ?? 0))
+        : null;
+
       return {
         product_id: t.product.id.toString(),
         title: t.product.title,
@@ -553,6 +559,7 @@ export class ProductsService {
         prev_score: prevScore,
         trend,
         weekly_bought: weeklyBought,
+        daily_sold,
         sell_price: sku?.min_sell_price ? Number(sku.min_sell_price) : null,
         total_available_amount: t.product.total_available_amount?.toString() ?? null,
         photo_url: t.product.photo_url ?? null,
@@ -636,6 +643,11 @@ export class ProductsService {
       ? (weeklyFromDaily > 0 ? weeklyFromDaily : null)
       : getScrapedWeeklyBought(snaps);
 
+    // Kunlik sotuv: oxirgi 2 snapshot orasidagi orders farqi
+    const daily_sold = snaps.length >= 2
+      ? Math.max(0, Number(snaps[0].orders_quantity ?? 0) - Number(snaps[1].orders_quantity ?? 0))
+      : null;
+
     return {
       product_id: product.id.toString(),
       title: product.title,
@@ -645,6 +657,7 @@ export class ProductsService {
       shop_name: product.shop?.title ?? null,
       score: latest?.score ? Number(latest.score) : null,
       weekly_bought: weeklyBought,
+      daily_sold,
       sell_price: sku?.min_sell_price ? Number(sku.min_sell_price) : null,
       stock_type: sku?.stock_type ?? null,
       photo_url: product.photo_url ?? null,
