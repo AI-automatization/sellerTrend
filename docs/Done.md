@@ -1,7 +1,19 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
-# Yangilangan: 2026-04-03
+# Yangilangan: 2026-04-08
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
+
+### T-503 | FULLSTACK | Kunlik sotuv: snapshot delta (orders[0]-orders[1]) realtime (2026-04-08)
+
+**Manba:** user-feedback (2026-04-08)
+**Muammo:** `daily_sold` oldin `ordersDiff / daysDiff` bilan hisoblanardi — bu yolg'on katta sonlar berardi. Bundan tashqari `daily_orders_delta` faqat kechasi batch da hisoblanardi, yangi qo'shilgan mahsulotda darhol ko'rinmasdi.
+**Yechim:** `products.service.ts` + `uzum.service.ts` da `daily_sold = Math.max(0, snap[0].orders - snap[1].orders)` (vaqtga bo'linmaydi). `ProductPage.tsx` da "Kechagi sotuv" deb ko'rsatiladi, 1 snapshot bo'lsa "Ma'lumot to'planmoqda".
+**Fayllar:** `apps/api/src/products/products.service.ts`, `apps/api/src/uzum/uzum.service.ts`, `apps/web/src/pages/ProductPage.tsx`, `apps/web/src/api/types.ts`
+**Commit:** cf12e5d
+**Vaqt:** 1h (plan: 1h)
+**Ta'sir:** Kunlik sotuv raqami to'g'ri ko'rsatiladi. Mahsulot qo'shilgandan 24 soat o'tgach darhol ko'rinadi — kechqurungi batch kutilmaydi.
+
+---
 
 ### T-501 | WORKER | Kunlik sotuv delta — Bright Data Web Unlocker + daily-sales cron (2026-04-03)
 

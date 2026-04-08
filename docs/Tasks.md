@@ -13,7 +13,7 @@
 Ochiq:       ~46 ta
 Bajarilgan:  ~192+ ta (Done.md)
 Oxirgi T-#:  T-502
-Keyingi T-#: T-503 dan boshlash
+Keyingi T-#: T-504 dan boshlash
 ```
 
 ---
@@ -364,18 +364,6 @@ API calls:     ~300ms           API calls:     ~300ms (bypass, o'zgarmaydi*)
 ---
 
 ## P1 — MUHIM
-
-### T-503 | P1 | FULLSTACK | Kunlik sotuv: snapshot delta (orders[0]-orders[1]) realtime | 1h | pending[Sardor]
-
-- **Sana:** 2026-04-08
-- **Manba:** user-feedback
-- **Mas'ul:** Sardor
-- **Tahlil:** daily_orders_delta kechasi hisoblanadi (batch). Foydalanuvchi scrape bo'lganidan so'ng darhol kunlik sotuvni ko'rmoqchi. Yechim: API da oxirgi 2 snapshot orasidagi orders farqini (vaqtga bo'lmasdan) `daily_sold` sifatida qaytarish. Bu "kechagi sotuv" deb ko'rsatiladi.
-- **Muammo:** Hozir daily_orders_delta faqat kechasi hisoblanadi. Mahsulot Payshanba 10:00 qo'shilsa, Juma 10:00 da scrape bo'lganda sotuv darhol ko'rinishi kerak (kechqurunni kutmasdan).
-- **Yechim:** `products.service.ts` da `daily_sold = Math.max(0, snap[0].orders - snap[1].orders)` (daysDiff ga bo'lmasdan). `ProductPage.tsx` da "Kechagi sotuv" deb ko'rsatish, 1 snapshot bo'lsa "Ma'lumot to'planmoqda".
-- **Fayllar:** `apps/api/src/products/products.service.ts`, `apps/web/src/pages/ProductPage.tsx`, `apps/web/src/api/types.ts`
-
----
 
 ### T-502 | P1 | FRONTEND | Claude AI tahlili faqat tracked mahsulotlarda ko'rinsin | 20min | pending[Sardor]
 
