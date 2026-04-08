@@ -145,8 +145,6 @@ export interface ProductDetail {
   shop_name: string | null;
   score: number | null;
   weekly_bought: number | null;
-  daily_sold: number | null;
-  daily_sold_delta: number | null;
   sell_price: number | null;
   stock_type: string | null;
   photo_url: string | null;

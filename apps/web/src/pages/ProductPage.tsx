@@ -414,16 +414,8 @@ export function ProductPage() {
           const todayEntry = dailySales.find((d) => d.date === todayStr);
           const yesterdayEntry = dailySales.find((d) => d.date === yesterdayStr);
 
-          // fallback: weeklyTrend.daily_breakdown (live snapshot, Math.max(0,...) allaqachon qo'llanilgan)
-          const rawTodaySold = todayEntry?.daily_orders_delta
-            ?? weeklyTrend?.daily_breakdown?.find((d) => d.date === todayStr)?.daily_sold
-            ?? null;
-          const todaySold = rawTodaySold != null ? Math.max(0, rawTodaySold) : null;
-
-          const rawPrevSold = yesterdayEntry?.daily_orders_delta
-            ?? weeklyTrend?.daily_breakdown?.find((d) => d.date === yesterdayStr)?.daily_sold
-            ?? null;
-          const prevSold = rawPrevSold != null ? Math.max(0, rawPrevSold) : null;
+          const todaySold = todayEntry?.daily_orders_delta != null ? Math.max(0, todayEntry.daily_orders_delta) : null;
+          const prevSold = yesterdayEntry?.daily_orders_delta != null ? Math.max(0, yesterdayEntry.daily_orders_delta) : null;
 
           // Delta faqat ikkalasi ham mavjud bo'lganda ko'rsatiladi
           const delta = todaySold != null && prevSold != null ? todaySold - prevSold : null;
@@ -451,7 +443,7 @@ export function ProductPage() {
                 )}
               </div>
               <p className="text-xs text-base-content/40 mt-0.5">
-                {todaySold == null ? 'Ma\'lumot yig\'ilmoqda' : 'bugun / kecha delta'}
+                {todaySold == null ? 'Ma\'lumot kechqurun yangilanadi' : 'bugun / kecha delta'}
               </p>
             </div>
           );

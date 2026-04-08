@@ -4,34 +4,33 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UzumClient, UzumSearchProduct } from '../uzum/uzum.client';
 import { BrightDataClient } from '../bright-data/bright-data.client';
 import { REDIS_CLIENT } from '../common/redis/redis.module';
-import { forecastEnsemble, calcWeeklyBought, calcWeeklyBoughtCurrentWeek, calcInstallmentRate, recalcWeeklyBoughtSeries } from '@uzum/utils';
+import { forecastEnsemble, calcInstallmentRate, recalcWeeklyBoughtSeries } from '@uzum/utils';
 import { RevenueEstimateResponse } from './dto/revenue-estimate.dto';
 import { enqueueVisualSourcing } from './visual-sourcing.queue';
 
-type SnapWithWeeklyBought = {
-  weekly_bought: number | null;
-  weekly_bought_source: string | null;
-  orders_quantity: bigint | number | null;
-  snapshot_at: Date;
-};
+/**
+ * So'nggi 7 kunning boshlanish sanasini qaytaradi (bugun - 7 kun).
+ * weekly_bought = so'nggi 7 kun daily_orders_delta yig'indisi.
+ * Mahsulot qaysi kuni kuzatuvga qo'shilgan bo'lsa ham bir xil ishlaydi.
+ */
+function getSevenDaysAgoUTC(): Date {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - 7);
+  d.setUTCHours(0, 0, 0, 0);
+  return d;
+}
 
-/** Resolve weekly_bought: scraped → any non-zero stored → calculated fallback */
-function resolveWeeklyBought(
-  snaps: SnapWithWeeklyBought[],
-  fallbackOrders: number,
-  fallbackTime: number,
+/**
+ * Scraped banner qiymatini fallback sifatida olish.
+ * Faqat ProductSnapshotDaily da ma'lumot yo'q (yangi mahsulot) holida ishlatiladi.
+ */
+function getScrapedWeeklyBought(
+  snaps: Array<{ weekly_bought: number | null; weekly_bought_source: string | null }>,
 ): number | null {
-  const scrapedSnap = snaps.find((s) => s.weekly_bought_source === 'scraped' && s.weekly_bought != null);
-  if (scrapedSnap) return scrapedSnap.weekly_bought;
-
-  const anyWbSnap = snaps.find((s) => s.weekly_bought != null && s.weekly_bought > 0);
-  if (anyWbSnap) return anyWbSnap.weekly_bought;
-
-  // Uzum bilan mos: Dushanba 00:00 (UTC+5) dan hozirga qadar delta
-  const cwWb = calcWeeklyBoughtCurrentWeek(snaps, fallbackOrders, fallbackTime);
-  if (cwWb !== null) return cwWb;
-
-  return calcWeeklyBought(snaps, fallbackOrders, fallbackTime);
+  const scraped = snaps.find((s) => s.weekly_bought_source === 'scraped' && s.weekly_bought != null);
+  if (scraped) return scraped.weekly_bought;
+  const any = snaps.find((s) => s.weekly_bought != null && s.weekly_bought > 0);
+  return any?.weekly_bought ?? null;
 }
 
 /** Map niche keyword to Uzum category IDs */
@@ -499,6 +498,24 @@ export class ProductsService {
       },
     });
 
+    // So'nggi 7 kun daily_orders_delta yig'indisi
+    const mondayUTC = getSevenDaysAgoUTC();
+    const productIds = tracked.map((t) => t.product.id);
+    const weeklyDailyRows = productIds.length > 0
+      ? await this.prisma.productSnapshotDaily.findMany({
+          where: { product_id: { in: productIds }, day: { gte: mondayUTC } },
+          select: { product_id: true, daily_orders_delta: true },
+        })
+      : [];
+
+    // product_id → haftalik sotuv yig'indisi
+    const weeklyMap = new Map<bigint, number>();
+    for (const row of weeklyDailyRows) {
+      if (row.daily_orders_delta == null) continue;
+      const current = weeklyMap.get(row.product_id) ?? 0;
+      weeklyMap.set(row.product_id, current + Number(row.daily_orders_delta));
+    }
+
     return tracked.map((t) => {
       const snaps = t.product.snapshots; // DESC order
       const latest = snaps[0];
@@ -517,30 +534,14 @@ export class ProductsService {
             : 'flat'
           : null;
 
-      const weeklyBought = resolveWeeklyBought(
-        snaps,
-        Number(latest?.orders_quantity ?? t.product.orders_quantity ?? 0),
-        latest?.snapshot_at?.getTime() ?? Date.now(),
-      );
-
-      // Daily sold: delta between last 2 snapshots
-      let dailySold: number | null = null;
-      let dailySoldDelta: number | null = null;
-      if (snaps.length >= 2) {
-        const s0 = snaps[0];
-        const s1 = snaps[1];
-        const daysDiff = Math.max(0.5, (s0.snapshot_at.getTime() - s1.snapshot_at.getTime()) / (1000 * 60 * 60 * 24));
-        const ordersDiff = Math.max(0, Number(s0.orders_quantity ?? 0) - Number(s1.orders_quantity ?? 0));
-        dailySold = Math.round(ordersDiff / daysDiff);
-      }
-      if (snaps.length >= 3) {
-        const s1 = snaps[1];
-        const s2 = snaps[2];
-        const daysDiff = Math.max(0.5, (s1.snapshot_at.getTime() - s2.snapshot_at.getTime()) / (1000 * 60 * 60 * 24));
-        const ordersDiff = Math.max(0, Number(s1.orders_quantity ?? 0) - Number(s2.orders_quantity ?? 0));
-        const prevDailySold = Math.round(ordersDiff / daysDiff);
-        dailySoldDelta = dailySold !== null ? dailySold - prevDailySold : null;
-      }
+      // Haftalik sotuv:
+      // 1-hafta (kuzatuvga qo'shilganidan 7 kun o'tguncha) → Uzum banneri (scraped)
+      // 7 kundan keyin → bizning so'nggi 7 kun daily_orders_delta yig'indisi
+      const trackedDays = (Date.now() - t.created_at.getTime()) / (1000 * 60 * 60 * 24);
+      const weeklyFromDaily = weeklyMap.get(t.product.id) ?? 0;
+      const weeklyBought = trackedDays >= 7
+        ? (weeklyFromDaily > 0 ? weeklyFromDaily : null)
+        : getScrapedWeeklyBought(snaps);
 
       return {
         product_id: t.product.id.toString(),
@@ -552,8 +553,6 @@ export class ProductsService {
         prev_score: prevScore,
         trend,
         weekly_bought: weeklyBought,
-        daily_sold: dailySold,
-        daily_sold_delta: dailySoldDelta,
         sell_price: sku?.min_sell_price ? Number(sku.min_sell_price) : null,
         total_available_amount: t.product.total_available_amount?.toString() ?? null,
         photo_url: t.product.photo_url ?? null,
@@ -573,7 +572,7 @@ export class ProductsService {
     await this.assertProductOwnership(productId, accountId);
 
     // Separate queries to avoid N+1 on ai_explanations (was: 20 nested includes → 20 queries)
-    const [product, latestAi] = await Promise.all([
+    const [product, latestAi, trackedProduct] = await Promise.all([
       this.prisma.product.findUnique({
         where: { id: productId },
         include: {
@@ -599,6 +598,10 @@ export class ProductsService {
         where: { product_id: productId },
         orderBy: { created_at: 'desc' },
       }),
+      this.prisma.trackedProduct.findFirst({
+        where: { product_id: productId, account_id: accountId },
+        select: { created_at: true },
+      }),
     ]);
 
     if (!product) return null;
@@ -616,30 +619,22 @@ export class ProductsService {
       }
     }
 
-    const weeklyBought = resolveWeeklyBought(
-      snaps,
-      Number(latest?.orders_quantity ?? product.orders_quantity ?? 0),
-      latest?.snapshot_at?.getTime() ?? Date.now(),
+    // Haftalik sotuv:
+    // 1-hafta → Uzum banneri, 7 kundan keyin → bizning 7 kunlik yig'indi
+    const sevenDaysAgo = getSevenDaysAgoUTC();
+    const weeklyDailyRows = await this.prisma.productSnapshotDaily.findMany({
+      where: { product_id: productId, day: { gte: sevenDaysAgo } },
+      select: { daily_orders_delta: true },
+    });
+    const weeklyFromDaily = weeklyDailyRows.reduce(
+      (sum, r) => sum + (r.daily_orders_delta != null ? Number(r.daily_orders_delta) : 0), 0,
     );
-
-    // Daily sold: delta between last 2 snapshots
-    let dailySold: number | null = null;
-    let dailySoldDelta: number | null = null;
-    if (snaps.length >= 2) {
-      const s0 = snaps[0];
-      const s1 = snaps[1];
-      const daysDiff = Math.max(0.5, (s0.snapshot_at.getTime() - s1.snapshot_at.getTime()) / (1000 * 60 * 60 * 24));
-      const ordersDiff = Math.max(0, Number(s0.orders_quantity ?? 0) - Number(s1.orders_quantity ?? 0));
-      dailySold = Math.round(ordersDiff / daysDiff);
-    }
-    if (snaps.length >= 3) {
-      const s1 = snaps[1];
-      const s2 = snaps[2];
-      const daysDiff = Math.max(0.5, (s1.snapshot_at.getTime() - s2.snapshot_at.getTime()) / (1000 * 60 * 60 * 24));
-      const ordersDiff = Math.max(0, Number(s1.orders_quantity ?? 0) - Number(s2.orders_quantity ?? 0));
-      const prevDailySold = Math.round(ordersDiff / daysDiff);
-      dailySoldDelta = dailySold !== null ? dailySold - prevDailySold : null;
-    }
+    const trackedDaysProduct = trackedProduct
+      ? (Date.now() - trackedProduct.created_at.getTime()) / (1000 * 60 * 60 * 24)
+      : 0;
+    const weeklyBought = trackedDaysProduct >= 7
+      ? (weeklyFromDaily > 0 ? weeklyFromDaily : null)
+      : getScrapedWeeklyBought(snaps);
 
     return {
       product_id: product.id.toString(),
@@ -650,8 +645,6 @@ export class ProductsService {
       shop_name: product.shop?.title ?? null,
       score: latest?.score ? Number(latest.score) : null,
       weekly_bought: weeklyBought,
-      daily_sold: dailySold,
-      daily_sold_delta: dailySoldDelta,
       sell_price: sku?.min_sell_price ? Number(sku.min_sell_price) : null,
       stock_type: sku?.stock_type ?? null,
       photo_url: product.photo_url ?? null,
@@ -696,11 +689,7 @@ export class ProductsService {
     const latest = product.snapshots[0];
     const sku = product.skus[0];
 
-    const weeklyBought = resolveWeeklyBought(
-      product.snapshots,
-      Number(latest?.orders_quantity ?? product.orders_quantity ?? 0),
-      latest?.snapshot_at?.getTime() ?? Date.now(),
-    );
+    const weeklyBought = getScrapedWeeklyBought(product.snapshots);
 
     return {
       product_id: product.id.toString(),
@@ -1086,25 +1075,27 @@ export class ProductsService {
     const sellPrice = sku?.min_sell_price ? Number(sku.min_sell_price) : null;
     const score = latest?.score ? Number(latest.score) : null;
 
-    // Determine weekly_bought with the same fallback logic
-    let weeklyBought: number | null = null;
-    const scrapedSnap = product.snapshots.find(
-      (s) => s.weekly_bought_source === 'scraped' && s.weekly_bought != null,
+    // Haftalik sotuv: 1-hafta → Uzum banneri, 7 kundan keyin → bizning 7 kunlik yig'indi
+    const sevenDaysAgoEst = getSevenDaysAgoUTC();
+    const [weeklyDailyRowsEst, trackedEst] = await Promise.all([
+      this.prisma.productSnapshotDaily.findMany({
+        where: { product_id: productId, day: { gte: sevenDaysAgoEst } },
+        select: { daily_orders_delta: true },
+      }),
+      this.prisma.trackedProduct.findFirst({
+        where: { product_id: productId, account_id: accountId },
+        select: { created_at: true },
+      }),
+    ]);
+    const weeklyFromDailyEst = weeklyDailyRowsEst.reduce(
+      (sum, r) => sum + (r.daily_orders_delta != null ? Number(r.daily_orders_delta) : 0), 0,
     );
-    if (scrapedSnap) {
-      weeklyBought = scrapedSnap.weekly_bought;
-    } else {
-      const anyWbSnap = product.snapshots.find(
-        (s) => s.weekly_bought != null && s.weekly_bought > 0,
-      );
-      if (anyWbSnap) {
-        weeklyBought = anyWbSnap.weekly_bought;
-      } else {
-        const currentOrders = Number(latest?.orders_quantity ?? product.orders_quantity ?? 0);
-        const currentTime = latest?.snapshot_at?.getTime() ?? Date.now();
-        weeklyBought = calcWeeklyBought(product.snapshots, currentOrders, currentTime);
-      }
-    }
+    const trackedDaysEst = trackedEst
+      ? (Date.now() - trackedEst.created_at.getTime()) / (1000 * 60 * 60 * 24)
+      : 0;
+    const weeklyBought = trackedDaysEst >= 7
+      ? (weeklyFromDailyEst > 0 ? weeklyFromDailyEst : null)
+      : getScrapedWeeklyBought(product.snapshots);
 
     // Revenue calculations
     const WEEKS_PER_MONTH = 4;
