@@ -144,7 +144,6 @@ export function SourcingPage() {
         <CargoCalculator
           providers={providers}
           rates={rates}
-          ratesLoading={ratesLoading}
           prefillName={prefillName}
           prefillItemCostUzs={prefillPrice ? parseFloat(prefillPrice) : undefined}
         />

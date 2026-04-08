@@ -38,12 +38,12 @@ export const glassTooltip = {
     background: 'var(--chart-tooltip-bg)',
     backdropFilter: 'blur(8px)',
     border: '1px solid var(--chart-tooltip-border)',
-    borderRadius: 12,
-    fontSize: 12,
+    borderRadius: 12 as number,
+    fontSize: 12 as number,
     color: 'var(--chart-tooltip-text)',
   },
   labelStyle: { color: 'var(--chart-tick)' },
-} as const;
+};
 
 /** Standard axis tick props */
 export const AXIS_TICK = { fontSize: 10, fill: 'var(--chart-tick)' } as const;
