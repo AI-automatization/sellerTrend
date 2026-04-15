@@ -504,16 +504,26 @@ export class ProductsService {
     const weeklyDailyRows = productIds.length > 0
       ? await this.prisma.productSnapshotDaily.findMany({
           where: { product_id: { in: productIds }, day: { gte: mondayUTC } },
-          select: { product_id: true, daily_orders_delta: true },
+          select: { product_id: true, daily_orders_delta: true, day: true },
         })
       : [];
 
     // product_id → haftalik sotuv yig'indisi
     const weeklyMap = new Map<bigint, number>();
+    // product_id → eng so'nggi kun (day) va uning daily_orders_delta
+    const dailyLatestDay = new Map<bigint, Date>();
+    const dailyMap = new Map<bigint, number | null>();
     for (const row of weeklyDailyRows) {
-      if (row.daily_orders_delta == null) continue;
-      const current = weeklyMap.get(row.product_id) ?? 0;
-      weeklyMap.set(row.product_id, current + Number(row.daily_orders_delta));
+      if (row.daily_orders_delta != null) {
+        const current = weeklyMap.get(row.product_id) ?? 0;
+        weeklyMap.set(row.product_id, current + Number(row.daily_orders_delta));
+      }
+      // Eng so'nggi kunni saqlash
+      const prevDay = dailyLatestDay.get(row.product_id);
+      if (!prevDay || row.day > prevDay) {
+        dailyLatestDay.set(row.product_id, row.day);
+        dailyMap.set(row.product_id, row.daily_orders_delta != null ? Number(row.daily_orders_delta) : null);
+      }
     }
 
     return tracked.map((t) => {
@@ -543,11 +553,8 @@ export class ProductsService {
         ? (weeklyFromDaily > 0 ? weeklyFromDaily : null)
         : getScrapedWeeklyBought(snaps);
 
-      // Kunlik sotuv: oxirgi 2 snapshot orasidagi orders farqi (vaqtga bo'lmasdan)
-      // Bu "kechagi sotuv" — scrape bo'lgandan so'ng darhol ko'rinadi
-      const daily_sold = snaps.length >= 2
-        ? Math.max(0, Number(snaps[0].orders_quantity ?? 0) - Number(snaps[1].orders_quantity ?? 0))
-        : null;
+      // Kunlik sotuv: product_snapshot_daily dan kechagi calendar-day delta (T-506)
+      const daily_sold = dailyMap.get(t.product.id) ?? null;
 
       return {
         product_id: t.product.id.toString(),
@@ -631,7 +638,8 @@ export class ProductsService {
     const sevenDaysAgo = getSevenDaysAgoUTC();
     const weeklyDailyRows = await this.prisma.productSnapshotDaily.findMany({
       where: { product_id: productId, day: { gte: sevenDaysAgo } },
-      select: { daily_orders_delta: true },
+      select: { daily_orders_delta: true, day: true },
+      orderBy: { day: 'desc' },
     });
     const weeklyFromDaily = weeklyDailyRows.reduce(
       (sum, r) => sum + (r.daily_orders_delta != null ? Number(r.daily_orders_delta) : 0), 0,
@@ -643,9 +651,10 @@ export class ProductsService {
       ? (weeklyFromDaily > 0 ? weeklyFromDaily : null)
       : getScrapedWeeklyBought(snaps);
 
-    // Kunlik sotuv: oxirgi 2 snapshot orasidagi orders farqi
-    const daily_sold = snaps.length >= 2
-      ? Math.max(0, Number(snaps[0].orders_quantity ?? 0) - Number(snaps[1].orders_quantity ?? 0))
+    // Kunlik sotuv: product_snapshot_daily dan eng so'nggi kunlik calendar-day delta (T-506)
+    const latestDailyRow = weeklyDailyRows[0];
+    const daily_sold = latestDailyRow?.daily_orders_delta != null
+      ? Number(latestDailyRow.daily_orders_delta)
       : null;
 
     return {
