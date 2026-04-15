@@ -1082,4 +1082,57 @@ ML pipeline (T-479 CategoryAggregation, T-482 MlPrediction) uchun kunlik aniq da
 
 ---
 
-*Tasks.md | VENTRA Analytics Platform | 2026-03-29*
+### T-504 | P1 | IKKALASI | Kunlik sotuv — har 15 daqiqada light snapshot + 00:00 da daily delta | 3h | pending[Sardor]
+
+**Sana:** 2026-04-15
+**Manba:** user-feedback (Sardor, 2026-04-15)
+**Mas'ul:** Sardor
+
+**Tahlil:**
+Hozir har product 24 soatda 1 marta to'liq scrape bo'ladi (Playwright + GraphQL + REST).
+`daily_orders_delta` rolling 23.5-25 soatlik window bilan hisoblanadi — calendar kun chegarasiga mos kelmaydi.
+Uzum.uz da `ordersAmount` har daqiqada o'zgarishi mumkin, shuning uchun har 15 daqiqada
+`orders_quantity` snapshot olib, 00:00 da kunlik delta hisoblash kerak.
+
+**Muammo:**
+1. Har product kuniga 1 ta snapshot — real-time sotuv ko'rinmaydi
+2. `daily_orders_delta` calendar kun chegarasiga mos emas (rolling window)
+3. Haftalik sotuv shuning uchun noto'g'ri hisoblanishi mumkin
+
+**Yechim:**
+1. `apps/worker/src/processors/light-snapshot.processor.ts` (yangi)
+   - Faqat REST API `/api/v2/product/{id}` → `orders_quantity` oladi
+   - Playwright YO'Q, GraphQL YO'Q — tez (~100ms per product)
+   - `product_snapshots` ga `orders_quantity` saqlanadi
+
+2. `apps/worker/src/jobs/light-snapshot.job.ts` (yangi)
+   - Cron: `*/15 * * * *` — har 15 daqiqada
+   - Barcha aktiv tracked productlar uchun light snapshot
+
+3. `apps/worker/src/processors/daily-aggregation.processor.ts` (yangilash)
+   - Rolling window o'rniga calendar-day: bugun oxirgi snapshot - kecha oxirgi snapshot
+   - `daily_orders_delta` = today_last.orders_quantity - yesterday_last.orders_quantity
+
+4. `apps/worker/src/jobs/daily-aggregation.job.ts` (yangilash)
+   - Cron: `0 0 * * *` (00:00 UTC) — calendar kun chegarasida
+
+5. `apps/worker/src/main.ts` — yangi light-snapshot worker qo'shish
+
+**Fayllar:**
+- `apps/worker/src/processors/light-snapshot.processor.ts` (yangi)
+- `apps/worker/src/jobs/light-snapshot.job.ts` (yangi)
+- `apps/worker/src/processors/daily-aggregation.processor.ts`
+- `apps/worker/src/jobs/daily-aggregation.job.ts`
+- `apps/worker/src/main.ts`
+
+**Kutilgan natija:**
+```
+Har 15 daqiqada: orders_quantity snapshot (light)
+00:00 UTC:       daily_delta = bugun_oxirgi - kecha_oxirgi
+Haftalik:        sum(daily_delta, 7 kun)
+```
+
+---
+
+
+*Tasks.md | VENTRA Analytics Platform | 2026-04-15*
