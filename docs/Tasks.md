@@ -1134,5 +1134,56 @@ Haftalik:        sum(daily_delta, 7 kun)
 
 ---
 
+### T-505 | P1 | WORKER | weekly-scrape da product_snapshot_daily ga yozishni olib tashlash | 20min | pending[Sardor]
+
+**Sana:** 2026-04-15
+**Manba:** kod-audit (T-504 implementatsiyasidan keyin topildi)
+**Mas'ul:** Sardor
+
+**Tahlil:**
+T-504 da yangi `daily-aggregation.processor.ts` calendar-day delta hisoblash joriy qilindi.
+Lekin `weekly-scrape.processor.ts:343-382` da eski rolling window delta kodi hali turibdi —
+u ham `product_snapshot_daily` ga UPSERT qiladi. Ikki processor bir jadvalga yozganda
+qaysi biri oxirgi yozsa, o'sha qoladi → calendar-day qiymatlar ustiga rolling qiymat yozilishi mumkin.
+
+**Muammo:**
+`weekly-scrape.processor.ts:343-382` — rolling 24h delta → `product_snapshot_daily` yozadi.
+Bu endi `daily-aggregation.processor.ts` ning vazifasi (calendar-day).
+
+**Yechim:**
+`weekly-scrape.processor.ts` dan `productSnapshotDaily` upsert bloklarini olib tashlash.
+Faqat `productSnapshot` (raw snapshot) yozish qoladi — delta hisoblash `daily-aggregation` ga qoladi.
+
+**Fayllar:**
+- `apps/worker/src/processors/weekly-scrape.processor.ts`
+
+---
+
+### T-506 | P1 | BACKEND | API daily_sold — snaps diff o'rniga product_snapshot_daily dan olish | 30min | pending[Sardor]
+
+**Sana:** 2026-04-15
+**Manba:** kod-audit (T-504 implementatsiyasidan keyin topildi)
+**Mas'ul:** Sardor
+
+**Tahlil:**
+`products.service.ts` da `daily_sold` field hisoblash:
+```typescript
+const daily_sold = snaps[0].orders_quantity - snaps[1].orders_quantity
+```
+T-504 dan keyin snapshotlar har 15 daqiqada kelayapti.
+`snaps[0]` va `snaps[1]` orasida 15 daqiqa bor → `daily_sold` = 15 daqiqalik sotuv, kunlik emas.
+
+**Muammo:**
+`daily_sold` = 5 ta (15 daqiqa farq) → frontendda noto'g'ri "bugungi sotuv" ko'rsatiladi.
+
+**Yechim:**
+`daily_sold` = `product_snapshot_daily.daily_orders_delta` (bugungi yoki kechagi kun).
+`getTrackedProducts()` va `getProductById()` da ikkalasida ham yangilash.
+
+**Fayllar:**
+- `apps/api/src/products/products.service.ts`
+
+---
+
 
 *Tasks.md | VENTRA Analytics Platform | 2026-04-15*
