@@ -41,6 +41,8 @@ import { createRagAuditWorker } from './processors/rag-audit.processor';
 import { scheduleRagAudit } from './jobs/rag-audit.job';
 import { createSellerIndexWorker } from './processors/seller-index.processor';
 import { scheduleSellerIndex } from './jobs/seller-index.job';
+import { createLightSnapshotWorker } from './processors/light-snapshot.processor';
+import { scheduleLightSnapshot } from './jobs/light-snapshot.job';
 import { logProcess } from './logger';
 import { browserPool } from './browser-pool';
 import { tokenManager } from './clients/token-manager';
@@ -104,6 +106,7 @@ async function bootstrap() {
   const embeddingWorker = createEmbeddingWorker();
   const ragAuditWorker = createRagAuditWorker();
   const sellerIndexWorker = createSellerIndexWorker();
+  const lightSnapshotWorker = createLightSnapshotWorker();
 
   // Schedule cron jobs
   await scheduleCompetitorSnapshots();
@@ -123,9 +126,10 @@ async function bootstrap() {
   await scheduleEmbeddings();
   await scheduleRagAudit();
   await scheduleSellerIndex();
+  await scheduleLightSnapshot();
 
-  logProcess('info', 'Workers running: discovery, sourcing, competitor, import, weekly-scrape, alert-delivery, monitoring, morning-digest, currency-update, data-cleanup, onboarding-reminder, weekly-digest, marketplace-intelligence, visual-sourcing, category-aggregation, daily-aggregation, ml-prediction');
-  logProcess('info', 'Crons: competitor 6h, weekly-scrape 15min, daily-sales 02:00UTC, alert-delivery 5min, monitoring 6h, digest 07:00, currency 00:30, cleanup 02:00, onboarding-reminder 10:00, weekly-digest Mon/08:00, category-aggregation 03:00, daily-aggregation 03:30, ml-prediction 04:00');
+  logProcess('info', 'Workers running: discovery, sourcing, competitor, import, weekly-scrape, light-snapshot, alert-delivery, monitoring, morning-digest, currency-update, data-cleanup, onboarding-reminder, weekly-digest, marketplace-intelligence, visual-sourcing, category-aggregation, daily-aggregation, ml-prediction');
+  logProcess('info', 'Crons: light-snapshot 15min, weekly-scrape 15min, daily-aggregation 00:05UTC, daily-sales 02:00UTC, alert-delivery 5min, monitoring 6h, digest 07:00, currency 00:30, cleanup 02:00, category-aggregation 03:00, ml-prediction 04:00');
 
   // Health check HTTP server — reuse shared Redis from redis.ts
   const healthPort = parseInt(process.env.WORKER_HEALTH_PORT || '3001', 10);
@@ -210,6 +214,7 @@ async function bootstrap() {
         embeddingWorker.close(),
         ragAuditWorker.close(),
         sellerIndexWorker.close(),
+        lightSnapshotWorker.close(),
       ]);
       await browserPool.shutdown();
       await redis.quit();
