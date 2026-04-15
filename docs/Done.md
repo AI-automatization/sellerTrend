@@ -1,7 +1,43 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
-# Yangilangan: 2026-04-08
+# Yangilangan: 2026-04-15
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
+
+### T-506 | BACKEND | API daily_sold — calendar-day delta dan olish (2026-04-15)
+
+**Manba:** kod-audit (T-504 implementatsiyasidan keyin topildi)
+**Muammo:** `products.service.ts` da `daily_sold = snaps[0].orders - snaps[1].orders` edi. T-504 dan keyin snapshotlar har 15 daqiqada — natijada `daily_sold` = 15 daqiqalik sotuv, kunlik emas.
+**Yechim:** `getTrackedProducts()` va `getProductById()` da `daily_sold` = `product_snapshot_daily.daily_orders_delta` (eng so'nggi kunlik calendar-day delta). `weeklyDailyRows` so'roviga `day` field qo'shildi, eng so'nggi kun aniqlanib delta olinadi.
+**Fayllar:** `apps/api/src/products/products.service.ts`
+**Commit:** 16d7985
+**Vaqt:** 30min (plan: 30min)
+**Ta'sir:** `daily_sold` frontendda endi to'g'ri kunlik sotuv ko'rsatadi (15 daqiqa emas, 24 soatlik calendar-day delta).
+
+---
+
+### T-505 | WORKER | weekly-scrape da rolling delta olib tashlash (2026-04-15)
+
+**Manba:** kod-audit (T-504 implementatsiyasidan keyin topildi)
+**Muammo:** `weekly-scrape.processor.ts:343-382` eski rolling 24h delta hisoblardi va `product_snapshot_daily` ga UPSERT qilardi. T-504 da `daily-aggregation.processor.ts` calendar-day delta joriy qilindi — ikki processor bir jadvalga yozardi, oxirgi yozgan g'alaba qilardi (rolling delta calendar-day natijasini buzardi).
+**Yechim:** `weekly-scrape.processor.ts` dan rolling delta bloki, `toDate()` funksiyasi, `DELTA_WINDOW_MIN_MS` va `DELTA_WINDOW_MAX_MS` konstantalari olib tashlandi. Faqat raw `productSnapshot` yoziladi, delta hisoblash `daily-aggregation.processor.ts` da qoldi.
+**Fayllar:** `apps/worker/src/processors/weekly-scrape.processor.ts`
+**Commit:** 16d7985
+**Vaqt:** 20min (plan: 20min)
+**Ta'sir:** `product_snapshot_daily.daily_orders_delta` faqat calendar-day logika bilan hisoblanadi. Rolling window konflikti bartaraf etildi.
+
+---
+
+### T-504 | IKKALASI | Light snapshot har 15min + calendar-day daily delta (2026-04-15)
+
+**Manba:** user-feedback (Sardor, 2026-04-15)
+**Muammo:** (1) Har product kuniga 1 ta snapshot — real-time sotuv ko'rinmasdi. (2) `daily_orders_delta` rolling 23.5-25 soatlik window — calendar kun chegarasiga mos emasdi. (3) Haftalik sotuv shuning uchun noto'g'ri.
+**Yechim:** Yangi `light-snapshot.processor.ts` (faqat REST, Playwright YO'Q, ~100ms/product) har 15 daqiqada `orders_quantity` snapshot oladi. `daily-aggregation.processor.ts` rolling window o'rniga calendar-day logikaga o'tkazildi: kecha 00:00-24:00 oxirgi snapshot MINUS avvalgi kun oxirgi snapshot. Cron 03:30 UTC → 00:05 UTC ga ko'chirildi.
+**Fayllar:** `apps/worker/src/processors/light-snapshot.processor.ts` (yangi), `apps/worker/src/jobs/light-snapshot.job.ts` (yangi), `apps/worker/src/processors/daily-aggregation.processor.ts`, `apps/worker/src/jobs/daily-aggregation.job.ts`, `apps/worker/src/main.ts`
+**Commit:** 108ba25
+**Vaqt:** 3h (plan: 3h)
+**Ta'sir:** Kunlik sotuv 00:00 da 0 dan boshlanadi va aniq calendar-day chegarasida hisoblanadi. Haftalik sotuv = 7 kunlik delta yig'indisi. Real-time sotuv monitoring imkoni paydo bo'ldi.
+
+---
 
 ### T-503 | FULLSTACK | Kunlik sotuv: snapshot delta (orders[0]-orders[1]) realtime (2026-04-08)
 
