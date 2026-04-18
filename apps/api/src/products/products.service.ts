@@ -1326,10 +1326,10 @@ export class ProductsService {
     if (hasRealPrevData && weekAgoOrders >= twoWeekOrders) {
       prevWeeklySold = Math.round(((weekAgoOrders - twoWeekOrders) * 7) / daysBetweenWeeks);
     }
-    // Fallback: use stored weekly_bought from week-ago snapshot when delta is unavailable or zero
-    if (hasRealPrevData && (prevWeeklySold === null || prevWeeklySold === 0) && weekAgoSnapshot.weekly_bought != null && weekAgoSnapshot.weekly_bought > 0) {
-      prevWeeklySold = weekAgoSnapshot.weekly_bought;
-    }
+    // NOTE: No fallback to weekly_bought for prevWeeklySold.
+    // Scraped weekly_bought values can differ wildly between snapshots (e.g. 1471 vs 178),
+    // causing a fake -1293 delta badge on newly tracked products. Only use actual orders_quantity
+    // delta for prev-week comparison; if it's not calculable, prevWeeklySold stays null → no badge.
 
     // Delta
     const delta = weeklySold != null && prevWeeklySold != null
