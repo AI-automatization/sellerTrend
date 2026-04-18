@@ -264,7 +264,7 @@ export function ProductPage() {
   }, [id]);
 
   async function toggleMine() {
-    if (!tracked) return; // Kuzatuvda bo'lmasa toggle qilish mumkin emas
+    if (!tracked || !id) return; // Kuzatuvda bo'lmasa toggle qilish mumkin emas
     const next = !isMine;
     setIsMine(next);
     try {
