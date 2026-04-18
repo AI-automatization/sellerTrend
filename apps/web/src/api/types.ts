@@ -15,6 +15,7 @@ export interface AnalyzeResult {
   orders_quantity: number | null;
   weekly_bought: number | null;
   daily_sold: number | null;
+  today_sold: number | null;
   score: number;
   sell_price: number | null;
   total_available_amount?: number;

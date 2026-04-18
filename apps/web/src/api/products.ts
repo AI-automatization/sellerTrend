@@ -6,6 +6,7 @@ export const productsApi = {
   getProduct: (productId: string) => api.get(`/products/${productId}`),
   track: (productId: string) => api.post(`/products/${productId}/track`),
   untrack: (productId: string) => api.delete(`/products/${productId}/track`),
+  setMine: (productId: string, isMine: boolean) => api.patch(`/products/${productId}/mine`, { is_mine: isMine }),
   getSnapshots: (productId: string) => api.get(`/products/${productId}/snapshots`),
   getForecast: (productId: string) => api.get(`/products/${productId}/forecast`),
   getMlForecast: (productId: string) => api.get(`/products/${productId}/ml-forecast`),

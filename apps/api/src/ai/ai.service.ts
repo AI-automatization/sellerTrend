@@ -257,10 +257,26 @@ export class AiService {
       text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
       let bullets: string[] = [];
       try {
-        bullets = JSON.parse(text);
-        if (!Array.isArray(bullets)) throw new Error('not array');
+        const parsed = JSON.parse(text);
+        if (!Array.isArray(parsed)) throw new Error('not array');
+        bullets = parsed.filter((b: unknown) => typeof b === 'string' && b.trim().length > 0);
       } catch {
-        bullets = text.split('\n').filter((l) => l.trim().length > 0).slice(0, 4);
+        // Multiline JSON fallback: find [...] block in text
+        const match = text.match(/\[[\s\S]*\]/);
+        if (match) {
+          try {
+            const parsed = JSON.parse(match[0]);
+            if (Array.isArray(parsed)) {
+              bullets = parsed.filter((b: unknown) => typeof b === 'string' && b.trim().length > 0);
+            }
+          } catch { /* ignore */ }
+        }
+        if (bullets.length === 0) {
+          bullets = text.split('\n')
+            .map((l) => l.replace(/^[\s\-\d\."'\[\],]+/, '').replace(/["\]\[,]+$/, '').trim())
+            .filter((l) => l.length > 10)
+            .slice(0, 3);
+        }
       }
 
       await this.prisma.productAiExplanation.create({

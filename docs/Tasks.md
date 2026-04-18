@@ -365,6 +365,32 @@ API calls:     ~300ms           API calls:     ~300ms (bypass, o'zgarmaydi*)
 
 ## P1 — MUHIM
 
+### T-507 | P0 | IKKALASI | ProductPage weekly_bought va daily_sold xato manbaidan olinishi — fix | 1h | done[Sardor]
+
+- **Sana:** 2026-04-16
+- **Manba:** production-bug (user-feedback, 2026-04-16)
+- **Topilgan joyda:** `apps/web/src/pages/ProductPage.tsx:103-111`, `apps/api/src/uzum/uzum.service.ts:281-292`, `packages/utils/src/index.ts:198`
+- **Mas'ul:** Sardor
+
+- **Tahlil:**
+  ProductPage `weekly_bought` va `daily_sold` ni `analyzeProduct` dan oladi. `analyzeProduct` Uzum API dan fresh data oladi (to'g'ri), lekin haftalik/kunlik sotuvni o'zi hisoblaydi (xato). `getProductById` da to'g'ri logika bor (trackedDays < 7 → scraped, >= 7 → dailyAggregation), lekin ProductPage uni weekly/daily uchun ishlatmaydi. Natijada Yangilash bosilganda haftalik sotuv 0 yoki xato qiymat bo'ladi.
+
+- **Muammo:**
+  1. `analyzeProduct`: `calcWeeklyBought` delta=0 bo'lsa 0 qaytaradi (null emas) → snapshotga 0 yoziladi → keyingi chaqiruvlarda ham 0 ko'rinadi
+  2. `weeklyBoughtWithFallback(0, snaps)`: 0 != null → stored scraped qiymat izlanmaydi
+  3. `ProductPage`: `setResult(analyzeRes.data)` — weekly_bought/daily_sold ni analyzeProduct dan oladi, getProductById dan emas
+
+- **Yechim:**
+  1. `packages/utils/src/index.ts:198` — `ordersDiff <= 0` → null (0 emas)
+  2. `packages/utils/src/index.ts:138` — `calculated > 0` bo'lsagina ishlatish
+  3. `apps/web/src/pages/ProductPage.tsx` — setResult dan keyin getProductById dan weekly_bought va daily_sold override qilish
+
+- **Fayllar:**
+  - `packages/utils/src/index.ts`
+  - `apps/web/src/pages/ProductPage.tsx`
+
+---
+
 ### T-502 | P1 | FRONTEND | Claude AI tahlili faqat tracked mahsulotlarda ko'rinsin | 20min | pending[Sardor]
 
 - **Sana:** 2026-04-03
@@ -1079,6 +1105,75 @@ ML pipeline (T-479 CategoryAggregation, T-482 MlPrediction) uchun kunlik aniq da
 - `browser-pool.ts` Bright Data CDP ishlatadi — bu esa Web Unlocker (HTTP proxy), boshqa credential
 - Web Unlocker endpoint: `brd.superproxy.io:22225` (HTTP), CDP: `brd.superproxy.io:9222` (WebSocket)
 - `undici` ProxyAgent allaqachon `uzum-scraper.ts` da ishlatilgan — import tayyor
+
+---
+
+### T-509 | P1 | IKKALASI | "Bugungi sotuv" alohida card — kechagi sotuv fixed, bugungi live | 1h | done[Sardor]
+
+**Sana:** 2026-04-16
+**Manba:** user-feedback (Sardor, 2026-04-16)
+**Topilgan joyda:** `apps/web/src/pages/ProductPage.tsx:420-436`, `apps/api/src/uzum/uzum.service.ts`
+**Mas'ul:** Sardor
+
+**Tahlil:**
+Hozir bitta "Kechagi sotuv" karta bor. `analyzeProduct` (Yangilash tugmasi) live delta
+qaytaradi → `currentOrders` o'zgarsa karta ham o'zgaradi → foydalanuvchini chalkashtirib yuboradi.
+`getProductById` `productSnapshotDaily.daily_orders_delta` qaytaradi (fixed, kecha hisoblab
+qo'yilgan qiymat). Ikki alohida karta kerak: biri fixed (kechagi), biri live (bugungi).
+
+**Muammo:**
+Faqat bitta `daily_sold` karta bor, u `analyzeProduct` da o'zgarib turadi (live) yoki
+`getProductById` dan override bo'ladi (fixed) — logika aniq emas.
+
+**Yechim:**
+1. `analyzeProduct` javobiga `today_sold` maydoni qo'shish (= hozirgi live delta)
+2. `AnalyzeResult` type ga `today_sold?: number | null` qo'shish
+3. `ProductPage`: `todaySold` state, `loadData` da `analyzeRes.data.today_sold` saqlash
+4. "Bugungi sotuv" yangi karta qo'shish (live, har Yangilashda o'zgaradi)
+5. "Kechagi sotuv" karta `result.daily_sold` (fixed, `productSnapshotDaily` dan override)
+
+**Fayllar:**
+- `apps/api/src/uzum/uzum.service.ts`
+- `apps/web/src/api/types.ts`
+- `apps/web/src/pages/ProductPage.tsx`
+
+---
+
+### T-508 | P0 | BACKEND | analyzeProduct daily_sold = 0 bug — 18h+ oldingi snapshot bilan taqqoslash | 30min | done[Sardor]
+
+**Sana:** 2026-04-17
+**Manba:** production-bug | user-feedback
+**Topilgan joyda:** `apps/api/src/uzum/uzum.service.ts:113-115, 281-283`
+**Mas'ul:** Sardor | pending[Sardor]
+
+**Tahlil:**
+`analyzeProduct` (Yangilash tugmasi) `daily_sold` ni hisoblashda `recentSnapshots[0]`
+(eng so'nggi snapshot) bilan taqqoslaydi. Birinchi sahifaga kirishda yangi snapshot
+yaratiladi. Keyingi kirishda `recentSnapshots[0]` = bugun yaratilgan snapshot bo'ladi
+va `currentOrders - recentSnapshots[0].orders_quantity = 0` → `daily_sold = 0`.
+
+**Muammo:**
+```
+1-kirish: recentSnapshots[0] = Apr 16 (38177) → 38194 - 38177 = 17 ✅
+2-kirish: recentSnapshots[0] = Apr 17 (38194) → 38194 - 38194 = 0 ❌
+```
+Ikkala path ham xato: dedup path (line 113) va asosiy path (line 281).
+
+**Yechim:**
+`recentSnapshots` ichidan 18+ soat oldingi birinchi snapshotni topish (`dayOldSnap`).
+Shu bilan taqqoslash → har doim kechagi ma'lumot asosida hisob:
+```typescript
+const DAILY_MIN_GAP_MS = 18 * 60 * 60 * 1000;
+const dayOldSnap = recentSnapshots.find(
+  (s) => Date.now() - s.snapshot_at.getTime() > DAILY_MIN_GAP_MS,
+);
+const daily_sold = dayOldSnap
+  ? Math.max(0, currentOrders - Number(dayOldSnap.orders_quantity ?? 0))
+  : null;
+```
+
+**Fayllar:**
+- `apps/api/src/uzum/uzum.service.ts` (line 113-115 va 281-283)
 
 ---
 

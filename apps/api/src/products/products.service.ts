@@ -901,6 +901,18 @@ export class ProductsService {
     return { untracked: true };
   }
 
+  async setIsMine(accountId: string, productId: bigint, isMine: boolean) {
+    const tp = await this.prisma.trackedProduct.findUnique({
+      where: { account_id_product_id: { account_id: accountId, product_id: productId } },
+    });
+    if (!tp) throw new Error('Mahsulot kuzatuvda emas');
+    await this.prisma.trackedProduct.update({
+      where: { account_id_product_id: { account_id: accountId, product_id: productId } },
+      data: { is_mine: isMine },
+    });
+    return { is_mine: isMine };
+  }
+
   async getProductSnapshots(productId: bigint, accountId: string, limit = 30) {
     await this.assertProductOwnership(productId, accountId);
 
@@ -1304,11 +1316,14 @@ export class ProductsService {
     const daysBetweenWeeks =
       (weekAgoSnapshot.snapshot_at.getTime() - twoWeekAgoSnapshot.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
 
-    if (daysBetweenWeeks > 0 && weekAgoOrders >= twoWeekOrders) {
+    // Haqiqiy "o'tgan hafta" snapshoti mavjud bo'lsagina hisoblash.
+    // Agar twoWeekAgoSnapshot === weekAgoSnapshot (bir xil snapshot), real data yo'q — prevWeeklySold = null.
+    const hasRealPrevData = daysBetweenWeeks > 1;
+    if (hasRealPrevData && weekAgoOrders >= twoWeekOrders) {
       prevWeeklySold = Math.round(((weekAgoOrders - twoWeekOrders) * 7) / daysBetweenWeeks);
     }
     // Fallback: use stored weekly_bought from week-ago snapshot when delta is unavailable or zero
-    if ((prevWeeklySold === null || prevWeeklySold === 0) && weekAgoSnapshot.weekly_bought != null && weekAgoSnapshot.weekly_bought > 0) {
+    if (hasRealPrevData && (prevWeeklySold === null || prevWeeklySold === 0) && weekAgoSnapshot.weekly_bought != null && weekAgoSnapshot.weekly_bought > 0) {
       prevWeeklySold = weekAgoSnapshot.weekly_bought;
     }
 

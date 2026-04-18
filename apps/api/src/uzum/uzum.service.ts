@@ -44,12 +44,14 @@ export class UzumService {
     }
 
     // Check if this product is already tracked by the account
-    const isTracked = accountId
-      ? !!(await this.prisma.trackedProduct.findUnique({
+    const trackedProduct = accountId
+      ? await this.prisma.trackedProduct.findUnique({
           where: { account_id_product_id: { account_id: accountId, product_id: BigInt(productId) } },
-          select: { id: true },
-        }))
-      : false;
+          select: { id: true, is_mine: true },
+        })
+      : null;
+    const isTracked = !!trackedProduct;
+    const isMine = trackedProduct?.is_mine ?? false;
 
     // 2. Upsert shop
     if (detail.shop) {
@@ -109,15 +111,33 @@ export class UzumService {
 
     const lastSnap = recentSnapshots[0];
 
-    // T-503: kechagi sotuv (cached path — last 2 existing snapshots delta)
-    const daily_sold_cached: number | null = recentSnapshots.length >= 2
-      ? Math.max(0, Number(recentSnapshots[0].orders_quantity ?? 0) - Number(recentSnapshots[1].orders_quantity ?? 0))
+    // T-508: daily_sold uchun 18+ soat oldingi snapshotni topamiz.
+    // recentSnapshots[0] bugun yaratilgan bo'lishi mumkin → delta=0 xatosi.
+    const DAILY_MIN_GAP_MS = 18 * 60 * 60 * 1000;
+    const dayOldSnap = recentSnapshots.find(
+      (s) => Date.now() - s.snapshot_at.getTime() > DAILY_MIN_GAP_MS,
+    );
+
+    // T-508: dedup cached path — 18h+ oldingi snapshot vs eng so'nggi
+    const daily_sold_cached: number | null = dayOldSnap
+      ? Math.max(0, Number(recentSnapshots[0].orders_quantity ?? 0) - Number(dayOldSnap.orders_quantity ?? 0))
       : null;
 
     if (lastSnap && Date.now() - lastSnap.snapshot_at.getTime() < SNAPSHOT_MIN_GAP_MS) {
       this.logger.log(`Snapshot dedup (T-267): product=${productId}, skip — last snap ${Math.round((Date.now() - lastSnap.snapshot_at.getTime()) / 1000)}s ago`);
       // Return cached data from last snapshot instead of creating duplicate
       const cachedScore = lastSnap.score ? Number(lastSnap.score) : 0;
+      // Dedup path: DBdan so'nggi AI explanation olish
+      const cachedAi = await this.prisma.productAiExplanation.findFirst({
+        where: { product_id: BigInt(productId) },
+        orderBy: { created_at: 'desc' },
+        select: { explanation: true },
+      });
+      let cachedAiExplanation: string[] | null = null;
+      if (cachedAi?.explanation) {
+        try { cachedAiExplanation = JSON.parse(cachedAi.explanation); } catch { /* ignore */ }
+        if (cachedAiExplanation && !Array.isArray(cachedAiExplanation)) cachedAiExplanation = null;
+      }
       return {
         product_id: productId,
         title: detail.title,
@@ -126,13 +146,15 @@ export class UzumService {
         orders_quantity: detail.ordersQuantity,
         weekly_bought: lastSnap.weekly_bought,
         daily_sold: daily_sold_cached,
+        today_sold: daily_sold_cached,
         score: cachedScore,
         snapshot_id: lastSnap.id,
         sell_price: detail.skuList?.[0]?.sellPrice,
         total_available_amount: detail.totalAvailableAmount ?? 0,
         photo_url: detail.photoUrl ?? null,
-        ai_explanation: null,
+        ai_explanation: cachedAiExplanation,
         is_tracked: isTracked,
+        is_mine: isMine,
       };
     }
 
@@ -259,9 +281,9 @@ export class UzumService {
       .extractAttributes(BigInt(productId), detail.title)
       .catch(() => {});
 
-    // 10. AI — seller advice (barcha mahsulotlar uchun — Haiku ~$0.001/call)
+    // 10. AI — seller advice (faqat "Bu mening mahsulotim" belgilangan mahsulotlar uchun)
     const ordersQty = detail.ordersQuantity ?? 0;
-    const aiExplanation = await this.aiService
+    const aiExplanation = isMine ? await this.aiService
       .explainWinner({
         productId: BigInt(productId),
         snapshotId: snapshot.id,
@@ -275,11 +297,12 @@ export class UzumService {
       .catch((err) => {
         this.logger.warn(`AI explanation failed: ${err instanceof Error ? err.message : err}`);
         return null;
-      });
+      })
+    : null;
 
-    // T-503: kechagi sotuv — currentOrders vs last existing snapshot
-    const daily_sold: number | null = recentSnapshots.length >= 1
-      ? Math.max(0, currentOrders - Number(recentSnapshots[0].orders_quantity ?? 0))
+    // T-508: kechagi sotuv — currentOrders vs 18h+ oldingi snapshot (bugungi bilan emas)
+    const daily_sold: number | null = dayOldSnap
+      ? Math.max(0, currentOrders - Number(dayOldSnap.orders_quantity ?? 0))
       : null;
 
     return {
@@ -290,6 +313,7 @@ export class UzumService {
       orders_quantity: detail.ordersQuantity,
       weekly_bought: weeklyBought,
       daily_sold,
+      today_sold: daily_sold,
       score: scoreNum,
       snapshot_id: snapshot.id,
       sell_price: primarySku?.sellPrice,
@@ -297,6 +321,7 @@ export class UzumService {
       photo_url: detail.photoUrl ?? null,
       ai_explanation: aiExplanation,
       is_tracked: isTracked,
+      is_mine: isMine,
     };
   }
 

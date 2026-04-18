@@ -47,9 +47,8 @@ export function ProductPage() {
   const [error, setError] = useState('');
   const [tracked, setTracked] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [isMine, setIsMine] = useState(() => {
-    try { return localStorage.getItem(`mine_${id}`) === '1'; } catch { return false; }
-  });
+  const [isMine, setIsMine] = useState(false);
+  const [todaySold, setTodaySold] = useState<number | null>(null);
 
   const [extItems, setExtItems] = useState<ExternalItem[]>([]);
   const [extLoading, setExtLoading] = useState(false);
@@ -107,9 +106,21 @@ export function ProductPage() {
         productsApi.getProduct(id).catch(() => ({ data: null })),
       ]);
       if (controller.signal.aborted) return;
-      setResult(analyzeRes.data);
+      // T-507: analyzeProduct Uzum fresh datani to'g'ri keltiradi (orders, narx, reyting),
+      // lekin weekly_bought/daily_sold ni noto'g'ri hisoblaydi.
+      // getProductById (detailRes) trackedDays logikasini to'g'ri bajaradi → shu manbadan olish.
+      const baseResult = analyzeRes.data;
+      // T-509: bugungi sotuv — live delta (analyzeProduct dan, har Yangilashda o'zgaradi)
+      setTodaySold(analyzeRes.data.today_sold ?? analyzeRes.data.daily_sold ?? null);
+      if (detailRes.data) {
+        baseResult.weekly_bought = detailRes.data.weekly_bought ?? baseResult.weekly_bought;
+        // T-509: kechagi sotuv — productSnapshotDaily dan (fixed calendar-day delta)
+        baseResult.daily_sold = detailRes.data.daily_sold ?? baseResult.daily_sold;
+      }
+      setResult(baseResult);
       if (detailRes.data) setProductDetail(detailRes.data);
       if (analyzeRes.data.is_tracked) setTracked(true);
+      if (typeof analyzeRes.data.is_mine === 'boolean') setIsMine(analyzeRes.data.is_mine);
       const snaps: Snapshot[] = snapRes.data;
       const MONTHS = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn', 'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'];
       // Aggregate by day — keep latest snapshot per day to avoid zigzag (T-197)
@@ -240,6 +251,7 @@ export function ProductPage() {
     setTrendAnalysis(null);
     setWeeklyTrend(null);
     setProductDetail(null);
+    setTodaySold(null);
     setAiLoading(false);
     try {
       const savedMine = localStorage.getItem(`mine_${id}`) === '1';
@@ -251,12 +263,17 @@ export function ProductPage() {
     }
   }, [id]);
 
-  function toggleMine() {
+  async function toggleMine() {
+    if (!tracked) return; // Kuzatuvda bo'lmasa toggle qilish mumkin emas
     const next = !isMine;
     setIsMine(next);
-    try { if (next) { localStorage.setItem(`mine_${id}`, '1'); } else { localStorage.removeItem(`mine_${id}`); } } catch { /* ignore */ }
-    // Trigger Claude AI analysis when marking as mine
-    if (next) setAiRequested(true);
+    try {
+      await productsApi.setMine(id, next);
+      // "Bu mening mahsulotim" qo'yilsa — AI tahlil so'rovini yuboramiz
+      if (next) setAiRequested(true);
+    } catch {
+      setIsMine(!next); // Rollback on error
+    }
   }
 
   async function handleTrack() {
@@ -405,7 +422,7 @@ export function ProductPage() {
           sub={t('product.allTime')} accent="text-primary"
           icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>}
         />
-        {/* Kunlik sotuv — oxirgi 2 snapshot delta (T-503) */}
+        {/* Kechagi sotuv — productSnapshotDaily dan (fixed, T-509) */}
         <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 lg:p-4">
           <div className="flex items-start justify-between mb-1">
             <p className="text-xs text-base-content/50">Kechagi sotuv</p>
@@ -419,7 +436,24 @@ export function ProductPage() {
             {result.daily_sold != null ? result.daily_sold.toLocaleString() : '—'}
           </p>
           <p className="text-xs text-base-content/40 mt-0.5">
-            {result.daily_sold == null ? 'Ma\'lumot to\'planmoqda' : '~24 soatlik delta'}
+            {result.daily_sold == null ? 'Ma\'lumot to\'planmoqda' : 'Kecha (sobit)'}
+          </p>
+        </div>
+        {/* Bugungi sotuv — live delta, har Yangilashda o'zgaradi (T-509) */}
+        <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 lg:p-4">
+          <div className="flex items-start justify-between mb-1">
+            <p className="text-xs text-base-content/50">Bugungi sotuv</p>
+            <svg className="w-4 h-4 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className={`font-bold text-lg tabular-nums leading-tight ${
+            todaySold != null && todaySold > 0 ? 'text-info' : 'text-base-content/30'
+          }`}>
+            {todaySold != null ? todaySold.toLocaleString() : '—'}
+          </p>
+          <p className="text-xs text-base-content/40 mt-0.5">
+            {todaySold == null ? 'Ma\'lumot to\'planmoqda' : 'Bugun (live)'}
           </p>
         </div>
         <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 lg:p-4">

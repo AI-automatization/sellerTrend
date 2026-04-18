@@ -135,7 +135,9 @@ export function weeklyBoughtWithFallback(
   calculated: number | null,
   snapshots: Array<{ weekly_bought?: number | null }>,
 ): number | null {
-  if (calculated != null) return calculated;
+  // T-507: 0 ni null bilan teng ko'rish — 0 delta stale data yoki haqiqiy 0,
+  // ikkalasida ham stored scraped qiymat ishlatilsin
+  if (calculated != null && calculated > 0) return calculated;
   for (const snap of snapshots) {
     if (snap.weekly_bought != null && snap.weekly_bought > 0) {
       return snap.weekly_bought;
@@ -195,7 +197,9 @@ export function calcWeeklyBought(
   const daysDiff = (now - ref.snapshot_at.getTime()) / (1000 * 60 * 60 * 24);
   const ordersDiff = currentOrders - Number(ref.orders_quantity);
 
-  if (daysDiff < 0.5 || ordersDiff < 0) return null;
+  // T-507: ordersDiff=0 → stale Uzum API cache yoki haqiqiy 0 sotuv,
+  // ikkalasida ham null qaytarish — snapshotga 0 yozilmasin
+  if (daysDiff < 0.5 || ordersDiff <= 0) return null;
 
   const wb = Math.round((ordersDiff * 7) / daysDiff);
   return wb <= MAX_REASONABLE ? wb : null;

@@ -355,6 +355,7 @@ model TrackedProduct {
   account_id     String
   product_id     BigInt
   is_active      Boolean   @default(true)
+  is_mine        Boolean   @default(false)
   next_scrape_at DateTime? @db.Timestamptz
   last_scraped_at DateTime? @db.Timestamptz
   created_at     DateTime  @default(now()) @db.Timestamptz

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, Query, UseGuards, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Patch, Body, Param, Query, UseGuards, NotFoundException } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
@@ -96,6 +96,16 @@ export class ProductsController {
     @Param('id', ParseBigIntPipe) productId: bigint,
   ) {
     return this.productsService.untrackProduct(accountId, productId);
+  }
+
+  /** Toggle is_mine: "Bu mening mahsulotim" — account ga bog'liq */
+  @Patch(':id/mine')
+  setMine(
+    @CurrentUser('account_id') accountId: string,
+    @Param('id', ParseBigIntPipe) productId: bigint,
+    @Body('is_mine') isMine: boolean,
+  ) {
+    return this.productsService.setIsMine(accountId, productId, isMine);
   }
 
   /** Revenue estimator: monthly revenue, margin, competition level */
