@@ -1108,6 +1108,40 @@ ML pipeline (T-479 CategoryAggregation, T-482 MlPrediction) uchun kunlik aniq da
 
 ---
 
+### T-510 | P0 | IKKALASI | Haftalik/bugungi sotuv xatoliklari — created_at, today_sold, score fix | 1h | pending[Sardor]
+
+**Sana:** 2026-04-18
+**Manba:** production-bug | user-feedback
+**Topilgan joyda:** `apps/api/src/products/products.service.ts:861-876`, `apps/api/src/uzum/uzum.service.ts:116-124`
+**Mas'ul:** Sardor
+
+**Tahlil:**
+4 ta bog'liq bug aniqlandi:
+1. Qayta track qilganda `created_at` yangilanmaydi → `trackedDays` xato hisoblanadi
+2. `trackedDays >= 7` bo'lib qoladi → `productSnapshotDaily` yig'indisi (20) ishlatiladi, scraped (183) emas
+3. `today_sold` null — `take:20` da 18h+ snap topilmaydi, `productSnapshotDaily.max_orders` ishlatilmagan
+4. Score = 0 — dedup path da `lastSnap.score = null` (worker snapshot) → `cachedScore = 0`
+
+**Muammo:**
+```
+Apr 9  → tracked (created_at=Apr9)
+Apr 10 → untrack (is_active=false)
+Apr 16 → re-track → is_active=true, created_at=Apr9 (yangilanmadi!)
+trackedDays = 10 >= 7 → weeklyFromDaily = 20 (xato), scraped 183 ignored
+```
+
+**Yechim:**
+1. `trackProduct` — `update` ga `created_at: new Date()` qo'shish (re-track = yangi boshlanish)
+2. `getProductById` — `daysWithData < 3` bo'lsa scraped ga fallback
+3. `analyzeProduct` — `today_sold` ni `productSnapshotDaily` kechagi `max_orders` dan hisoblash
+4. `analyzeProduct` dedup path — `score=null` snapshot uchun `recentSnapshots` dan scored snap topish
+
+**Fayllar:**
+- `apps/api/src/products/products.service.ts`
+- `apps/api/src/uzum/uzum.service.ts`
+
+---
+
 ### T-509 | P1 | IKKALASI | "Bugungi sotuv" alohida card — kechagi sotuv fixed, bugungi live | 1h | done[Sardor]
 
 **Sana:** 2026-04-16

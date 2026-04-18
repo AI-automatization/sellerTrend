@@ -111,22 +111,24 @@ export class UzumService {
 
     const lastSnap = recentSnapshots[0];
 
-    // T-508: daily_sold uchun 18+ soat oldingi snapshotni topamiz.
-    // recentSnapshots[0] bugun yaratilgan bo'lishi mumkin → delta=0 xatosi.
-    const DAILY_MIN_GAP_MS = 18 * 60 * 60 * 1000;
-    const dayOldSnap = recentSnapshots.find(
-      (s) => Date.now() - s.snapshot_at.getTime() > DAILY_MIN_GAP_MS,
-    );
-
-    // T-508: dedup cached path — 18h+ oldingi snapshot vs eng so'nggi
-    const daily_sold_cached: number | null = dayOldSnap
-      ? Math.max(0, Number(recentSnapshots[0].orders_quantity ?? 0) - Number(dayOldSnap.orders_quantity ?? 0))
+    // T-510: today_sold — kechagi max_orders dan (productSnapshotDaily, aniq va barqaror)
+    // Avvalgi 18h+ snap logikasi take:20 da topilmasdi → DB dan to'g'ridan query
+    const todayStartUTC = new Date();
+    todayStartUTC.setUTCHours(0, 0, 0, 0);
+    const yesterdayDailyRow = await this.prisma.productSnapshotDaily.findFirst({
+      where: { product_id: BigInt(productId), day: { lt: todayStartUTC } },
+      orderBy: { day: 'desc' },
+      select: { max_orders: true },
+    });
+    const today_sold_val: number | null = yesterdayDailyRow?.max_orders != null
+      ? Math.max(0, currentOrders - Number(yesterdayDailyRow.max_orders))
       : null;
 
     if (lastSnap && Date.now() - lastSnap.snapshot_at.getTime() < SNAPSHOT_MIN_GAP_MS) {
       this.logger.log(`Snapshot dedup (T-267): product=${productId}, skip — last snap ${Math.round((Date.now() - lastSnap.snapshot_at.getTime()) / 1000)}s ago`);
-      // Return cached data from last snapshot instead of creating duplicate
-      const cachedScore = lastSnap.score ? Number(lastSnap.score) : 0;
+      // T-510: score=null worker snapshotlar uchun — recentSnapshots dan scored snap topish
+      const scoredSnap = recentSnapshots.find(s => s.score != null && Number(s.score) > 0);
+      const cachedScore = scoredSnap ? Number(scoredSnap.score) : 0;
       // Dedup path: DBdan so'nggi AI explanation olish
       const cachedAi = await this.prisma.productAiExplanation.findFirst({
         where: { product_id: BigInt(productId) },
@@ -145,8 +147,8 @@ export class UzumService {
         feedback_quantity: detail.feedbackQuantity,
         orders_quantity: detail.ordersQuantity,
         weekly_bought: lastSnap.weekly_bought,
-        daily_sold: daily_sold_cached,
-        today_sold: daily_sold_cached,
+        daily_sold: today_sold_val,
+        today_sold: today_sold_val,
         score: cachedScore,
         snapshot_id: lastSnap.id,
         sell_price: detail.skuList?.[0]?.sellPrice,
@@ -300,11 +302,6 @@ export class UzumService {
       })
     : null;
 
-    // T-508: kechagi sotuv — currentOrders vs 18h+ oldingi snapshot (bugungi bilan emas)
-    const daily_sold: number | null = dayOldSnap
-      ? Math.max(0, currentOrders - Number(dayOldSnap.orders_quantity ?? 0))
-      : null;
-
     return {
       product_id: productId,
       title: detail.title,
@@ -312,8 +309,8 @@ export class UzumService {
       feedback_quantity: detail.feedbackQuantity,
       orders_quantity: detail.ordersQuantity,
       weekly_bought: weeklyBought,
-      daily_sold,
-      today_sold: daily_sold,
+      daily_sold: today_sold_val,
+      today_sold: today_sold_val,
       score: scoreNum,
       snapshot_id: snapshot.id,
       sell_price: primarySku?.sellPrice,

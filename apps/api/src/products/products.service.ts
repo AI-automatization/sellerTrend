@@ -647,7 +647,9 @@ export class ProductsService {
     const trackedDaysProduct = trackedProduct
       ? (Date.now() - trackedProduct.created_at.getTime()) / (1000 * 60 * 60 * 24)
       : 0;
-    const weeklyBought = trackedDaysProduct >= 7
+    // T-510: 3 kundan kam valid daily data bo'lsa scraped ga fallback
+    const daysWithData = weeklyDailyRows.filter(r => r.daily_orders_delta != null).length;
+    const weeklyBought = (trackedDaysProduct >= 7 && daysWithData >= 3)
       ? (weeklyFromDaily > 0 ? weeklyFromDaily : null)
       : getScrapedWeeklyBought(snaps);
 
@@ -868,6 +870,8 @@ export class ProductsService {
       update: {
         is_active: true,
         next_scrape_at: new Date(),
+        // T-510: re-track qilganda trackedDays qaytadan 0 dan boshlansin
+        created_at: new Date(),
       },
       create: {
         account_id: accountId,
