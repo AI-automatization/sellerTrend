@@ -1243,14 +1243,23 @@ export class ProductsService {
     score_change: number | null;
     last_updated: string | null;
   }> {
-    await this.assertProductOwnership(productId, accountId);
+    // Fetch tracking start date — snapshots BEFORE this date belong to old/other-account tracking
+    // and must NOT be used for delta comparison (would produce fake -1293 badges).
+    // This also replaces assertProductOwnership (ownership verified by the findUnique result).
+    const trackedRow = await this.prisma.trackedProduct.findUnique({
+      where: { account_id_product_id: { account_id: accountId, product_id: productId } },
+      select: { created_at: true },
+    });
+    if (!trackedRow) throw new NotFoundException('Product not found');
 
-    // Get last 14 days of snapshots for comparison
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+    // Use the later of (trackingStart, twoWeeksAgo) so we never read pre-tracking snapshots
+    const snapshotsFrom = trackedRow.created_at > twoWeeksAgo ? trackedRow.created_at : twoWeeksAgo;
+
     const snapshots = await this.prisma.productSnapshot.findMany({
       where: {
         product_id: productId,
-        snapshot_at: { gte: twoWeeksAgo },
+        snapshot_at: { gte: snapshotsFrom },
       },
       orderBy: { snapshot_at: 'asc' },
       select: {
