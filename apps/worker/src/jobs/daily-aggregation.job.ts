@@ -12,9 +12,10 @@ const dailyAggregationQueue = new Queue('daily-aggregation-queue', {
 });
 
 /**
- * 00:05 UTC — calendar kun o'tgandan 5 daqiqa keyin.
- * Kecha 00:00 - bugun 00:00 orasidagi snapshotlardan daily_orders_delta hisoblaydi.
+ * 19:05 UTC (Toshkent 00:05) — Toshkent kun o'tgandan 5 daqiqa keyin.
+ * Kecha Toshkent 00:00 - bugun Toshkent 00:00 orasidagi snapshotlardan daily_orders_delta hisoblaydi.
  * T-504: calendar-day based kunlik sotuv.
+ * T-511: UTC o'rniga Toshkent (UTC+5) timezone ishlatish.
  */
 export async function scheduleDailyAggregation() {
   const repeatableJobs = await dailyAggregationQueue.getRepeatableJobs();
@@ -28,10 +29,10 @@ export async function scheduleDailyAggregation() {
     'daily-aggregation',
     {},
     {
-      repeat: { pattern: '5 0 * * *' }, // 00:05 UTC har kuni
+      repeat: { pattern: '5 19 * * *' }, // 19:05 UTC = Toshkent 00:05 har kuni
       jobId: 'daily-aggregation-cron',
     },
   );
 
-  console.log('Daily aggregation cron registered: 5 0 * * * (00:05 UTC, Toshkent 05:05)');
+  console.log('Daily aggregation cron registered: 5 19 * * * (19:05 UTC = Toshkent 00:05)');
 }

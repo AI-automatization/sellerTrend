@@ -1212,4 +1212,52 @@ const daily_sold = dayOldSnap
 ---
 
 
+---
+
+### T-511 | P1 | BACKEND | Kunlik sotuv UTC o'rniga Toshkent (UTC+5) timezone bo'yicha hisoblash | 1h
+
+**Sana:** 2026-04-19
+**Manba:** production-bug | user-feedback
+**Mas'ul:** Sardor
+
+**Tahlil:**
+Hozir `daily-aggregation` va `today_sold_val` hisoblash UTC 00:00 ni kun chegarasi
+sifatida ishlatadi. UTC+5 Toshkent vaqtida bu 05:00 AM ga to'g'ri keladi.
+Natijada **00:00 — 05:00 Toshkent** orasidagi sotuvlar noto'g'ri kunda hisoblanadi
+(masalan, April 20 soat 03:00 da sotuv bo'lsa — April 19 ga kirib ketadi).
+
+**Muammo:**
+```
+Toshkent 03:00 April 20 = UTC 22:00 April 19  ← UTC April 19 ga kiradi
+→ kechagi sotuv (April 19) ga hisoblanadi  ❌
+→ bugungi sotuv (April 20) da ko'rinmaydi  ❌
+```
+
+**Yechim:**
+Kun chegarasini UTC 00:00 dan **UTC 19:00 (= Toshkent 00:00)** ga o'tkazish:
+
+```typescript
+// daily-aggregation.processor.ts
+function getTashkentDayStart(): Date {
+  const now = new Date();
+  const tashkent = new Date(now.getTime() + 5 * 60 * 60 * 1000);
+  tashkent.setUTCHours(0, 0, 0, 0);
+  return new Date(tashkent.getTime() - 5 * 60 * 60 * 1000);
+}
+```
+
+Cron: `5 0 * * *` → `0 19 * * *` (UTC 19:00 = Toshkent 00:00)
+
+**Ta'sir:**
+- Eski `product_snapshot_daily` data o'zgarmaydi
+- `today_sold_val` hisoblash to'g'ri ishlaydi (DB query DATE vs TIMESTAMP taqqoslash)
+- 00:00–05:00 Toshkent orasidagi sotuvlar to'g'ri kunda hisoblanadi
+
+**Fayllar:**
+- `apps/worker/src/processors/daily-aggregation.processor.ts` — `getYesterdayRange()`
+- `apps/worker/src/jobs/daily-aggregation.job.ts` — cron pattern
+- `apps/api/src/uzum/uzum.service.ts` — `todayStartUTC` hisoblash
+
+---
+
 *Tasks.md | VENTRA Analytics Platform | 2026-04-15*

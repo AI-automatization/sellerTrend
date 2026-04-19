@@ -112,9 +112,11 @@ export class UzumService {
     const lastSnap = recentSnapshots[0];
 
     // T-510: today_sold — kechagi max_orders dan (productSnapshotDaily, aniq va barqaror)
-    // Avvalgi 18h+ snap logikasi take:20 da topilmasdi → DB dan to'g'ridan query
-    const todayStartUTC = new Date();
-    todayStartUTC.setUTCHours(0, 0, 0, 0);
+    // T-511: UTC o'rniga Toshkent (UTC+5) kun chegarasi — 00:00–05:00 sotuvlar to'g'ri kunda hisoblanadi
+    const TASHKENT_OFFSET_MS = 5 * 60 * 60 * 1000;
+    const nowTashkent = new Date(Date.now() + TASHKENT_OFFSET_MS);
+    nowTashkent.setUTCHours(0, 0, 0, 0);
+    const todayStartUTC = new Date(nowTashkent.getTime() - TASHKENT_OFFSET_MS); // Toshkent 00:00 → UTC
     const yesterdayDailyRow = await this.prisma.productSnapshotDaily.findFirst({
       where: { product_id: BigInt(productId), day: { lt: todayStartUTC } },
       orderBy: { day: 'desc' },

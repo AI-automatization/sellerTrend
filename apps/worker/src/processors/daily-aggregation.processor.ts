@@ -1,18 +1,18 @@
 /**
- * Daily Aggregation processor — T-504
+ * Daily Aggregation processor — T-504, T-511
  *
- * Har kuni 00:00 UTC da calendar-day delta hisoblaydi.
+ * Har kuni Toshkent 00:00 (UTC 19:00) da calendar-day delta hisoblaydi.
  *
  * daily_orders_delta = kecha_oxirgi_snapshot.orders - bugunoq_oldingi_kun_oxirgi_snapshot.orders
  *
  * Ya'ni:
- *   - Bugun (kecha 00:00 - bugun 00:00) orasidagi oxirgi snapshot = "kechagi sotuv oxiri"
- *   - Avvalgi kun (ikki kun oldin 00:00 - kecha 00:00) orasidagi oxirgi snapshot = "oldingi kun oxiri"
+ *   - Bugun (kecha Toshkent 00:00 - bugun Toshkent 00:00) orasidagi oxirgi snapshot = "kechagi sotuv oxiri"
+ *   - Avvalgi kun (ikki kun oldin - kecha Toshkent 00:00) orasidagi oxirgi snapshot = "oldingi kun oxiri"
  *   - Delta = kechagi_oxirgi - oldingi_kun_oxirgi = o'sha kunning sotuvlari
  *
- * Nima uchun calendar-day:
- *   Rolling window ishlatilsa kunlik sotuv aniq emas.
- *   Calendar-day bilan kunlik sotuv 00:00 da 0 ga tushib boshlanadi.
+ * Nima uchun Toshkent timezone (T-511):
+ *   UTC 00:00 ishlatilsa Toshkent 00:00–05:00 orasidagi sotuvlar noto'g'ri kunda hisoblanadi.
+ *   Toshkent 00:00 = UTC 19:00 (oldingi kun) — foydalanuvchi Toshkent vaqtida ishlaydi.
  */
 
 import { Worker, Job } from 'bullmq';
@@ -22,20 +22,27 @@ import { logJobStart, logJobDone, logJobError, logJobInfo } from '../logger';
 
 const QUEUE_NAME = 'daily-aggregation-queue';
 
-/** UTC calendar kun boshini qaytaradi */
-function toDateUTC(d: Date): Date {
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+const TASHKENT_OFFSET_MS = 5 * 60 * 60 * 1000; // UTC+5
+
+/** Toshkent calendar kun boshini UTC timestamp sifatida qaytaradi */
+function toTashkentDayStartUTC(d: Date): Date {
+  const tashkent = new Date(d.getTime() + TASHKENT_OFFSET_MS);
+  tashkent.setUTCHours(0, 0, 0, 0);
+  return new Date(tashkent.getTime() - TASHKENT_OFFSET_MS);
 }
 
-/** Kecha (UTC) boshlanish va tugash vaqtlari */
+/** Kecha (Toshkent) boshlanish va tugash vaqtlari (UTC sifatida) */
 function getYesterdayRange(): { start: Date; end: Date; day: Date } {
   const now = new Date();
-  const todayStart = toDateUTC(now);                         // bugun 00:00 UTC
-  const yesterdayStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000); // kecha 00:00 UTC
+  const todayStartUTC = toTashkentDayStartUTC(now);                              // bugun Toshkent 00:00 = UTC 19:00
+  const yesterdayStartUTC = new Date(todayStartUTC.getTime() - 24 * 60 * 60 * 1000); // kecha Toshkent 00:00
+  // day key: Toshkent sanasi (masalan 2026-04-19)
+  const dayKey = new Date(yesterdayStartUTC.getTime() + TASHKENT_OFFSET_MS);
+  dayKey.setUTCHours(0, 0, 0, 0);
   return {
-    start: yesterdayStart,
-    end: todayStart,
-    day: yesterdayStart,
+    start: yesterdayStartUTC,
+    end: todayStartUTC,
+    day: dayKey,
   };
 }
 
