@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { uzumApi, productsApi } from '../api/client';
 import { getErrorMessage } from '../utils/getErrorMessage';
 import { MagnifyingGlassIcon, FireIcon } from './icons';
@@ -48,6 +49,7 @@ interface Props {
 
 export function AnalyzeModal({ isOpen, onClose, initialUrl }: Props) {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const [url, setUrl] = useState('');
   const [result, setResult] = useState<AnalyzeResult | null>(null);
   const [snapshots, setSnapshots] = useState<ChartPoint[]>([]);
@@ -121,8 +123,9 @@ export function AnalyzeModal({ isOpen, onClose, initialUrl }: Props) {
     if (!result) return;
     try {
       await productsApi.track(String(result.product_id));
-      setTracked(true);
       window.dispatchEvent(new CustomEvent('product-tracked'));
+      onClose();
+      navigate(`/products/${result.product_id}`);
     } catch {
       // already tracked — ignore
     }

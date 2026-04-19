@@ -262,7 +262,7 @@ export function SearchDrawer({ isOpen, onClose }: Props) {
       await productsApi.track(String(analyzeState.result.product_id));
       window.dispatchEvent(new CustomEvent('product-tracked'));
       onClose();
-      navigate('/');
+      navigate(`/products/${analyzeState.result.product_id}`);
     } catch { /* already tracked */ }
   }
 
