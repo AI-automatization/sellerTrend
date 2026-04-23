@@ -1260,4 +1260,49 @@ Cron: `5 0 * * *` → `0 19 * * *` (UTC 19:00 = Toshkent 00:00)
 
 ---
 
-*Tasks.md | VENTRA Analytics Platform | 2026-04-15*
+### T-512 | P0 | BACKEND | Bugungi sotuv Prisma DATE/TIMESTAMP mismatch — today_sold kechagi+bugungi qo'shilib chiqadi | 15min | pending[Sardor]
+
+**Sana:** 2026-04-23
+**Manba:** production-bug | user-feedback
+**Topilgan joyda:** `apps/api/src/uzum/uzum.service.ts:121`
+**Mas'ul:** Sardor
+
+**Tahlil:**
+`analyzeProduct` da `today_sold` = `currentOrders − yesterdayDailyRow.max_orders` formula ishlatiladi.
+`yesterdayDailyRow` ni topish uchun `day: { lt: todayStartUTC }` query yuboriladi.
+`todayStartUTC = 2026-04-22T19:00:00 UTC` (Toshkent 00:00 → UTC).
+Lekin `day` field `DateTime @db.Date` — Prisma bu timestamp ni DATE ga konvertatsiya qilganda
+**UTC sanasini** oladi: `2026-04-22T19:00:00 UTC → '2026-04-22'`.
+SQL: `WHERE day < '2026-04-22'` → April 22 row chiqarib tashlanadi (22 < 22 = FALSE).
+April 21 row topiladi (`max_orders = 109763`).
+Natijada: `today_sold = 109910 − 109763 = 147` (kechagi 76 + bugungi 71 = 147) ❌.
+
+**Muammo:**
+
+| Qadam | Qiymat | Izoh |
+|-------|--------|------|
+| `todayStartUTC` | `2026-04-22T19:00:00 UTC` | Toshkent 00:00 → UTC |
+| Prisma DATE serialization | `'2026-04-22'` | UTC sana olinadi |
+| SQL generated | `WHERE day < '2026-04-22'` | April 22 row CHIQARILADI |
+| `yesterdayDailyRow` | April 21 (`max_orders=109763`) | Xato row! |
+| `today_sold` | `109910 − 109763 = **147**` | Kechagi+bugungi birga ❌ |
+
+To'g'ri bo'lishi: `nowTashkent = 2026-04-23T00:00:00 UTC → '2026-04-23'` → `day < '2026-04-23'` → April 22 row topiladi → `today_sold = 109910 − 109839 = 71` ✅
+
+**Yechim:**
+`uzum.service.ts:121` — `todayStartUTC` → `nowTashkent` (allaqachon hisoblangan, 117-qatorda):
+```typescript
+// XATO (hozirgi):
+where: { product_id: BigInt(productId), day: { lt: todayStartUTC } },
+
+// TO'G'RI:
+where: { product_id: BigInt(productId), day: { lt: nowTashkent } },
+```
+`nowTashkent = 2026-04-23T00:00:00 UTC` → Prisma DATE: `'2026-04-23'` → `day < '2026-04-23'` → April 22 TOPILADI ✅
+
+**Fayllar:**
+- `apps/api/src/uzum/uzum.service.ts` (line 121, dedup path line 120)
+
+---
+
+*Tasks.md | VENTRA Analytics Platform | 2026-04-23*

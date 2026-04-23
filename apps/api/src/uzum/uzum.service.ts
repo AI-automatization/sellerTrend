@@ -118,7 +118,7 @@ export class UzumService {
     nowTashkent.setUTCHours(0, 0, 0, 0);
     const todayStartUTC = new Date(nowTashkent.getTime() - TASHKENT_OFFSET_MS); // Toshkent 00:00 → UTC
     const yesterdayDailyRow = await this.prisma.productSnapshotDaily.findFirst({
-      where: { product_id: BigInt(productId), day: { lt: todayStartUTC } },
+      where: { product_id: BigInt(productId), day: { lt: nowTashkent } },
       orderBy: { day: 'desc' },
       select: { max_orders: true },
     });
