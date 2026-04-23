@@ -1305,4 +1305,37 @@ where: { product_id: BigInt(productId), day: { lt: nowTashkent } },
 
 ---
 
+### T-513 | P0 | WORKER | light-snapshot: Bright Data proxy fail — saved=0, barcha snapshotlar yo'qoladi | 30min | done[Sardor]
+
+**Sana:** 2026-04-23
+**Manba:** production-bug (kod-audit)
+**Topilgan joyda:** `apps/worker/src/clients/uzum-unlocker.client.ts:65-112`
+**Mas'ul:** Sardor
+
+**Tahlil:**
+`light-snapshot` job har 15 daqiqada barcha aktiv mahsulotlar uchun snapshot olishi kerak.
+Lekin Railway worker logs: `Done: saved=0, failed=49, total=49` — barcha mahsulotlar FAIL.
+Sabab: `uzumUnlockerClient.fetchProductOrders()` Bright Data Web Unlocker proxy
+(`brd.superproxy.io:22225`) ishlatadi, lekin proxy `fetch failed` xatosi beradi.
+Proxy muvaffaqiyatsiz bo'lganda to'g'ridan Uzum REST API ga fallback yo'q edi.
+Direct Uzum API esa ishlaydi (`status=200`).
+Natijada: snapshotlar faqat foydalanuvchi mahsulot sahifasini ochganda olinadi (1/kun),
+`today_sold` va `daily_sold` noaniq bo'ladi.
+
+**Muammo:**
+```
+Bright Data proxy → fetch failed ❌
+Direct Uzum API  → status=200   ✅
+Fallback logikasi YO'Q → returned null → failed++ → saved=0
+```
+
+**Yechim:**
+`_fetchDirect(url, proxy)` private metod ajratildi.
+`fetchProductOrders` → proxy bilan sinab ko'r → muvaffaqiyatsiz bo'lsa direct API.
+
+**Fayllar:**
+- `apps/worker/src/clients/uzum-unlocker.client.ts`
+
+---
+
 *Tasks.md | VENTRA Analytics Platform | 2026-04-23*

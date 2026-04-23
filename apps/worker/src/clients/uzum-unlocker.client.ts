@@ -64,6 +64,18 @@ class UzumUnlockerClient {
    */
   async fetchProductOrders(productId: number): Promise<UzumOrdersData | null> {
     const url = `${UZUM_REST_BASE}/product/${productId}`;
+
+    // Proxy mavjud bo'lsa birinchi sinab ko'r, muvaffaqiyatsiz bo'lsa to'g'ridan fallback
+    if (this.proxy) {
+      const proxyResult = await this._fetchDirect(url, this.proxy);
+      if (proxyResult !== null) return proxyResult;
+      // Proxy ishlamadi → direct fallback (silent)
+    }
+
+    return this._fetchDirect(url, null);
+  }
+
+  private async _fetchDirect(url: string, proxy: ProxyAgent | null): Promise<UzumOrdersData | null> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -71,7 +83,7 @@ class UzumUnlockerClient {
       const fetchOptions: Parameters<typeof undiciFetch>[1] = {
         headers: UZUM_HEADERS,
         signal: controller.signal,
-        ...(this.proxy ? { dispatcher: this.proxy } : {}),
+        ...(proxy ? { dispatcher: proxy } : {}),
       };
 
       const res = await undiciFetch(url, fetchOptions);
