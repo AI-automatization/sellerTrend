@@ -120,7 +120,7 @@ export class UzumService {
     const yesterdayDailyRow = await this.prisma.productSnapshotDaily.findFirst({
       where: { product_id: BigInt(productId), day: { lt: nowTashkent } },
       orderBy: { day: 'desc' },
-      select: { max_orders: true },
+      select: { max_orders: true, daily_orders_delta: true },
     });
     const today_sold_val: number | null = yesterdayDailyRow?.max_orders != null
       ? Math.max(0, currentOrders - Number(yesterdayDailyRow.max_orders))
@@ -149,7 +149,7 @@ export class UzumService {
         feedback_quantity: detail.feedbackQuantity,
         orders_quantity: detail.ordersQuantity,
         weekly_bought: lastSnap.weekly_bought,
-        daily_sold: today_sold_val,
+        daily_sold: yesterdayDailyRow?.daily_orders_delta != null ? Number(yesterdayDailyRow.daily_orders_delta) : null,
         today_sold: today_sold_val,
         score: cachedScore,
         snapshot_id: lastSnap.id,
@@ -311,7 +311,7 @@ export class UzumService {
       feedback_quantity: detail.feedbackQuantity,
       orders_quantity: detail.ordersQuantity,
       weekly_bought: weeklyBought,
-      daily_sold: today_sold_val,
+      daily_sold: yesterdayDailyRow?.daily_orders_delta != null ? Number(yesterdayDailyRow.daily_orders_delta) : null,
       today_sold: today_sold_val,
       score: scoreNum,
       snapshot_id: snapshot.id,

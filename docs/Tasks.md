@@ -1338,6 +1338,33 @@ Fallback logikasi YO'Q → returned null → failed++ → saved=0
 
 ---
 
+### T-515 | P0 | BACKEND | analyzeById daily_sold = today_sold bug — yangi mahsulotlarda kecha=bugun | 15min | pending[Sardor]
+
+**Sana:** 2026-04-24
+**Manba:** production-bug | user-feedback
+**Mas'ul:** Sardor
+
+**Tahlil:**
+`analyzeById` endpointida `yesterdayDailyRow` select da faqat `max_orders` olinadi,
+`daily_orders_delta` olinmaydi. Natijada `daily_sold` va `today_sold` ikkalasi ham
+`today_sold_val` ga teng. Yangi qo'shilgan mahsulotlarda kecha=bugun ko'rinadi.
+
+**Muammo:**
+```
+select: { max_orders: true }  ← daily_orders_delta yo'q
+daily_sold: today_sold_val    ← xato (kecha = bugun)
+today_sold: today_sold_val    ← to'g'ri
+```
+
+**Yechim:**
+- `select` ga `daily_orders_delta: true` qo'shish
+- `daily_sold = yesterdayDailyRow?.daily_orders_delta ?? null` (dedup + main path)
+
+**Fayllar:**
+- `apps/api/src/uzum/uzum.service.ts` — line ~123, 152, 314
+
+---
+
 ### T-514 | P0 | BACKEND | getDailyComparison noto'g'ri snapshot taqqoslash — Toshkent calendar day fix | 30min | done[Sardor]
 
 **Sana:** 2026-04-24
