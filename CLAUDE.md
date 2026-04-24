@@ -4,6 +4,19 @@
 
 ---
 
+## OBSIDIAN KONTEKST (MAJBURIY — har sessiya boshida o'qi)
+
+Sessiya boshlanishida quyidagi faylni o'qi:
+```
+~/Documents/Obsidian Vault/PROJECTS/sellerTrend/_context.md
+```
+Bu fayl quyidagilarni o'z ichiga oladi:
+- Qayerda to'xtalganimiz (Где остановился)
+- Keyingi qadam (Следующий шаг)
+- Oxirgi commitlar
+
+---
+
 ## BIRINCHI QADAM (MAJBURIY)
 
 **Har yangi terminal sessiyasida Claude quyidagini so'rashi SHART:**
