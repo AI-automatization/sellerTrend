@@ -1338,4 +1338,35 @@ Fallback logikasi YO'Q → returned null → failed++ → saved=0
 
 ---
 
-*Tasks.md | VENTRA Analytics Platform | 2026-04-23*
+### T-514 | P0 | BACKEND | getDailyComparison noto'g'ri snapshot taqqoslash — Toshkent calendar day fix | 30min | done[Sardor]
+
+**Sana:** 2026-04-24
+**Manba:** production-bug | user-feedback
+**Mas'ul:** Sardor
+
+**Tahlil:**
+`getDailyComparison` so'nggi 3 ta ketma-ket snapshotni (15 min intervalda) olib,
+ular orasidagi deltani `daysDiff` ga bo'ladi. `daysDiff = Math.max(0.5, ...)` formula
+bilan 2 ta 15-daqiqali snapshot uchun `ordersDiff / 0.5` chiqadi — ya'ni kichik
+noto'g'ri raqamlar (6, 4). Bundan tashqari `yesterday_date` ham `today_date` bilan
+bir xil UTC sana chiqadi chunki ikkala snapshot ham bir kunda olingan.
+
+**Muammo:**
+```
+today_sold: 6    ← xato (to'g'risi: 80)
+yesterday_sold: 4 ← xato (to'g'risi: 167)
+yesterday_date: "2026-04-24" ← xato (to'g'risi: "2026-04-23")
+```
+
+**Yechim:**
+`productSnapshotDaily` dan kecha ma'lumotini olish:
+- `yesterday_sold` = `daily_orders_delta` (kecha yig'ilgan sotuv)
+- `today_sold` = hozirgi `orders_quantity` − kecha `max_orders`
+- Sanalar Toshkent (UTC+5) timezone bo'yicha hisoblanadi
+
+**Fayllar:**
+- `apps/api/src/products/products.service.ts` — `getDailyComparison()` metodi (line ~1401)
+
+---
+
+*Tasks.md | VENTRA Analytics Platform | 2026-04-24*

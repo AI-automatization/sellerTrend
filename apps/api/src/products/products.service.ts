@@ -1400,7 +1400,9 @@ export class ProductsService {
 
   /**
    * Bugungi kunlik sotuvni kechagi bilan taqqoslash.
-   * So'nggi 3 snapshot asosida: bugun_delta vs kecha_delta.
+   * T-512: productSnapshotDaily + Toshkent (UTC+5) calendar day asosida hisoblash.
+   * - yesterday_sold = productSnapshotDaily.daily_orders_delta (kecha yig'ilgan)
+   * - today_sold     = hozirgi orders_quantity − kecha max_orders
    */
   async getDailyComparison(productId: bigint, accountId: string): Promise<{
     today_sold: number | null;
@@ -1414,45 +1416,66 @@ export class ProductsService {
   }> {
     await this.assertProductOwnership(productId, accountId);
 
-    const snapshots = await this.prisma.productSnapshot.findMany({
+    // Toshkent (UTC+5) kun chegaralarini hisoblash
+    const TASHKENT_OFFSET_MS = 5 * 60 * 60 * 1000;
+    const nowUtc = new Date();
+    const nowTashkent = new Date(nowUtc.getTime() + TASHKENT_OFFSET_MS);
+
+    // Bugungi Toshkent kun boshi → UTC ga o'tkazish
+    const todayTashkent = new Date(nowTashkent);
+    todayTashkent.setUTCHours(0, 0, 0, 0);
+    const todayStartUtc = new Date(todayTashkent.getTime() - TASHKENT_OFFSET_MS);
+
+    // Kechagi kun oralig'i (UTC)
+    const yesterdayStartUtc = new Date(todayStartUtc.getTime() - 24 * 60 * 60 * 1000);
+
+    // Toshkent sana string lari
+    const todayStr = todayTashkent.toISOString().split('T')[0];
+    const yesterdayTashkent = new Date(todayTashkent.getTime() - 24 * 60 * 60 * 1000);
+    const yesterdayStr = yesterdayTashkent.toISOString().split('T')[0];
+
+    // Kechagi yig'ilgan ma'lumot (productSnapshotDaily)
+    const yesterdayDaily = await this.prisma.productSnapshotDaily.findFirst({
       where: {
         product_id: productId,
-        snapshot_at: { gte: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) },
+        day: { gte: yesterdayStartUtc, lt: todayStartUtc },
       },
-      orderBy: { snapshot_at: 'asc' },
+      select: { daily_orders_delta: true, max_orders: true },
+    });
+
+    // Hozirgi snapshot
+    const latestSnapshot = await this.prisma.productSnapshot.findFirst({
+      where: { product_id: productId },
+      orderBy: { snapshot_at: 'desc' },
       select: { orders_quantity: true, snapshot_at: true },
     });
 
-    if (snapshots.length < 2) {
+    if (!latestSnapshot) {
       return {
         today_sold: null,
         yesterday_sold: null,
         delta: null,
         delta_pct: null,
         trend: 'flat',
-        today_date: snapshots[snapshots.length - 1]?.snapshot_at.toISOString().split('T')[0] ?? null,
-        yesterday_date: null,
-        last_updated: snapshots[snapshots.length - 1]?.snapshot_at.toISOString() ?? null,
+        today_date: todayStr,
+        yesterday_date: yesterdayStr,
+        last_updated: null,
       };
     }
 
-    const calcDelta = (curr: typeof snapshots[0], prev: typeof snapshots[0]): number => {
-      const daysDiff = Math.max(0.5, (curr.snapshot_at.getTime() - prev.snapshot_at.getTime()) / (1000 * 60 * 60 * 24));
-      const ordersDiff = Math.max(0, Number(curr.orders_quantity ?? 0) - Number(prev.orders_quantity ?? 0));
-      return Math.round(ordersDiff / daysDiff);
-    };
+    // Bugungi sotuv = hozirgi orders − kecha max_orders
+    const todaySold: number | null =
+      yesterdayDaily?.max_orders != null
+        ? Math.max(0, Number(latestSnapshot.orders_quantity ?? 0) - Number(yesterdayDaily.max_orders))
+        : null;
 
-    const latest = snapshots[snapshots.length - 1];
-    const prev1 = snapshots[snapshots.length - 2];
-    const todaySold = calcDelta(latest, prev1);
+    // Kechagi sotuv = daily_orders_delta
+    const yesterdaySold: number | null =
+      yesterdayDaily?.daily_orders_delta != null
+        ? Number(yesterdayDaily.daily_orders_delta)
+        : null;
 
-    let yesterdaySold: number | null = null;
-    if (snapshots.length >= 3) {
-      const prev2 = snapshots[snapshots.length - 3];
-      yesterdaySold = calcDelta(prev1, prev2);
-    }
-
-    const delta = yesterdaySold !== null ? todaySold - yesterdaySold : null;
+    const delta = todaySold !== null && yesterdaySold !== null ? todaySold - yesterdaySold : null;
     const deltaPct =
       delta !== null && yesterdaySold !== null && yesterdaySold > 0
         ? Number(((delta / yesterdaySold) * 100).toFixed(1))
@@ -1468,9 +1491,9 @@ export class ProductsService {
       delta,
       delta_pct: deltaPct,
       trend,
-      today_date: latest.snapshot_at.toISOString().split('T')[0],
-      yesterday_date: prev1.snapshot_at.toISOString().split('T')[0],
-      last_updated: latest.snapshot_at.toISOString(),
+      today_date: todayStr,
+      yesterday_date: yesterdayStr,
+      last_updated: latestSnapshot.snapshot_at.toISOString(),
     };
   }
 
