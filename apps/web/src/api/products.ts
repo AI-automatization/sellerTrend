@@ -1,5 +1,5 @@
 import { api } from './base';
-import type { SearchProduct, SourcingComparison, InstallmentSkuData, DailySalesPoint, PredictionResult, RiskResult } from './types';
+import type { SearchProduct, InstallmentSkuData, DailySalesPoint, PredictionResult, RiskResult } from './types';
 
 export const productsApi = {
   getTracked: () => api.get('/products/tracked'),
@@ -16,8 +16,6 @@ export const productsApi = {
     api.get<SearchProduct[]>('/products/search', { params: { q: query, limit, offset } }),
   trackFromSearch: (uzumProductId: number) =>
     api.post<{ tracked: boolean }>(`/products/search/${uzumProductId}/track`),
-  getSourcingComparison: (productId: string) =>
-    api.get<SourcingComparison>(`/products/${productId}/sourcing-comparison`),
   getInstallments: (productId: string) =>
     api.get<InstallmentSkuData[]>(`/products/${productId}/installments`),
   getDailySales: (productId: string) =>
@@ -27,10 +25,6 @@ export const productsApi = {
 export const uzumApi = {
   analyzeUrl: (url: string) => api.post('/uzum/analyze', { url }, { timeout: 60_000 }),
   analyzeById: (id: string) => api.get(`/uzum/product/${id}`, { timeout: 60_000 }),
-};
-
-export const revenueApi = {
-  getEstimate: (productId: string) => api.get(`/products/${productId}/revenue-estimate`),
 };
 
 export const achievementsApi = {

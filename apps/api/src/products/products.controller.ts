@@ -60,16 +60,6 @@ export class ProductsController {
     return result;
   }
 
-  /** Sourcing comparison: search AliExpress, 1688, Taobao for similar products */
-  @Get(':id/sourcing-comparison')
-  @ActivityAction('PRODUCT_SOURCING_COMPARISON')
-  @Throttle({ default: { ttl: 60000, limit: 5 } })
-  getSourcingComparison(
-    @Param('id', ParseBigIntPipe) productId: bigint,
-    @CurrentUser('account_id') accountId: string,
-  ) {
-    return this.productsService.getSourcingComparison(productId, accountId);
-  }
 
   @Get(':id')
   async getProduct(
@@ -106,15 +96,6 @@ export class ProductsController {
     @Body('is_mine') isMine: boolean,
   ) {
     return this.productsService.setIsMine(accountId, productId, isMine);
-  }
-
-  /** Revenue estimator: monthly revenue, margin, competition level */
-  @Get(':id/revenue-estimate')
-  revenueEstimate(
-    @Param('id', ParseBigIntPipe) productId: bigint,
-    @CurrentUser('account_id') accountId: string,
-  ) {
-    return this.productsService.getRevenueEstimate(productId, accountId);
   }
 
   @Get(':id/snapshots')

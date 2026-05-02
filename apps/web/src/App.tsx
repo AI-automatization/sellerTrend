@@ -17,7 +17,6 @@ const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ de
 
 const ProductPage = lazy(() => import('./pages/ProductPage').then(m => ({ default: m.ProductPage })));
 const DiscoveryPage = lazy(() => import('./pages/DiscoveryPage').then(m => ({ default: m.DiscoveryPage })));
-const SourcingPage = lazy(() => import('./pages/SourcingPage').then(m => ({ default: m.SourcingPage })));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage').then(m => ({ default: m.LeaderboardPage })));
 const ProfitCalculatorPage = lazy(() => import('./pages/ProfitCalculatorPage').then(m => ({ default: m.ProfitCalculatorPage })));
 const ShopsPage = lazy(() => import('./pages/ShopsPage').then(m => ({ default: m.ShopsPage })));
@@ -36,7 +35,6 @@ const TelegramMiniAppPage = lazy(() => import('./pages/TelegramMiniAppPage').the
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage').then(m => ({ default: m.OnboardingPage })));
 const BillingPage = lazy(() => import('./pages/BillingPage').then(m => ({ default: m.BillingPage })));
 const ComparePage = lazy(() => import('./pages/ComparePage').then(m => ({ default: m.ComparePage })));
-const RevenueEstimatorPage = lazy(() => import('./pages/RevenueEstimatorPage').then(m => ({ default: m.RevenueEstimatorPage })));
 const AchievementsPage = lazy(() => import('./pages/AchievementsPage').then(m => ({ default: m.AchievementsPage })));
 
 function isAuthenticated() {
@@ -91,7 +89,6 @@ export default function App() {
 
           <Route path="products/:id" element={<LazyRoute><ProductPage /></LazyRoute>} />
           <Route path="discovery" element={<LazyRoute><DiscoveryPage /></LazyRoute>} />
-          <Route path="sourcing" element={<LazyRoute><SourcingPage /></LazyRoute>} />
           <Route path="leaderboard" element={<LazyRoute><LeaderboardPage /></LazyRoute>} />
           <Route path="calculator" element={<LazyRoute><ProfitCalculatorPage /></LazyRoute>} />
           <Route path="shops" element={<LazyRoute><ShopsPage /></LazyRoute>} />
@@ -106,7 +103,6 @@ export default function App() {
           <Route path="extension" element={<LazyRoute><ExtensionPage /></LazyRoute>} />
           <Route path="billing" element={<LazyRoute><BillingPage /></LazyRoute>} />
           <Route path="compare" element={<LazyRoute><ComparePage /></LazyRoute>} />
-          <Route path="revenue-estimator" element={<LazyRoute><RevenueEstimatorPage /></LazyRoute>} />
           <Route path="achievements" element={<LazyRoute><AchievementsPage /></LazyRoute>} />
           <Route path="admin" element={<AdminRoute><LazyRoute><AdminPage /></LazyRoute></AdminRoute>} />
         </Route>

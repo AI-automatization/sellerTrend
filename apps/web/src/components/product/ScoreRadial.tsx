@@ -1,4 +1,4 @@
-import { MAX_SCORE } from './types';
+const MAX_SCORE = 10;
 
 /** DaisyUI radial-progress CSS custom properties */
 type RadialProgressStyle = React.CSSProperties & {

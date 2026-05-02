@@ -1,7 +1,76 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
-# Yangilangan: 2026-04-15
+# Yangilangan: 2026-05-02
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
+
+### T-523 | IKKALASI | Revenue Estimator sahifasi va barcha logikalari o'chirildi (2026-05-02)
+
+**Manba:** user-feedback
+**Muammo:** Revenue Estimator sahifasi kerak emas edi.
+**Yechim:** O'chirilgan fayllar: `apps/api/src/products/dto/revenue-estimate.dto.ts`, `apps/web/src/pages/RevenueEstimatorPage.tsx`. O'zgartirilgan: `products.controller.ts` (endpoint), `products.service.ts` (getRevenueEstimate + generateRevenueRecommendation metodlari), `chat-retriever.service.ts` (3 ta chaqiruv), `App.tsx`, `Layout.tsx`, `api/client.ts`, `api/products.ts`, `api/types.ts`, 3 ta i18n fayl (12 key har biri). `tsc --noEmit` — xatosiz.
+**Ta'sir:** Revenue Estimator funksiyasi butunlay o'chirildi. Boshqa sahifalar ta'sir ko'rmadi. Chat AI (retrieveRevenue) endi mahsulot trend tahlilini qaytaradi.
+
+### T-522 | IKKALASI | Sourcing sahifasi va barcha logikalari o'chirildi (2026-05-02)
+
+**Manba:** user-feedback
+**Muammo:** Sourcing (Ta'minot) sahifasi kerak emas edi, 40+ fayl bog'liq edi.
+**Yechim:** O'chirilgan fayllar: `apps/api/src/sourcing/` (to'liq), `visual-sourcing.queue.ts`, `SourcingPage.tsx`, `apps/web/src/api/sourcing.ts`, `apps/web/src/components/sourcing/` (to'liq), `sourcing.processor.ts`, `visual-sourcing.processor.ts`, `GlobalPriceComparison.tsx`, `SourcePricePanel.tsx`, `product/types.ts`. O'zgartirilgan: `app.module.ts`, `queue-lifecycle.service.ts`, `products.service.ts`, `products.controller.ts`, `worker/main.ts`, `App.tsx`, `Layout.tsx`, `client.ts`, `products.ts`, `types.ts`, `ProductPage.tsx`, `ExpandPanel.tsx`, `product/index.ts`, `product/ScoreRadial.tsx`, landing `DashboardPreview.tsx`, 3 ta i18n fayl (103 key har biri). `tsc --noEmit` — xatosiz.
+**Ta'sir:** Sourcing funksiyasi to'liq yo'qoldi. Boshqa sahifalar ta'sir ko'rmadi.
+
+---
+
+### T-519 | FRONTEND | Dashboard: ProductsTable tepaga ko'chirish (2026-05-02)
+
+**Manba:** user-feedback
+**Muammo:** ProductsTable header dan keyin emas, KPI/Hero/Charts dan keyin render qilinardi.
+**Yechim:** `DashboardPage.tsx` da ProductsTable ni header dan to'g'ridan keyin, boshqa komponentlardan oldin joylashtirildi. Pastki qatorda 3-ustunli grid: Trend | Score | HeroCards.
+**Ta'sir:** Foydalanuvchi saytga kirganda birinchi kuzatilayotgan mahsulotlarni ko'radi.
+
+---
+
+### T-518 | FRONTEND | Dashboard: HeroCards ixchamlashtirildi (2026-05-02)
+
+**Manba:** user-feedback
+**Muammo:** "Eng yaxshi" va "Eng ko'p sotilgan" cardlari katta joy egallardi.
+**Yechim:** `HeroCards.tsx` — horizontal flex layout, `p-3 lg:p-4`, `w-7 h-7` icon, `line-clamp-1`, `text-[13px]`. `grid-cols-1` pastma-past.
+**Ta'sir:** Cardlar 3-ustunli gridning 3-ustuniga sig'di.
+
+---
+
+### T-517 | FRONTEND | Dashboard: KPI cardlar tozalandi (2026-05-02)
+
+**Manba:** user-feedback
+**Muammo:** "Mahsulotlar soni" va "Haftalik sotuv" KPI cardlari keraksiz edi.
+**Yechim:** `KPICards.tsx` dan 2 ta card o'chirildi, faqat Ko'tarilayotgan + Tushayotgan qoldi. `grid-cols-4` → `grid-cols-2`. Ortiqcha props (`scoreSparkline`, `salesSparkline`) olib tashlandi.
+**Ta'sir:** Dashboard tepasi toza, faqat muhim ko'rsatkichlar ko'rinadi.
+
+---
+
+### T-516 | BACKEND | weekly_bought null — API fallback qo'shildi (2026-05-02)
+
+**Manba:** user-feedback | production-bug
+**Muammo:** URL tahlilida yangi mahsulot uchun `weekly_bought = null` — snapshot tarixi yo'q, delta hisoblab bo'lmaydi. Playwright scrape fire-and-forget, birinchi tahlilda ko'rinmaydi.
+**Yechim:** `uzum.client.ts` — `UzumProductData` va `UzumNormalizedProduct` ga `weeklyBought` field qo'shildi. `uzum.service.ts` — yangi fallback: `detail.weeklyBought != null` bo'lsa `source='api'`, confidence=0.75. Uzum REST API hozircha bu fieldni qaytarmaydi, lekin kelajakda avtomatik ishlaydi.
+**Ta'sir:** 2-tahlilda Playwright scrape natijasi (`source='scraped'`) ko'rinadi. Agar Uzum API weeklyBought qo'shsa — birinchi tahlildayoq ishlaydi.
+**Qolgan ish:** Playwright scrape `await` qilish yoki HTML regex (Variant B) — alohida task kerak.
+
+---
+
+### T-520 (qo'shimcha) | FRONTEND | SearchDrawer: qidiruv + tahlil birlashtirildi (2026-05-02)
+
+**Manba:** user-feedback
+**Muammo:** Alohida "Qidirish" va "Tahlil" tugmalari bor edi, ikkita modal.
+**Yechim:** `SearchDrawer.tsx` ga `mode: 'search' | 'analyze'` toggle qo'shildi. DashboardPage da bitta "Mahsulot qidirish" tugmasi — `onOpenSearch()` chaqiradi. Mode toggle bar modalni ichida.
+**Ta'sir:** UX soddalashdi, bitta modal ikkala funksiyani bajaradi.
+
+---
+
+### T-521 (qo'shimcha) | FRONTEND | ProductsTable: "Bugungi sotuv" ustuni qo'shildi (2026-05-02)
+
+**Manba:** user-feedback
+**Muammo:** Dashboard jadvalida `daily_sold` ko'rsatilmasdi.
+**Yechim:** `ProductsTable.tsx` da "Bugungi sotuv" ustuni qo'shildi (`daily_sold`, text-primary). i18n: uz/ru/en larga `dashboard.daily` key qo'shildi.
+**Ta'sir:** Foydalanuvchi dashboarddan chiqmasdan bugungi sotuvni ko'ra oladi.
 
 ### T-506 | BACKEND | API daily_sold — calendar-day delta dan olish (2026-04-15)
 

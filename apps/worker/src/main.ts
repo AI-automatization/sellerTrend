@@ -5,7 +5,6 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 import http from 'http';
 import { createDiscoveryWorker } from './processors/discovery.processor';
-import { createSourcingWorker } from './processors/sourcing.processor';
 import { createCompetitorWorker } from './processors/competitor.processor';
 import { createImportWorker } from './processors/import.processor';
 import { createWeeklyScrapeWorker } from './processors/weekly-scrape.processor';
@@ -17,7 +16,6 @@ import { createDataCleanupWorker } from './processors/data-cleanup.processor';
 import { createOnboardingReminderWorker } from './processors/onboarding-reminder.processor';
 import { createWeeklyDigestWorker } from './processors/weekly-digest.processor';
 import { createMarketplaceIntelligenceWorker } from './processors/marketplace-intelligence.processor';
-import { createVisualSourcingWorker } from './processors/visual-sourcing.processor';
 import { createCategoryAggregationWorker } from './processors/category-aggregation.processor';
 import { scheduleCompetitorSnapshots } from './jobs/competitor-snapshot.job';
 import { scheduleWeeklyScrape } from './jobs/weekly-scrape.job';
@@ -87,7 +85,6 @@ async function bootstrap() {
 
   // Start workers (consumers)
   const discoveryWorker = createDiscoveryWorker();
-  const sourcingWorker = createSourcingWorker();
   const competitorWorker = createCompetitorWorker();
   const importWorker = createImportWorker();
   const weeklyScrapeWorker = createWeeklyScrapeWorker();
@@ -99,7 +96,6 @@ async function bootstrap() {
   const onboardingReminderWorker = createOnboardingReminderWorker();
   const weeklyDigestWorker = createWeeklyDigestWorker();
   const marketplaceIntelligenceWorker = createMarketplaceIntelligenceWorker();
-  const visualSourcingWorker = createVisualSourcingWorker();
   const categoryAggregationWorker = createCategoryAggregationWorker();
   const dailyAggregationWorker = createDailyAggregationWorker();
   const mlPredictionWorker = createMlPredictionWorker();
@@ -128,7 +124,7 @@ async function bootstrap() {
   await scheduleSellerIndex();
   await scheduleLightSnapshot();
 
-  logProcess('info', 'Workers running: discovery, sourcing, competitor, import, weekly-scrape, light-snapshot, alert-delivery, monitoring, morning-digest, currency-update, data-cleanup, onboarding-reminder, weekly-digest, marketplace-intelligence, visual-sourcing, category-aggregation, daily-aggregation, ml-prediction');
+  logProcess('info', 'Workers running: discovery, competitor, import, weekly-scrape, light-snapshot, alert-delivery, monitoring, morning-digest, currency-update, data-cleanup, onboarding-reminder, weekly-digest, marketplace-intelligence, category-aggregation, daily-aggregation, ml-prediction');
   logProcess('info', 'Crons: light-snapshot 15min, weekly-scrape 15min, daily-aggregation 00:05UTC, daily-sales 02:00UTC, alert-delivery 5min, monitoring 6h, digest 07:00, currency 00:30, cleanup 02:00, category-aggregation 03:00, ml-prediction 04:00');
 
   // Health check HTTP server — reuse shared Redis from redis.ts
@@ -195,7 +191,6 @@ async function bootstrap() {
       server.close();
       await Promise.allSettled([
         discoveryWorker.close(),
-        sourcingWorker.close(),
         competitorWorker.close(),
         importWorker.close(),
         weeklyScrapeWorker.close(),
@@ -207,7 +202,6 @@ async function bootstrap() {
         onboardingReminderWorker.close(),
         weeklyDigestWorker.close(),
         marketplaceIntelligenceWorker.close(),
-        visualSourcingWorker.close(),
         categoryAggregationWorker.close(),
         dailyAggregationWorker.close(),
         mlPredictionWorker.close(),

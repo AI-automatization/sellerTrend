@@ -18,7 +18,6 @@ const SCREENSHOTS: ScreenshotTab[] = [
   { labelKey: 'preview.tab1', captionKey: 'preview.tab1.desc', bg: 'from-blue-900/40 to-violet-900/40', preview: 'dashboard' },
   { labelKey: 'preview.tab2', captionKey: 'preview.tab2.desc', bg: 'from-emerald-900/40 to-blue-900/40', preview: 'product' },
   { labelKey: 'preview.tab3', captionKey: 'preview.tab3.desc', bg: 'from-violet-900/40 to-pink-900/40', preview: 'discovery' },
-  { labelKey: 'preview.tab4', captionKey: 'preview.tab4.desc', bg: 'from-orange-900/40 to-red-900/40', preview: 'sourcing' },
 ];
 
 function MockScreen({ type, bg, t }: { type: string; bg: string; t: (key: TranslationKey) => string }) {
@@ -95,31 +94,6 @@ function MockScreen({ type, bg, t }: { type: string; bg: string; t: (key: Transl
             <div className="text-primary text-xs font-700">{score}</div>
           </div>
         ))}
-      </div>
-    ),
-    sourcing: (
-      <div className="h-full flex flex-col gap-2 p-3">
-        <div className="bg-white/5 rounded p-2">
-          <div className="text-white/40 text-xs mb-2">{t('mock.priceCompare')}</div>
-          <div className="space-y-1.5">
-            {[
-              { platform: '1688', price: '$2.40', margin: '+340%' },
-              { platform: 'Taobao', price: '$3.10', margin: '+260%' },
-              { platform: 'AliExpress', price: '$4.20', margin: '+190%' },
-            ].map((item) => (
-              <div key={item.platform} className="flex items-center justify-between text-xs">
-                <span className="text-white/60">{item.platform}</span>
-                <span className="text-white">{item.price}</span>
-                <span className="text-success">{item.margin}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="flex-1 bg-success/10 rounded p-2">
-          <div className="text-success text-xs font-600">{t('mock.bestOption')}</div>
-          <div className="text-white text-sm font-700 mt-1">1688 — $2.40</div>
-          <div className="text-white/50 text-xs">{t('mock.withCargo')} $3.20</div>
-        </div>
       </div>
     ),
   };

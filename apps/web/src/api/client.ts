@@ -3,9 +3,8 @@
 
 export { api, getTokenPayload, isTokenValid } from './base';
 export { authApi } from './auth';
-export { productsApi, uzumApi, revenueApi, achievementsApi, predictionsApi } from './products';
+export { productsApi, uzumApi, achievementsApi, predictionsApi } from './products';
 export { discoveryApi, seasonalApi, nicheApi, categoryIntelligenceApi } from './discovery';
-export { sourcingApi } from './sourcing';
 export { toolsApi, leaderboardApi, shopsApi, referralApi, apiKeysApi, exportApi } from './tools';
 export { consultationApi, signalsApi, adsApi, teamApi, reportsApi, watchlistApi, communityApi } from './enterprise';
 export { adminApi, feedbackApi, notificationApi } from './admin';

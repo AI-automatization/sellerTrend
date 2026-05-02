@@ -180,21 +180,6 @@ export interface SearchProduct {
   weeklyBought?: number;
 }
 
-// ─── Revenue Estimator Domain ────────────────────────────────────────────────
-
-export type CompetitionLevel = 'low' | 'medium' | 'high';
-
-export interface RevenueEstimate {
-  product_id: string;
-  product_title: string;
-  sell_price: number;
-  weekly_bought: number;
-  estimated_monthly_revenue: number;
-  estimated_margin_30pct: number;
-  competition_level: CompetitionLevel;
-  recommendation: string;
-}
-
 // ─── Achievement Domain ─────────────────────────────────────────────────────
 
 export interface Achievement {
@@ -304,17 +289,6 @@ export interface BrightDataProduct {
   rating?: number;
   orders?: number;
   shippingCost?: number;
-}
-
-export interface SourcingComparison {
-  productId: string;
-  query: string;
-  platforms: {
-    aliexpress: BrightDataProduct[];
-    taobao: BrightDataProduct[];
-    '1688': BrightDataProduct[];
-  };
-  searchedAt: string;
 }
 
 // ─── ML Predictions Domain ───────────────────────────────────────────────────

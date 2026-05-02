@@ -53,10 +53,9 @@ export class ChatRetrieverService {
     if (productIds.length === 0) return this.retrievePortfolioSummary(accountId);
     const pid = productIds[0];
 
-    const [trend, forecast, revenue] = await Promise.allSettled([
+    const [trend, forecast] = await Promise.allSettled([
       this.productsService.getWeeklyTrend(pid, accountId),
       this.productsService.getAdvancedForecast(pid, accountId),
-      this.productsService.getRevenueEstimate(pid, accountId),
     ]);
 
     const data: Record<string, unknown> = {};
@@ -74,11 +73,6 @@ export class ChatRetrieverService {
       const lastScore = forecast.value.score_forecast?.predictions?.slice(-1)?.[0]?.value;
       parts.push(`7 kunlik bashorat: score ${lastScore?.toFixed(1) ?? '?'}`);
     }
-    if (revenue.status === 'fulfilled') {
-      data.revenue = revenue.value;
-      const r = revenue.value;
-      parts.push(`Oylik daromad: ~${r.estimated_monthly_revenue?.toLocaleString() ?? '?'} so'm. Raqobat: ${r.competition_level}. ${r.recommendation}`);
-    }
 
     const summary = parts.join('\n').slice(0, MAX_CONTEXT_CHARS);
     return {
@@ -86,7 +80,7 @@ export class ChatRetrieverService {
       summary,
       data,
       token_estimate: Math.ceil(summary.length / 4),
-      sources: ['getWeeklyTrend', 'getAdvancedForecast', 'getRevenueEstimate'],
+      sources: ['getWeeklyTrend', 'getAdvancedForecast'],
     };
   }
 
@@ -109,14 +103,15 @@ export class ChatRetrieverService {
   }
 
   private async retrievePriceAdvice(productIds: bigint[], accountId: string): Promise<RetrievedContext> {
-    const [flashSales, revenue] = await Promise.allSettled([
+    void productIds;
+    const flashSalesResult = await Promise.allSettled([
       this.signalsService.getFlashSales(accountId),
-      productIds[0] ? this.productsService.getRevenueEstimate(productIds[0], accountId) : Promise.resolve(null),
     ]);
 
     const data: Record<string, unknown> = {};
     const parts: string[] = [];
 
+    const flashSales = flashSalesResult[0];
     if (flashSales.status === 'fulfilled') {
       data.flash_sales = flashSales.value;
       const items = Array.isArray(flashSales.value) ? flashSales.value : [];
@@ -127,10 +122,6 @@ export class ChatRetrieverService {
         );
       }
     }
-    if (revenue.status === 'fulfilled' && revenue.value) {
-      data.revenue = revenue.value;
-      parts.push(`Narx tavsiyasi: ${revenue.value.recommendation}`);
-    }
 
     const summary = parts.join('\n') || 'Narx ma\'lumotlari topilmadi.';
     return {
@@ -138,7 +129,7 @@ export class ChatRetrieverService {
       summary: summary.slice(0, MAX_CONTEXT_CHARS),
       data,
       token_estimate: Math.ceil(summary.length / 4),
-      sources: ['getFlashSales', 'getRevenueEstimate'],
+      sources: ['getFlashSales'],
     };
   }
 
@@ -247,31 +238,7 @@ export class ChatRetrieverService {
   }
 
   private async retrieveRevenue(productIds: bigint[], accountId: string): Promise<RetrievedContext> {
-    if (productIds.length === 0) return this.retrievePortfolioSummary(accountId);
-
-    const results = await Promise.allSettled(
-      productIds.slice(0, 3).map(id => this.productsService.getRevenueEstimate(id, accountId))
-    );
-
-    const data: Record<string, unknown> = {};
-    const parts: string[] = [];
-
-    results.forEach((r, i) => {
-      if (r.status === 'fulfilled') {
-        const rev = r.value;
-        data[`revenue_${productIds[i].toString()}`] = rev;
-        parts.push(`Mahsulot ${productIds[i]}: ~${rev.estimated_monthly_revenue?.toLocaleString()} so'm/oy. ${rev.recommendation}`);
-      }
-    });
-
-    const summary = parts.join('\n') || 'Daromad ma\'lumotlari topilmadi.';
-    return {
-      intent: ChatIntent.REVENUE,
-      summary: summary.slice(0, MAX_CONTEXT_CHARS),
-      data,
-      token_estimate: Math.ceil(summary.length / 4),
-      sources: ['getRevenueEstimate'],
-    };
+    return this.retrieveProductAnalysis(productIds, accountId);
   }
 
   private async retrieveForecast(productIds: bigint[], accountId: string): Promise<RetrievedContext> {

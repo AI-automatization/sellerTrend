@@ -173,6 +173,11 @@ export class UzumService {
       weeklyBought = lastScraped.weekly_bought;
       wbSource = 'stored_scraped';
       wbConfidence = 0.80;
+    } else if (detail.weeklyBought != null && detail.weeklyBought > 0) {
+      // Uzum product detail API dan to'g'ridan kelgan qiymat (agar mavjud bo'lsa)
+      weeklyBought = detail.weeklyBought;
+      wbSource = 'api';
+      wbConfidence = 0.75;
     } else {
       // Uzum banneri bilan mos: Dushanba 00:00 (UTC+5) dan hozirga qadar delta
       const currentWeekWb = calcWeeklyBoughtCurrentWeek(recentSnapshots, currentOrders);

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useI18n } from '../i18n/I18nContext';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useParams, useNavigate } from 'react-router-dom';
-import { uzumApi, productsApi, sourcingApi, predictionsApi } from '../api/client';
+import { uzumApi, productsApi, predictionsApi } from '../api/client';
 import { getErrorMessage } from '../utils/getErrorMessage';
 import { logError } from '../utils/handleError';
 import { formatDateTime, formatWeekdayDate } from '../utils/formatDate';
@@ -27,9 +27,7 @@ import {
   StatCard,
   ScoreMeter,
   TrendBadge,
-  GlobalPriceComparison,
 } from '../components/product';
-import type { ExternalItem } from '../components/product';
 import type { AnalyzeResult, WeeklyTrend, Forecast, Snapshot, MlForecast, TrendAnalysis, ProductDetail, DailySalesPoint, PredictionResult, RiskResult } from '../api/types';
 import { glassTooltip, CHART_ANIMATION_MS } from '../utils/formatters';
 
@@ -50,15 +48,6 @@ export function ProductPage() {
   const [isMine, setIsMine] = useState(false);
   const [todaySold, setTodaySold] = useState<number | null>(null);
 
-  const [extItems, setExtItems] = useState<ExternalItem[]>([]);
-  const [extLoading, setExtLoading] = useState(false);
-  const [extSearched, setExtSearched] = useState(false);
-  const [extJobId, setExtJobId] = useState<string | null>(null);
-  const [extJobStatus, setExtJobStatus] = useState<string | null>(null);
-  // TODO(T-370): Replace with dynamic rate from API config endpoint.
-  // This fallback is only used while the live rate is being fetched.
-  const FALLBACK_USD_RATE = 12_900;
-  const [usdRate, setUsdRate] = useState(FALLBACK_USD_RATE);
 
   // ML Forecast state
   const [mlForecast, setMlForecast] = useState<MlForecast | null>(null);
@@ -157,12 +146,6 @@ export function ProductPage() {
     return () => { abortRef.current?.abort(); };
   }, [id]);
 
-  // Fetch live USD rate
-  useEffect(() => {
-    sourcingApi.getCurrencyRates()
-      .then((r) => { if (r.data?.USD) setUsdRate(r.data.USD); })
-      .catch(logError);
-  }, []);
 
   // Load ML forecast + weekly trend when product is loaded (fires once per product)
   const loadedProductId = result?.product_id;
@@ -197,55 +180,9 @@ export function ProductPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aiRequested, loadedProductId]);
 
-  // useEffect 1 — job yaratish
-  useEffect(() => {
-    if (!result?.product_id || !result?.title || extSearched) return;
-    setExtSearched(true);
-    setExtLoading(true);
-    sourcingApi
-      .createJob({ product_id: result.product_id, product_title: result.title })
-      .then((res) => {
-        setExtJobId(res.data.job_id);
-        setExtJobStatus(res.data.status);
-      })
-      .catch(() => setExtLoading(false));
-  }, [result?.product_id]);
-
-  // useEffect 2 — polling (har 3 soniyada natijani tekshirish)
-  useEffect(() => {
-    if (!extJobId) return;
-    let active = true;
-
-    async function poll() {
-      while (active) {
-        try {
-          const res = await sourcingApi.getJob(extJobId!);
-          if (!active) return;
-          setExtJobStatus(res.data.status);
-          if (res.data.status === 'DONE') {
-            setExtItems(res.data.results ?? []);
-            setExtLoading(false);
-            return;
-          }
-          if (res.data.status === 'FAILED') {
-            setExtLoading(false);
-            return;
-          }
-        } catch { /* davom etish */ }
-        await new Promise((r) => setTimeout(r, 3000));
-      }
-    }
-
-    poll();
-    return () => { active = false; };
-  }, [extJobId]);
 
   // Reset external search state when product changes (T-125)
   useEffect(() => {
-    setExtSearched(false);
-    setExtItems([]);
-    setExtJobId(null);
-    setExtJobStatus(null);
     setMlForecast(null);
     setMlPrediction(null);
     setTrendAnalysis(null);
@@ -504,11 +441,11 @@ export function ProductPage() {
                 ? 'line-through text-base-content/40 text-base'
                 : 'text-accent'
             }`}>
-              {result.sell_price.toLocaleString()} {t('sourcing.currency')}
+              {result.sell_price.toLocaleString()} so'm
             </p>
             {productDetail?.uzum_card_price != null && productDetail.uzum_card_price < result.sell_price && (
               <p className="font-bold text-accent tabular-nums">
-                {productDetail.uzum_card_price.toLocaleString()} {t('sourcing.currency')}
+                {productDetail.uzum_card_price.toLocaleString()} so'm
                 {productDetail.uzum_card_discount != null && (
                   <span className="ml-1 text-xs font-bold text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded-full">
                     −{productDetail.uzum_card_discount}%
@@ -1084,14 +1021,6 @@ export function ProductPage() {
         <CompetitorSection productId={String(result.product_id)} productPrice={result.sell_price} />
       </ErrorBoundary>
 
-      {/* Global Market Price Comparison */}
-      <ErrorBoundary variant="section" label="Xitoy narxlari">
-        <GlobalPriceComparison
-          items={extItems} loading={extLoading} jobStatus={extJobStatus}
-          uzumPrice={result.sell_price}
-          usdRate={usdRate}
-        />
-      </ErrorBoundary>
 
       {/* Score info */}
       <div className="alert alert-info alert-soft text-xs">

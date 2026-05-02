@@ -11,9 +11,9 @@
 
 ```
 Ochiq:       ~46 ta
-Bajarilgan:  ~192+ ta (Done.md)
-Oxirgi T-#:  T-502
-Keyingi T-#: T-504 dan boshlash
+Bajarilgan:  ~198+ ta (Done.md)
+Oxirgi T-#:  T-523
+Keyingi T-#: T-524 dan boshlash
 ```
 
 ---
@@ -1338,6 +1338,29 @@ Fallback logikasi YO'Q → returned null → failed++ → saved=0
 
 ---
 
+### T-516 | P0 | BACKEND | analyzeById weekly_bought null — Playwright await yoki HTML regex (Variant B) | 30min
+
+**Sana:** 2026-04-25
+**Manba:** production-bug | user-feedback
+**Mas'ul:** Sardor
+
+**Tahlil:**
+Modal da URL tahlil qilinganida `weekly_bought` "—" ko'rinadi. Sabab: Uzum REST API
+da haftalik sotuv yo'q — faqat Uzum saytining HTML sahifasida `badge_bought` banner bor.
+Hozir Playwright scraper fire-and-forget ishga tushadi (response qaytgandan keyin),
+shuning uchun modal qaytganda `weekly_bought = null`.
+
+**Yechim (Variant B):**
+`analyzeById` ichida Uzum sayt HTML ni oddiy `fetch` bilan olib,
+`extractFromHtml` regex bilan `badge_bought` qiymatini ajratib olish.
+Agar fetch/regex ishlamasa → Variant A: Playwright `await` qilish.
+
+**Fayllar:**
+- `apps/api/src/uzum/uzum.service.ts` — `analyzeById()` metodi
+- `apps/api/src/uzum/uzum.client.ts` — `fetchProductDetail()` yonida yangi metod
+
+---
+
 ### T-515 | P0 | BACKEND | analyzeById daily_sold = today_sold bug — yangi mahsulotlarda kecha=bugun | 15min | pending[Sardor]
 
 **Sana:** 2026-04-24
@@ -1396,4 +1419,53 @@ yesterday_date: "2026-04-24" ← xato (to'g'risi: "2026-04-23")
 
 ---
 
-*Tasks.md | VENTRA Analytics Platform | 2026-04-24*
+
+### T-522 | P2 | IKKALASI | Sourcing sahifasi va barcha logikalarini o'chirish | 3h
+
+**Sana:** 2026-05-02
+**Manba:** user-feedback
+**Mas'ul:** Sardor
+
+**Tahlil:**
+Sourcing (Ta'minot) sahifasi kerak emas. Xitoydan import narxini hisoblash funksiyasi
+ishlatilmaydi, boshqa sahifalar bilan bog'liqligi minimal. O'chirish xavfsiz.
+
+**O'chiriladigan fayllar (~18 ta):**
+```
+apps/api/src/sourcing/                    → to'liq papka (controller, service, module, queue, dto/*, platforms/*)
+apps/api/src/products/visual-sourcing.queue.ts
+apps/web/src/pages/SourcingPage.tsx
+apps/web/src/api/sourcing.ts
+apps/web/src/components/sourcing/         → to'liq papka (10 ta komponent)
+apps/worker/src/processors/sourcing.processor.ts
+apps/worker/src/processors/visual-sourcing.processor.ts
+tools/test_sourcing.py
+```
+
+**O'zgartirilishi kerak fayllar (~12 ta):**
+```
+apps/api/src/app.module.ts                → SourcingModule import + ro'yxatdan olib tashlash
+apps/api/src/common/queue-lifecycle.service.ts → closeSourcingQueue() olib tashlash
+apps/api/src/products/products.service.ts → enqueueVisualSourcing olib tashlash
+apps/worker/src/main.ts                   → sourcing + visual-sourcing worker olib tashlash
+apps/web/src/App.tsx                      → SourcingPage lazy import + route olib tashlash
+apps/web/src/api/client.ts               → sourcingApi export olib tashlash
+apps/web/src/components/Layout.tsx       → sourcing nav item + path check olib tashlash
+apps/web/src/pages/ProductPage.tsx       → sourcingApi import olib tashlash (agar ishlatilmasa)
+apps/web/src/i18n/uz.ts                  → 'nav.sourcing', 'hints.sourcing', 'sourcing.*' keylar (~100 ta)
+apps/web/src/i18n/ru.ts                  → bir xil
+apps/web/src/i18n/en.ts                  → bir xil
+apps/landing/src/sections/DashboardPreview.tsx → sourcing preview tab olib tashlash
+```
+
+**Yechim:**
+1. Avval API + Worker fayllar o'chiriladi, app.module.ts va main.ts tozalanadi
+2. Keyin Web fayllar: SourcingPage, sourcing API, komponentlar
+3. App.tsx route, Layout.tsx nav, i18n keylar tozalanadi
+4. `tsc --noEmit` bilan tekshiriladi
+
+**Ta'sir:** Sourcing funksiyasi butunlay yo'qoladi. Boshqa sahifalar ta'sir ko'rmaydi.
+
+---
+
+*Tasks.md | VENTRA Analytics Platform | 2026-05-02*

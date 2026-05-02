@@ -11,7 +11,6 @@ import { ProductsModule } from './products/products.module';
 import { AdminModule } from './admin/admin.module';
 import { DiscoveryModule } from './discovery/discovery.module';
 import { AiModule } from './ai/ai.module';
-import { SourcingModule } from './sourcing/sourcing.module';
 import { CompetitorModule } from './competitor/competitor.module';
 import { CommonModule } from './common/common.module';
 import { MetricsModule } from './common/metrics/metrics.module';
@@ -65,7 +64,6 @@ import { PredictionsModule } from './predictions/predictions.module';
     AdminModule,
     DiscoveryModule,
     AiModule,
-    SourcingModule,
     CompetitorModule,
     // v1.0 MVP
     ToolsModule,

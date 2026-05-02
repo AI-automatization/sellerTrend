@@ -4,8 +4,9 @@ import { useDashboardData } from '../hooks/useDashboardData';
 import { ArrowTrendingUpIcon, MagnifyingGlassIcon } from '../components/icons';
 import { useI18n } from '../i18n/I18nContext';
 import { getTokenPayload } from '../api/client';
+import { scoreColor } from '../utils/formatters';
 import {
-  FadeIn, KPICards, HeroCards, ChartsSection, ActivityChart, ProductsTable, EmptyState,
+  FadeIn, KPICards, TrendChip, ChartsSection, ActivityChart, ProductsTable, EmptyState,
 } from '../components/dashboard';
 import { PageHint } from '../components/PageHint';
 
@@ -74,8 +75,6 @@ export function DashboardPage() {
     [stats, t],
   );
 
-  const scoreSparkline = useMemo(() => products.slice(0, 8).map((p) => p.score ?? 0), [products]);
-  const salesSparkline = useMemo(() => products.slice(0, 8).map((p) => p.weekly_bought ?? 0), [products]);
   const hour = new Date().getHours();
   const greeting = hour < 6 ? t('greeting.night') : hour < 12 ? t('greeting.morning') : hour < 18 ? t('greeting.day') : t('greeting.evening');
 
@@ -135,7 +134,7 @@ export function DashboardPage() {
               ) : t('dashboard.analyticsCenter')}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
             <Link to="/discovery" className="btn btn-ghost btn-sm border border-base-300/40 gap-1.5 hover:border-primary/20 transition-all text-xs">
               <ArrowTrendingUpIcon className="w-3.5 h-3.5" /> {t('nav.discovery')}
             </Link>
@@ -147,39 +146,17 @@ export function DashboardPage() {
                 </svg>
               )} {t('common.csv')}
             </button>
-            <button onClick={() => onOpenSearch?.()} className="btn btn-ghost btn-sm border border-base-300/40 gap-1.5 hover:border-primary/20 transition-all text-xs">
-              <MagnifyingGlassIcon className="w-3.5 h-3.5" /> {t('nav.search')}
-            </button>
-            <button onClick={() => onOpenAnalyze?.()} className="btn btn-primary btn-sm gap-1.5 shadow-md shadow-primary/15 text-xs">
-              <MagnifyingGlassIcon className="w-3.5 h-3.5" /> {t('analyze.button')}
+
+            <button
+              onClick={() => onOpenSearch?.()}
+              className="btn btn-primary btn-sm gap-1.5 shadow-md shadow-primary/15 text-xs"
+            >
+              <MagnifyingGlassIcon className="w-3.5 h-3.5" />
+              Mahsulot qidirish
             </button>
           </div>
         </div>
       </FadeIn>
-
-      {/* ═══ KPI CARDS ═══ */}
-      <KPICards
-        stats={stats}
-        scoreSparkline={scoreSparkline}
-        salesSparkline={salesSparkline}
-        productsCount={products.length}
-      />
-
-      {/* ═══ HERO CARDS ═══ */}
-      {products.length > 0 && <HeroCards best={stats.best} mostActive={stats.mostActive} />}
-
-      {/* ═══ CHARTS ═══ */}
-      {products.length > 0 && (
-        <ChartsSection
-          scoreChartData={scoreChartData}
-          trendPieData={trendPieData}
-          stats={stats}
-          products={products}
-        />
-      )}
-
-      {/* ═══ ACTIVITY CHART ═══ */}
-      <ActivityChart activityData={activityData} totalWeekly={stats.totalWeekly} />
 
       {/* ═══ PRODUCTS TABLE ═══ */}
       <ProductsTable
@@ -189,6 +166,148 @@ export function DashboardPage() {
         setSortKey={setSortKey}
         onUntrack={(id) => setProducts(prev => prev.filter(p => String(p.product_id) !== id))}
       />
+
+      {/* ═══ BOTTOM ROW: Trend | Score | Hero ═══ */}
+      {products.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
+
+          {/* Trend Taqsimoti — 3 stat yonma-yon */}
+          <FadeIn delay={320} className="h-full">
+            <div className="h-full rounded-2xl bg-base-200/50 border border-base-300/40 overflow-hidden ventra-card">
+              <div className="px-5 py-4 border-b border-base-300/20">
+                <h2 className="font-semibold text-sm font-heading">{t('dashboard.trendDistribution')}</h2>
+                <p className="text-[10px] text-base-content/25 mt-0.5">{products.length} {t('dashboard.products')}</p>
+              </div>
+              <div className="p-4 grid grid-cols-3 gap-2">
+                <div className="flex flex-col items-center rounded-xl bg-success/8 border border-success/15 px-2 py-3 gap-1">
+                  <span className="text-sm">↑</span>
+                  <span className="font-bold text-lg tabular-nums text-success">{stats.rising}</span>
+                  <span className="text-[10px] text-base-content/50">{t('dashboard.rising')}</span>
+                </div>
+                <div className="flex flex-col items-center rounded-xl bg-base-300/40 border border-base-300/30 px-2 py-3 gap-1">
+                  <span className="text-sm">→</span>
+                  <span className="font-bold text-lg tabular-nums">{stats.flat}</span>
+                  <span className="text-[10px] text-base-content/50">Barqaror</span>
+                </div>
+                <div className="flex flex-col items-center rounded-xl bg-error/8 border border-error/15 px-2 py-3 gap-1">
+                  <span className="text-sm">↓</span>
+                  <span className={`font-bold text-lg tabular-nums ${stats.falling > 0 ? 'text-error' : 'text-success'}`}>{stats.falling}</span>
+                  <span className="text-[10px] text-base-content/50">{t('dashboard.falling')}</span>
+                </div>
+              </div>
+            </div>
+          </FadeIn>
+
+          {/* Score Xulosa */}
+          <FadeIn delay={360} className="h-full">
+            <div className="h-full rounded-2xl bg-base-200/50 border border-base-300/40 overflow-hidden ventra-card">
+              <div className="px-5 py-4 border-b border-base-300/20">
+                <h2 className="font-semibold text-sm font-heading">{t('dashboard.scoreSummary')}</h2>
+                <p className="text-[10px] text-base-content/25 mt-0.5">
+                  <span className="text-success">■</span> yaxshi ≥6 &nbsp;
+                  <span className="text-warning">■</span> o'rtacha 4–6 &nbsp;
+                  <span className="text-error">■</span> past &lt;4
+                </p>
+              </div>
+              <div className="p-5">
+                <div className="flex items-center gap-5">
+                  <div className="relative w-[72px] h-[72px] shrink-0">
+                    <svg viewBox="0 0 80 80" className="w-full h-full -rotate-90">
+                      <circle cx="40" cy="40" r="32" fill="none" stroke="var(--chart-grid, oklch(0.7 0 0 / 0.12))" strokeWidth="7" />
+                      <circle cx="40" cy="40" r="32" fill="none" stroke={scoreColor(stats.avgScore)}
+                        strokeWidth="7" strokeLinecap="round"
+                        strokeDasharray={`${(stats.avgScore / 10) * 201} 201`}
+                        className="transition-all duration-1000 ease-out" />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className={`text-base font-bold tabular-nums ${stats.avgScore >= 6 ? 'text-success' : stats.avgScore >= 4 ? 'text-warning' : 'text-error'}`}>
+                        {stats.avgScore.toFixed(1)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <p className={`text-xs font-semibold ${stats.avgScore >= 6 ? 'text-success' : stats.avgScore >= 4 ? 'text-warning' : 'text-error'}`}>
+                      {stats.avgScore >= 6 ? 'Portfel kuchli' : stats.avgScore >= 4 ? "O'rtacha portfel" : "E'tibor kerak"}
+                    </p>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-base-content/40">Eng yuqori</span>
+                      <span className="font-bold text-success tabular-nums">{Math.max(...products.map(p => p.score ?? 0)).toFixed(1)} / 10</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-base-content/40">O'rtacha</span>
+                      <span className={`font-bold tabular-nums ${stats.avgScore >= 6 ? 'text-success' : stats.avgScore >= 4 ? 'text-warning' : 'text-error'}`}>{stats.avgScore.toFixed(1)} / 10</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-base-content/40">Eng past</span>
+                      <span className={`font-bold tabular-nums ${Math.min(...products.map(p => p.score ?? 0)) >= 6 ? 'text-success' : Math.min(...products.map(p => p.score ?? 0)) >= 4 ? 'text-warning' : 'text-error'}`}>
+                        {Math.min(...products.map(p => p.score ?? 0)).toFixed(1)} / 10
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </FadeIn>
+
+          {/* Eng yaxshi + Eng ko'p sotilgan */}
+          <FadeIn delay={160} className="sm:col-span-2 lg:col-span-1">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-1 gap-3">
+              {stats.best && (
+                <div className="group relative rounded-xl overflow-hidden ventra-card border border-primary/10 bg-gradient-to-br from-primary/5 via-base-200/60 to-base-200/30">
+                  <div className="relative p-3 lg:p-4 flex items-center gap-3">
+                    <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-xs shrink-0">🏆</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[9px] text-base-content/30 font-bold uppercase tracking-[0.12em] mb-0.5">{t('dashboard.bestScore')}</p>
+                      <Link to={`/products/${stats.best.product_id}`}
+                        className="font-semibold text-[13px] leading-snug hover:text-primary transition-colors line-clamp-1 block">
+                        {stats.best.title}
+                      </Link>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-sm font-bold text-primary tabular-nums">{stats.best.score?.toFixed(1) ?? '—'}</span>
+                        <span className="text-[10px] text-base-content/30">/ 10</span>
+                        <TrendChip trend={stats.best.trend ?? null} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {stats.mostActive && (
+                <div className="group relative rounded-xl overflow-hidden ventra-card border border-success/10 bg-gradient-to-br from-success/5 via-base-200/60 to-base-200/30">
+                  <div className="relative p-3 lg:p-4 flex items-center gap-3">
+                    <span className="w-7 h-7 rounded-lg bg-success/10 flex items-center justify-center text-xs shrink-0">🔥</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[9px] text-base-content/30 font-bold uppercase tracking-[0.12em] mb-0.5">{t('dashboard.mostActive')}</p>
+                      <Link to={`/products/${stats.mostActive.product_id}`}
+                        className="font-semibold text-[13px] leading-snug hover:text-success transition-colors line-clamp-1 block">
+                        {stats.mostActive.title}
+                      </Link>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-sm font-bold text-success tabular-nums">{stats.mostActive.weekly_bought?.toLocaleString() ?? '—'}</span>
+                        <span className="text-[10px] text-base-content/30">{t('dashboard.perWeek')}</span>
+                        <TrendChip trend={stats.mostActive.trend ?? null} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </FadeIn>
+
+        </div>
+      )}
+
+      {/* ═══ CHARTS — yonma-yon ═══ */}
+      {products.length > 0 && (
+        <div className="grid lg:grid-cols-2 gap-4 items-start">
+          <ChartsSection
+            scoreChartData={scoreChartData}
+            trendPieData={trendPieData}
+            stats={stats}
+            products={products}
+          />
+          <ActivityChart activityData={activityData} totalWeekly={stats.totalWeekly} />
+        </div>
+      )}
 
       <style>{`
         @keyframes fadeSlideUp {

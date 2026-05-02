@@ -113,9 +113,9 @@ export function Layout() {
   useEffect(() => {
     const path = location.pathname;
     const initial: Record<string, boolean> = {};
-    if (['/', '/discovery', '/sourcing'].some(p => p === '/' ? path === '/' : path.startsWith(p))) initial['asosiy'] = true;
+    if (['/', '/discovery'].some(p => p === '/' ? path === '/' : path.startsWith(p))) initial['asosiy'] = true;
     if (['/shops', '/signals', '/leaderboard'].some(p => path.startsWith(p))) initial['mahsulot'] = true;
-    if (['/calculator', '/revenue-estimator', '/elasticity', '/ai-description', '/consultation', '/compare'].some(p => path.startsWith(p))) initial['asboblar'] = true;
+    if (['/calculator', '/elasticity', '/ai-description', '/consultation', '/compare'].some(p => path.startsWith(p))) initial['asboblar'] = true;
     if (['/achievements', '/enterprise', '/referral', '/api-keys', '/feedback', '/extension'].some(p => path.startsWith(p))) initial['biznes'] = true;
     if (path === '/admin') initial['admin'] = true;
     setOpenSections(prev => ({ ...prev, ...initial }));
@@ -199,7 +199,6 @@ export function Layout() {
       items: [
         { to: '/', icon: HomeIcon, label: t('nav.dashboard'), end: true },
         { to: '/discovery', icon: ArrowTrendingUpIcon, label: t('nav.discovery') },
-        { to: '/sourcing', icon: GlobeAltIcon, label: t('nav.sourcing') },
       ],
     },
     {
@@ -214,7 +213,6 @@ export function Layout() {
       label: t('nav.tools'),
       items: [
         { to: '/calculator', icon: CalculatorIcon, label: t('nav.calculator') },
-        { to: '/revenue-estimator', icon: BanknotesIcon, label: t('nav.revenueEstimator') },
         { to: '/elasticity', icon: ScaleIcon, label: t('nav.elasticity') },
         { to: '/compare', icon: ScaleIcon, label: t('nav.compare') },
         { to: '/ai-description', icon: SparklesIcon, label: t('nav.description') },

@@ -57,6 +57,7 @@ interface UzumProductData {
   reviewsAmount?: number;
   ordersAmount?: number;
   rOrdersAmount?: number | null;
+  weeklyBought?: number | null;
   totalAvailableAmount?: number;
   skuList?: UzumSku[];
   seller?: UzumSeller;
@@ -103,6 +104,7 @@ export interface UzumNormalizedProduct {
   feedbackQuantity: number;
   ordersQuantity: number;
   rOrdersAmount: number | null;
+  weeklyBought: number | null;
   totalAvailableAmount: number;
   photoUrl: string | null;
   skuList: Array<{
@@ -840,6 +842,8 @@ export class UzumClient {
           ordersQuantity: d.ordersAmount ?? 0,
           // rOrdersAmount = ROUNDED total orders (NOT weekly!) — faqat display uchun
           rOrdersAmount: d.rOrdersAmount ?? null,
+          // weeklyBought = Uzum API qaytarsa ishlatiladi (ko'pincha null)
+          weeklyBought: d.weeklyBought ?? null,
           // totalAvailableAmount = haqiqiy ombordagi stok (sku.availableAmount = per-order limit)
           totalAvailableAmount: d.totalAvailableAmount ?? 0,
           photoUrl,

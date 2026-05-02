@@ -1,5 +1,4 @@
 import { Injectable, OnModuleDestroy, Logger } from '@nestjs/common';
-import { closeSourcingQueue } from '../sourcing/sourcing.queue';
 import { closeWeeklyScrapeQueue } from '../products/weekly-scrape.queue';
 import { closeImportQueue } from '../export/import.queue';
 import { closeDiscoveryQueue } from '../discovery/discovery.queue';
@@ -19,7 +18,6 @@ export class QueueLifecycleService implements OnModuleDestroy {
     this.logger.log('Closing BullMQ queues...');
 
     const results = await Promise.allSettled([
-      closeSourcingQueue(),
       closeWeeklyScrapeQueue(),
       closeImportQueue(),
       closeDiscoveryQueue(),
