@@ -23,7 +23,7 @@ interface Props {
   products: TrackedProduct[];
 }
 
-export function ChartsSection({ scoreChartData, trendPieData, stats, products }: Props) {
+export function ChartsSection({ scoreChartData }: Props) {
   const { t } = useI18n();
 
   return (
