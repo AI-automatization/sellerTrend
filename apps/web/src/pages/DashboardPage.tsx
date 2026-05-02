@@ -6,7 +6,7 @@ import { useI18n } from '../i18n/I18nContext';
 import { getTokenPayload } from '../api/client';
 import { scoreColor } from '../utils/formatters';
 import {
-  FadeIn, KPICards, TrendChip, ChartsSection, ActivityChart, ProductsTable, EmptyState,
+  FadeIn, TrendChip, ChartsSection, ActivityChart, ProductsTable, EmptyState,
 } from '../components/dashboard';
 import { PageHint } from '../components/PageHint';
 

@@ -34,7 +34,7 @@ function getScoreProgressColor(score: number): string {
 
 const MAX_SCORE = 10;
 
-export function ExpandPanel({ productId, onClose, isTracked = false }: ExpandPanelProps) {
+export function ExpandPanel({ productId, onClose }: ExpandPanelProps) {
   const { t } = useI18n();
   const navigate = useNavigate();
   const [data, setData] = useState<AnalyzeResult | null>(null);

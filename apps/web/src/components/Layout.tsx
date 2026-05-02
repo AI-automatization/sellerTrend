@@ -9,7 +9,6 @@ import {
   ChartBarIcon,
 ArrowRightOnRectangleIcon,
   ArrowTrendingUpIcon,
-  GlobeAltIcon,
   ShieldCheckIcon,
   BuildingOffice2Icon,
   ServerStackIcon,
