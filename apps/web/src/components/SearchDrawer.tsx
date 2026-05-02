@@ -50,16 +50,20 @@ interface AnalyzeState {
   tracked: boolean;
 }
 
+type Mode = 'search' | 'analyze';
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  initialMode?: Mode;
 }
 
-export function SearchDrawer({ isOpen, onClose }: Props) {
+export function SearchDrawer({ isOpen, onClose, initialMode = 'search' }: Props) {
   const { t } = useI18n();
   const navigate = useNavigate();
   const { isTracked, trackProduct } = useTrackedProducts();
 
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchProduct[]>([]);
   const [loading, setLoading] = useState(false);
@@ -74,6 +78,11 @@ export function SearchDrawer({ isOpen, onClose }: Props) {
   const [sortKey, setSortKey] = useState<'default' | 'score' | 'orders' | 'price'>('default');
   const [analyzeState, setAnalyzeState] = useState<AnalyzeState | null>(null);
 
+  // URL analyze state
+  const [analyzeUrl, setAnalyzeUrl] = useState('');
+  const [urlAnalyzeLoading, setUrlAnalyzeLoading] = useState(false);
+  const [urlAnalyzeError, setUrlAnalyzeError] = useState('');
+
   const inputRef = useRef<HTMLInputElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -82,6 +91,7 @@ export function SearchDrawer({ isOpen, onClose }: Props) {
   // Reset + focus when opens
   useEffect(() => {
     if (isOpen) {
+      setMode(initialMode);
       setQuery('');
       setResults([]);
       setError('');
@@ -92,11 +102,14 @@ export function SearchDrawer({ isOpen, onClose }: Props) {
       setOffset(0);
       setSortKey('default');
       setAnalyzeState(null);
+      setAnalyzeUrl('');
+      setUrlAnalyzeLoading(false);
+      setUrlAnalyzeError('');
       setTimeout(() => inputRef.current?.focus(), 100);
     } else {
       abortRef.current?.abort();
     }
-  }, [isOpen]);
+  }, [isOpen, initialMode]);
 
   // Escape: if in analyze view → go back, else close
   useEffect(() => {
@@ -268,7 +281,42 @@ export function SearchDrawer({ isOpen, onClose }: Props) {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    search(query);
+    if (mode === 'search') search(query);
+    else handleUrlAnalyze(e);
+  }
+
+  async function handleUrlAnalyze(e: FormEvent) {
+    e.preventDefault();
+    if (!analyzeUrl.trim()) return;
+    setUrlAnalyzeLoading(true);
+    setUrlAnalyzeError('');
+    setAnalyzeState({ url: analyzeUrl, result: null, snapshots: [], loading: true, error: '', tracked: false });
+    scrollRef.current?.scrollTo({ top: 0 });
+    try {
+      const res = await uzumApi.analyzeUrl(analyzeUrl.trim());
+      const data: AnalyzeResult = res.data;
+      let snapshots: ChartPoint[] = [];
+      let tracked = false;
+      try {
+        const [snap, trackedRes] = await Promise.all([
+          productsApi.getSnapshots(String(data.product_id)),
+          productsApi.getTracked(),
+        ]);
+        snapshots = snap.data.slice().reverse().map((s: Snapshot) => ({
+          date: new Date(s.snapshot_at).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
+          score: Number(Number(s.score).toFixed(4)),
+        }));
+        tracked = (trackedRes.data as Array<{ product_id: string | number }>)
+          .some((t) => String(t.product_id) === String(data.product_id));
+      } catch { /* optional */ }
+      setAnalyzeState({ url: analyzeUrl, result: data, snapshots, loading: false, error: '', tracked });
+    } catch (err: unknown) {
+      const msg = getErrorMessage(err, t('analyze.error'));
+      setUrlAnalyzeError(msg);
+      setAnalyzeState(null);
+    } finally {
+      setUrlAnalyzeLoading(false);
+    }
   }
 
   const showPagination = hasSearched && !loading && (page > 1 || hasNextPage);
@@ -286,53 +334,81 @@ export function SearchDrawer({ isOpen, onClose }: Props) {
       <div className="modal-box w-full max-w-4xl max-h-[88vh] p-0 flex flex-col">
 
         {/* Header */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-base-300/40 shrink-0">
-          {analyzeState ? (
-            /* Analyze mode header */
-            <>
-              <button
-                onClick={() => setAnalyzeState(null)}
-                className="btn btn-ghost btn-sm gap-1.5 text-base-content/60"
-              >
+        <div className="flex flex-col gap-0 shrink-0">
+          {/* Top bar */}
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-base-300/40">
+            {analyzeState && mode === 'search' ? (
+              <button onClick={() => setAnalyzeState(null)} className="btn btn-ghost btn-sm gap-1.5 text-base-content/60">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                 </svg>
                 Orqaga
               </button>
-              <div className="flex-1" />
-            </>
-          ) : (
-            /* Search mode header */
-            <form onSubmit={handleSubmit} className="flex-1 flex gap-2">
-              <div className="relative flex-1">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/30" />
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="input input-bordered w-full pl-9"
-                  placeholder={t('search.placeholder')}
-                />
-              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="flex-1 flex gap-2">
+                <div className="relative flex-1">
+                  <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/30" />
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={mode === 'search' ? query : analyzeUrl}
+                    onChange={(e) => mode === 'search' ? setQuery(e.target.value) : setAnalyzeUrl(e.target.value)}
+                    className="input input-bordered w-full pl-9"
+                    placeholder={mode === 'search' ? t('search.placeholder') : 'https://uzum.uz/product/...'}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={mode === 'search' ? (loading || query.trim().length < MIN_QUERY_LENGTH) : (urlAnalyzeLoading || !analyzeUrl.trim())}
+                  className="btn btn-primary"
+                >
+                  {(loading || urlAnalyzeLoading)
+                    ? <span className="loading loading-spinner loading-sm" />
+                    : mode === 'search' ? t('search.searchBtn') : t('analyze.button')}
+                </button>
+              </form>
+            )}
+            <button onClick={onClose} className="btn btn-ghost btn-sm btn-square shrink-0">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Mode toggle */}
+          {!analyzeState && (
+            <div className="flex px-4 py-2 gap-1 bg-base-200/30">
               <button
-                type="submit"
-                disabled={loading || query.trim().length < MIN_QUERY_LENGTH}
-                className="btn btn-primary"
+                onClick={() => { setMode('search'); setAnalyzeState(null); setUrlAnalyzeError(''); }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  mode === 'search' ? 'bg-primary/10 text-primary border border-primary/20' : 'text-base-content/40 hover:text-base-content/60'
+                }`}
               >
-                {loading ? <span className="loading loading-spinner loading-sm" /> : t('search.searchBtn')}
+                <MagnifyingGlassIcon className="w-3.5 h-3.5" />
+                Nom bo'yicha qidirish
               </button>
-            </form>
+              <button
+                onClick={() => { setMode('analyze'); setResults([]); setHasSearched(false); setUrlAnalyzeError(''); }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  mode === 'analyze' ? 'bg-success/10 text-success border border-success/20' : 'text-base-content/40 hover:text-base-content/60'
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                URL orqali tahlil
+              </button>
+            </div>
           )}
-          <button onClick={onClose} className="btn btn-ghost btn-sm btn-square shrink-0">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
         </div>
 
         {/* Scrollable content */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto p-4">
+
+          {/* ── URL ANALYZE ERROR ── */}
+          {urlAnalyzeError && (
+            <div className="alert alert-error alert-soft text-sm mb-4">{urlAnalyzeError}</div>
+          )}
 
           {/* ── ANALYZE PANEL ── */}
           {analyzeState && (
