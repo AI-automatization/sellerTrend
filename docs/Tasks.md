@@ -12,8 +12,8 @@
 ```
 Ochiq:       ~46 ta
 Bajarilgan:  ~198+ ta (Done.md)
-Oxirgi T-#:  T-524
-Keyingi T-#: T-525 dan boshlash
+Oxirgi T-#:  T-525
+Keyingi T-#: T-526 dan boshlash
 ```
 
 ---
@@ -1419,6 +1419,22 @@ yesterday_date: "2026-04-24" ← xato (to'g'risi: "2026-04-23")
 
 ---
 
+
+### T-525 | P1 | BACKEND | weekly_bought account ga emas product ga bog'liq bo'lishi kerak | 15min | pending[Sardor]
+
+**Sana:** 2026-05-03
+**Manba:** user-feedback
+**Mas'ul:** Sardor
+**Tahlil:** `getTrackedProducts()` da `weekly_bought` hisoblashda `trackedDays` (account qachon kuzatuvga qo'shgani) ishlatiladi. Agar account yangi qo'shgan bo'lsa (`< 7 kun`), scraped fallback qaytariladi — bu noto'g'ri. `productSnapshotDaily` jadvali `account_id` siz, faqat `product_id` bo'yicha saqlaydi. Shuning uchun ikki xil account bir xil productni ko'rganda har xil `weekly_bought` ko'radi.
+**Muammo:** `demo@ventra.uz` → 1, `admin@ventra.uz` → 425 (bir xil product).
+**Yechim:** `trackedDays` shartini olib tashlash. `weeklyFromDaily > 0` bo'lsa — uni ishlatish. Aks holda scraped fallback.
+
+**O'zgartirilishi kerak fayllar:**
+```
+apps/api/src/products/products.service.ts → getTrackedProducts() weekly_bought logikasi
+```
+
+---
 
 ### T-524 | P2 | IKKALASI | Shops sahifasi va barcha logikalarini o'chirish | 1h | pending[Sardor]
 

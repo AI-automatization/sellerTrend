@@ -472,7 +472,7 @@ export class ProductsService {
     const weeklyDailyRows = productIds.length > 0
       ? await this.prisma.productSnapshotDaily.findMany({
           where: { product_id: { in: productIds }, day: { gte: mondayUTC } },
-          select: { product_id: true, daily_orders_delta: true, day: true, max_orders: true },
+          select: { product_id: true, daily_orders_delta: true, day: true, max_orders: true, avg_score: true },
         })
       : [];
 
@@ -480,6 +480,8 @@ export class ProductsService {
     const weeklyMap = new Map<bigint, number>();
     // product_id → kechagi max_orders (today_sold = hozirgi orders - kecha max_orders)
     const yesterdayMaxOrdersMap = new Map<bigint, bigint | null>();
+    // product_id → oxirgi 2 kungi avg_score (trend hisoblash uchun)
+    const scoreByDay = new Map<bigint, { day: Date; score: number }[]>();
 
     for (const row of weeklyDailyRows) {
       if (row.daily_orders_delta != null) {
@@ -489,6 +491,11 @@ export class ProductsService {
       if (row.day >= yesterdayStartUtc && row.day < todayStartUtc) {
         yesterdayMaxOrdersMap.set(row.product_id, row.max_orders);
       }
+      if (row.avg_score != null) {
+        const existing = scoreByDay.get(row.product_id) ?? [];
+        existing.push({ day: row.day, score: Number(row.avg_score) });
+        scoreByDay.set(row.product_id, existing);
+      }
     }
 
     return tracked.map((t) => {
@@ -496,10 +503,13 @@ export class ProductsService {
       const latest = snaps[0];
       const sku = t.product.skus[0];
 
-      // Score trend from last two snapshots with meaningful gap
-      const prev = snaps.length > 1 ? snaps[1] : null;
-      const latestScore = latest?.score ? Number(latest.score) : null;
-      const prevScore = prev?.score ? Number(prev.score) : null;
+      // Score va trend: productSnapshotDaily.avg_score dan (har kecha avtomatik hisoblanadi)
+      // Fallback: snaps ichidan score bor bo'lgan oxirgi snapshot
+      const dailyScores = (scoreByDay.get(t.product.id) ?? [])
+        .sort((a, b) => b.day.getTime() - a.day.getTime());
+      const scoredSnaps = snaps.filter((s) => s.score != null);
+      const latestScore = dailyScores[0]?.score ?? (scoredSnaps[0]?.score ? Number(scoredSnaps[0].score) : null);
+      const prevScore = dailyScores[1]?.score ?? (scoredSnaps[1]?.score ? Number(scoredSnaps[1].score) : null);
       const trend =
         latestScore !== null && prevScore !== null
           ? latestScore > prevScore + 0.05
@@ -510,12 +520,11 @@ export class ProductsService {
           : null;
 
       // Haftalik sotuv:
-      // 1-hafta (kuzatuvga qo'shilganidan 7 kun o'tguncha) → Uzum banneri (scraped)
-      // 7 kundan keyin → bizning so'nggi 7 kun daily_orders_delta yig'indisi
-      const trackedDays = (Date.now() - t.created_at.getTime()) / (1000 * 60 * 60 * 24);
+      // productSnapshotDaily da ma'lumot bo'lsa → ishlatish (account_id ga bog'liq emas, product_id bo'yicha umumiy)
+      // Aks holda → Uzum banneri (scraped) fallback
       const weeklyFromDaily = weeklyMap.get(t.product.id) ?? 0;
-      const weeklyBought = trackedDays >= 7
-        ? (weeklyFromDaily > 0 ? weeklyFromDaily : null)
+      const weeklyBought = weeklyFromDaily > 0
+        ? weeklyFromDaily
         : getScrapedWeeklyBought(snaps);
 
       // Bugungi live sotuv: hozirgi orders − kecha max_orders (getDailyComparison bilan bir xil logika)

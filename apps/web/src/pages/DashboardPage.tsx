@@ -298,7 +298,7 @@ export function DashboardPage() {
 
       {/* ═══ CHARTS — yonma-yon ═══ */}
       {products.length > 0 && (
-        <div className="grid lg:grid-cols-2 gap-4 items-start">
+        <div className="grid lg:grid-cols-2 gap-4 items-stretch">
           <ChartsSection
             scoreChartData={scoreChartData}
             trendPieData={trendPieData}

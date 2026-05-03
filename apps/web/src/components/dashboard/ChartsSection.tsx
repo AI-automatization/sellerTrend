@@ -28,7 +28,7 @@ export function ChartsSection({ scoreChartData }: Props) {
 
   return (
     <FadeIn delay={320}>
-      <div className="rounded-2xl bg-base-200/50 border border-base-300/40 overflow-hidden ventra-card">
+      <div className="h-full rounded-2xl bg-base-200/50 border border-base-300/40 overflow-hidden ventra-card">
         <div className="px-5 py-4 border-b border-base-300/20 flex items-center justify-between">
           <div>
             <h2 className="font-semibold text-sm font-heading">{t('dashboard.scoreRating')}</h2>
