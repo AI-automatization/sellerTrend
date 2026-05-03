@@ -17,16 +17,16 @@ export function ActivityChart({ activityData, totalWeekly }: Props) {
 
   return (
     <FadeIn delay={360}>
-      <div className="h-full flex flex-col rounded-2xl bg-base-200/50 border border-base-300/40 overflow-hidden ventra-card">
-        <div className="px-5 py-4 border-b border-base-300/20 flex items-center justify-between shrink-0">
+      <div className="rounded-2xl bg-base-200/50 border border-base-300/40 overflow-hidden ventra-card">
+        <div className="px-5 py-4 border-b border-base-300/20 flex items-center justify-between">
           <div>
             <h2 className="font-semibold text-sm font-heading">{t('dashboard.weeklySalesChart')}</h2>
             <p className="text-[10px] text-base-content/25 mt-0.5">Top {activityData.length} — {t('dashboard.last7days')}</p>
           </div>
           <span className="text-xs font-mono text-success/80 font-semibold tabular-nums">{totalWeekly.toLocaleString()} {t('common.unit')}</span>
         </div>
-        <div className="p-4 lg:p-5 flex-1 min-h-[220px]">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="p-4 lg:p-5 h-[300px] overflow-y-auto">
+          <ResponsiveContainer width="100%" height={300}>
             <BarChart data={activityData} margin={{ top: 20, right: 16, left: -10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
               <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />

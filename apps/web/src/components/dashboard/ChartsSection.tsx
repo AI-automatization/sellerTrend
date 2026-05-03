@@ -28,7 +28,7 @@ export function ChartsSection({ scoreChartData }: Props) {
 
   return (
     <FadeIn delay={320}>
-      <div className="h-full rounded-2xl bg-base-200/50 border border-base-300/40 overflow-hidden ventra-card">
+      <div className="rounded-2xl bg-base-200/50 border border-base-300/40 overflow-hidden ventra-card">
         <div className="px-5 py-4 border-b border-base-300/20 flex items-center justify-between">
           <div>
             <h2 className="font-semibold text-sm font-heading">{t('dashboard.scoreRating')}</h2>
@@ -40,9 +40,9 @@ export function ChartsSection({ scoreChartData }: Props) {
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-base-content/15" />&lt;4</span>
           </div>
         </div>
-        <div className="p-4 lg:p-5 max-h-96 overflow-y-auto">
+        <div className="p-4 lg:p-5 h-[300px] overflow-y-auto">
           {scoreChartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={Math.max(260, scoreChartData.length * 30)}>
+            <ResponsiveContainer width="100%" height={Math.max(300, scoreChartData.length * 30)}>
               <BarChart data={scoreChartData} layout="vertical" margin={{ top: 0, right: 24, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} domain={[0, 10]} />

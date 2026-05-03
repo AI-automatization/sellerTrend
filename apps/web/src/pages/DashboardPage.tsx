@@ -227,7 +227,7 @@ export function DashboardPage() {
                   </div>
                   <div className="flex-1 space-y-2">
                     <p className={`text-xs font-semibold ${stats.avgScore >= 6 ? 'text-success' : stats.avgScore >= 4 ? 'text-warning' : 'text-error'}`}>
-                      {stats.avgScore >= 6 ? 'Portfel kuchli' : stats.avgScore >= 4 ? "O'rtacha portfel" : "E'tibor kerak"}
+                      {stats.avgScore >= 6 ? t('dashboard.portfolioStrong') : stats.avgScore >= 4 ? t('dashboard.portfolioAvg') : t('dashboard.portfolioWeak')}
                     </p>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-base-content/40">Eng yuqori</span>
@@ -298,7 +298,7 @@ export function DashboardPage() {
 
       {/* ═══ CHARTS — yonma-yon ═══ */}
       {products.length > 0 && (
-        <div className="grid lg:grid-cols-2 gap-4 items-stretch">
+        <div className="grid lg:grid-cols-2 gap-4 items-start">
           <ChartsSection
             scoreChartData={scoreChartData}
             trendPieData={trendPieData}
