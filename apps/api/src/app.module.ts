@@ -19,7 +19,6 @@ import { HealthController } from './common/health.controller';
 // v1.0 MVP modules
 import { ToolsModule } from './tools/tools.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
-import { ShopsModule } from './shops/shops.module';
 import { ReferralModule } from './referral/referral.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
 import { ExportModule } from './export/export.module';
@@ -68,7 +67,6 @@ import { PredictionsModule } from './predictions/predictions.module';
     // v1.0 MVP
     ToolsModule,
     LeaderboardModule,
-    ShopsModule,
     ReferralModule,
     ApiKeysModule,
     ExportModule,

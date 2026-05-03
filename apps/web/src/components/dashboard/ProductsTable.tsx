@@ -88,13 +88,14 @@ export function ProductsTable({ products, sortedProducts, sortKey, setSortKey, o
             </Link>
           </div>
         ) : (
-          <div className="overflow-x-auto overflow-y-auto max-h-[480px]">
+          <div className="overflow-x-auto overflow-y-auto max-h-[320px]">
             <table className="table table-sm">
               <thead>
                 <tr className="bg-base-200/95 sticky top-0 z-10 text-[9px] text-base-content/30 uppercase tracking-[0.12em]">
                   <th scope="col" className="font-bold pl-5">{t('dashboard.product')}</th>
                   <th scope="col" className="font-bold text-center">{t('dashboard.score')}</th>
                   <th scope="col" className="font-bold text-center">{t('dashboard.trend')}</th>
+                  <th scope="col" className="font-bold text-right">{t('dashboard.daily')}</th>
                   <th scope="col" className="font-bold text-right">{t('dashboard.weekly')}</th>
                   <th scope="col" className="font-bold text-right hidden md:table-cell">{t('dashboard.orders')}</th>
                   <th scope="col" className="font-bold text-right">{t('dashboard.price')}</th>
@@ -133,6 +134,12 @@ export function ProductsTable({ products, sortedProducts, sortKey, setSortKey, o
                     </td>
                     <td className="text-center"><ScorePill score={p.score} /></td>
                     <td className="text-center"><TrendChip trend={p.trend} /></td>
+                    <td className="text-right tabular-nums text-sm">
+                      {p.daily_sold != null
+                        ? <span className="text-primary font-medium">{p.daily_sold.toLocaleString()}</span>
+                        : <span className="text-base-content/10">—</span>
+                      }
+                    </td>
                     <td className="text-right tabular-nums text-sm">
                       {p.weekly_bought != null
                         ? <span className="text-success font-medium">{p.weekly_bought.toLocaleString()}</span>

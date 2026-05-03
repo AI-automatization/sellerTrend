@@ -12,8 +12,8 @@
 ```
 Ochiq:       ~46 ta
 Bajarilgan:  ~198+ ta (Done.md)
-Oxirgi T-#:  T-523
-Keyingi T-#: T-524 dan boshlash
+Oxirgi T-#:  T-524
+Keyingi T-#: T-525 dan boshlash
 ```
 
 ---
@@ -1419,6 +1419,32 @@ yesterday_date: "2026-04-24" ← xato (to'g'risi: "2026-04-23")
 
 ---
 
+
+### T-524 | P2 | IKKALASI | Shops sahifasi va barcha logikalarini o'chirish | 1h | pending[Sardor]
+
+**Sana:** 2026-05-03
+**Manba:** user-feedback
+**Mas'ul:** Sardor
+**Tahlil:** Shops sahifasi Uzum API'si do'kon mahsulotlarini to'liq qaytarmasligi sababli foydasiz. Faqat DB'da kuzatilgan mahsulotlarni ko'rsatar edi — bu esa Dashboard'dagi TrackedProducts bilan takrorlanadi.
+**Muammo:** Shops feature keraksiz murakkablik qo'shadi.
+**Yechim:** ShopsModule (api), ShopsPage (web), shopsApi (web), nav items, i18n keys o'chirish.
+
+**O'zgartirilishi kerak fayllar:**
+```
+apps/api/src/shops/                    → butun papkani o'chirish (shops.service.ts, shops.controller.ts, shops.module.ts)
+apps/api/src/app.module.ts             → ShopsModule import olib tashlash
+apps/web/src/pages/ShopsPage.tsx       → o'chirish
+apps/web/src/App.tsx                   → ShopsPage route olib tashlash
+apps/web/src/components/Layout.tsx     → shops nav item olib tashlash
+apps/web/src/components/BottomNav.tsx  → shops nav item olib tashlash
+apps/web/src/api/client.ts             → shopsApi export olib tashlash
+apps/web/src/api/tools.ts              → shopsApi olib tashlash
+apps/web/src/i18n/uz.ts               → shops.* keylar olib tashlash
+apps/web/src/i18n/ru.ts               → shops.* keylar olib tashlash
+apps/web/src/i18n/en.ts               → shops.* keylar olib tashlash
+```
+
+---
 
 ### T-522 | P2 | IKKALASI | Sourcing sahifasi va barcha logikalarini o'chirish | 3h
 

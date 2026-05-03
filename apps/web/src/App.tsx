@@ -19,7 +19,6 @@ const ProductPage = lazy(() => import('./pages/ProductPage').then(m => ({ defaul
 const DiscoveryPage = lazy(() => import('./pages/DiscoveryPage').then(m => ({ default: m.DiscoveryPage })));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage').then(m => ({ default: m.LeaderboardPage })));
 const ProfitCalculatorPage = lazy(() => import('./pages/ProfitCalculatorPage').then(m => ({ default: m.ProfitCalculatorPage })));
-const ShopsPage = lazy(() => import('./pages/ShopsPage').then(m => ({ default: m.ShopsPage })));
 const ReferralPage = lazy(() => import('./pages/ReferralPage').then(m => ({ default: m.ReferralPage })));
 const ApiKeysPage = lazy(() => import('./pages/ApiKeysPage').then(m => ({ default: m.ApiKeysPage })));
 const DescriptionGeneratorPage = lazy(() => import('./pages/DescriptionGeneratorPage').then(m => ({ default: m.DescriptionGeneratorPage })));
@@ -91,7 +90,6 @@ export default function App() {
           <Route path="discovery" element={<LazyRoute><DiscoveryPage /></LazyRoute>} />
           <Route path="leaderboard" element={<LazyRoute><LeaderboardPage /></LazyRoute>} />
           <Route path="calculator" element={<LazyRoute><ProfitCalculatorPage /></LazyRoute>} />
-          <Route path="shops" element={<LazyRoute><ShopsPage /></LazyRoute>} />
           <Route path="referral" element={<LazyRoute><ReferralPage /></LazyRoute>} />
           <Route path="api-keys" element={<LazyRoute><ApiKeysPage /></LazyRoute>} />
           <Route path="ai-description" element={<LazyRoute><DescriptionGeneratorPage /></LazyRoute>} />

@@ -33,12 +33,6 @@ export const leaderboardApi = {
   getByCategories: () => api.get('/leaderboard/public/categories'),
 };
 
-export const shopsApi = {
-  getShop: (shopId: string) => api.get(`/shops/${shopId}`),
-  getShopProducts: (shopId: string) => api.get(`/shops/${shopId}/products`),
-  searchByName: (q: string) => api.get<Array<{ id: string; title: string }>>('/shops/search', { params: { q } }),
-};
-
 export const referralApi = {
   generateCode: () => api.post('/referrals/generate-code'),
   getStats: () => api.get('/referrals/stats'),

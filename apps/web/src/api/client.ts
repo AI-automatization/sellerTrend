@@ -5,7 +5,7 @@ export { api, getTokenPayload, isTokenValid } from './base';
 export { authApi } from './auth';
 export { productsApi, uzumApi, achievementsApi, predictionsApi } from './products';
 export { discoveryApi, seasonalApi, nicheApi, categoryIntelligenceApi } from './discovery';
-export { toolsApi, leaderboardApi, shopsApi, referralApi, apiKeysApi, exportApi } from './tools';
+export { toolsApi, leaderboardApi, referralApi, apiKeysApi, exportApi } from './tools';
 export { consultationApi, signalsApi, adsApi, teamApi, reportsApi, watchlistApi, communityApi } from './enterprise';
 export { adminApi, feedbackApi, notificationApi } from './admin';
 export { competitorApi } from './competitor';

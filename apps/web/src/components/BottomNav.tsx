@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { HomeIcon, ArrowTrendingUpIcon, SignalIcon, TrophyIcon, StorefrontIcon } from './icons';
+import { HomeIcon, ArrowTrendingUpIcon, SignalIcon, TrophyIcon } from './icons';
 import { useI18n } from '../i18n/I18nContext';
 
 const NAV_ITEMS = [
@@ -7,7 +7,6 @@ const NAV_ITEMS = [
   { to: '/discovery', icon: ArrowTrendingUpIcon, labelKey: 'nav.discovery', end: false },
   { to: '/leaderboard', icon: TrophyIcon, labelKey: 'nav.leaderboard', end: false },
   { to: '/signals', icon: SignalIcon, labelKey: 'nav.signals', end: false },
-  { to: '/shops', icon: StorefrontIcon, labelKey: 'nav.shops', end: false },
 ] as const;
 
 export function BottomNav() {

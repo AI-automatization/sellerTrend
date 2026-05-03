@@ -16,7 +16,6 @@ ArrowRightOnRectangleIcon,
   BellIcon,
   DocumentTextIcon,
   BanknotesIcon,
-  StorefrontIcon,
   SignalIcon,
   TrophyIcon,
   CalculatorIcon,
@@ -113,7 +112,7 @@ export function Layout() {
     const path = location.pathname;
     const initial: Record<string, boolean> = {};
     if (['/', '/discovery'].some(p => p === '/' ? path === '/' : path.startsWith(p))) initial['asosiy'] = true;
-    if (['/shops', '/signals', '/leaderboard'].some(p => path.startsWith(p))) initial['mahsulot'] = true;
+    if (['/signals', '/leaderboard'].some(p => path.startsWith(p))) initial['mahsulot'] = true;
     if (['/calculator', '/elasticity', '/ai-description', '/consultation', '/compare'].some(p => path.startsWith(p))) initial['asboblar'] = true;
     if (['/achievements', '/enterprise', '/referral', '/api-keys', '/feedback', '/extension'].some(p => path.startsWith(p))) initial['biznes'] = true;
     if (path === '/admin') initial['admin'] = true;
@@ -203,7 +202,6 @@ export function Layout() {
     {
       label: t('nav.section.product'),
       items: [
-        { to: '/shops', icon: StorefrontIcon, label: t('nav.shops') },
         { to: '/signals', icon: SignalIcon, label: t('nav.signals') },
         { to: '/leaderboard', icon: TrophyIcon, label: t('nav.leaderboard') },
       ],

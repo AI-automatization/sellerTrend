@@ -47,26 +47,26 @@ TEMP=$(mktemp)
 SKIP=0
 
 while IFS= read -r line; do
-  if [[ "$line" == "## Последние коммиты" ]]; then
-    echo "$line"
+  if [[ "$line" == "## Oxirgi commitlar" || "$line" == "## Последние коммиты" ]]; then
+    echo "## Oxirgi commitlar"
     echo ""
     cat "$COMMITS_FILE"
     SKIP=1
     continue
   fi
 
-  if [[ "$line" == "## Авто-синхронизация" ]]; then
-    echo "$line"
-    echo "*Обновлено: $NOW*"
-    echo "Ветка: \`$BRANCH\` | Незакоммиченных файлов: $UNCOMMITTED"
+  if [[ "$line" == "## Avto-sinxronizatsiya" || "$line" == "## Авто-синхронизация" ]]; then
+    echo "## Avto-sinxronizatsiya"
+    echo "*Yangilandi: $NOW*"
+    echo "Tarmoq: \`$BRANCH\` | Commit qilinmagan fayllar: $UNCOMMITTED"
     if [ -s "$PENDING_FILE" ]; then
       echo ""
-      echo "**Активные (pending):**"
+      echo "**Jarayondagi (pending):**"
       cat "$PENDING_FILE"
     fi
     if [ -s "$OPEN_FILE" ]; then
       echo ""
-      echo "**Очередь (open):**"
+      echo "**Navbatdagi (open):**"
       cat "$OPEN_FILE"
     fi
     SKIP=1
