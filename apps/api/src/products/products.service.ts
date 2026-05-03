@@ -461,28 +461,33 @@ export class ProductsService {
     // So'nggi 7 kun daily_orders_delta yig'indisi
     const mondayUTC = getSevenDaysAgoUTC();
     const productIds = tracked.map((t) => t.product.id);
+
+    // Toshkent (UTC+5) kecha kun chegarasi — today_sold hisoblash uchun
+    const TASHKENT_OFFSET_MS = 5 * 60 * 60 * 1000;
+    const todayTashkent = new Date(Date.now() + TASHKENT_OFFSET_MS);
+    todayTashkent.setUTCHours(0, 0, 0, 0);
+    const todayStartUtc = new Date(todayTashkent.getTime() - TASHKENT_OFFSET_MS);
+    const yesterdayStartUtc = new Date(todayStartUtc.getTime() - 24 * 60 * 60 * 1000);
+
     const weeklyDailyRows = productIds.length > 0
       ? await this.prisma.productSnapshotDaily.findMany({
           where: { product_id: { in: productIds }, day: { gte: mondayUTC } },
-          select: { product_id: true, daily_orders_delta: true, day: true },
+          select: { product_id: true, daily_orders_delta: true, day: true, max_orders: true },
         })
       : [];
 
     // product_id → haftalik sotuv yig'indisi
     const weeklyMap = new Map<bigint, number>();
-    // product_id → eng so'nggi kun (day) va uning daily_orders_delta
-    const dailyLatestDay = new Map<bigint, Date>();
-    const dailyMap = new Map<bigint, number | null>();
+    // product_id → kechagi max_orders (today_sold = hozirgi orders - kecha max_orders)
+    const yesterdayMaxOrdersMap = new Map<bigint, bigint | null>();
+
     for (const row of weeklyDailyRows) {
       if (row.daily_orders_delta != null) {
         const current = weeklyMap.get(row.product_id) ?? 0;
         weeklyMap.set(row.product_id, current + Number(row.daily_orders_delta));
       }
-      // Eng so'nggi kunni saqlash
-      const prevDay = dailyLatestDay.get(row.product_id);
-      if (!prevDay || row.day > prevDay) {
-        dailyLatestDay.set(row.product_id, row.day);
-        dailyMap.set(row.product_id, row.daily_orders_delta != null ? Number(row.daily_orders_delta) : null);
+      if (row.day >= yesterdayStartUtc && row.day < todayStartUtc) {
+        yesterdayMaxOrdersMap.set(row.product_id, row.max_orders);
       }
     }
 
@@ -513,8 +518,12 @@ export class ProductsService {
         ? (weeklyFromDaily > 0 ? weeklyFromDaily : null)
         : getScrapedWeeklyBought(snaps);
 
-      // Kunlik sotuv: product_snapshot_daily dan kechagi calendar-day delta (T-506)
-      const daily_sold = dailyMap.get(t.product.id) ?? null;
+      // Bugungi live sotuv: hozirgi orders − kecha max_orders (getDailyComparison bilan bir xil logika)
+      const latestOrders = latest?.orders_quantity;
+      const yesterdayMax = yesterdayMaxOrdersMap.get(t.product.id);
+      const daily_sold = latestOrders != null && yesterdayMax != null
+        ? Math.max(0, Number(latestOrders) - Number(yesterdayMax))
+        : null;
 
       return {
         product_id: t.product.id.toString(),
