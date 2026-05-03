@@ -27,10 +27,6 @@ export const uzumApi = {
   analyzeById: (id: string) => api.get(`/uzum/product/${id}`, { timeout: 60_000 }),
 };
 
-export const achievementsApi = {
-  getAll: () => api.get('/achievements'),
-};
-
 export const predictionsApi = {
   getPrediction: (productId: string, horizon = 7) =>
     api.get<PredictionResult>(`/predictions/${productId}`, { params: { horizon } }),

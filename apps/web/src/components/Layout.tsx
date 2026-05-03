@@ -114,7 +114,7 @@ export function Layout() {
     if (['/', '/discovery'].some(p => p === '/' ? path === '/' : path.startsWith(p))) initial['asosiy'] = true;
     if (['/signals', '/leaderboard'].some(p => path.startsWith(p))) initial['mahsulot'] = true;
     if (['/calculator', '/elasticity', '/ai-description', '/consultation', '/compare'].some(p => path.startsWith(p))) initial['asboblar'] = true;
-    if (['/achievements', '/enterprise', '/referral', '/api-keys', '/feedback', '/extension'].some(p => path.startsWith(p))) initial['biznes'] = true;
+    if (['/enterprise', '/referral', '/api-keys', '/feedback', '/extension'].some(p => path.startsWith(p))) initial['biznes'] = true;
     if (path === '/admin') initial['admin'] = true;
     setOpenSections(prev => ({ ...prev, ...initial }));
   }, [location.pathname]);
@@ -219,7 +219,6 @@ export function Layout() {
     {
       label: t('nav.section.business'),
       items: [
-        { to: '/achievements', icon: TrophyIcon, label: t('nav.achievements') },
         { to: '/enterprise', icon: BuildingOfficeIcon, label: t('nav.enterprise') },
         { to: '/referral', icon: UserGroupIcon, label: t('nav.referral') },
         { to: '/api-keys', icon: KeyIcon, label: t('nav.apiKeys') },

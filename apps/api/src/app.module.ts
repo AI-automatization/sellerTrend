@@ -38,8 +38,6 @@ import { FeedbackModule } from './feedback/feedback.module';
 import { NotificationModule } from './notification/notification.module';
 // v6.0 Multi-marketplace
 import { PlatformsModule } from './platforms/platforms.module';
-// v7.0 Engagement
-import { AchievementsModule } from './achievements/achievements.module';
 // v8.0 RAG Chat
 import { ChatModule } from './chat/chat.module';
 // v9.0 ML Predictions
@@ -86,8 +84,6 @@ import { PredictionsModule } from './predictions/predictions.module';
     NotificationModule,
     // v6.0 Multi-marketplace
     PlatformsModule,
-    // v7.0 Engagement
-    AchievementsModule,
     // v8.0 RAG Chat
     ChatModule,
     // v9.0 ML Predictions

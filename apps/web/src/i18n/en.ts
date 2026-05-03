@@ -1241,22 +1241,6 @@ export const en: Record<string, string> = {
     'compare.inputPlaceholder': 'Product ID or Uzum URL',
 
 
-    // ── Achievements ─────────────────────────────────────────────────────
-    'nav.achievements': 'Achievements',
-    'achievements.title': 'Achievements',
-    'achievements.progress': '{earned} of {total} earned',
-    'achievements.earned': 'Earned',
-    'achievements.locked': 'Locked',
-    'achievement.first_analysis.title': 'First Analysis',
-    'achievement.first_analysis.desc': 'Analyze your first product',
-    'achievement.tracker_10.title': 'Tracker Pro',
-    'achievement.tracker_10.desc': 'Track 10 products',
-    'achievement.streak_7.title': 'Week Streak',
-    'achievement.streak_7.desc': 'Login 7 days in a row',
-    'achievement.discovery_explorer.title': 'Explorer',
-    'achievement.discovery_explorer.desc': 'Use Discovery 5 times',
-    'achievement.sourcing_pro.title': 'Sourcing Pro',
-    'achievement.sourcing_pro.desc': 'Calculate 3 sourcing estimates',
 
     // ── Search ──────────────────────────────────────────────────────────────
     'nav.search': 'Search',

@@ -1255,22 +1255,6 @@ export const uz: Record<string, string> = {
     'compare.inputPlaceholder': 'Mahsulot ID yoki Uzum URL',
 
 
-    // ── Achievements ─────────────────────────────────────────────────────
-    'nav.achievements': 'Yutuqlar',
-    'achievements.title': 'Yutuqlar',
-    'achievements.progress': "{earned}/{total} qo'lga kiritildi",
-    'achievements.earned': "Qo'lga kiritildi",
-    'achievements.locked': 'Qulflangan',
-    'achievement.first_analysis.title': 'Birinchi tahlil',
-    'achievement.first_analysis.desc': 'Birinchi mahsulotni tahlil qiling',
-    'achievement.tracker_10.title': '10 ta kuzatuvchi',
-    'achievement.tracker_10.desc': '10 ta mahsulotni kuzating',
-    'achievement.streak_7.title': 'Haftalik streak',
-    'achievement.streak_7.desc': "7 kun ketma-ket kiring",
-    'achievement.discovery_explorer.title': 'Kashfiyotchi',
-    'achievement.discovery_explorer.desc': "Discovery'ni 5 marta ishlating",
-    'achievement.sourcing_pro.title': 'Sourcing Pro',
-    'achievement.sourcing_pro.desc': '3 ta sourcing hisoblang',
 
     // ── Search ──────────────────────────────────────────────────────────────
     'nav.search': 'Qidiruv',

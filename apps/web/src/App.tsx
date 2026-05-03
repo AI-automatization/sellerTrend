@@ -34,7 +34,6 @@ const TelegramMiniAppPage = lazy(() => import('./pages/TelegramMiniAppPage').the
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage').then(m => ({ default: m.OnboardingPage })));
 const BillingPage = lazy(() => import('./pages/BillingPage').then(m => ({ default: m.BillingPage })));
 const ComparePage = lazy(() => import('./pages/ComparePage').then(m => ({ default: m.ComparePage })));
-const AchievementsPage = lazy(() => import('./pages/AchievementsPage').then(m => ({ default: m.AchievementsPage })));
 
 function isAuthenticated() {
   return isTokenValid();
@@ -101,7 +100,6 @@ export default function App() {
           <Route path="extension" element={<LazyRoute><ExtensionPage /></LazyRoute>} />
           <Route path="billing" element={<LazyRoute><BillingPage /></LazyRoute>} />
           <Route path="compare" element={<LazyRoute><ComparePage /></LazyRoute>} />
-          <Route path="achievements" element={<LazyRoute><AchievementsPage /></LazyRoute>} />
           <Route path="admin" element={<AdminRoute><LazyRoute><AdminPage /></LazyRoute></AdminRoute>} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />

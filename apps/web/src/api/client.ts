@@ -3,7 +3,7 @@
 
 export { api, getTokenPayload, isTokenValid } from './base';
 export { authApi } from './auth';
-export { productsApi, uzumApi, achievementsApi, predictionsApi } from './products';
+export { productsApi, uzumApi, predictionsApi } from './products';
 export { discoveryApi, seasonalApi, nicheApi, categoryIntelligenceApi } from './discovery';
 export { toolsApi, leaderboardApi, referralApi, apiKeysApi, exportApi } from './tools';
 export { consultationApi, signalsApi, adsApi, teamApi, reportsApi, watchlistApi, communityApi } from './enterprise';

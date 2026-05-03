@@ -1240,22 +1240,6 @@ export const ru: Record<string, string> = {
     'compare.inputPlaceholder': 'ID товара или URL Uzum',
 
 
-    // ── Achievements ─────────────────────────────────────────────────────
-    'nav.achievements': 'Достижения',
-    'achievements.title': 'Достижения',
-    'achievements.progress': '{earned} из {total} получено',
-    'achievements.earned': 'Получено',
-    'achievements.locked': 'Заблокировано',
-    'achievement.first_analysis.title': 'Первый анализ',
-    'achievement.first_analysis.desc': 'Проанализируйте первый товар',
-    'achievement.tracker_10.title': 'Отслеживание 10',
-    'achievement.tracker_10.desc': 'Отслеживайте 10 товаров',
-    'achievement.streak_7.title': 'Недельная серия',
-    'achievement.streak_7.desc': '7 дней подряд',
-    'achievement.discovery_explorer.title': 'Исследователь',
-    'achievement.discovery_explorer.desc': 'Используйте Discovery 5 раз',
-    'achievement.sourcing_pro.title': 'Sourcing Pro',
-    'achievement.sourcing_pro.desc': '3 расчёта sourcing',
 
     // ── Search ──────────────────────────────────────────────────────────────
     'nav.search': 'Поиск',
