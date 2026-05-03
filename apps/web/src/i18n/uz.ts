@@ -335,9 +335,9 @@ export const uz: Record<string, string> = {
     'error.INTERNAL_ERROR': 'Serverda xato yuz berdi',
 
     // ── Discovery ──────────────────────────────────────────────────────────────
-    'discovery.tab.scan': 'Skanerlash',
-    'discovery.tab.seasonal': 'Mavsumiy Kalendar',
-    'discovery.tab.niche': 'Imkoniyat Topish',
+    'discovery.tab.scan': 'Kategoriya qidirish',
+    'discovery.tab.seasonal': 'Mavsumiy taqvim',
+    'discovery.tab.niche': 'Bozor imkoniyatlari',
     'discovery.newScan': 'Yangi skanerlash',
     'discovery.categoryIdPlaceholder': 'Kategoriya nomi, ID yoki URL',
     'discovery.selectFromSuggestions': "Ro'yxatdan kategoriya tanlang yoki URL kiriting",
@@ -371,7 +371,7 @@ export const uz: Record<string, string> = {
     'discovery.status.failed': 'Xato',
     'discovery.winnersDrawer.title': "G'oliblar",
     'discovery.winnersDrawer.empty': "G'oliblar topilmadi",
-    'discovery.winnersDrawer.col.score': 'Score',
+    'discovery.winnersDrawer.col.score': 'Ball',
     'discovery.winnersDrawer.col.weeklySales': 'Haftalik sotuv',
     'discovery.winnersDrawer.col.price': 'Narx',
     'discovery.winnersDrawer.trackBtn': "Kuzatuvga qo'shish",
@@ -410,7 +410,7 @@ export const uz: Record<string, string> = {
     'discovery.scanner.catPrefix': 'Kategoriya #',
     'discovery.scanner.topProducts': 'mahsulot',
     'discovery.scanner.winners.col.activity': 'Faollik',
-    'discovery.scanner.winners.col.score': 'Score',
+    'discovery.scanner.winners.col.score': 'Ball',
     'discovery.scanner.winners.col.price': 'Narx',
     'discovery.scanner.winners.col.product': 'Mahsulot',
     'discovery.scanner.trackBtn': '+ Kuzatish',
@@ -1065,11 +1065,11 @@ export const uz: Record<string, string> = {
     'signals.modules': 'ta signal moduli',
     // Sourcing
     // Discovery
-    'discovery.title': 'Kategoriya Kashfiyoti',
-    'discovery.subtitle': 'Kategoriya skanerlash, mavsumiy trendlar va bozor imkoniyatlari',
-    'discovery.tabScanner': 'Skanerlash',
-    'discovery.tabSeasonal': 'Mavsumiy Kalendar',
-    'discovery.tabNiche': 'Imkoniyat Topish',
+    'discovery.title': 'Kategoriya tahlili',
+    'discovery.subtitle': 'Kategoriyalar bo\'yicha qidiruv, mavsumlar va bozor imkoniyatlari',
+    'discovery.tabScanner': 'Kategoriya qidirish',
+    'discovery.tabSeasonal': 'Mavsumiy taqvim',
+    'discovery.tabNiche': 'Bozor imkoniyatlari',
     // Consultation
     'consultation.title': 'Konsultatsiya',
     'consultation.subtitle': "Uzum ekspertlaridan maslahat oling yoki o'zingiz xizmat ko'rsating",

@@ -320,9 +320,9 @@ export const ru: Record<string, string> = {
     'error.INTERNAL_ERROR': 'Ошибка сервера',
 
     // ── Discovery ──────────────────────────────────────────────────────────────
-    'discovery.tab.scan': 'Сканирование',
+    'discovery.tab.scan': 'Поиск категорий',
     'discovery.tab.seasonal': 'Сезонный календарь',
-    'discovery.tab.niche': 'Поиск ниш',
+    'discovery.tab.niche': 'Возможности рынка',
     'discovery.newScan': 'Новое сканирование',
     'discovery.categoryIdPlaceholder': 'Название категории, ID или URL',
     'discovery.selectFromSuggestions': 'Выберите категорию из списка или введите URL',

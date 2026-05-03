@@ -321,9 +321,9 @@ export const en: Record<string, string> = {
     'error.INTERNAL_ERROR': 'Server error',
 
     // ── Discovery ──────────────────────────────────────────────────────────────
-    'discovery.tab.scan': 'Scan',
+    'discovery.tab.scan': 'Category Search',
     'discovery.tab.seasonal': 'Seasonal Calendar',
-    'discovery.tab.niche': 'Niche Finder',
+    'discovery.tab.niche': 'Market Opportunities',
     'discovery.newScan': 'New scan',
     'discovery.categoryIdPlaceholder': 'Category name, ID or URL',
     'discovery.selectFromSuggestions': 'Select a category from the list or enter a URL',
