@@ -22,6 +22,7 @@ import {
 } from 'recharts';
 import { ArrowTrendingUpIcon } from '../components/icons';
 import { CompetitorSection } from '../components/CompetitorSection';
+import { ChinaCompareSection } from '../components/ChinaCompareSection';
 import {
   ScoreRadial,
   StatCard,
@@ -1019,6 +1020,11 @@ export function ProductPage() {
       {/* Competitor Price Tracker — Feature 01 */}
       <ErrorBoundary variant="section" label="Raqiblar narxi">
         <CompetitorSection productId={String(result.product_id)} productPrice={result.sell_price} />
+      </ErrorBoundary>
+
+      {/* China Compare — Alibaba visual search */}
+      <ErrorBoundary variant="section" label="Xitoy bozori">
+        <ChinaCompareSection productId={String(result.product_id)} productPrice={result.sell_price} />
       </ErrorBoundary>
 
 

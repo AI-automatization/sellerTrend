@@ -1,5 +1,5 @@
 import { api } from './base';
-import type { SearchProduct, InstallmentSkuData, DailySalesPoint, PredictionResult, RiskResult } from './types';
+import type { SearchProduct, InstallmentSkuData, DailySalesPoint, PredictionResult, RiskResult, ChinaCompareResponse } from './types';
 
 export const productsApi = {
   getTracked: () => api.get('/products/tracked'),
@@ -25,6 +25,11 @@ export const productsApi = {
 export const uzumApi = {
   analyzeUrl: (url: string) => api.post('/uzum/analyze', { url }, { timeout: 60_000 }),
   analyzeById: (id: string) => api.get(`/uzum/product/${id}`, { timeout: 60_000 }),
+};
+
+export const chinaCompareApi = {
+  compare: (productId: string) =>
+    api.get<ChinaCompareResponse>(`/china-compare/${productId}`),
 };
 
 export const predictionsApi = {

@@ -39,13 +39,7 @@ export class CompetitorService {
       throw new NotFoundException(`Product ${productId} not found`);
     }
 
-    if (!product.category_id) {
-      throw new NotFoundException(`Product ${productId} has no category`);
-    }
-
-    const categoryProducts = await this.uzumClient.fetchCategoryProducts(
-      Number(product.category_id),
-    );
+    const categoryProducts = await this.uzumClient.searchProducts(product.title, 48, 0);
 
     // Filter out our own product, take top-10
     const ourPrice = product.skus[0]?.min_sell_price
@@ -54,43 +48,25 @@ export class CompetitorService {
 
     const competitors = categoryProducts
       .filter((p: UzumSearchProduct) => Number(p.productId ?? p.id) !== Number(productId))
-      .slice(0, 10)
+      .slice(0, 48)
       .map((p: UzumSearchProduct) => {
         const id = p.productId ?? p.id;
         const sellPrice = p.minSellPrice ?? p.sellPrice ?? null;
-        const title = p.title ?? '';
-        const rating = p.rating ?? 0;
-        const orders = p.ordersQuantity ?? p.ordersAmount ?? 0;
-
-        let is_cheaper = false;
-        let price_diff_pct = 0;
-        if (ourPrice && sellPrice) {
-          is_cheaper = sellPrice < ourPrice;
-          price_diff_pct = Math.round(
-            ((sellPrice - ourPrice) / ourPrice) * 100,
-          );
-        }
-
         return {
-          product_id: String(id),
-          title,
-          sell_price: sellPrice ? String(sellPrice) : null,
-          rating,
-          orders_quantity: String(orders),
-          is_cheaper,
-          price_diff_pct,
+          product_id: Number(id),
+          title: p.title ?? '',
+          sell_price: sellPrice ?? 0,
+          photo_url: p.photoUrl ?? null,
+          shop_name: '',
+          orders_amount: p.ordersQuantity ?? p.ordersAmount ?? 0,
+          is_cheaper: ourPrice != null && sellPrice != null ? sellPrice < ourPrice : false,
+          price_diff_pct: ourPrice && sellPrice
+            ? Math.round(((sellPrice - ourPrice) / ourPrice) * 100)
+            : 0,
         };
       });
 
-    return {
-      our_product: {
-        product_id: productId.toString(),
-        title: product.title,
-        sell_price: ourPrice ? String(ourPrice) : null,
-        category_id: product.category_id.toString(),
-      },
-      competitors,
-    };
+    return competitors;
   }
 
   /**

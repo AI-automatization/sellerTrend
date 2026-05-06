@@ -860,6 +860,22 @@ export class UzumClient {
   }
 
   /**
+   * Fetch category ID for a product directly from Uzum REST API.
+   * Used when category_id is missing in our local DB.
+   */
+  async fetchProductCategoryId(productId: number): Promise<number | null> {
+    try {
+      const url = `${REST_BASE}/product/${productId}`;
+      const response = await fetchWithTimeout(url, { headers: HEADERS, dispatcher: proxyDispatcher });
+      if (!response.ok) return null;
+      const data = (await response.json()) as UzumApiResponse;
+      return data?.payload?.data?.category?.id ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Search Uzum sellers/shops by name.
    * NOTE: Uzum has no public seller search API.
    * Strategy: search products by shop name query → fetch details → match seller name.

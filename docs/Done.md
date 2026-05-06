@@ -1,7 +1,22 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
-# Yangilangan: 2026-05-02
+# Yangilangan: 2026-05-06
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
+
+### RESEARCH | China Scraper — Arxitektura loyihalash (2026-05-06)
+
+**Manba:** sardor-initiative
+**Muammo:** Ventra product detail sahifasida Xitoy ulgurji bozorlaridan narx taqqoslash yo'q edi.
+**Yechim:** To'liq arxitektura loyihalandi va `docs/china-scraper-architecture.md` ga saqlandi.
+- Aliyun ECS (Shanghai) — Xitoy IP muammosini hal qiladi
+- Playwright — 1688, JD visual search uchun
+- Rasmiy API — AliExpress, Alibaba, DHgate uchun
+- Redis cache (48h) + BullMQ queue
+- 3 bosqichli implementatsiya rejasi
+- Narx: ~$26/oy (100 foydalanuvchi uchun)
+**Ta'sir:** Implementatsiya boshlashga tayyor. Arxitektura fayli: `~/Documents/Obsidian Vault/PROJECTS/sellerTrend/china-scraper-architecture.md`
+
+---
 
 ### T-523 | IKKALASI | Revenue Estimator sahifasi va barcha logikalari o'chirildi (2026-05-02)
 

@@ -27,6 +27,8 @@ export function CompetitorSection({ productId, productPrice }: Props) {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [error, setError] = useState('');
   const [loadError, setLoadError] = useState(false);
+  const [discPage, setDiscPage] = useState(1);
+  const DISC_PAGE_SIZE = 12;
 
   useEffect(() => {
     setLoadError(false);
@@ -201,49 +203,77 @@ export function CompetitorSection({ productId, productPrice }: Props) {
           )}
         </div>
       ) : (
-        <div className="text-center py-6 text-base-content/30">
-          <p className="text-3xl mb-2">{loadError ? '⚠️' : '⚖️'}</p>
-          <p className="text-sm">{loadError ? t('competitor.loadError') : t('competitor.notTracked')}</p>
-          <p className="text-xs mt-1">
-            {loadError ? t('competitor.retryHint') : t('competitor.discoverHint')}
-          </p>
-        </div>
+        discovered.length === 0 && (
+          <div className="text-center py-6 text-base-content/30">
+            <p className="text-3xl mb-2">{loadError ? '⚠️' : '⚖️'}</p>
+            <p className="text-sm">{loadError ? t('competitor.loadError') : t('competitor.notTracked')}</p>
+            <p className="text-xs mt-1">
+              {loadError ? t('competitor.retryHint') : t('competitor.discoverHint')}
+            </p>
+          </div>
+        )
       )}
 
       {/* Discovered competitors */}
-      {discovered.length > 0 && (
-        <div className="space-y-2">
+      {discovered.length > 0 && (() => {
+        const totalPages = Math.ceil(discovered.length / DISC_PAGE_SIZE);
+        const pageItems = discovered.slice((discPage - 1) * DISC_PAGE_SIZE, discPage * DISC_PAGE_SIZE);
+        return (
+        <div className="space-y-3">
           <p className="text-xs text-base-content/50 font-medium">{t('competitor.discoveredCount')} ({discovered.length})</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {discovered.slice(0, 12).map((d) => {
-              const diff = productPrice ? ((d.sell_price - productPrice) / productPrice * 100) : null;
-              return (
-                <div key={d.product_id} className="flex items-center gap-3 bg-base-300/60 border border-base-300/40 rounded-xl p-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{d.title}</p>
-                    <p className="text-xs text-base-content/40">{d.shop_name}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-sm font-bold tabular-nums">{d.sell_price.toLocaleString()} {t('common.som')}</span>
-                      {diff != null && Math.abs(diff) >= 1 && (
-                        <span className={`text-xs ${diff < 0 ? 'text-success' : 'text-error'}`}>
-                          {diff > 0 ? '+' : ''}{diff.toFixed(0)}%
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleTrack(d.product_id)}
-                    disabled={trackingIds.has(d.product_id)}
-                    className="btn btn-xs btn-primary shrink-0"
-                  >
-                    {trackingIds.has(d.product_id) ? <span className="loading loading-spinner loading-xs" /> : t('competitor.trackBtn')}
-                  </button>
+          <div className="overflow-y-auto max-h-[600px] pr-1">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {pageItems.map((d) => (
+              <div key={d.product_id} className={`flex flex-col gap-2 rounded-xl border p-3 transition-all ${
+                d.is_cheaper
+                  ? 'bg-success/5 border-success/30 hover:border-success/50'
+                  : 'bg-base-300/60 border-base-300/40 hover:border-base-300/70'
+              }`}>
+                <p className="text-xs text-base-content/80 leading-snug line-clamp-2 font-medium">{d.title}</p>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`text-sm font-bold tabular-nums ${d.is_cheaper ? 'text-success' : ''}`}>
+                    {d.sell_price.toLocaleString()} {t('common.som')}
+                  </span>
+                  {Math.abs(d.price_diff_pct) >= 1 && (
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                      d.is_cheaper
+                        ? 'bg-success/20 text-success'
+                        : 'bg-error/20 text-error'
+                    }`}>
+                      {d.price_diff_pct > 0 ? '+' : ''}{d.price_diff_pct}%
+                    </span>
+                  )}
                 </div>
-              );
-            })}
+
+                {d.orders_amount > 0 && (
+                  <p className="text-[10px] text-base-content/40">{d.orders_amount.toLocaleString()} buyurtma</p>
+                )}
+
+                <button
+                  onClick={() => handleTrack(d.product_id)}
+                  disabled={trackingIds.has(d.product_id)}
+                  className="btn btn-xs btn-primary w-full mt-auto"
+                >
+                  {trackingIds.has(d.product_id) ? <span className="loading loading-spinner loading-xs" /> : '+ ' + t('competitor.trackBtn')}
+                </button>
+              </div>
+            ))}
           </div>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-1 pt-2">
+              <button onClick={() => setDiscPage((p) => p - 1)} disabled={discPage === 1} className="btn btn-sm btn-ghost btn-square">‹</button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <button key={p} onClick={() => setDiscPage(p)} className={`btn btn-sm btn-square ${p === discPage ? 'btn-primary' : 'btn-ghost'}`}>{p}</button>
+              ))}
+              <button onClick={() => setDiscPage((p) => p + 1)} disabled={discPage === totalPages} className="btn btn-sm btn-ghost btn-square">›</button>
+            </div>
+          )}
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

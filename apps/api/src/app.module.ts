@@ -42,6 +42,8 @@ import { PlatformsModule } from './platforms/platforms.module';
 import { ChatModule } from './chat/chat.module';
 // v9.0 ML Predictions
 import { PredictionsModule } from './predictions/predictions.module';
+// v10.0 China Compare
+import { ChinaCompareModule } from './china-compare/china-compare.module';
 
 @Module({
   imports: [
@@ -88,6 +90,8 @@ import { PredictionsModule } from './predictions/predictions.module';
     ChatModule,
     // v9.0 ML Predictions
     PredictionsModule,
+    // v10.0 China Compare
+    ChinaCompareModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: CustomThrottlerGuard }],
   controllers: [HealthController],

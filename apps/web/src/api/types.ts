@@ -305,6 +305,29 @@ export interface RiskResult {
   risk_level: string;
 }
 
+// ─── China Compare Domain ────────────────────────────────────────────────────
+
+export interface ChinaCompareItem {
+  platform: 'alibaba';
+  productId: string;
+  title: string;
+  price: string;
+  moq: string;
+  supplier: string;
+  country: string;
+  url: string;
+  image: string;
+  reviewScore: string;
+  reviewCount: string;
+  soldOrder: string;
+}
+
+export interface ChinaCompareResponse {
+  cached: boolean;
+  totalCount: number;
+  results: ChinaCompareItem[];
+}
+
 // ─── Consultation Domain ─────────────────────────────────────────────────────
 
 export interface ConsultationItem {

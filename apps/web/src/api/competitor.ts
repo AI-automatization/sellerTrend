@@ -23,8 +23,11 @@ export interface DiscoveredCompetitor {
   product_id: number;
   title: string;
   sell_price: number;
+  photo_url: string | null;
   shop_name: string;
   orders_amount: number;
+  is_cheaper: boolean;
+  price_diff_pct: number;
 }
 
 export const competitorApi = {
