@@ -554,7 +554,7 @@ export function ProductPage() {
               </div>
               <div className="bg-base-300/60 rounded-xl p-3 text-center">
                 <p className="text-xs text-base-content/50 mb-1">O'rtacha / kun</p>
-                <p className="font-bold text-lg tabular-nums">{avgDaily.toLocaleString()}</p>
+                <p className="font-bold text-lg text-warning tabular-nums">{avgDaily.toLocaleString()}</p>
               </div>
               <div className="bg-base-300/60 rounded-xl p-3 text-center">
                 <p className="text-xs text-base-content/50 mb-1">Eng yaxshi kun</p>
@@ -585,7 +585,7 @@ export function ProductPage() {
                     <Cell
                       key={i}
                       fill={entry.sotuv >= avgDaily ? '#34d399' : '#6b7280'}
-                      fillOpacity={entry.sotuv >= avgDaily ? 0.85 : 0.45}
+                      fillOpacity={entry.sotuv >= avgDaily ? 0.85 : 0.6}
                     />
                   ))}
                 </Bar>
@@ -599,66 +599,140 @@ export function ProductPage() {
       })()}
 
       {/* Forecast */}
-      {forecast && (
-        <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-6 space-y-4">
-          <h2 className="font-bold text-base lg:text-lg flex items-center gap-2">
-            <ArrowTrendingUpIcon className="w-5 h-5 text-primary" />
-            {t('product.forecast7d')}
-          </h2>
-          {(() => {
-            // T-199: derive trend from actual values, not just slope
-            const changePct = result.score > 0 ? (forecast.forecast_7d - result.score) / result.score : 0;
-            const derivedTrend: 'up' | 'flat' | 'down' = changePct > 0.05 ? 'up' : changePct < -0.05 ? 'down' : 'flat';
-            return (
-              <div className="flex items-center gap-4 lg:gap-6 flex-wrap">
-                <div className="text-center">
-                  <p className="text-xs text-base-content/50 mb-1">{t('product.currentScore')}</p>
-                  <p className="text-2xl font-bold tabular-nums">{result.score.toFixed(2)}</p>
-                </div>
-                <div className="text-2xl text-base-content/30">→</div>
-                <div className="text-center">
-                  <p className="text-xs text-base-content/50 mb-1">{t('product.scoreIn7Days')}</p>
-                  <p className={`text-2xl font-bold tabular-nums ${
-                    derivedTrend === 'up' ? 'text-success' : derivedTrend === 'down' ? 'text-error' : 'text-base-content'
-                  }`}>{forecast.forecast_7d.toFixed(2)}</p>
-                </div>
-                <TrendBadge trend={derivedTrend} changePct={changePct !== 0 ? changePct : undefined} />
-              </div>
-            );
-          })()}
+      {forecast && (() => {
+        const noData = !forecast.forecast_7d || forecast.forecast_7d === 0;
+        const changePct = !noData && result.score > 0
+          ? (forecast.forecast_7d - result.score) / result.score
+          : 0;
+        const derivedTrend: 'up' | 'flat' | 'down' = changePct > 0.05 ? 'up' : changePct < -0.05 ? 'down' : 'flat';
 
-          {snapshots.length > 1 && (
-            <div className="mt-3">
-              <ResponsiveContainer width="100%" height={160}>
-                <AreaChart
-                  data={[
-                    ...snapshots.slice(-10),
-                    { date: '7 kun', score: forecast.forecast_7d, orders: 0 },
-                  ]}
-                  margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#a78bfa" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
-                  <Tooltip {...glassTooltip} />
-                  <Area type="monotone" dataKey="score" stroke="#a78bfa" strokeWidth={2} fill="url(#scoreGrad)" dot={false} animationDuration={CHART_ANIMATION_MS} />
-                </AreaChart>
-              </ResponsiveContainer>
+        const scoreLevel = (s: number) => {
+          if (s >= 8) return { label: "Juda zo'r", color: 'text-success' };
+          if (s >= 6) return { label: "Zo'r", color: 'text-success' };
+          if (s >= 4) return { label: 'Yaxshi', color: 'text-info' };
+          if (s >= 2) return { label: "O'rtacha", color: 'text-warning' };
+          return { label: 'Zaif', color: 'text-error' };
+        };
+
+        const currentLevel = scoreLevel(result.score);
+        const futureLevel = !noData ? scoreLevel(forecast.forecast_7d) : null;
+
+        const trendColor = derivedTrend === 'up' ? 'text-success' : derivedTrend === 'down' ? 'text-error' : 'text-base-content/60';
+        const trendBg = derivedTrend === 'up' ? 'bg-success/10 border-success/20' : derivedTrend === 'down' ? 'bg-error/10 border-error/20' : 'bg-base-300/40 border-base-300/60';
+        const trendIcon = derivedTrend === 'up' ? '↑' : derivedTrend === 'down' ? '↓' : '→';
+        const trendText = derivedTrend === 'up' ? "O'sish kutilmoqda" : derivedTrend === 'down' ? 'Tushish kutilmoqda' : 'Barqaror';
+
+        return (
+          <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-6 space-y-4">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-2 flex-wrap">
+              <div>
+                <h2 className="font-bold text-base lg:text-lg flex items-center gap-2">
+                  <ArrowTrendingUpIcon className="w-5 h-5 text-primary" />
+                  {t('product.forecast7d')}
+                </h2>
+                <p className="text-xs text-base-content/40 mt-0.5">
+                  Score = haftalik faollik + buyurtmalar + reyting + zaxira
+                </p>
+              </div>
             </div>
-          )}
-        </div>
-      )}
+
+            {/* Main score comparison */}
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+              {/* Current */}
+              <div className="bg-base-300/50 rounded-xl p-3 lg:p-4">
+                <p className="text-xs text-base-content/50 mb-1">Hozirgi</p>
+                <p className="text-3xl font-bold tabular-nums">{result.score.toFixed(2)}</p>
+                <p className={`text-xs font-medium mt-1 ${currentLevel.color}`}>{currentLevel.label}</p>
+              </div>
+
+              {/* Arrow */}
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-xl text-base-content/25">→</span>
+                <span className="text-[10px] text-base-content/30">7 kun</span>
+              </div>
+
+              {/* Future */}
+              <div className={`rounded-xl p-3 lg:p-4 ${noData ? 'bg-base-300/30 border border-dashed border-base-content/10' : 'bg-base-300/50'}`}>
+                <p className="text-xs text-base-content/50 mb-1">7 kun keyin</p>
+                {noData ? (
+                  <div>
+                    <p className="text-lg font-bold text-base-content/25">—</p>
+                    <p className="text-xs text-base-content/40 mt-1 leading-tight">Yetarli ma'lumot<br/>mavjud emas</p>
+                  </div>
+                ) : (
+                  <>
+                    <p className={`text-3xl font-bold tabular-nums ${trendColor}`}>
+                      {forecast.forecast_7d.toFixed(2)}
+                    </p>
+                    <p className={`text-xs font-medium mt-1 ${futureLevel!.color}`}>{futureLevel!.label}</p>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Trend summary bar */}
+            {noData ? (
+              <div className="rounded-xl bg-base-300/30 border border-dashed border-base-content/10 px-4 py-3 flex items-center gap-3">
+                <span className="text-base">⚠️</span>
+                <div>
+                  <p className="text-sm font-medium text-base-content/60">Bashorat hali tayyor emas</p>
+                  <p className="text-xs text-base-content/40 mt-0.5">Kamida 7 kunlik snapshot tarix kerak. Tizim ma'lumot yig'ishda davom etmoqda.</p>
+                </div>
+              </div>
+            ) : (
+              <div className={`rounded-xl border px-4 py-3 flex items-center justify-between gap-3 ${trendBg}`}>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xl font-bold ${trendColor}`}>{trendIcon}</span>
+                  <div>
+                    <p className={`text-sm font-semibold ${trendColor}`}>{trendText}</p>
+                    <p className="text-xs text-base-content/40 mt-0.5">
+                      {result.score.toFixed(2)} → {forecast.forecast_7d.toFixed(2)} (7 kun ichida)
+                    </p>
+                  </div>
+                </div>
+                <span className={`text-lg font-bold tabular-nums ${trendColor}`}>
+                  {changePct > 0 ? '+' : ''}{(changePct * 100).toFixed(1)}%
+                </span>
+              </div>
+            )}
+
+            {/* Chart */}
+            {snapshots.length > 1 && (
+              <div>
+                <p className="text-xs text-base-content/30 mb-2">Score tarixi{!noData ? ' + bashorat' : ''}</p>
+                <ResponsiveContainer width="100%" height={140}>
+                  <AreaChart
+                    data={[
+                      ...snapshots.slice(-10),
+                      ...(!noData ? [{ date: '7 kun', score: forecast.forecast_7d, orders: 0 }] : []),
+                    ]}
+                    margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#a78bfa" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                    <Tooltip {...glassTooltip} />
+                    <Area type="monotone" dataKey="score" stroke="#a78bfa" strokeWidth={2} fill="url(#scoreGrad)" dot={false} animationDuration={CHART_ANIMATION_MS} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Weekly Trend Card — Haftalik sotuv trendi + maslahat */}
       <ErrorBoundary variant="section" label="Haftalik trend">
       {weeklyTrend && (
         <div className="rounded-2xl bg-base-200/60 border border-base-300/50 p-4 lg:p-6 space-y-4">
+          {/* Header */}
           <div className="flex items-center justify-between flex-wrap gap-2">
             <h2 className="font-bold text-base lg:text-lg flex items-center gap-2">
               <svg className="w-5 h-5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
@@ -671,27 +745,14 @@ export function ProductPage() {
             )}
           </div>
 
-          {/* No data notice */}
-          {weeklyTrend.weekly_sold == null || weeklyTrend.weekly_sold === 0 ? (
-            result.weekly_bought == null ? (
-              <div className="rounded-xl bg-base-300/40 border border-base-300/60 p-3 text-xs text-base-content/50 space-y-1">
-                <p className="font-semibold text-base-content/70">📊 Haftalik sotuv ma'lumoti yo'q</p>
-                <p>Sabab 1: Uzum bu mahsulot uchun "haftalik sotildi" bannerini ko'rsatmaydi (kam sotuv yoki yangi mahsulot).</p>
-                <p>Sabab 2: Buyurtmalar soni snapshot'lar orasida o'zgarmagan (yangi tracking yoki haqiqatan sotuv yo'q).</p>
-                <p className="text-base-content/40">7–14 kun kuzatishdan keyin ma'lumot to'planadi.</p>
-              </div>
-            ) : null
-          ) : null}
-
-          {/* Summary row */}
+          {/* Main content */}
           {(() => {
-            // result.weekly_bought = fresh Uzum API data (most accurate)
-            // weeklyTrend.weekly_sold = stored snapshot (may be 0/stale)
             const effectiveCurrent =
               weeklyTrend.weekly_sold != null && weeklyTrend.weekly_sold > 0
                 ? weeklyTrend.weekly_sold
                 : (result.weekly_bought ?? null);
             const effectivePrev = weeklyTrend.prev_weekly_sold;
+            const hasPrev = effectivePrev != null && effectivePrev > 0;
             const effectiveDelta =
               effectiveCurrent != null && effectivePrev != null
                 ? effectiveCurrent - effectivePrev
@@ -700,48 +761,80 @@ export function ProductPage() {
               effectiveDelta != null && effectivePrev != null && effectivePrev > 0
                 ? Number(((effectiveDelta / effectivePrev) * 100).toFixed(1))
                 : weeklyTrend.delta_pct;
+
+            const trendColor = weeklyTrend.trend === 'up' ? 'text-success' : weeklyTrend.trend === 'down' ? 'text-error' : 'text-base-content/60';
+            const trendBgCls = weeklyTrend.trend === 'up' ? 'bg-success/10 border-success/20' : weeklyTrend.trend === 'down' ? 'bg-error/10 border-error/20' : 'bg-base-300/40 border-base-300/60';
+            const trendIcon = weeklyTrend.trend === 'up' ? '↑' : weeklyTrend.trend === 'down' ? '↓' : '→';
+            const trendLabel = weeklyTrend.trend === 'up' ? "O'smoqda" : weeklyTrend.trend === 'down' ? 'Tushmoqda' : 'Barqaror';
+            const scoreChangeColor = weeklyTrend.score_change != null
+              ? weeklyTrend.score_change > 0 ? 'text-success' : weeklyTrend.score_change < 0 ? 'text-error' : 'text-base-content/40'
+              : 'text-base-content/40';
+
             return (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 text-center">
-              <p className="text-xs text-base-content/50">{t('product.thisWeek')}</p>
-              <p className="font-bold text-xl tabular-nums text-success">
-                {effectiveCurrent != null ? effectiveCurrent.toLocaleString() : '—'}
-              </p>
-              <p className="text-xs text-base-content/40">{t('product.sales')}</p>
-            </div>
-            <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 text-center">
-              <p className="text-xs text-base-content/50">{t('product.lastWeek')}</p>
-              <p className="font-bold text-xl tabular-nums">
-                {effectivePrev != null && effectivePrev > 0 ? effectivePrev.toLocaleString() : '—'}
-              </p>
-              <p className="text-xs text-base-content/40">{t('product.sales')}</p>
-            </div>
-            <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 text-center">
-              <p className="text-xs text-base-content/50">{t('product.difference')}</p>
-              <p className={`font-bold text-xl tabular-nums ${
-                effectiveDelta != null && effectiveDelta > 0 ? 'text-success' :
-                effectiveDelta != null && effectiveDelta < 0 ? 'text-error' : ''
-              }`}>
-                {effectiveDelta != null
-                  ? `${effectiveDelta > 0 ? '+' : ''}${effectiveDelta}`
-                  : '—'}
-              </p>
-              <p className="text-xs text-base-content/40">
-                {effectiveDeltaPct != null ? `${effectiveDeltaPct > 0 ? '+' : ''}${effectiveDeltaPct}%` : t('product.sales')}
-              </p>
-            </div>
-            <div className="bg-base-300/60 border border-base-300/40 rounded-xl p-3 text-center">
-              <p className="text-xs text-base-content/50">{t('product.trend')}</p>
-              <div className="flex justify-center mt-1">
-                <TrendBadge trend={weeklyTrend.trend} />
+              <>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {/* Bu hafta */}
+                <div className="bg-base-300/50 rounded-xl p-3 text-center">
+                  <p className="text-xs text-base-content/50 mb-1">{t('product.thisWeek')}</p>
+                  <p className="font-bold text-xl tabular-nums text-success">
+                    {effectiveCurrent != null ? effectiveCurrent.toLocaleString() : '—'}
+                  </p>
+                  <p className="text-xs text-base-content/40 mt-0.5">{t('product.sales')}</p>
+                </div>
+
+                {/* O'tgan hafta */}
+                <div className="bg-base-300/40 rounded-xl p-3 text-center">
+                  <p className="text-xs text-base-content/50 mb-1">{t('product.lastWeek')}</p>
+                  <p className="font-bold text-xl tabular-nums text-base-content/70">
+                    {hasPrev ? effectivePrev!.toLocaleString() : '—'}
+                  </p>
+                  <p className="text-xs text-base-content/40 mt-0.5">
+                    {hasPrev ? t('product.sales') : 'ma\'lumot yo\'q'}
+                  </p>
+                </div>
+
+                {/* Farq */}
+                <div className="bg-base-300/40 rounded-xl p-3 text-center">
+                  <p className="text-xs text-base-content/50 mb-1">{t('product.difference')}</p>
+                  <p className={`font-bold text-xl tabular-nums ${
+                    effectiveDelta != null && effectiveDelta > 0 ? 'text-success' :
+                    effectiveDelta != null && effectiveDelta < 0 ? 'text-error' : 'text-base-content/30'
+                  }`}>
+                    {effectiveDelta != null && hasPrev
+                      ? `${effectiveDelta > 0 ? '+' : ''}${effectiveDelta.toLocaleString()}`
+                      : '—'}
+                  </p>
+                  <p className="text-xs text-base-content/40 mt-0.5">
+                    {effectiveDeltaPct != null && hasPrev
+                      ? `${effectiveDeltaPct > 0 ? '+' : ''}${effectiveDeltaPct}%`
+                      : 'taqqoslab bo\'lmaydi'}
+                  </p>
+                </div>
+
+                {/* Trend + Score */}
+                <div className={`rounded-xl border p-3 text-center ${trendBgCls}`}>
+                  <p className="text-xs text-base-content/50 mb-1">{t('product.trend')}</p>
+                  <p className={`font-bold text-base tabular-nums ${trendColor}`}>
+                    {trendIcon} {trendLabel}
+                  </p>
+                  {weeklyTrend.score_change != null && (
+                    <p className={`text-xs mt-0.5 ${scoreChangeColor}`}>
+                      {t('product.scoreLabel')}: {weeklyTrend.score_change > 0 ? '+' : ''}{weeklyTrend.score_change.toFixed(2)}
+                    </p>
+                  )}
+                </div>
               </div>
-              {weeklyTrend.score_change != null && (
-                <p className={`text-xs mt-1 ${weeklyTrend.score_change > 0 ? 'text-success' : weeklyTrend.score_change < 0 ? 'text-error' : 'text-base-content/40'}`}>
-                  Reyting {weeklyTrend.score_change > 0 ? '+' : ''}{weeklyTrend.score_change.toFixed(2)} ball
-                </p>
+
+              {/* Score change explanation — faqat pasaysa */}
+              {weeklyTrend.score_change != null && weeklyTrend.score_change < 0 && (
+                <div className="rounded-xl bg-error/5 border border-error/15 px-3 py-2 flex items-start gap-2">
+                  <span className="text-error text-sm mt-0.5">↓</span>
+                  <p className="text-xs text-base-content/50">
+                    <span className="text-error font-medium">Reyting pasaymoqda</span> — buyurtmalar soni, sharh reytingi yoki ombor zaxirasini tekshiring
+                  </p>
+                </div>
               )}
-            </div>
-          </div>
+              </>
             );
           })()}
 
