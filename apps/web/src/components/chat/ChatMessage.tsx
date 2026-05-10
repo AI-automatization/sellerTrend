@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, Fragment } from 'react';
 import type { ChatMessage as ChatMessageType } from '../../hooks/useChat';
 import { ChatFeedback } from './ChatFeedback';
 
@@ -19,17 +19,48 @@ const INTENT_LABELS: Record<string, string> = {
   RECOMMENDATION: '💡 Tavsiya',
 };
 
-// Simple markdown renderer — no external library needed
-function renderMarkdown(text: string): string {
-  return text
-    // bold
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    // inline code
-    .replace(/`([^`]+)`/g, '<code class="bg-base-300/60 px-1 rounded text-xs font-mono">$1</code>')
-    // unordered list
-    .replace(/^[-•]\s(.+)$/gm, '<li class="ml-4 list-disc">$1</li>')
-    // newlines → <br>
-    .replace(/\n/g, '<br />');
+// Parse inline tokens (bold, code) into React elements — no dangerouslySetInnerHTML
+function parseInline(text: string, keyPrefix: string): React.ReactNode[] {
+  const nodes: React.ReactNode[] = [];
+  const regex = /(\*\*.*?\*\*|`[^`]+`)/g;
+  let last = 0;
+  let i = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > last) nodes.push(text.slice(last, match.index));
+    const token = match[0];
+    if (token.startsWith('**')) {
+      nodes.push(<strong key={`${keyPrefix}-b${i}`}>{token.slice(2, -2)}</strong>);
+    } else {
+      nodes.push(
+        <code key={`${keyPrefix}-c${i}`} className="bg-base-300/60 px-1 rounded text-xs font-mono">
+          {token.slice(1, -1)}
+        </code>,
+      );
+    }
+    last = match.index + token.length;
+    i++;
+  }
+  if (last < text.length) nodes.push(text.slice(last));
+  return nodes;
+}
+
+function renderMarkdown(text: string): React.ReactNode {
+  const lines = text.split('\n');
+  const nodes: React.ReactNode[] = [];
+
+  lines.forEach((line, idx) => {
+    const listMatch = /^[-•]\s(.+)$/.exec(line);
+    if (listMatch) {
+      nodes.push(<li key={idx} className="ml-4 list-disc">{parseInline(listMatch[1], String(idx))}</li>);
+    } else {
+      if (idx > 0) nodes.push(<br key={`br-${idx}`} />);
+      nodes.push(...parseInline(line, String(idx)));
+    }
+  });
+
+  return <Fragment>{nodes}</Fragment>;
 }
 
 export const ChatMessage = memo(function ChatMessage({ message, onFeedback }: Props) {
@@ -60,9 +91,7 @@ export const ChatMessage = memo(function ChatMessage({ message, onFeedback }: Pr
             <span className="w-1.5 h-1.5 rounded-full bg-current animate-bounce [animation-delay:300ms]" />
           </span>
         ) : (
-          <span
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content) }}
-          />
+          <span>{renderMarkdown(message.content)}</span>
         )}
         {message.streaming && message.content !== '' && (
           <span className="inline-block w-0.5 h-4 bg-current animate-pulse ml-0.5 align-middle" />

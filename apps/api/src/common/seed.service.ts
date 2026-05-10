@@ -24,7 +24,7 @@ export class SeedService implements OnApplicationBootstrap {
   private async seed() {
     // 0. Enable pgvector extension (T-177)
     try {
-      await this.prisma.$executeRawUnsafe('CREATE EXTENSION IF NOT EXISTS vector');
+      await this.prisma.$executeRaw`CREATE EXTENSION IF NOT EXISTS vector`;
       this.logger.log('pgvector extension enabled');
     } catch {
       this.logger.warn('pgvector extension not available — embedding features disabled');
@@ -41,7 +41,9 @@ export class SeedService implements OnApplicationBootstrap {
       },
     });
 
-    const adminHash = await bcrypt.hash('Admin123!', 12);
+    const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+    if (!adminPassword) throw new Error('SEED_ADMIN_PASSWORD env variable is required');
+    const adminHash = await bcrypt.hash(adminPassword, 12);
     await this.prisma.user.upsert({
       where: { email: 'admin@ventra.uz' },
       update: {},
@@ -64,7 +66,9 @@ export class SeedService implements OnApplicationBootstrap {
       },
     });
 
-    const demoHash = await bcrypt.hash('Demo123!', 12);
+    const demoPassword = process.env.SEED_DEMO_PASSWORD;
+    if (!demoPassword) throw new Error('SEED_DEMO_PASSWORD env variable is required');
+    const demoHash = await bcrypt.hash(demoPassword, 12);
     await this.prisma.user.upsert({
       where: { email: 'demo@ventra.uz' },
       update: {},

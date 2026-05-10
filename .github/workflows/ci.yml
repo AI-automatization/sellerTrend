@@ -57,7 +57,7 @@ jobs:
         run: pnpm --filter web run lint
 
       - name: Dependency audit
-        run: pnpm audit --audit-level=high || true
+        run: pnpm audit --audit-level=high
 
       - name: Build all packages
         run: pnpm run build

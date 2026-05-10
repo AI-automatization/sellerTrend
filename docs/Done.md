@@ -2490,4 +2490,44 @@ API: https://api-production-8057.up.railway.app ✅
 
 ---
 
-*Done.md | VENTRA Analytics Platform | 2026-03-01*
+---
+
+### T-535 | FALSE POSITIVE | BillingGuard always returns true
+
+**Sana:** 2026-05-10
+**Manba:** kod-audit (GitHub #10)
+**Mas'ul:** Sardor
+
+**Xulosa:** False positive.
+`BillingGuard` ataylab placeholder — izohida ham yozilgan ("plan checks are handled by PlanGuard").
+Haqiqiy plan tekshiruvi `PlanGuard` da to'liq ishlayapti: FREE/PRO/MAX/COMPANY hierarchy, SUPER_ADMIN exemption, `ForbiddenException` bilan qaytarish. Billing tizimi ishlayapti.
+
+**Ta'sir:** Hech qanday o'zgartirish talab qilinmadi.
+
+---
+
+### T-529 | FALSE POSITIVE | CI da Railway URL + sleep 60
+
+**Sana:** 2026-05-10
+**Manba:** kod-audit (GitHub #4)
+
+**Xulosa:** False positive.
+Railway URL public repo da ko'rinishi xavfli emas — bu production domain, secret emas. `sleep 60` yomon pattern lekin xavfsizlik muammosi emas, faqat CI optimizatsiya masalasi. `RAILWAY_TOKEN` allaqachon GitHub Secret da. Production ga hech qanday zarar yo'q.
+
+**Ta'sir:** Hech qanday o'zgartirish talab qilinmadi.
+
+---
+
+### T-530 | FALSE POSITIVE | Docker-compose weak credentials, Redis auth yo'q
+
+**Sana:** 2026-05-10
+**Manba:** kod-audit (GitHub #5)
+
+**Xulosa:** False positive.
+`docker-compose.yml` faqat local dev uchun — production Railway da alohida env variable lar bor. `uzum_pass` local DB uchun, internet ga ochiq emas. Redis ham faqat `localhost:6379` da — tashqaridan ulanib bo'lmaydi. Production Railway da Redis auth alohida sozlangan.
+
+**Ta'sir:** Hech qanday o'zgartirish talab qilinmadi.
+
+---
+
+*Done.md | VENTRA Analytics Platform | 2026-05-10*

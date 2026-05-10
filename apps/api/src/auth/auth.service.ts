@@ -214,7 +214,7 @@ export class AuthService {
       },
     });
 
-    this.logger.log(`Password reset token for ${email}: ${token} (expires in ${RESET_TOKEN_EXPIRY_MINUTES} min)`);
+    this.logger.log(`Password reset requested for ${email} (expires in ${RESET_TOKEN_EXPIRY_MINUTES} min)`);
     await this.sendResetNotification(user.id, email, token);
 
     return genericResponse;
@@ -267,10 +267,9 @@ export class AuthService {
       });
       if (!user) return;
 
-      const rows = await this.prisma.$queryRawUnsafe<Array<{ chat_id: string }>>(
-        `SELECT chat_id FROM telegram_links WHERE account_id = $1 AND is_active = true LIMIT 1`,
-        user.account_id,
-      );
+      const rows = await this.prisma.$queryRaw<Array<{ chat_id: string }>>`
+        SELECT chat_id FROM telegram_links WHERE account_id = ${user.account_id} AND is_active = true LIMIT 1
+      `;
       if (!rows || rows.length === 0) return;
 
       const chatId = rows[0].chat_id;

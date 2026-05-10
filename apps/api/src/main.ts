@@ -57,6 +57,16 @@ async function bootstrap() {
   // Memory pressure guard — reject requests when heap > 85%
   app.use(memoryPressureMiddleware);
 
+  // T-531: Security headers (replaces helmet)
+  app.use((_req: unknown, res: { setHeader: (k: string, v: string) => void }, next: () => void) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '0');
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+  });
+
   app.setGlobalPrefix('api/v1');
 
   app.useGlobalPipes(
@@ -77,35 +87,42 @@ async function bootstrap() {
   const prisma = app.get(PrismaService);
   app.useGlobalFilters(new ErrorTrackerFilter(httpAdapter, prisma));
 
-  app.enableCors({
-    origin: [
-      'http://localhost:5173',
-      process.env.WEB_URL,
-      /^chrome-extension:\/\//,
-    ].filter(Boolean) as (string | RegExp)[],
-  });
+  const allowedOrigins: (string | RegExp)[] = [
+    'http://localhost:5173',
+    process.env.WEB_URL,
+  ].filter(Boolean) as string[];
 
-  // Swagger: generate spec + serve via raw Express routes (avoids pnpm static asset issues)
-  const config = new DocumentBuilder()
-    .setTitle('VENTRA Analytics API')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
+  // Allow only our own Chrome extension if ID is configured
+  if (process.env.CHROME_EXTENSION_ID) {
+    allowedOrigins.push(`chrome-extension://${process.env.CHROME_EXTENSION_ID}`);
+  }
+
+  app.enableCors({ origin: allowedOrigins });
 
   // API version header on all responses
   app.use((_req: unknown, res: { setHeader: (k: string, v: string) => void }, next: () => void) => {
     res.setHeader('X-API-Version', '1.0');
     next();
   });
-  const document = SwaggerModule.createDocument(app, config);
 
-  // Register BEFORE app.listen() so these routes take priority over NestJS router
-  const expressApp = app.getHttpAdapter().getInstance() as Express;
-  expressApp.get('/api-json', (_req: Request, res: Response) => res.json(document));
-  expressApp.get('/api/docs', (_req: Request, res: Response) => {
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send(SWAGGER_HTML);
-  });
+  // Swagger: only in non-production environments
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('VENTRA Analytics API')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+
+    // Register BEFORE app.listen() so these routes take priority over NestJS router
+    const expressApp = app.getHttpAdapter().getInstance() as Express;
+    expressApp.get('/api-json', (_req: Request, res: Response) => res.json(document));
+    expressApp.get('/api/docs', (_req: Request, res: Response) => {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(SWAGGER_HTML);
+    });
+  }
 
   // Graceful shutdown
   app.enableShutdownHooks();
@@ -119,7 +136,9 @@ async function bootstrap() {
   server.headersTimeout = 66_000;
 
   logger.log(`API running on http://localhost:${port} (dual-stack IPv4+IPv6)`);
-  logger.log(`Swagger docs: http://localhost:${port}/api/docs`);
+  if (process.env.NODE_ENV !== 'production') {
+    logger.log(`Swagger docs: http://localhost:${port}/api/docs`);
+  }
 
   const shutdown = async (signal: string) => {
     logger.log(`[${signal}] Graceful shutdown...`);

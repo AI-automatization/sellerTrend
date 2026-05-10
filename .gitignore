@@ -24,6 +24,9 @@ apps/extension/tsconfig.tsbuildinfo
 apps/desktop/out/
 apps/desktop/release/
 tmp_*.json
+tmp_*.mjs
+tmp_*.js
+tmp_*.ts
 hato/
 mahsulot.md
 perm

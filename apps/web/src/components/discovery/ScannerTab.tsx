@@ -119,7 +119,8 @@ export function ScannerTab() {
         <div className="rounded-2xl bg-base-200/60 border border-base-300/50">
           <div className="card-body">
             <h2 className="card-title text-base">{t('discovery.newScan')}</h2>
-            <div className="flex flex-wrap gap-2 mb-3">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="text-xs text-base-content/40 shrink-0">{t('discovery.quickSelect')}:</span>
               {POPULAR_CATEGORIES.map((cat) => (
                 <button key={cat.title} onClick={() => { setCategoryInput(cat.title); }}
                   className="btn btn-xs btn-ghost border border-base-300">
@@ -194,7 +195,11 @@ export function ScannerTab() {
                       <th>{t('discovery.col.categoryId')}</th>
                       <th>{t('discovery.col.status')}</th>
                       <th>{t('discovery.col.products')}</th>
-                      <th>{t('discovery.col.winners')}</th>
+                      <th>
+                        <span className="tooltip tooltip-top" data-tip={t('discovery.col.winnersHint')}>
+                          {t('discovery.col.winners')}
+                        </span>
+                      </th>
                       <th>{t('discovery.col.date')}</th>
                       <th></th>
                     </tr>
@@ -214,10 +219,10 @@ export function ScannerTab() {
                         </td>
                         <td className="tabular-nums text-sm">{run.total_products?.toLocaleString() ?? '—'}</td>
                         <td>{run.winner_count > 0 ? <span className="badge badge-success badge-sm">Top {run.winner_count}</span> : <span className="text-base-content/30">—</span>}</td>
-                        <td className="text-xs text-base-content/50 whitespace-nowrap">{new Date(run.created_at).toLocaleString('ru-RU')}</td>
+                        <td className="text-xs text-base-content/50 whitespace-nowrap">{new Date(run.created_at).toLocaleString('uz-UZ')}</td>
                         <td>
                           <div className="flex gap-1">
-                            {run.status === 'DONE' && <button onClick={() => openRun(run)} className="btn btn-xs btn-primary">{t('discovery.viewBtn')}</button>}
+                            {run.status === 'DONE' && <button onClick={() => openRun(run)} className="btn btn-xs btn-ghost btn-primary text-primary border border-primary/30">{t('discovery.viewBtn')}</button>}
                             <button onClick={() => handleDeleteRun(run.id)} className="btn btn-xs btn-ghost text-error opacity-50 hover:opacity-100">✕</button>
                           </div>
                         </td>
@@ -242,7 +247,7 @@ export function ScannerTab() {
                 <p className="text-xs text-base-content/40">
                   {`#${selectedRun.category_id} · `}
                   Top {selectedRun.winners.length} {t('discovery.scanner.topProducts')}
-                  {selectedRun.finished_at && ` · ${new Date(selectedRun.finished_at).toLocaleString('ru-RU')}`}
+                  {selectedRun.finished_at && ` · ${new Date(selectedRun.finished_at).toLocaleString('uz-UZ')}`}
                 </p>
               </div>
               <button onClick={() => setSelectedRun(null)} className="btn btn-ghost btn-sm btn-square">✕</button>
@@ -256,8 +261,11 @@ export function ScannerTab() {
                     <tr>
                       <th className="w-8">#</th>
                       <th>{t('discovery.scanner.winners.col.product')}</th>
-                      <th className="text-right">{t('discovery.scanner.winners.col.score')}</th>
-                      <th className="text-right">{t('discovery.scanner.winners.col.activity')}</th>
+                      <th className="text-right">
+                        <span className="tooltip tooltip-top" data-tip={t('discovery.scanner.winners.col.scoreHint')}>
+                          {t('discovery.scanner.winners.col.score')} <span className="opacity-40 text-xs">ℹ</span>
+                        </span>
+                      </th>
                       <th className="text-right">{t('discovery.scanner.winners.col.price')}</th>
                       <th></th>
                     </tr>
@@ -288,18 +296,19 @@ export function ScannerTab() {
                           </div>
                         </td>
                         <td className="text-right"><ScoreBadge score={w.score} /></td>
-                        <td className="text-right tabular-nums text-sm">{w.weekly_bought != null ? <span className="text-success">{w.weekly_bought.toLocaleString()}</span> : <span className="text-base-content/30">—</span>}</td>
                         <td className="text-right tabular-nums text-xs text-base-content/60">{w.sell_price ? `${Number(w.sell_price).toLocaleString()} ${t('common.som')}` : '—'}</td>
                         <td>
-                          <button
-                            onClick={() => handleTrack(w.product_id)}
-                            disabled={trackingId === w.product_id || trackedIds.has(w.product_id)}
-                            className={`btn btn-xs ${trackedIds.has(w.product_id) ? 'btn-success no-animation' : 'btn-outline btn-success'}`}
-                          >
-                            {trackingId === w.product_id
-                              ? <span className="loading loading-spinner loading-xs" />
-                              : trackedIds.has(w.product_id) ? t('discovery.scanner.tracked') : t('discovery.scanner.trackBtn')}
-                          </button>
+                          <div className="tooltip tooltip-left" data-tip={trackedIds.has(w.product_id) ? t('discovery.scanner.tracked') : t('discovery.scanner.trackBtn')}>
+                            <button
+                              onClick={() => handleTrack(w.product_id)}
+                              disabled={trackingId === w.product_id || trackedIds.has(w.product_id)}
+                              className={`btn btn-xs btn-square ${trackedIds.has(w.product_id) ? 'btn-success no-animation' : 'btn-ghost border border-base-300 hover:btn-success'}`}
+                            >
+                              {trackingId === w.product_id
+                                ? <span className="loading loading-spinner loading-xs" />
+                                : trackedIds.has(w.product_id) ? '✓' : '+'}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
