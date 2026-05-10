@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException, BadGatewayException } from '@nestjs/common';
 import { fetch } from 'undici';
 import { createHash } from 'crypto';
 import type Redis from 'ioredis';
@@ -64,7 +64,7 @@ export class ChinaCompareService {
       imagePath = await this.uploadImage(imageUrl);
     } catch (err) {
       this.logger.error(`Alibaba rasm yuklashda xato: ${err}`);
-      throw new Error('Alibaba bilan bog\'lanishda xato yuz berdi. Keyinroq qayta urinib ko\'ring.');
+      throw new BadGatewayException('Alibaba bilan bog\'lanishda xato yuz berdi. Keyinroq qayta urinib ko\'ring.');
     }
 
     let offers: AlibabOffer[];
@@ -72,7 +72,7 @@ export class ChinaCompareService {
       offers = await this.fetchOffers(imagePath);
     } catch (err) {
       this.logger.error(`Alibaba qidirishda xato: ${err}`);
-      throw new Error('Alibaba qidiruvida xato yuz berdi. Keyinroq qayta urinib ko\'ring.');
+      throw new BadGatewayException('Alibaba qidiruvida xato yuz berdi. Keyinroq qayta urinib ko\'ring.');
     }
 
     const results = this.mapOffers(offers);

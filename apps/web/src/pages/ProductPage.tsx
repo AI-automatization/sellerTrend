@@ -909,30 +909,56 @@ export function ProductPage() {
       <ErrorBoundary variant="section" label="Claude AI tahlili">
       {isMine && (aiLoading || trendAnalysis) && (
         <div className="rounded-2xl bg-base-200/60 border border-primary/20 p-4 lg:p-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">🤖</span>
-            <h2 className="font-bold text-base lg:text-lg">Claude AI Tahlili</h2>
+          {/* Header */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center text-lg shrink-0">🤖</div>
+              <div>
+                <h2 className="font-bold text-base leading-tight">Claude AI Tahlili</h2>
+                <p className="text-[11px] text-base-content/40">Trend va sotuv tahlili</p>
+              </div>
+            </div>
             <span className="badge badge-secondary badge-sm">🏪 Mening mahsulotim</span>
-            <span className="badge badge-primary badge-sm ml-auto">AI</span>
           </div>
+
+          {/* Loading */}
           {aiLoading && !trendAnalysis ? (
-            <div className="flex items-center gap-3 py-3">
+            <div className="flex items-center gap-3 py-4">
               <span className="loading loading-dots loading-md text-primary" />
               <span className="text-sm text-base-content/50">Claude AI tahlil qilmoqda...</span>
             </div>
           ) : trendAnalysis?.analysis ? (
             <div className="space-y-3">
-              <p className="text-sm text-base-content/80 leading-relaxed">{trendAnalysis.analysis}</p>
+              {/* Analysis text */}
+              <div className="bg-base-100/50 rounded-xl p-3.5 border border-base-300/40">
+                <p className="text-sm text-base-content/80 leading-relaxed">{trendAnalysis.analysis}</p>
+              </div>
+
+              {/* Factors */}
               {trendAnalysis.factors.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {trendAnalysis.factors.map((f, i) => (
-                    <span key={i} className="badge badge-outline badge-sm">{f}</span>
-                  ))}
+                <div className="space-y-2">
+                  <p className="text-[10px] font-semibold text-base-content/40 uppercase tracking-widest">Asosiy omillar</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {trendAnalysis.factors.map((f, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs font-medium px-2.5 py-1 rounded-full border border-primary/20"
+                      >
+                        <span className="text-[9px] opacity-60">◆</span>{f}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
+
+              {/* Recommendation */}
               {trendAnalysis.recommendation && (
-                <div className="bg-primary/10 border border-primary/20 rounded-xl p-3">
-                  <p className="text-sm font-medium text-primary">💡 Tavsiya: {trendAnalysis.recommendation}</p>
+                <div className="flex gap-3 bg-success/8 border border-success/25 rounded-xl p-3.5">
+                  <span className="text-lg shrink-0 mt-0.5">💡</span>
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] font-bold text-success/70 uppercase tracking-widest">Tavsiya</p>
+                    <p className="text-sm text-base-content/80 leading-relaxed">{trendAnalysis.recommendation}</p>
+                  </div>
                 </div>
               )}
             </div>
