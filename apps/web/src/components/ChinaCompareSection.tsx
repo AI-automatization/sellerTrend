@@ -68,7 +68,10 @@ export function ChinaCompareSection({ productId, productPrice }: Props) {
       setPage(1);
       setOnlyCheaper(true);
     } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Alibaba dan ma\'lumot olib bo\'lmadi'));
+      const msg = getErrorMessage(err, '');
+      setError(msg && msg !== 'Internal server error'
+        ? msg
+        : 'Alibaba dan ma\'lumot olib bo\'lmadi. Keyinroq qayta urinib ko\'ring.');
     } finally {
       setLoading(false);
     }

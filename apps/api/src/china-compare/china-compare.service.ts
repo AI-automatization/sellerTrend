@@ -59,8 +59,22 @@ export class ChinaCompareService {
 
     this.logger.log(`Alibaba visual search: ${imageUrl}`);
 
-    const imagePath = await this.uploadImage(imageUrl);
-    const offers = await this.fetchOffers(imagePath);
+    let imagePath: string;
+    try {
+      imagePath = await this.uploadImage(imageUrl);
+    } catch (err) {
+      this.logger.error(`Alibaba rasm yuklashda xato: ${err}`);
+      throw new Error('Alibaba bilan bog\'lanishda xato yuz berdi. Keyinroq qayta urinib ko\'ring.');
+    }
+
+    let offers: AlibabOffer[];
+    try {
+      offers = await this.fetchOffers(imagePath);
+    } catch (err) {
+      this.logger.error(`Alibaba qidirishda xato: ${err}`);
+      throw new Error('Alibaba qidiruvida xato yuz berdi. Keyinroq qayta urinib ko\'ring.');
+    }
+
     const results = this.mapOffers(offers);
 
     const response: ChinaCompareResponse = {
