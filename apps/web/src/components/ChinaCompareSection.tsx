@@ -1,7 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { chinaCompareApi } from '../api/products';
+import { toolsApi } from '../api/client';
 import type { ChinaCompareItem } from '../api/types';
 import { getErrorMessage } from '../utils/getErrorMessage';
+
+interface ExchangeRates {
+  usd: number;
+  eur: number;
+  date: string;
+}
 
 interface Props {
   productId: string;
@@ -30,7 +37,7 @@ function formatPrice(raw: string): string {
   const fmt = (s: string) => {
     const n = parseFloat(s.replace(/,/g, ''));
     if (isNaN(n)) return s;
-    return Math.round(n).toLocaleString('ru-RU');
+    return n % 1 === 0 ? n.toLocaleString('ru-RU') : n.toFixed(2);
   };
   const formatted = parts.map(fmt).join(' – ');
   return currency ? `${currency} ${formatted}` : formatted;
@@ -44,6 +51,11 @@ export function ChinaCompareSection({ productId, productPrice }: Props) {
   const [cached, setCached] = useState(false);
   const [page, setPage] = useState(1);
   const [onlyCheaper, setOnlyCheaper] = useState(true);
+  const [rates, setRates] = useState<ExchangeRates | null>(null);
+
+  useEffect(() => {
+    toolsApi.getExchangeRates().then((res) => setRates(res.data)).catch(() => null);
+  }, []);
 
   async function handleLoad() {
     setLoading(true);
@@ -73,6 +85,11 @@ export function ChinaCompareSection({ productId, productPrice }: Props) {
         <div className="flex items-center gap-2 flex-wrap">
           {cached && (
             <span className="badge badge-ghost badge-sm text-base-content/40">cache</span>
+          )}
+          {rates && (
+            <span className="text-xs text-primary/70 tabular-nums font-medium">
+              💱 1 USD = {rates.usd.toLocaleString('ru-RU')} so'm
+            </span>
           )}
           {loaded && productPrice != null && (
             <label className="flex items-center gap-1.5 cursor-pointer select-none">
@@ -208,6 +225,21 @@ export function ChinaCompareSection({ productId, productPrice }: Props) {
                 <p className="text-sm font-bold text-success tabular-nums">
                   {formatPrice(item.price)}
                 </p>
+
+                {/* UZS konvertatsiya */}
+                {rates && (() => {
+                  const minUsd = parseMinPrice(item.price);
+                  if (!minUsd) return null;
+                  const currency = item.price.match(/^([A-Z€¥£₩$]+)/)?.[1] ?? '';
+                  const rate = currency === 'EUR' ? rates.eur : rates.usd;
+                  const uzs = Math.round(minUsd * rate);
+                  return (
+                    <p className="text-[11px] text-primary/70 tabular-nums font-medium">
+                      ≈ {uzs.toLocaleString('ru-RU')} so'm
+                      <span className="ml-1 text-base-content/40 font-normal">({rates.date})</span>
+                    </p>
+                  );
+                })()}
 
                 {/* MOQ */}
                 {item.moq && (

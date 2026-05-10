@@ -45,29 +45,37 @@ grep "^### T-" "$PROJECT_DIR/docs/Tasks.md" 2>/dev/null \
 
 TEMP=$(mktemp)
 SKIP=0
+WRITTEN_COMMITS=0
+WRITTEN_SYNC=0
 
 while IFS= read -r line; do
   if [[ "$line" == "## Oxirgi commitlar" || "$line" == "## Последние коммиты" ]]; then
-    echo "## Oxirgi commitlar"
-    echo ""
-    cat "$COMMITS_FILE"
+    if [[ $WRITTEN_COMMITS -eq 0 ]]; then
+      echo "## Oxirgi commitlar"
+      echo ""
+      cat "$COMMITS_FILE"
+      WRITTEN_COMMITS=1
+    fi
     SKIP=1
     continue
   fi
 
   if [[ "$line" == "## Avto-sinxronizatsiya" || "$line" == "## Авто-синхронизация" ]]; then
-    echo "## Avto-sinxronizatsiya"
-    echo "*Yangilandi: $NOW*"
-    echo "Tarmoq: \`$BRANCH\` | Commit qilinmagan fayllar: $UNCOMMITTED"
-    if [ -s "$PENDING_FILE" ]; then
-      echo ""
-      echo "**Jarayondagi (pending):**"
-      cat "$PENDING_FILE"
-    fi
-    if [ -s "$OPEN_FILE" ]; then
-      echo ""
-      echo "**Navbatdagi (open):**"
-      cat "$OPEN_FILE"
+    if [[ $WRITTEN_SYNC -eq 0 ]]; then
+      echo "## Avto-sinxronizatsiya"
+      echo "*Yangilandi: $NOW*"
+      echo "Tarmoq: \`$BRANCH\` | Commit qilinmagan fayllar: $UNCOMMITTED"
+      if [ -s "$PENDING_FILE" ]; then
+        echo ""
+        echo "**Jarayondagi (pending):**"
+        cat "$PENDING_FILE"
+      fi
+      if [ -s "$OPEN_FILE" ]; then
+        echo ""
+        echo "**Navbatdagi (open):**"
+        cat "$OPEN_FILE"
+      fi
+      WRITTEN_SYNC=1
     fi
     SKIP=1
     continue

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
@@ -20,6 +20,11 @@ export class ToolsController {
     private readonly toolsService: ToolsService,
     private readonly aiService: AiService,
   ) {}
+
+  @Get('exchange-rates')
+  getExchangeRates() {
+    return this.toolsService.getExchangeRates();
+  }
 
   @Post('profit-calculator')
   @ActivityAction('TOOL_PROFIT_CALC')

@@ -1,6 +1,7 @@
 import { api } from './base';
 
 export const toolsApi = {
+  getExchangeRates: () => api.get<{ usd: number; eur: number; date: string }>('/tools/exchange-rates'),
   calculateProfit: (data: {
     sell_price_uzs: number;
     unit_cost_usd: number;

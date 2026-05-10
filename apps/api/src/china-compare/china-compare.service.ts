@@ -168,6 +168,8 @@ export class ChinaCompareService {
     url.searchParams.set('imagePath', imagePath);
     url.searchParams.set('page', '1');
     url.searchParams.set('pageSize', '48');
+    url.searchParams.set('currency', 'USD');
+    url.searchParams.set('language', 'en_US');
 
     const res = await fetch(url.toString(), {
       headers: { ...BASE_HEADERS, Cookie: cookies },
