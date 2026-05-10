@@ -552,7 +552,10 @@ export class AiService {
 
       await this.logUsage({ method: 'analyzeTrend', model: 'claude-haiku-4-5-20251001', inputTokens: message.usage.input_tokens, outputTokens: message.usage.output_tokens, durationMs: Date.now() - startMs });
 
-      const text = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+      const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+      // Strip markdown code block wrappers (```json ... ```)
+      const text = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+      this.logger.debug(`analyzeTrend raw response: ${text.substring(0, 200)}`);
       try {
         const parsed = JSON.parse(text);
         return {
@@ -561,6 +564,7 @@ export class AiService {
           recommendation: parsed.recommendation || '',
         };
       } catch {
+        this.logger.warn(`analyzeTrend JSON parse failed, raw: ${raw.substring(0, 100)}`);
         return fallback;
       }
     } catch (err: unknown) {

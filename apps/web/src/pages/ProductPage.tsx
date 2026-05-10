@@ -962,6 +962,11 @@ export function ProductPage() {
                 </div>
               )}
             </div>
+          ) : trendAnalysis ? (
+            <div className="flex items-center gap-2 py-2 text-sm text-base-content/40">
+              <span>⚠️</span>
+              <span>AI tahlil vaqtincha mavjud emas. Keyinroq qayta urinib ko'ring.</span>
+            </div>
           ) : null}
         </div>
       )}
