@@ -45,7 +45,7 @@ export function WbCompareSection({ productId, productPrice }: Props) {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="font-bold text-base lg:text-lg flex items-center gap-2">
           <span className="text-xl">🫐</span>
-          Wildberries
+          Wildberries UZ
         </h2>
         <div className="flex items-center gap-2 flex-wrap">
           {cached && (
@@ -83,7 +83,7 @@ export function WbCompareSection({ productId, productPrice }: Props) {
       {/* Description */}
       {!loaded && !loading && (
         <p className="text-sm text-base-content/50">
-          Bu mahsulotning rasmi orqali Wildberries dan o'xshash mahsulotlarni topadi. Narxlar RUB dan taxminiy konversiya qilingan (1 RUB ≈ 155 so'm).
+          Bu mahsulotning rasmi orqali Wildberries UZ dan o'xshash mahsulotlarni topadi. Narx va yetkazib beruvchi ma'lumotlari ko'rsatiladi.
         </p>
       )}
 
@@ -164,7 +164,7 @@ export function WbCompareSection({ productId, productPrice }: Props) {
                       </div>
                       {/* Platform badge */}
                       <span className="absolute top-2 left-2 bg-purple-600/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
-                        WB.RU
+                        WB
                       </span>
                       {/* Saving badge */}
                       {saving != null && (

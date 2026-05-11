@@ -4,9 +4,12 @@ module.exports = (options) => {
   return {
     ...options,
     // @prisma/client ni bundle qilma — native binary'lari bor
+    // playwright ni bundle qilma — chromium-bidi va boshqa CJS/native dependencylari bor
     externals: [
       { '@prisma/client': 'commonjs2 @prisma/client' },
       { 'impit': 'commonjs2 impit' },
+      { 'playwright': 'commonjs2 playwright' },
+      { 'playwright-core': 'commonjs2 playwright-core' },
     ],
     resolve: {
       ...options.resolve,

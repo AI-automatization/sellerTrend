@@ -24,11 +24,7 @@ export interface WbCard {
 }
 
 export interface WbCardsResponse {
-  // card.wb.ru v2 format
-  state?: number;
-  data?: { products?: WbCard[] };
-  // u-card.wb.ru v4 format (fallback)
-  products?: WbCard[];
+  products: WbCard[];
 }
 
 export interface WbCompareItem {
