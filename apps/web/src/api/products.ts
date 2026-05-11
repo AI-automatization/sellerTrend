@@ -1,5 +1,5 @@
 import { api } from './base';
-import type { SearchProduct, InstallmentSkuData, DailySalesPoint, PredictionResult, RiskResult, ChinaCompareResponse } from './types';
+import type { SearchProduct, InstallmentSkuData, DailySalesPoint, PredictionResult, RiskResult, ChinaCompareResponse, WbCompareResponse } from './types';
 
 export const productsApi = {
   getTracked: () => api.get('/products/tracked'),
@@ -30,6 +30,11 @@ export const uzumApi = {
 export const chinaCompareApi = {
   compare: (productId: string) =>
     api.get<ChinaCompareResponse>(`/china-compare/${productId}`),
+};
+
+export const wbCompareApi = {
+  compare: (productId: string) =>
+    api.get<WbCompareResponse>(`/wb-compare/${productId}`),
 };
 
 export const predictionsApi = {

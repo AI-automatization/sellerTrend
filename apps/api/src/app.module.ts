@@ -44,6 +44,8 @@ import { ChatModule } from './chat/chat.module';
 import { PredictionsModule } from './predictions/predictions.module';
 // v10.0 China Compare
 import { ChinaCompareModule } from './china-compare/china-compare.module';
+// v10.1 WB Compare
+import { WbCompareModule } from './wb-compare/wb-compare.module';
 
 @Module({
   imports: [
@@ -92,6 +94,8 @@ import { ChinaCompareModule } from './china-compare/china-compare.module';
     PredictionsModule,
     // v10.0 China Compare
     ChinaCompareModule,
+    // v10.1 WB Compare
+    WbCompareModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: CustomThrottlerGuard }],
   controllers: [HealthController],

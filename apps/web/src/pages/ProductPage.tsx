@@ -23,6 +23,7 @@ import {
 import { ArrowTrendingUpIcon } from '../components/icons';
 import { CompetitorSection } from '../components/CompetitorSection';
 import { ChinaCompareSection } from '../components/ChinaCompareSection';
+import { WbCompareSection } from '../components/WbCompareSection';
 import {
   ScoreRadial,
   StatCard,
@@ -1143,6 +1144,11 @@ export function ProductPage() {
       {/* China Compare — Alibaba visual search */}
       <ErrorBoundary variant="section" label="Xitoy bozori">
         <ChinaCompareSection productId={String(result.product_id)} productPrice={result.sell_price} />
+      </ErrorBoundary>
+
+      {/* WB Compare — Wildberries visual search */}
+      <ErrorBoundary variant="section" label="Wildberries">
+        <WbCompareSection productId={String(result.product_id)} productPrice={result.sell_price} />
       </ErrorBoundary>
 
 

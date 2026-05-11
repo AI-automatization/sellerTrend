@@ -328,6 +328,29 @@ export interface ChinaCompareResponse {
   results: ChinaCompareItem[];
 }
 
+// ─── WB Compare Domain ────────────────────────────────────────────────────────
+
+export interface WbCompareItem {
+  platform: 'wildberries';
+  productId: number;
+  title: string;
+  priceUzs: number;
+  originalPriceUzs: number;
+  brand: string;
+  supplier: string;
+  supplierRating: number;
+  rating: number;
+  feedbacks: number;
+  url: string;
+  image: string;
+}
+
+export interface WbCompareResponse {
+  cached: boolean;
+  totalCount: number;
+  results: WbCompareItem[];
+}
+
 // ─── Consultation Domain ─────────────────────────────────────────────────────
 
 export interface ConsultationItem {
