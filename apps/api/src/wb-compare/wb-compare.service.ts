@@ -157,8 +157,11 @@ export class WbCompareService {
     const tmpPath = join(tmpdir(), `wb_search_${randomUUID()}.jpg`);
     await writeFile(tmpPath, buffer);
 
+    // Production: system Chromium ishlatiladi (PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH env orqali)
+    const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
     const browser = await chromium.launch({
       headless: true,
+      executablePath: executablePath || undefined,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',

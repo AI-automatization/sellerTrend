@@ -22,11 +22,31 @@ RUN pnpm exec prisma generate
 RUN pnpm run build
 
 # ── runner ────────────────────────────────────────────────────
-FROM node:20-alpine AS runner
+# node:20-bookworm-slim (Debian) — Playwright/Chromium uchun kerak (Alpine qo'llab-quvvatlamaydi)
+FROM node:20-bookworm-slim AS runner
 RUN npm install -g pnpm@10.30.1
 WORKDIR /app
 ENV NODE_ENV=production
 ENV HUSKY=0
+# System Chromium ishlatamiz — bundled binary (~300MB) o'rniga system package (~120MB)
+ENV PLAYWRIGHT_BROWSERS_PATH=0
+ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium
+
+# System Chromium va minimal dependency'lar — apt cache bir qadamda tozalanadi
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    chromium \
+    fonts-liberation \
+    libnss3 \
+    libatk-bridge2.0-0 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .pnpmfile.cjs ./
 COPY apps/api/package.json ./apps/api/
