@@ -28,31 +28,17 @@ RUN npm install -g pnpm@10.30.1
 WORKDIR /app
 ENV NODE_ENV=production
 ENV HUSKY=0
-# System Chromium ishlatamiz — bundled binary (~300MB) o'rniga system package (~120MB)
-ENV PLAYWRIGHT_BROWSERS_PATH=0
-ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium
-
-# System Chromium va minimal dependency'lar — apt cache bir qadamda tozalanadi
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    chromium \
-    fonts-liberation \
-    libnss3 \
-    libatk-bridge2.0-0 \
-    libdrm2 \
-    libxkbcommon0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxrandr2 \
-    libgbm1 \
-    libasound2 \
-    && rm -rf /var/lib/apt/lists/*
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .pnpmfile.cjs ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
 RUN pnpm install --no-frozen-lockfile --prod --filter api --filter @uzum/types --filter @uzum/utils
+
+# Playwright bundled Chromium + barcha system dependency'lar
+RUN pnpm --filter api exec playwright install --with-deps chromium \
+    && rm -rf /ms-playwright/chromium-*/chrome-linux/chrome-sandbox
 
 # Prisma CLI needed at runtime for db push in entrypoint — install globally to avoid pnpm conflict
 RUN npm install -g prisma@6.19.2
