@@ -17,7 +17,7 @@ export function WbCompareSection({ productId, productPrice }: Props) {
   const [loaded, setLoaded] = useState(false);
   const [cached, setCached] = useState(false);
   const [page, setPage] = useState(1);
-  const [onlyCheaper, setOnlyCheaper] = useState(true);
+  const [onlyCheaper, setOnlyCheaper] = useState(false);
 
   async function handleLoad() {
     setLoading(true);
@@ -28,7 +28,7 @@ export function WbCompareSection({ productId, productPrice }: Props) {
       setCached(res.data.cached);
       setLoaded(true);
       setPage(1);
-      setOnlyCheaper(true);
+      setOnlyCheaper(false);
     } catch (err: unknown) {
       const msg = getErrorMessage(err, '');
       setError(msg && msg !== 'Internal server error'

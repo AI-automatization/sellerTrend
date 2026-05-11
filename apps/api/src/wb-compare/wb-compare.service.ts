@@ -22,7 +22,7 @@ const WB_DEST = '494'; // Uzbekistan
 
 const BROWSER_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36';
 
-// nmId → basket server raqami
+// nmId → basket server raqami (real HTTP testlar asosida yangilangan, basket-40 gacha)
 function getBasketNum(vol: number): string {
   if (vol <= 143) return '01';
   if (vol <= 287) return '02';
@@ -35,21 +35,42 @@ function getBasketNum(vol: number): string {
   if (vol <= 1313) return '09';
   if (vol <= 1461) return '10';
   if (vol <= 1609) return '11';
-  if (vol <= 1757) return '12';
-  if (vol <= 1905) return '13';
-  if (vol <= 2053) return '14';
-  if (vol <= 2201) return '15';
-  if (vol <= 2349) return '16';
-  if (vol <= 2497) return '17';
-  if (vol <= 2649) return '18';
-  return '19';
+  if (vol <= 1950) return '12';
+  if (vol <= 2050) return '13';
+  if (vol <= 2150) return '14';
+  if (vol <= 2450) return '15';
+  if (vol <= 2625) return '16';
+  if (vol <= 2850) return '17';
+  if (vol <= 3050) return '18';
+  if (vol <= 3250) return '19';
+  if (vol <= 3450) return '20';
+  if (vol <= 3700) return '21';
+  if (vol <= 3950) return '22';
+  if (vol <= 4150) return '23';
+  if (vol <= 4350) return '24';
+  if (vol <= 4550) return '25';
+  if (vol <= 4850) return '26';
+  if (vol <= 5250) return '27';
+  if (vol <= 5550) return '28';
+  if (vol <= 5850) return '29';
+  if (vol <= 6100) return '30';
+  if (vol <= 6300) return '31';
+  if (vol <= 6650) return '32';
+  if (vol <= 7100) return '33';
+  if (vol <= 7350) return '34';
+  if (vol <= 7650) return '35';
+  if (vol <= 7950) return '36';
+  if (vol <= 8350) return '37';
+  if (vol <= 8750) return '38';
+  if (vol <= 9200) return '39';
+  return '40';
 }
 
 function getWbImageUrl(nmId: number): string {
   const vol = Math.floor(nmId / 100000);
   const part = Math.floor(nmId / 1000);
   const basket = getBasketNum(vol);
-  return `https://basket-${basket}.wbbasket.ru/vol${vol}/part${part}/${nmId}/images/big/1.webp`;
+  return `https://basket-${basket}.wbbasket.ru/vol${vol}/part${part}/${nmId}/images/c516x688/1.webp`;
 }
 
 function getWbProductUrl(nmId: number): string {
