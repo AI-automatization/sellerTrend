@@ -1,4 +1,5 @@
 # VENTRA — BAJARILGAN ISHLAR ARXIVI
+> Loyiha: [[PROJECTS/sellerTrend/_context|VENTRA _context]]
 # Yangilangan: 2026-05-06
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang

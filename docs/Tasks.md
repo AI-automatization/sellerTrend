@@ -1,4 +1,5 @@
 # VENTRA — OCHIQ VAZIFALAR
+> Loyiha: [[PROJECTS/sellerTrend/_context|VENTRA _context]]
 # Yangilangan: 2026-03-08
 # Developer-specific fayllar:
 #   - Bekzod → docs/Tasks-Bekzod.md

@@ -46,6 +46,7 @@ import { PredictionsModule } from './predictions/predictions.module';
 import { ChinaCompareModule } from './china-compare/china-compare.module';
 // v10.1 WB Compare
 import { WbCompareModule } from './wb-compare/wb-compare.module';
+import { OzonCompareModule } from './ozon-compare/ozon-compare.module';
 
 @Module({
   imports: [
@@ -96,6 +97,8 @@ import { WbCompareModule } from './wb-compare/wb-compare.module';
     ChinaCompareModule,
     // v10.1 WB Compare
     WbCompareModule,
+    // v10.2 Ozon Compare
+    OzonCompareModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: CustomThrottlerGuard }],
   controllers: [HealthController],
