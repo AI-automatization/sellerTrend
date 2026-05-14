@@ -1750,7 +1750,7 @@ apps/api/src/common/seed.service.ts   → $executeRawUnsafe → $executeRaw
 
 ---
 
-### T-541 | P2 | FRONTEND | Rebrand: barcha Ventra logo va yozuvlarini RIFT ga almashtirish | 2h
+### T-541 | P2 | FRONTEND | Rebrand: barcha Ventra logo va yozuvlarini RIFT ga almashtirish | 2h | pending[Sardor]
 
 **Sana:** 2026-05-14
 **Manba:** user-feedback
