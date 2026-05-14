@@ -4,6 +4,16 @@
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
 
+### T-541 | FRONTEND | Rebrand: barcha Ventra→RIFT (2026-05-14)
+
+**Manba:** user-feedback
+**Mas'ul:** Sardor
+**Vaqt:** ~30 daqiqa
+**Yechim:** apps/web/ da barcha "VENTRA"/"Ventra" matnlari "RIFT" ga almashtirildi. Logo V→R, /logo.svg→/rift-logo.svg, @VentraBot→@RIFTBot. 9 fayl o'zgartirildi.
+**Ta'sir:** Web app da foydalanuvchilar endi izchil RIFT brend nomini ko'radi — Login, Register, ForgotPassword, ResetPassword, NotFound, Onboarding, SharedWatchlist, TelegramMiniApp, i18n/uz.ts.
+
+---
+
 ### MARKETING | RIFT brend — Instagram carousel + video + logo (2026-05-14)
 
 **Manba:** sardor-initiative
