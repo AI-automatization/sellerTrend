@@ -1,0 +1,42 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="lg" x1="0" y1="0" x2="160" y2="160" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#818cf8"/>
+      <stop offset="50%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="lbg" x1="0" y1="0" x2="160" y2="160" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#0c1a2e"/>
+    </linearGradient>
+    <linearGradient id="lc" x1="0" y1="0" x2="0" y2="160" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+    <clipPath id="clip">
+      <rect width="160" height="160" rx="38"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="160" height="160" rx="38" fill="url(#lbg)"/>
+
+  <!-- Glass shimmer -->
+  <path d="M0 0 Q80 0 160 0 L160 50 Q80 68 0 50 Z" fill="white" fill-opacity="0.05" clip-path="url(#clip)"/>
+
+  <!-- R lettermark -->
+  <text x="10" y="132" font-size="130" font-weight="800"
+    font-family="Space Grotesk, Inter, sans-serif"
+    fill="url(#lg)" clip-path="url(#clip)">R</text>
+
+  <!-- Diagonal crack -->
+  <g clip-path="url(#clip)">
+    <polygon points="100,0 116,0 90,160 74,160" fill="#0c0c1a"/>
+    <line x1="108" y1="0" x2="82" y2="160"
+      stroke="url(#lc)" stroke-width="1.5" opacity="0.85"/>
+  </g>
+
+  <!-- Border -->
+  <rect width="160" height="160" rx="38" fill="none"
+    stroke="url(#lg)" stroke-width="1.5" opacity="0.4"/>
+</svg>

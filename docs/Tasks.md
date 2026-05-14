@@ -1778,7 +1778,13 @@ Foydalanuvchilar brend nomini noto'g'ri ko'radi. Barcha UI da izchil RIFT brendi
 apps/web/src/               → barcha .tsx fayllar
 apps/web/index.html         → title, favicon
 apps/web/public/            → favicon.ico, logo assets
+apps/web/public/rift-logo.svg → ✅ TAYYOR — RIFT logo (R + diagonal yoriq + indigo/cyan gradient)
 ```
+
+**Qo'shimcha kontekst:**
+- `public/rift-logo.svg` — yangi RIFT logo, hamma joyda `src="/rift-logo.svg"` bilan ishlatiladi
+- Eski logo: `public/logo.svg` (ko'k kvadrat + V) — almashtirish kerak
+- CSS class nomlari (`ventra-card`, `ventra-sidebar` va h.k.) — O'ZGARTIRMASLIK (DaisyUI theme)
 
 ---
 
