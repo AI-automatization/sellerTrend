@@ -1750,6 +1750,38 @@ apps/api/src/common/seed.service.ts   → $executeRawUnsafe → $executeRaw
 
 ---
 
+### T-541 | P2 | FRONTEND | Rebrand: barcha Ventra logo va yozuvlarini RIFT ga almashtirish | 2h
+
+**Sana:** 2026-05-14
+**Manba:** user-feedback
+**Topilgan joyda:** `apps/web/src/` — barcha komponentlar
+**Mas'ul:** Sardor
+
+**Tahlil:**
+Loyiha nomi VENTRA dan RIFT ga o'zgardi. Web app da hali eski nom va logo qolgan.
+Foydalanuvchilar brend nomini noto'g'ri ko'radi. Barcha UI da izchil RIFT brendi bo'lishi kerak.
+
+**Muammo:**
+- `apps/web/` da "VENTRA", "Ventra" yozuvlari qolgan (sidebar, header, title, meta)
+- Eski logo (V kvadrat) ishlatilgan joylar bor
+- `index.html` da title hali "Ventra" bo'lishi mumkin
+
+**Yechim:**
+1. `apps/web/` da barcha "VENTRA"/"Ventra" matnlarni "RIFT" ga almashtirish
+2. Logo komponentlarini yangilash — R harfi + diagonal yoriq + indigo/cyan gradient
+3. `index.html` — `<title>RIFT Analytics</title>` ga o'zgartirish
+4. Favicon yangilash (agar bor bo'lsa)
+5. Sidebar, Header, Login page, Dashboard — barchasini tekshirish
+
+**Fayllar:**
+```
+apps/web/src/               → barcha .tsx fayllar
+apps/web/index.html         → title, favicon
+apps/web/public/            → favicon.ico, logo assets
+```
+
+---
+
 ### T-540 | P2 | DEVOPS | Fix .env.example — guessable JWT_SECRET | 15min
 
 **Sana:** 2026-05-10
