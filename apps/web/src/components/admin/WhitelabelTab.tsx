@@ -5,11 +5,11 @@ import { toast } from 'react-toastify';
 
 export function WhitelabelTab() {
   const [config, setConfig] = useState({
-    appName: 'VENTRA',
-    logoText: 'V',
+    appName: 'RIFT',
+    logoText: 'R',
     logoSubtitle: 'Analytics Platform',
     primaryColor: '#4C7DFF',
-    supportEmail: 'support@ventra.uz',
+    supportEmail: 'support@rift.uz',
     marketplaceName: 'Uzum',
     marketplaceUrl: 'https://uzum.uz',
     customDomain: '',

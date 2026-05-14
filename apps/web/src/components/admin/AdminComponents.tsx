@@ -251,8 +251,8 @@ export function AccountDrawer({ account, users, onClose, onRefresh }: { account:
 
 export function WhitelabelTab() {
   const [config, setConfig] = useState({
-    appName: 'VENTRA', logoText: 'V', logoSubtitle: 'Analytics Platform',
-    primaryColor: '#4C7DFF', supportEmail: 'support@ventra.uz',
+    appName: 'RIFT', logoText: 'R', logoSubtitle: 'Analytics Platform',
+    primaryColor: '#4C7DFF', supportEmail: 'support@rift.uz',
     marketplaceName: 'Uzum', marketplaceUrl: 'https://uzum.uz', customDomain: '',
   });
   const [saving, setSaving] = useState(false);

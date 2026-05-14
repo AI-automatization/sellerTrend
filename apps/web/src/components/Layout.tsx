@@ -95,7 +95,7 @@ export function Layout() {
 
   const payload = getTokenPayload();
   const isSuperAdmin = payload?.role === 'SUPER_ADMIN';
-  const userEmail = payload?.email || 'user@ventra.uz';
+  const userEmail = payload?.email || 'user@rift.uz';
   const location = useLocation();
   const hasUnseenUpdates = useHasUnseenUpdates();
   const [showWhatsNew, setShowWhatsNew] = useState(false);
@@ -262,7 +262,7 @@ export function Layout() {
                 d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </label>
-          <span className="font-heading font-bold text-lg ml-2 tracking-tight">VENTRA</span>
+          <span className="font-heading font-bold text-lg ml-2 tracking-tight">RIFT</span>
           <div className="flex-1" />
           <button onClick={toggle} className="btn btn-ghost btn-sm btn-square" aria-label={isDark ? t('layout.lightMode') : t('layout.darkMode')}>
             {isDark ? <SunIcon className="w-4.5 h-4.5" /> : <MoonIcon className="w-4.5 h-4.5" />}
@@ -294,7 +294,7 @@ export function Layout() {
                 <span className="text-primary-content font-black text-sm font-heading tracking-tight">V</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-heading font-bold text-[15px] leading-none tracking-[-0.03em] ventra-gradient-text">VENTRA</p>
+                <p className="font-heading font-bold text-[15px] leading-none tracking-[-0.03em] ventra-gradient-text">RIFT</p>
                 <p className="text-[11px] text-base-content/40 mt-0.5 font-medium">{t('layout.tagline')}</p>
               </div>
             </div>
@@ -423,7 +423,7 @@ export function Layout() {
               <div className="flex-1 min-w-0">
                 <p className="text-[12.5px] font-semibold truncate leading-tight">{isSuperAdmin ? 'Super Admin' : userEmail.split('@')[0]}</p>
                 <p className="text-[10px] text-base-content/35 truncate mt-0.5">
-                  {isSuperAdmin ? 'admin@ventra' : t('layout.proPlan')}
+                  {isSuperAdmin ? 'admin@rift' : t('layout.proPlan')}
                 </p>
               </div>
               <StreakBadge />

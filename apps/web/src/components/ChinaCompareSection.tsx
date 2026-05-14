@@ -168,7 +168,7 @@ export function ChinaCompareSection({ productId, productPrice }: Props) {
         <>
         {filtered.length === 0 && (
           <div className="text-center py-6 text-base-content/40 text-sm">
-            Ventra narxidan arzon mahsulot topilmadi
+            RIFT narxidan arzon mahsulot topilmadi
           </div>
         )}
 

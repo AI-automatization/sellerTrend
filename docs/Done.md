@@ -4,6 +4,23 @@
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
 
+### MARKETING | RIFT brend — Instagram carousel + video + logo (2026-05-14)
+
+**Manba:** sardor-initiative
+**Muammo:** VENTRA loyihasi uchun Instagram marketing content yo'q edi. Nom ham o'zgartirilishi kerak edi.
+**Yechim:**
+- Loyiha nomi: **VENTRA → RIFT** (kuchli, qisqa, global, esda qoladi)
+- **Logo yaratildi** — Variant A (R harfi + diagonal yoriq + indigo/cyan gradient, glass morphism)
+- **7 slaydli carousel** yaratildi — Remotion + React + TypeScript
+  - Hook, Pain x3, Testimonial, Yechim, CTA
+  - Brand: dark theme, Space Grotesk + Inter, indigo/cyan
+- **Instagram Reel (MP4)** render qilindi — 4 sek/slayd, 28 sek jami, musiqa bilan
+- **Fayl joylashuvi:** `~/Desktop/ventra-instagram/out/`
+- **T-541** yaratildi — web app da Ventra→RIFT rebrand (keyingi sessiya)
+**Ta'sir:** RIFT brendi tayyor. Instagram uchun carousel va video material tayyor. T-541 orqali web app ham yangilanadi.
+
+---
+
 ### RESEARCH | China Scraper — Arxitektura loyihalash (2026-05-06)
 
 **Manba:** sardor-initiative
