@@ -93,10 +93,10 @@ export function OnboardingPage() {
         {/* Logo */}
         <div className="flex flex-col items-center">
           <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25 mb-3">
-            <span className="text-primary-content font-black text-xl font-heading">V</span>
+            <span className="text-primary-content font-black text-xl font-heading">R</span>
           </div>
           <h1 className="text-xl font-black font-heading tracking-tight">{t('onboarding.title')}</h1>
-          <p className="text-base-content/40 text-sm mt-0.5">VENTRA Analytics</p>
+          <p className="text-base-content/40 text-sm mt-0.5">RIFT Analytics</p>
         </div>
 
         {/* Step progress */}
@@ -304,17 +304,17 @@ export function OnboardingPage() {
                     <RiTelegramLine size={32} className="text-info" />
                   </div>
                   <div>
-                    <p className="font-bold text-lg">@VentraBot</p>
+                    <p className="font-bold text-lg">@RIFTBot</p>
                     <p className="text-sm text-base-content/50 mt-1">{t('onboarding.step3Desc')}</p>
                   </div>
                   <a
-                    href="https://t.me/VentraBot"
+                    href="https://t.me/RIFTBot"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn btn-info w-full"
                   >
                     <RiTelegramLine size={16} />
-                    t.me/VentraBot
+                    t.me/RIFTBot
                     <RiExternalLinkLine size={13} className="opacity-60" />
                   </a>
                 </div>

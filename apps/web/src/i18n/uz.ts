@@ -1165,7 +1165,7 @@ export const uz: Record<string, string> = {
     'leaderboard.startTracking': 'Mahsulot kuzatishni boshlash',
     // Dashboard Empty State
     'empty.welcome': 'Xush kelibsiz',
-    'empty.subtitle': 'VENTRA bilan Uzum mahsulotlarini tahlil qiling va kuzating',
+    'empty.subtitle': 'RIFT bilan Uzum mahsulotlarini tahlil qiling va kuzating',
     'empty.steps': 'Boshlash qadamlari',
     'empty.step1': "Ro'yxatdan o'tish — bajarildi",
     'empty.step2': 'Birinchi mahsulotni tahlil qilish',

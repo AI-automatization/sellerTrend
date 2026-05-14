@@ -55,10 +55,10 @@ export function ResetPasswordPage() {
         <div className="relative z-10 max-w-md space-y-8">
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25">
-              <span className="text-primary-content font-black text-2xl font-heading">V</span>
+              <span className="text-primary-content font-black text-2xl font-heading">R</span>
             </div>
             <div>
-              <h1 className="text-3xl font-black tracking-tight font-heading">VENTRA</h1>
+              <h1 className="text-3xl font-black tracking-tight font-heading">RIFT</h1>
               <p className="text-base-content/40 text-sm">Analytics Platform</p>
             </div>
           </div>
@@ -71,7 +71,7 @@ export function ResetPasswordPage() {
           </div>
 
           <p className="text-xs text-base-content/25">
-            VENTRA v5.6 — Premium Analytics
+            RIFT v5.6 — Premium Analytics
           </p>
         </div>
       </div>
@@ -87,9 +87,9 @@ export function ResetPasswordPage() {
           {/* Mobile logo */}
           <div className="flex flex-col items-center lg:hidden mb-4">
             <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25 mb-3">
-              <span className="text-primary-content font-black text-2xl font-heading">V</span>
+              <span className="text-primary-content font-black text-2xl font-heading">R</span>
             </div>
-            <h1 className="text-2xl font-black font-heading tracking-tight">VENTRA</h1>
+            <h1 className="text-2xl font-black font-heading tracking-tight">RIFT</h1>
             <p className="text-base-content/40 text-sm">Analytics Platform</p>
           </div>
 

@@ -61,9 +61,9 @@ export function SharedWatchlistPage() {
           <div>
             <div className="flex items-center gap-3 mb-1">
               <div className="w-8 h-8 rounded-[10px] bg-primary flex items-center justify-center">
-                <span className="text-primary-content font-bold text-sm">V</span>
+                <span className="text-primary-content font-bold text-sm">R</span>
               </div>
-              <span className="font-bold text-sm text-base-content/50">VENTRA</span>
+              <span className="font-bold text-sm text-base-content/50">RIFT</span>
             </div>
             <h1 className="text-2xl font-bold">{data.name}</h1>
             <p className="text-sm text-base-content/50 mt-1">

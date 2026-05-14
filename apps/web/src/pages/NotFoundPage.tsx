@@ -15,9 +15,9 @@ export function NotFoundPage() {
       <div className="relative text-center space-y-6 max-w-md">
         <div className="flex items-center justify-center gap-3 mb-8">
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25">
-            <span className="text-primary-content font-black text-lg font-heading">V</span>
+            <span className="text-primary-content font-black text-lg font-heading">R</span>
           </div>
-          <span className="font-heading font-bold text-lg tracking-tight">VENTRA</span>
+          <span className="font-heading font-bold text-lg tracking-tight">RIFT</span>
         </div>
 
         <h1 className="text-8xl font-black text-primary/20 font-heading tracking-tight leading-none">
