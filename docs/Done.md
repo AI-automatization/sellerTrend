@@ -4,6 +4,27 @@
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
 
+### SECURITY AUDIT | T-526,527,528,531,532,534,536,537,538,539,540 — allaqachon tuzatilgan (2026-05-14)
+
+**Manba:** Tezcode Audit System (2026-05-08) — GitHub Issues #1-15
+**Mas'ul:** Sardor
+**Tekshirgan:** Claude Code (2026-05-14) — koddan verify qilingan
+**Yechim:** Barcha 10 ta task audit yozilishidan oldin yoki keyin allaqachon tuzatilgan edi:
+- T-526: SEED_ADMIN_PASSWORD env dan o'qilmoqda ✅
+- T-527: Swagger NODE_ENV !== 'production' sharti ostida ✅
+- T-528: ChatMessage.tsx da dangerouslySetInnerHTML yo'q ✅
+- T-531: Custom security headers middleware mavjud (X-Frame-Options, HSTS, ...) ✅
+- T-532: tmp_fix_photos.mjs fayl mavjud emas ✅
+- T-534: $queryRawUnsafe kodda topilmadi ✅
+- T-536: CI da pnpm audit --audit-level=high, || true yo'q ✅
+- T-537: CORS faqat CHROME_EXTENSION_ID env orqali ✅
+- T-538: Logda faqat email, token emas ✅
+- T-539: $executeRawUnsafe kodda topilmadi ✅
+- T-540: .env.example JWT_SECRET="" (bo'sh) ✅
+**Ta'sir:** Security audit tasklari Tasks.md dan tozalandi. T-533 (god-files) ochiq qoldi.
+
+---
+
 ### T-541 | FRONTEND | Rebrand: barcha Ventra→RIFT (2026-05-14)
 
 **Manba:** user-feedback
