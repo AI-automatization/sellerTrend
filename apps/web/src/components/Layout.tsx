@@ -290,9 +290,7 @@ export function Layout() {
           {/* ── Logo ── */}
           <div className="px-5 py-4 border-b border-base-300/40">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary via-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/25 ring-1 ring-primary/20">
-                <span className="text-primary-content font-black text-sm font-heading tracking-tight">R</span>
-              </div>
+              <img src="/rift-logo.svg" alt="RIFT" className="w-9 h-9 rounded-xl" />
               <div className="flex-1 min-w-0">
                 <p className="font-heading font-bold text-[15px] leading-none tracking-[-0.03em] ventra-gradient-text">RIFT</p>
                 <p className="text-[11px] text-base-content/40 mt-0.5 font-medium">{t('layout.tagline')}</p>

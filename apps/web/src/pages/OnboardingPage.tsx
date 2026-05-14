@@ -92,9 +92,7 @@ export function OnboardingPage() {
       <div className="relative w-full max-w-md space-y-5">
         {/* Logo */}
         <div className="flex flex-col items-center">
-          <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25 mb-3">
-            <span className="text-primary-content font-black text-xl font-heading">R</span>
-          </div>
+          <img src="/rift-logo.svg" alt="RIFT" className="w-12 h-12 mb-3" />
           <h1 className="text-xl font-black font-heading tracking-tight">{t('onboarding.title')}</h1>
           <p className="text-base-content/40 text-sm mt-0.5">RIFT Analytics</p>
         </div>

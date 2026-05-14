@@ -1,107 +1,39 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import Redis from 'ioredis';
-import { REDIS_CLIENT } from '../common/redis/redis.module';
 
-// SUPER_ADMIN account excluded from stats — set via env or fallback to seed value
 const SUPER_ADMIN_ACCOUNT_ID = process.env.SUPER_ADMIN_ACCOUNT_ID ?? 'aaaaaaaa-0000-0000-0000-000000000001';
-
-const QUEUE_NAMES = [
-  'discovery-queue',
-  'sourcing-search',
-  'import-batch',
-  'billing-queue',
-  'competitor-queue',
-  'weekly-scrape-queue',
-];
 
 @Injectable()
 export class AdminStatsService {
-  constructor(
-    private readonly prisma: PrismaService,
-    @Inject(REDIS_CLIENT) private readonly redis: Redis,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  private async getQueuePending(): Promise<number> {
-    try {
-      let total = 0;
-      for (const name of QUEUE_NAMES) {
-        const waiting = await this.redis.llen(`bull:${name}:wait`);
-        const active = await this.redis.llen(`bull:${name}:active`);
-        total += waiting + active;
-      }
-      return total;
-    } catch {
-      return 0;
-    }
-  }
-
-  /** Stats Overview */
   async getStatsOverview() {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    const [
-      accountsByStatus,
-      planBreakdown,
-      totalUsers,
-      activeUsers,
-      todayActiveSessions,
-      totalTrackedProducts,
-      todayAnalyzes,
-      todayCategoryRuns,
-    ] = await Promise.all([
-      this.prisma.account.groupBy({
-        by: ['status'],
-        where: { id: { not: SUPER_ADMIN_ACCOUNT_ID } },
-        _count: { id: true },
-      }),
-      this.prisma.account.groupBy({
-        by: ['plan'],
-        where: { id: { not: SUPER_ADMIN_ACCOUNT_ID } },
-        _count: { id: true },
-      }),
+    const [accountsByStatus, planBreakdown, totalUsers, activeUsers, todayActiveSessions, totalTrackedProducts, todayAnalyzes, todayCategoryRuns] = await Promise.all([
+      this.prisma.account.groupBy({ by: ['status'], where: { id: { not: SUPER_ADMIN_ACCOUNT_ID } }, _count: { id: true } }),
+      this.prisma.account.groupBy({ by: ['plan'], where: { id: { not: SUPER_ADMIN_ACCOUNT_ID } }, _count: { id: true } }),
       this.prisma.user.count({ where: { account_id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
       this.prisma.user.count({ where: { is_active: true, account_id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
       this.prisma.userSession.count({
-        where: {
-          logged_in_at: { gte: todayStart },
-          revoked_at: null,
-          OR: [{ expires_at: null }, { expires_at: { gt: new Date() } }],
-        },
+        where: { logged_in_at: { gte: todayStart }, revoked_at: null, OR: [{ expires_at: null }, { expires_at: { gt: new Date() } }] },
       }),
       this.prisma.trackedProduct.count(),
-      this.prisma.userActivity.count({
-        where: { action: 'ANALYZE', created_at: { gte: todayStart } },
-      }),
-      this.prisma.categoryRun.count({
-        where: { created_at: { gte: todayStart } },
-      }),
+      this.prisma.userActivity.count({ where: { action: 'ANALYZE', created_at: { gte: todayStart } } }),
+      this.prisma.categoryRun.count({ where: { created_at: { gte: todayStart } } }),
     ]);
 
     const statusMap: Record<string, number> = { ACTIVE: 0, SUSPENDED: 0 };
-    for (const row of accountsByStatus) {
-      statusMap[row.status] = row._count.id;
-    }
+    for (const row of accountsByStatus) statusMap[row.status] = row._count.id;
 
     const planMap: Record<string, number> = {};
-    for (const row of planBreakdown) {
-      planMap[row.plan] = row._count.id;
-    }
+    for (const row of planBreakdown) planMap[row.plan] = row._count.id;
 
     return {
-      accounts: {
-        active: statusMap.ACTIVE,
-        suspended: statusMap.SUSPENDED,
-        total: statusMap.ACTIVE + statusMap.SUSPENDED,
-      },
+      accounts: { active: statusMap.ACTIVE, suspended: statusMap.SUSPENDED, total: statusMap.ACTIVE + statusMap.SUSPENDED },
       plan_breakdown: planMap,
-      users: {
-        total: totalUsers,
-        active: activeUsers,
-        blocked: totalUsers - activeUsers,
-      },
+      users: { total: totalUsers, active: activeUsers, blocked: totalUsers - activeUsers },
       today_active_users: todayActiveSessions,
       total_tracked_products: totalTrackedProducts,
       today_analyzes: todayAnalyzes,
@@ -109,29 +41,19 @@ export class AdminStatsService {
     };
   }
 
-  /** Revenue Stats — SQL aggregation (avoids loading all transactions into memory) */
   async getStatsRevenue(period: number) {
-    const since = new Date();
-    since.setDate(since.getDate() - period);
-
     const monthStart = new Date();
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
-
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
     const [mrrResult, todayRevResult] = await Promise.all([
-      this.prisma.transaction.aggregate({
-        where: { type: 'SUBSCRIPTION', created_at: { gte: monthStart } },
-        _sum: { amount: true },
-      }),
-      this.prisma.transaction.aggregate({
-        where: { type: 'SUBSCRIPTION', created_at: { gte: todayStart } },
-        _sum: { amount: true },
-      }),
+      this.prisma.transaction.aggregate({ where: { type: 'SUBSCRIPTION', created_at: { gte: monthStart } }, _sum: { amount: true } }),
+      this.prisma.transaction.aggregate({ where: { type: 'SUBSCRIPTION', created_at: { gte: todayStart } }, _sum: { amount: true } }),
     ]);
 
+    void period;
     return {
       daily: [],
       today_revenue: (todayRevResult._sum.amount ?? BigInt(0)).toString(),
@@ -139,64 +61,31 @@ export class AdminStatsService {
     };
   }
 
-  /** Growth Stats */
   async getStatsGrowth(period: number) {
     const since = new Date();
     since.setDate(since.getDate() - period);
-
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
-
     const monthAgo = new Date();
     monthAgo.setDate(monthAgo.getDate() - 30);
-
-    // Churn = accounts whose plan expired 7+ days ago AND status is not ACTIVE
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const [
-      weekNew, monthNew, activeAccounts,
-      churnedAccounts, planBreakdown, mrrResult, avgDaysToRenewal,
-    ] = await Promise.all([
+    const [weekNew, monthNew, activeAccounts, churnedAccounts, planBreakdown, mrrResult, avgDaysToRenewal] = await Promise.all([
       this.prisma.user.count({ where: { created_at: { gte: weekAgo }, account_id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
       this.prisma.user.count({ where: { created_at: { gte: monthAgo }, account_id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
       this.prisma.account.count({ where: { status: 'ACTIVE', id: { not: SUPER_ADMIN_ACCOUNT_ID } } }),
-      // Real churn: plan expired 7+ days ago AND not renewed (not ACTIVE)
-      this.prisma.account.count({
-        where: {
-          id: { not: SUPER_ADMIN_ACCOUNT_ID },
-          plan_expires_at: { lt: sevenDaysAgo },
-          status: { not: 'ACTIVE' },
-          plan: { not: 'FREE' },
-        },
-      }),
-      // Plan distribution: group by plan
-      this.prisma.account.groupBy({
-        by: ['plan'],
-        where: { id: { not: SUPER_ADMIN_ACCOUNT_ID } },
-        _count: { id: true },
-      }),
-      // MRR: sum of SUBSCRIPTION transactions in the last 30 days
-      this.prisma.transaction.aggregate({
-        where: {
-          type: 'SUBSCRIPTION',
-          created_at: { gte: monthAgo },
-        },
-        _sum: { amount: true },
-      }),
-      // Average days to plan renewal for active paid accounts
+      this.prisma.account.count({ where: { id: { not: SUPER_ADMIN_ACCOUNT_ID }, plan_expires_at: { lt: sevenDaysAgo }, status: { not: 'ACTIVE' }, plan: { not: 'FREE' } } }),
+      this.prisma.account.groupBy({ by: ['plan'], where: { id: { not: SUPER_ADMIN_ACCOUNT_ID } }, _count: { id: true } }),
+      this.prisma.transaction.aggregate({ where: { type: 'SUBSCRIPTION', created_at: { gte: monthAgo } }, _sum: { amount: true } }),
       this.prisma.$queryRaw<{ avg_days: number | null }[]>`
         SELECT AVG(EXTRACT(EPOCH FROM (plan_expires_at - NOW())) / 86400)::float as avg_days
         FROM accounts
-        WHERE status = 'ACTIVE'
-          AND plan != 'FREE'
-          AND plan_expires_at IS NOT NULL
-          AND plan_expires_at > NOW()
-          AND id != ${SUPER_ADMIN_ACCOUNT_ID}
+        WHERE status = 'ACTIVE' AND plan != 'FREE' AND plan_expires_at IS NOT NULL
+          AND plan_expires_at > NOW() AND id != ${SUPER_ADMIN_ACCOUNT_ID}
       `,
     ]);
 
-    // Use raw SQL for daily grouping — avoids loading all users into memory
     const dailyNewUsers: { date: string; count: number }[] = await this.prisma.$queryRaw`
       SELECT DATE(created_at) as date, COUNT(*)::int as count
       FROM users
@@ -205,17 +94,11 @@ export class AdminStatsService {
       ORDER BY date ASC
     `;
 
-    // Churn rate: churned / (active + churned) — real churn metric
     const totalRelevant = activeAccounts + churnedAccounts;
-    const churnRatePct = totalRelevant > 0
-      ? Number(((churnedAccounts / totalRelevant) * 100).toFixed(2))
-      : 0;
+    const churnRatePct = totalRelevant > 0 ? Number(((churnedAccounts / totalRelevant) * 100).toFixed(2)) : 0;
 
-    // Build plan breakdown map
     const planBreakdownMap: Record<string, number> = { FREE: 0, PRO: 0, MAX: 0, COMPANY: 0 };
-    for (const row of planBreakdown) {
-      planBreakdownMap[row.plan] = row._count.id;
-    }
+    for (const row of planBreakdown) planBreakdownMap[row.plan] = row._count.id;
 
     return {
       daily_new_users: dailyNewUsers,
@@ -226,19 +109,13 @@ export class AdminStatsService {
       active_accounts: activeAccounts,
       plan_breakdown: planBreakdownMap,
       mrr: (mrrResult._sum.amount ?? BigInt(0)).toString(),
-      avg_days_to_renewal: avgDaysToRenewal[0]?.avg_days != null
-        ? Number(avgDaysToRenewal[0].avg_days.toFixed(1))
-        : null,
+      avg_days_to_renewal: avgDaysToRenewal[0]?.avg_days != null ? Number(avgDaysToRenewal[0].avg_days.toFixed(1)) : null,
     };
   }
 
-  /** Popular Products */
   async getPopularProducts(limit: number) {
     const grouped = await this.prisma.trackedProduct.groupBy({
-      by: ['product_id'],
-      _count: { id: true },
-      orderBy: { _count: { id: 'desc' } },
-      take: limit,
+      by: ['product_id'], _count: { id: true }, orderBy: { _count: { id: 'desc' } }, take: limit,
     });
 
     const productIds = grouped.map((g) => g.product_id);
@@ -246,20 +123,10 @@ export class AdminStatsService {
 
     const products = await this.prisma.product.findMany({
       where: { id: { in: productIds } },
-      select: {
-        id: true,
-        title: true,
-        category_id: true,
-        snapshots: {
-          orderBy: { snapshot_at: 'desc' },
-          take: 1,
-          select: { score: true, weekly_bought: true },
-        },
-      },
+      select: { id: true, title: true, category_id: true, snapshots: { orderBy: { snapshot_at: 'desc' }, take: 1, select: { score: true, weekly_bought: true } } },
     });
 
     const productMap = new Map(products.map((p) => [p.id.toString(), p]));
-
     return grouped.map((g) => {
       const prod = productMap.get(g.product_id.toString());
       const snap = prod?.snapshots?.[0];
@@ -274,638 +141,28 @@ export class AdminStatsService {
     });
   }
 
-  /** Popular Categories — SQL aggregation (avoids loading all runs into memory) */
   async getPopularCategories(limit: number) {
     const grouped: { category_id: bigint; run_count: number }[] = await this.prisma.$queryRaw`
       SELECT category_id, COUNT(*)::int as run_count
-      FROM category_runs
-      GROUP BY category_id
-      ORDER BY run_count DESC
-      LIMIT ${limit}
+      FROM category_runs GROUP BY category_id ORDER BY run_count DESC LIMIT ${limit}
     `;
-
     if (grouped.length === 0) return [];
 
     const categoryIds = grouped.map((g) => g.category_id);
-
-    // Count winners per category using SQL aggregation
     const winnerCounts: { category_id: bigint; winner_count: number; last_run_at: Date }[] = await this.prisma.$queryRaw`
       SELECT cr.category_id,
              COALESCE(SUM(wc.cnt), 0)::int as winner_count,
              MAX(cr.created_at) as last_run_at
       FROM category_runs cr
-      LEFT JOIN (
-        SELECT run_id, COUNT(*)::int as cnt FROM category_winners GROUP BY run_id
-      ) wc ON wc.run_id = cr.id
+      LEFT JOIN (SELECT run_id, COUNT(*)::int as cnt FROM category_winners GROUP BY run_id) wc ON wc.run_id = cr.id
       WHERE cr.category_id = ANY(${categoryIds})
       GROUP BY cr.category_id
     `;
 
     const winnerMap = new Map(winnerCounts.map((w) => [w.category_id.toString(), w]));
-
     return grouped.map((g) => {
       const w = winnerMap.get(g.category_id.toString());
-      return {
-        category_id: g.category_id.toString(),
-        run_count: g.run_count,
-        winner_count: w?.winner_count ?? 0,
-        last_run_at: w?.last_run_at ?? null,
-      };
+      return { category_id: g.category_id.toString(), run_count: g.run_count, winner_count: w?.winner_count ?? 0, last_run_at: w?.last_run_at ?? null };
     });
-  }
-
-  /** Realtime Stats (optimized — limited queries, no full scans) */
-  async getRealtimeStats() {
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-
-    // Use lightweight parallel queries — avoid heavy count() on large tables
-    const [activeSessions, activityFeed, queuePending] = await Promise.all([
-      this.prisma.userSession.count({
-        where: {
-          logged_in_at: { gte: oneHourAgo },
-          revoked_at: null,
-          expires_at: { gt: new Date() },
-        },
-      }),
-      this.prisma.userActivity.findMany({
-        where: { created_at: { gte: oneHourAgo } },
-        orderBy: { created_at: 'desc' },
-        take: 10,
-        select: {
-          id: true,
-          action: true,
-          details: true,
-          ip: true,
-          created_at: true,
-          user: { select: { email: true } },
-        },
-      }),
-      this.getQueuePending(),
-    ]);
-
-    return {
-      active_sessions: activeSessions,
-      today_requests: activityFeed.length,
-      queue_pending: queuePending,
-      recent_errors: 0,
-      activity_feed: activityFeed.map((a) => ({
-        id: a.id,
-        user_email: a.user.email,
-        action: a.action,
-        details: a.details,
-        ip: a.ip,
-        created_at: a.created_at,
-      })),
-    };
-  }
-
-  /** Product Heatmap (optimized — SQL aggregation instead of loading all rows) */
-  async getProductHeatmap(period: string) {
-    const days = period === 'week' ? 7 : period === 'month' ? 30 : 90;
-    const since = new Date();
-    since.setDate(since.getDate() - days);
-
-    // Use SQL for aggregation — avoids loading all tracked products into memory
-    const heatmap: { category_id: bigint | null; count: number; avg_score: number | null }[] = await this.prisma.$queryRaw`
-      SELECT p.category_id,
-             COUNT(*)::int as count,
-             AVG(
-               (SELECT ps.score FROM product_snapshots ps
-                WHERE ps.product_id = p.id
-                ORDER BY ps.snapshot_at DESC LIMIT 1)
-             )::float as avg_score
-      FROM tracked_products tp
-      JOIN products p ON tp.product_id = p.id
-      WHERE tp.created_at >= ${since}
-      GROUP BY p.category_id
-      ORDER BY count DESC
-      LIMIT 50
-    `;
-
-    return heatmap.map((h) => ({
-      category_id: h.category_id?.toString() ?? 'uncategorized',
-      count: h.count,
-      avg_score: h.avg_score ? Number(h.avg_score.toFixed(4)) : null,
-      products: [],
-    }));
-  }
-
-  /** Category Trends (optimized — single queries instead of loop) */
-  async getCategoryTrends(weeks: number) {
-    const since = new Date();
-    since.setDate(since.getDate() - weeks * 7);
-
-    // Single query for all weeks of category runs
-    const runsData: { week: Date | string; category_id: bigint; runs: number }[] = await this.prisma.$queryRaw`
-      SELECT DATE(date_trunc('week', created_at)) as week,
-             category_id,
-             COUNT(*)::int as runs
-      FROM category_runs
-      WHERE created_at >= ${since}
-      GROUP BY week, category_id
-      ORDER BY week ASC
-    `;
-
-    // Single query for tracked products per week per category
-    const trackedData: { week: Date | string; category_id: bigint; tracked: number }[] = await this.prisma.$queryRaw`
-      SELECT DATE(date_trunc('week', tp.created_at)) as week,
-             p.category_id,
-             COUNT(*)::int as tracked
-      FROM tracked_products tp
-      JOIN products p ON tp.product_id = p.id
-      WHERE tp.created_at >= ${since} AND p.category_id IS NOT NULL
-      GROUP BY week, p.category_id
-      ORDER BY week ASC
-    `;
-
-    // Build result by week
-    const weekMap = new Map<string, Record<string, { runs: number; tracked: number; growth_pct: number | null }>>();
-
-    for (const r of runsData) {
-      const wk = r.week instanceof Date ? r.week.toISOString().split('T')[0] : String(r.week);
-      if (!weekMap.has(wk)) weekMap.set(wk, {});
-      const cats = weekMap.get(wk)!;
-      const catId = r.category_id.toString();
-      if (!cats[catId]) cats[catId] = { runs: 0, tracked: 0, growth_pct: null };
-      cats[catId].runs = r.runs;
-    }
-
-    for (const t of trackedData) {
-      const wk = t.week instanceof Date ? t.week.toISOString().split('T')[0] : String(t.week);
-      if (!weekMap.has(wk)) weekMap.set(wk, {});
-      const cats = weekMap.get(wk)!;
-      const catId = t.category_id.toString();
-      if (!cats[catId]) cats[catId] = { runs: 0, tracked: 0, growth_pct: null };
-      cats[catId].tracked = t.tracked;
-    }
-
-    const sortedWeeks = [...weekMap.entries()].sort(([a], [b]) => a.localeCompare(b));
-    const result: { week: string; categories: Record<string, { runs: number; tracked: number; growth_pct: number | null }> }[] = [];
-
-    for (let i = 0; i < sortedWeeks.length; i++) {
-      const [week, categories] = sortedWeeks[i];
-      if (i > 0) {
-        const prev = sortedWeeks[i - 1][1];
-        for (const [catId, data] of Object.entries(categories)) {
-          const prevRuns = prev[catId]?.runs ?? 0;
-          if (prevRuns > 0) {
-            data.growth_pct = Number((((data.runs - prevRuns) / prevRuns) * 100).toFixed(2));
-          }
-        }
-      }
-      result.push({ week, categories });
-    }
-
-    return result;
-  }
-
-  /** Top Users — SQL aggregation (avoids deep nested includes) */
-  async getTopUsers(period: string, limit: number) {
-    const days = period === 'week' ? 7 : period === 'month' ? 30 : 90;
-    const since = new Date();
-    since.setDate(since.getDate() - days);
-
-    const users: {
-      id: string;
-      email: string;
-      account_name: string;
-      tracked_count: number;
-      discovery_runs: number;
-      activity_count: number;
-    }[] = await this.prisma.$queryRaw`
-      SELECT u.id, u.email, a.name as account_name,
-        (SELECT COUNT(*)::int FROM tracked_products tp
-         WHERE tp.account_id = u.account_id AND tp.is_active = true) as tracked_count,
-        (SELECT COUNT(*)::int FROM category_runs cr
-         WHERE cr.account_id = u.account_id AND cr.created_at >= ${since}) as discovery_runs,
-        (SELECT COUNT(*)::int FROM user_activities ua
-         WHERE ua.user_id = u.id AND ua.created_at >= ${since}) as activity_count
-      FROM users u
-      JOIN accounts a ON u.account_id = a.id
-      WHERE u.is_active = true AND u.account_id != ${SUPER_ADMIN_ACCOUNT_ID}
-      ORDER BY activity_count DESC
-      LIMIT ${limit}
-    `;
-
-    return users.map((user) => ({
-      id: user.id,
-      email: user.email,
-      account_name: user.account_name,
-      tracked_products: user.tracked_count,
-      avg_score: 0,
-      total_weekly: 0,
-      discovery_runs: user.discovery_runs,
-      activity_count: user.activity_count,
-      activity_score: user.activity_count * 1 + user.discovery_runs * 5 + user.tracked_count * 3,
-    }));
-  }
-
-  /** System Health */
-  async getSystemHealth() {
-    let dbOk = false;
-    try {
-      await this.prisma.$queryRaw`SELECT 1`;
-      dbOk = true;
-    } catch {
-      dbOk = false;
-    }
-
-    return {
-      status: dbOk ? 'healthy' : 'degraded',
-      db_connected: dbOk,
-      uptime_seconds: Math.floor(process.uptime()),
-      memory: {
-        rss_mb: Math.round(process.memoryUsage().rss / 1024 / 1024),
-        heap_used_mb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-        heap_total_mb: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
-      },
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  /** AI usage stats */
-  async getAiUsageStats(period = 30) {
-    const since = new Date();
-    since.setDate(since.getDate() - period);
-
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-
-    // Split into 2 batches (max 3 concurrent connections) to avoid pool exhaustion
-    const [totalLogs, todayLogs, byMethod] = await Promise.all([
-      this.prisma.aiUsageLog.aggregate({
-        where: { created_at: { gte: since } },
-        _sum: { input_tokens: true, output_tokens: true, cost_usd: true },
-        _count: { id: true },
-      }),
-      this.prisma.aiUsageLog.aggregate({
-        where: { created_at: { gte: todayStart } },
-        _sum: { input_tokens: true, output_tokens: true, cost_usd: true },
-        _count: { id: true },
-      }),
-      this.prisma.aiUsageLog.groupBy({
-        by: ['method'],
-        where: { created_at: { gte: since } },
-        _sum: { input_tokens: true, output_tokens: true, cost_usd: true },
-        _count: { id: true },
-        _avg: { duration_ms: true },
-      }),
-    ]);
-
-    const [byDay, recentErrors] = await Promise.all([
-      this.prisma.$queryRaw`
-        SELECT DATE(created_at) as date,
-               COUNT(*)::int as calls,
-               COALESCE(SUM(input_tokens), 0)::int as input_tokens,
-               COALESCE(SUM(output_tokens), 0)::int as output_tokens,
-               COALESCE(SUM(cost_usd), 0)::float as cost_usd
-        FROM ai_usage_logs
-        WHERE created_at >= ${since}
-        GROUP BY DATE(created_at)
-        ORDER BY date ASC
-      ` as Promise<{ date: Date; calls: number; input_tokens: number; output_tokens: number; cost_usd: number }[]>,
-      this.prisma.aiUsageLog.findMany({
-        where: { error: { not: null }, created_at: { gte: since } },
-        orderBy: { created_at: 'desc' },
-        take: 20,
-        select: { id: true, method: true, error: true, created_at: true },
-      }),
-    ]);
-
-    // byDay is already grouped by SQL
-    const daily = byDay.map((row) => ({
-      date: row.date instanceof Date ? row.date.toISOString().split('T')[0] : String(row.date),
-      calls: row.calls,
-      input_tokens: row.input_tokens,
-      output_tokens: row.output_tokens,
-      cost_usd: Number(Number(row.cost_usd).toFixed(6)),
-    }));
-
-    return {
-      period: {
-        calls: totalLogs._count.id,
-        input_tokens: totalLogs._sum.input_tokens ?? 0,
-        output_tokens: totalLogs._sum.output_tokens ?? 0,
-        cost_usd: Number(totalLogs._sum.cost_usd ?? 0).toFixed(4),
-      },
-      today: {
-        calls: todayLogs._count.id,
-        input_tokens: todayLogs._sum.input_tokens ?? 0,
-        output_tokens: todayLogs._sum.output_tokens ?? 0,
-        cost_usd: Number(todayLogs._sum.cost_usd ?? 0).toFixed(4),
-      },
-      by_method: byMethod.map((m) => ({
-        method: m.method,
-        calls: m._count.id,
-        input_tokens: m._sum.input_tokens ?? 0,
-        output_tokens: m._sum.output_tokens ?? 0,
-        cost_usd: Number(m._sum.cost_usd ?? 0).toFixed(4),
-        avg_duration_ms: Math.round(m._avg.duration_ms ?? 0),
-      })),
-      daily,
-      recent_errors: recentErrors,
-    };
-  }
-
-  /** Search analytics: top queries, zero-result queries, conversion rate */
-  async getSearchAnalytics() {
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
-    const [topQueries, zeroResults] = await Promise.all([
-      this.prisma.searchLog.groupBy({
-        by: ['query'],
-        where: { created_at: { gte: thirtyDaysAgo } },
-        _count: { id: true },
-        orderBy: { _count: { id: 'desc' } },
-        take: 20,
-      }),
-      this.prisma.searchLog.groupBy({
-        by: ['query'],
-        where: { created_at: { gte: thirtyDaysAgo }, results: 0 },
-        _count: { id: true },
-        orderBy: { _count: { id: 'desc' } },
-        take: 20,
-      }),
-    ]);
-
-    const [totalSearches, trackedSearches] = await Promise.all([
-      this.prisma.searchLog.count({ where: { created_at: { gte: thirtyDaysAgo } } }),
-      this.prisma.searchLog.count({ where: { created_at: { gte: thirtyDaysAgo }, tracked: true } }),
-    ]);
-
-    return {
-      top_queries: topQueries.map((q) => ({ query: q.query, count: q._count.id })),
-      zero_result_queries: zeroResults.map((q) => ({ query: q.query, count: q._count.id })),
-      total_searches: totalSearches,
-      tracked_searches: trackedSearches,
-      conversion_rate: totalSearches > 0
-        ? Number(((trackedSearches / totalSearches) * 100).toFixed(1))
-        : 0,
-      period: '30d',
-    };
-  }
-
-  /** System errors for error tracking */
-  async getSystemErrors(opts: {
-    page?: number;
-    limit?: number;
-    endpoint?: string;
-    status_gte?: number;
-    account_id?: string;
-    period?: number;
-  }) {
-    const page = opts.page ?? 1;
-    const limit = opts.limit ?? 50;
-    const since = new Date();
-    since.setDate(since.getDate() - (opts.period ?? 7));
-
-    const where: Prisma.SystemErrorWhereInput = { created_at: { gte: since } };
-    if (opts.endpoint) where.endpoint = { contains: opts.endpoint };
-    if (opts.status_gte) where.status = { gte: opts.status_gte };
-    if (opts.account_id) where.account_id = opts.account_id;
-
-    const [items, total, byEndpoint, byStatus] = await Promise.all([
-      this.prisma.systemError.findMany({
-        where,
-        orderBy: { created_at: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      this.prisma.systemError.count({ where }),
-      this.prisma.systemError.groupBy({
-        by: ['endpoint'],
-        where: { created_at: { gte: since } },
-        _count: { id: true },
-        orderBy: { _count: { id: 'desc' } },
-        take: 20,
-      }),
-      this.prisma.systemError.groupBy({
-        by: ['status'],
-        where: { created_at: { gte: since } },
-        _count: { id: true },
-        orderBy: { _count: { id: 'desc' } },
-      }),
-    ]);
-
-    return {
-      items: items.map((e) => ({
-        id: e.id,
-        endpoint: e.endpoint,
-        method: e.method,
-        status: e.status,
-        message: e.message,
-        stack: e.stack,
-        account_id: e.account_id,
-        user_id: e.user_id,
-        ip: e.ip,
-        created_at: e.created_at,
-      })),
-      total,
-      page,
-      pages: Math.ceil(total / limit),
-      by_endpoint: byEndpoint.map((e) => ({ endpoint: e.endpoint, count: e._count.id })),
-      by_status: byStatus.map((s) => ({ status: s.status, count: s._count.id })),
-    };
-  }
-
-  /** T-437 — TOP mahsulotlar marketplace snapshot tarixi */
-  async getMarketplaceTopProducts(limit = 10) {
-    const snapshots = await this.prisma.marketplaceSnapshot.findMany({
-      where: { type: 'top_products' },
-      orderBy: { captured_at: 'desc' },
-      take: limit,
-      select: { id: true, captured_at: true, data: true },
-    });
-
-    if (snapshots.length === 0) return { snapshots: [], trend: [] };
-
-    // Trend: qaysi mahsulotlar yangi paydo bo'ldi (oldingi snapshotda yo'q edi)
-    const latest = snapshots[0];
-    const prev = snapshots[1];
-
-    const latestIds = new Set(
-      (latest.data as Array<{ product_id: number }>).map((p) => p.product_id),
-    );
-    const prevIds = prev
-      ? new Set((prev.data as Array<{ product_id: number }>).map((p) => p.product_id))
-      : new Set<number>();
-
-    const newEntries = [...latestIds].filter((id) => !prevIds.has(id));
-    const dropped = [...prevIds].filter((id) => !latestIds.has(id));
-
-    return {
-      snapshots: snapshots.map((s) => ({
-        id: s.id,
-        captured_at: s.captured_at,
-        count: (s.data as unknown[]).length,
-        products: s.data,
-      })),
-      trend: {
-        new_products: newEntries,
-        dropped_products: dropped,
-        captured_at: latest.captured_at,
-      },
-    };
-  }
-
-  /** RAG/Chat audit statistikasi — oxirgi N kun uchun */
-  async getRagAuditStats(period = 7) {
-    const since = new Date();
-    since.setDate(since.getDate() - period);
-
-    const [totalMsg, assistantMsg, feedbackUp, feedbackDown, costAgg, byIntent, daily] =
-      await Promise.all([
-        this.prisma.chatMessage.count({ where: { created_at: { gte: since } } }),
-        this.prisma.chatMessage.count({ where: { role: 'ASSISTANT', created_at: { gte: since } } }),
-        this.prisma.chatMessage.count({ where: { role: 'ASSISTANT', feedback: 'UP', created_at: { gte: since } } }),
-        this.prisma.chatMessage.count({ where: { role: 'ASSISTANT', feedback: 'DOWN', created_at: { gte: since } } }),
-        this.prisma.chatMessage.aggregate({
-          where: { role: 'ASSISTANT', cost_usd: { not: null }, created_at: { gte: since } },
-          _sum: { cost_usd: true, input_tokens: true, output_tokens: true },
-        }),
-        this.prisma.chatMessage.groupBy({
-          by: ['intent'],
-          where: { role: 'ASSISTANT', intent: { not: null }, created_at: { gte: since } },
-          _count: { id: true },
-          orderBy: { _count: { id: 'desc' } },
-        }),
-        this.prisma.$queryRaw<{ date: Date; messages: number; cost: number }[]>`
-          SELECT DATE(created_at) as date,
-                 COUNT(*)::int as messages,
-                 COALESCE(SUM(cost_usd::float), 0) as cost
-          FROM chat_messages
-          WHERE created_at >= ${since}
-            AND role = 'ASSISTANT'
-          GROUP BY DATE(created_at)
-          ORDER BY date ASC
-        `,
-      ]);
-
-    const totalFeedback = feedbackUp + feedbackDown;
-    const satisfactionPct = totalFeedback > 0
-      ? Math.round((feedbackUp / totalFeedback) * 100)
-      : null;
-
-    return {
-      period_days: period,
-      total_messages: totalMsg,
-      assistant_messages: assistantMsg,
-      feedback: {
-        up: feedbackUp,
-        down: feedbackDown,
-        total: totalFeedback,
-        satisfaction_pct: satisfactionPct,
-      },
-      cost: {
-        total_usd: Number(Number(costAgg._sum.cost_usd ?? 0).toFixed(4)),
-        input_tokens: costAgg._sum.input_tokens ?? 0,
-        output_tokens: costAgg._sum.output_tokens ?? 0,
-        avg_per_message: assistantMsg > 0
-          ? Number((Number(costAgg._sum.cost_usd ?? 0) / assistantMsg).toFixed(6))
-          : 0,
-      },
-      by_intent: byIntent.map((r) => ({
-        intent: r.intent ?? 'GENERAL',
-        count: r._count.id,
-      })),
-      daily: daily.map((r) => ({
-        date: r.date instanceof Date ? r.date.toISOString().split('T')[0] : String(r.date),
-        messages: r.messages,
-        cost: Number(Number(r.cost).toFixed(6)),
-      })),
-    };
-  }
-
-  /**
-   * T-493 — ML model audit: MAPE, direction accuracy, model comparison.
-   * ml_audit_logs dan so'nggi N kun aggregatsiyasi.
-   */
-  async getMlAuditStats(period = 7): Promise<{
-    period_days: number;
-    models: Array<{
-      model_name: string;
-      avg_mape: number;
-      direction_accuracy: number | null;
-      audit_count: number;
-      last_audit: string | null;
-    }>;
-    total_predictions: number;
-    generated_at: string;
-  }> {
-    const since = new Date();
-    since.setDate(since.getDate() - period);
-
-    const rows = await this.prisma.$queryRaw<Array<{
-      model_name: string;
-      avg_mape: number;
-      audit_count: number;
-      last_audit: Date;
-    }>>`
-      SELECT
-        model_name,
-        AVG(error_pct)::float             AS avg_mape,
-        COUNT(*)::int                     AS audit_count,
-        MAX(created_at)                   AS last_audit
-      FROM ml_audit_logs
-      WHERE created_at >= ${since}
-      GROUP BY model_name
-      ORDER BY audit_count DESC
-    `;
-
-    // Direction accuracy — predicted vs actual increasing/decreasing direction
-    const dirRows = await this.prisma.$queryRaw<Array<{
-      model_name: string;
-      direction_accuracy: number;
-    }>>`
-      SELECT
-        model_name,
-        AVG(CASE
-          WHEN (predicted_value > 0) = (actual_value > 0) THEN 1.0
-          ELSE 0.0
-        END)::float AS direction_accuracy
-      FROM ml_audit_logs
-      WHERE created_at >= ${since}
-        AND actual_value IS NOT NULL
-      GROUP BY model_name
-    `;
-    const dirMap = new Map(dirRows.map((r) => [r.model_name, r.direction_accuracy]));
-
-    const totalPredictions = rows.reduce((s, r) => s + (r.audit_count ?? 0), 0);
-
-    return {
-      period_days: period,
-      models: rows.map((r) => ({
-        model_name: r.model_name,
-        avg_mape: Number(Number(r.avg_mape ?? 0).toFixed(1)),
-        direction_accuracy: dirMap.has(r.model_name)
-          ? Number((dirMap.get(r.model_name)! * 100).toFixed(1))
-          : null,
-        audit_count: r.audit_count,
-        last_audit: r.last_audit ? new Date(r.last_audit).toISOString() : null,
-      })),
-      total_predictions: totalPredictions,
-      generated_at: new Date().toISOString(),
-    };
-  }
-
-  /**
-   * T-493 — ML model retrain trigger: Python ML service ga POST yuboradi.
-   */
-  async triggerMlRetrain(): Promise<{ status: string; message: string }> {
-    const mlServiceUrl = process.env.ML_SERVICE_URL ?? 'http://localhost:8000';
-    try {
-      const res = await fetch(`${mlServiceUrl}/batch/retrain`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ days: 90 }),
-        signal: AbortSignal.timeout(10_000),
-      });
-      if (!res.ok) {
-        return { status: 'error', message: `ML service error: ${res.status}` };
-      }
-      return { status: 'ok', message: 'Retrain boshlandi — model yangilanmoqda' };
-    } catch {
-      return { status: 'error', message: 'ML service bilan aloqa yo\'q' };
-    }
   }
 }

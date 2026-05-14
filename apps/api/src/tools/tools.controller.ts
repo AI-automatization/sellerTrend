@@ -4,7 +4,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BillingGuard } from '../billing/billing.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ActivityAction } from '../common/decorators/activity-action.decorator';
-import { AiService } from '../ai/ai.service';
+import { AiQuotaService } from '../ai/ai-quota.service';
 import { ToolsService } from './tools.service';
 import { ProfitCalculatorDto } from './dto/profit-calculator.dto';
 import { PriceElasticityDto } from './dto/price-elasticity.dto';
@@ -18,7 +18,7 @@ import { AnalyzeSentimentDto } from './dto/analyze-sentiment.dto';
 export class ToolsController {
   constructor(
     private readonly toolsService: ToolsService,
-    private readonly aiService: AiService,
+    private readonly aiQuotaService: AiQuotaService,
   ) {}
 
   @Get('exchange-rates')
@@ -44,7 +44,7 @@ export class ToolsController {
     @Body() dto: GenerateDescriptionDto,
     @CurrentUser('account_id') accountId: string,
   ) {
-    await this.aiService.checkAiQuota(accountId);
+    await this.aiQuotaService.checkAiQuota(accountId);
     return this.toolsService.generateDescription(dto);
   }
 
@@ -54,7 +54,7 @@ export class ToolsController {
     @Body() dto: AnalyzeSentimentDto,
     @CurrentUser('account_id') accountId: string,
   ) {
-    await this.aiService.checkAiQuota(accountId);
+    await this.aiQuotaService.checkAiQuota(accountId);
     return this.toolsService.analyzeSentiment(dto);
   }
 }

@@ -67,9 +67,7 @@ export function TelegramMiniAppPage() {
     <div className="min-h-screen bg-base-100 p-3 pb-20">
       {/* Compact header */}
       <div className="flex items-center gap-2 mb-4">
-        <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-          <span className="text-primary-content font-bold text-xs">R</span>
-        </div>
+        <img src="/rift-logo.svg" alt="RIFT" className="w-7 h-7 rounded-lg" />
         <div>
           <p className="font-bold text-sm leading-tight">RIFT</p>
           <p className="text-xs text-base-content/40">{t('telegram.productCount').replace('{n}', String(products.length))}</p>

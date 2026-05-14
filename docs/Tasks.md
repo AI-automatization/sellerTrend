@@ -1520,20 +1520,31 @@ apps/landing/src/sections/DashboardPreview.tsx → sourcing preview tab olib tas
 
 ---
 
-### T-533 | P2 | BACKEND | Split god-files — 6 services exceed 500 lines | 8h
+### T-542 | P2 | BOT | Fix /balance komanda — balance, daily_fee fieldlari schemada yo'q | 30min
 
-**Sana:** 2026-05-10
+**Sana:** 2026-05-14
 **Manba:** kod-audit
+**Topilgan joyda:** `apps/bot/src/main.ts:321-336`
 **Mas'ul:** Sardor
-**GitHub:** AI-automatization/sellerTrend#8
 
 **Tahlil:**
-6 ta service fayli 500+ qator, eng kattasi 53KB. CLAUDE.md da 400+ qatorli fayl taqiqlangan. Single Responsibility buzilmoqda — testlash, debug va code review qiyinlashadi.
+Bot `/balance` komandasi Prisma schemada mavjud bo'lmagan fieldlarni so'rmoqda. Bu tsc xatolikka olib keladi, bot production da bu komandani bajara olmaydi.
+
+**Muammo:**
+- `balance` — Account modelida yo'q
+- `daily_fee` — Account modelida yo'q
+- `status: 'PAYMENT_DUE'` — AccountStatus enum da yo'q (faqat ACTIVE/SUSPENDED bor)
 
 **Yechim:**
-Har bir katta service ni alohida sub-service larga bo'lish. Bosqichma-bosqich — bitta service bir sessiyada.
+1. `balance` va `daily_fee` fieldlarini Prisma schemaga qo'shish + `prisma migrate dev`
+2. AccountStatus enum ga `PAYMENT_DUE` qo'shish
+3. Yoki botdagi `/balance` komandani mavjud fieldlar bilan qayta yozish
 
----
+**Fayllar:**
+```
+apps/bot/src/main.ts          → /balance komanda (321-336 qatorlar)
+apps/api/prisma/schema.prisma → Account model + AccountStatus enum
+```
 
 ---
 

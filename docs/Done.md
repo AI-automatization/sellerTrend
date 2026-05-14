@@ -4,6 +4,22 @@
 # Ochiq tasklar → docs/Tasks.md
 # Format: docs/Tasks.md ichidagi "Done.md format" bo'limiga qarang
 
+### T-533 | BACKEND | Split god-files — 6 services (2026-05-14)
+
+**Manba:** kod-audit (GitHub #8)
+**Mas'ul:** Sardor
+**Vaqt:** ~2h
+**Yechim:** 6 ta god-file (500+ qator) alohida servis/controllerlarga bo'lindi. tsc barcha packagelarda xatosiz o'tdi.
+- admin-user.service.ts (512q) → 3 ta fayl: admin-user, admin-user-activity, admin-user-data
+- ai.service.ts (584q) → 3 ta fayl: ai-quota, ai-content, ai.service
+- admin.controller.ts (648q) → 3 ta fayl: admin, admin-accounts, admin-monitoring controller
+- admin-stats.service.ts (827q) → 3 ta fayl: admin-stats, admin-stats-realtime, admin-stats-analytics
+- uzum.client.ts (829q) → 3 ta fayl: uzum-auth, uzum-search, uzum.client
+- products.service.ts (1349q) → 4 ta fayl: product-search, product-analytics, product-trend, products.service
+**Ta'sir:** Barcha fayllar 400 qatordan past. SRP bajarildi. Tashqi consumerlar o'zgarmadi.
+
+---
+
 ### SECURITY AUDIT | T-526,527,528,531,532,534,536,537,538,539,540 — allaqachon tuzatilgan (2026-05-14)
 
 **Manba:** Tezcode Audit System (2026-05-08) — GitHub Issues #1-15

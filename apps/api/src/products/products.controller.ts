@@ -7,7 +7,7 @@ import { ActivityAction } from '../common/decorators/activity-action.decorator';
 import { NoBilling } from '../common/decorators/no-billing.decorator';
 import { ParseBigIntPipe } from '../common/pipes/parse-bigint.pipe';
 import { ProductsService } from './products.service';
-import { AiService } from '../ai/ai.service';
+import { AiContentService } from '../ai/ai-content.service';
 import { RecommendationsQueryDto } from './dto/recommendations-query.dto';
 import { SearchQueryDto } from './dto/search-query.dto';
 import { Throttle } from '@nestjs/throttler';
@@ -19,7 +19,7 @@ import { Throttle } from '@nestjs/throttler';
 export class ProductsController {
   constructor(
     private readonly productsService: ProductsService,
-    private readonly aiService: AiService,
+    private readonly aiService: AiContentService,
   ) {}
 
   @Get('tracked')

@@ -2,7 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import Anthropic from '@anthropic-ai/sdk';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
-import { AiService } from '../ai/ai.service';
+import { AiQuotaService } from '../ai/ai-quota.service';
 import { ChatClassifierService } from './chat-classifier.service';
 import { ChatRetrieverService } from './chat-retriever.service';
 import { ChatIntent, ClassifiedIntent } from './types/chat.types';
@@ -38,7 +38,7 @@ export class ChatService {
     private readonly prisma: PrismaService,
     private readonly classifier: ChatClassifierService,
     private readonly retriever: ChatRetrieverService,
-    private readonly aiService: AiService,
+    private readonly aiService: AiQuotaService,
     private readonly config: ConfigService,
   ) {
     this.anthropic = new Anthropic({

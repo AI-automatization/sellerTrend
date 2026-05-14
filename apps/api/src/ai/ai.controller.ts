@@ -9,6 +9,7 @@ import { AiThrottlerGuard } from '../common/guards/ai-throttler.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ParseBigIntPipe } from '../common/pipes/parse-bigint.pipe';
 import { AiService } from './ai.service';
+import { AiQuotaService } from './ai-quota.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 /** T-239: Per-account rate limiting constants for AI endpoints (req/min) */
@@ -25,6 +26,7 @@ const AI_TTL_MS = 60000;
 export class AiController {
   constructor(
     private readonly aiService: AiService,
+    private readonly aiQuotaService: AiQuotaService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -66,7 +68,7 @@ export class AiController {
     @CurrentUser('account_id') accountId: string,
   ) {
     await this.assertProductOwnership(productId, accountId);
-    await this.aiService.checkAiQuota(accountId);
+    await this.aiQuotaService.checkAiQuota(accountId);
     const product = await this.prisma.product.findUniqueOrThrow({
       where: { id: productId },
       select: { id: true, title: true },
@@ -104,6 +106,6 @@ export class AiController {
   /** Get current month AI usage for the account (30 req/min per account) */
   @Get('usage')
   async getUsage(@CurrentUser('account_id') accountId: string) {
-    return this.aiService.getAiUsage(accountId);
+    return this.aiQuotaService.getAiUsage(accountId);
   }
 }

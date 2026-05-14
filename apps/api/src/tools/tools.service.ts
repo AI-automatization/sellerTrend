@@ -1,6 +1,6 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { calculateProfit, ProfitInput, calculateElasticity, ElasticityInput } from '@uzum/utils';
-import { AiService } from '../ai/ai.service';
+import { AiContentService } from '../ai/ai-content.service';
 import { REDIS_CLIENT } from '../common/redis/redis.module';
 import type Redis from 'ioredis';
 
@@ -19,7 +19,7 @@ export class ToolsService {
   private readonly logger = new Logger(ToolsService.name);
 
   constructor(
-    private readonly aiService: AiService,
+    private readonly aiService: AiContentService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
 
