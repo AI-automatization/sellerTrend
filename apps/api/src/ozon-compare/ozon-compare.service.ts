@@ -1,36 +1,15 @@
 import { Inject, Injectable, Logger, NotFoundException, BadGatewayException } from '@nestjs/common';
-import { fetch } from 'undici';
-import { createHash, randomUUID } from 'crypto';
+import { createHash } from 'crypto';
+import { chromium } from 'playwright';
 import type Redis from 'ioredis';
 import { REDIS_CLIENT } from '../common/redis/redis.module';
 import { PrismaService } from '../prisma/prisma.service';
-import type {
-  OzonCompareItem,
-  OzonCompareResponse,
-  OzonProductRaw,
-  OzonWidgetState,
-} from './ozon-compare.types';
+import type { OzonCompareItem, OzonCompareResponse, OzonProductRaw, OzonWidgetState } from './ozon-compare.types';
 
 const CACHE_TTL = 60 * 60 * 24; // 24 soat
-const MANIFEST_CACHE_TTL = 60 * 60; // 1 soat
 const BASE_URL = 'https://uz.ozon.com';
 const BROWSER_UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36';
-
-const BASE_HEADERS = {
-  'User-Agent': BROWSER_UA,
-  Accept: 'application/json',
-  'Content-Type': 'application/json',
-  'x-o3-app-name': 'dweb_client',
-  'x-o3-app-version': 'release_8-4-2026_5fc45f01',
-  'sec-ch-ua': '"Google Chrome";v="147", "Not.A/Brand";v="8", "Chromium";v="147"',
-  'sec-ch-ua-mobile': '?0',
-  'sec-ch-ua-platform': '"macOS"',
-  'Sec-Fetch-Site': 'same-origin',
-  'Sec-Fetch-Mode': 'cors',
-  'Sec-Fetch-Dest': 'empty',
-  'Accept-Language': 'ru,en-US;q=0.9,en;q=0.8,uz;q=0.7',
-};
 
 @Injectable()
 export class OzonCompareService {
@@ -63,50 +42,118 @@ export class OzonCompareService {
       return { ...(JSON.parse(cached) as OzonCompareResponse), cached: true };
     }
 
-    this.logger.log(`Ozon search: "${title}"`);
+    this.logger.log(`Ozon search (Playwright): "${title}"`);
 
-    const manifestVersion = await this.getManifestVersion();
-    const xcid = randomUUID().replace(/-/g, '');
-
-    const searchUrl =
-      `${BASE_URL}/api/entrypoint-api.bx/page/json/v2` +
-      `?url=${encodeURIComponent(`/search/?text=${encodeURIComponent(title)}&from_global=true`)}`;
-
-    let data: { widgetStates?: Record<string, string> };
+    let results: OzonCompareItem[];
     try {
-      const res = await fetch(searchUrl, {
-        headers: {
-          ...BASE_HEADERS,
-          'x-o3-parent-requestid': randomUUID().replace(/-/g, ''),
-          'x-page-view-id': randomUUID(),
-          ...(manifestVersion ? { 'x-o3-manifest-version': manifestVersion } : {}),
-          Referer: `${BASE_URL}/search/?text=${encodeURIComponent(title)}&from_global=true`,
-          Cookie: `xcid=${xcid}; __Secure-user-id=0; __Secure-ab-group=53`,
-        },
-      });
-
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-
-      data = (await res.json()) as typeof data;
+      results = await this.searchViaPlaywright(title);
     } catch (err) {
-      this.logger.error(`Ozon API xatosi: ${err}`);
-      throw new BadGatewayException("Ozon bilan bog'lanishda xato");
+      this.logger.error(`Ozon qidiruvda xato: ${err}`);
+      throw new BadGatewayException("Ozon bilan bog'lanishda xato yuz berdi. Keyinroq qayta urinib ko'ring.");
     }
-
-    const results = this.parseProducts(data.widgetStates ?? {});
 
     const response: OzonCompareResponse = { cached: false, totalCount: results.length, results };
     await this.redis.setex(cacheKey, CACHE_TTL, JSON.stringify(response));
     return response;
   }
 
+  private async searchViaPlaywright(title: string): Promise<OzonCompareItem[]> {
+    const browser = await chromium.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-blink-features=AutomationControlled',
+        '--disable-dev-shm-usage',
+      ],
+    });
+
+    try {
+      const context = await browser.newContext({
+        userAgent: BROWSER_UA,
+        locale: 'ru-RU',
+        viewport: { width: 1280, height: 800 },
+      });
+
+      await context.addInitScript(() => {
+        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+      });
+
+      const page = await context.newPage();
+
+      let widgetStates: Record<string, string> = {};
+
+      // Barcha entrypoint API calllarini ushlaymiz
+      page.on('response', (response) => {
+        if (response.url().includes('/api/entrypoint-api.bx/page/json/v2')) {
+          response
+            .json()
+            .then((json: { widgetStates?: Record<string, string> }) => {
+              if (json.widgetStates && Object.keys(json.widgetStates).length > 0) {
+                widgetStates = json.widgetStates;
+                this.logger.log(`Ozon widgetStates ushlandi: ${Object.keys(json.widgetStates).length} ta key`);
+              }
+            })
+            .catch(() => undefined);
+        }
+      });
+
+      await page.goto(
+        `${BASE_URL}/search/?text=${encodeURIComponent(title)}&from_global=true`,
+        { waitUntil: 'domcontentloaded', timeout: 30000 },
+      );
+
+      // Sahifa to'liq yuklanishini kutish
+      await page.waitForTimeout(5000);
+
+      if (Object.keys(widgetStates).length === 0) {
+        // DOM dan mahsulotlarni o'qishga urinish (fallback)
+        this.logger.warn('widgetStates bo\'sh, DOM fallback ishlatilmoqda');
+        return await this.parseFromDom(page);
+      }
+
+      const results = this.parseProducts(widgetStates);
+      this.logger.log(`Ozon search: ${results.length} ta mahsulot topildi`);
+      return results;
+    } finally {
+      await browser.close();
+    }
+  }
+
+  private async parseFromDom(page: import('playwright').Page): Promise<OzonCompareItem[]> {
+    try {
+      const selector = '[data-widget="searchResultsV2"] .tile-root, [data-widget="skuGrid"] .tile-root';
+      const items = await page.$$eval(selector, (cards) =>
+        cards.slice(0, 30).map((card) => ({
+          link: card.querySelector('a')?.getAttribute('href') ?? '',
+          title: card.querySelector('[class*="name"], [class*="title"]')?.textContent?.trim() ?? '',
+          price: card.querySelector('[class*="price"]')?.textContent?.trim() ?? '',
+          img: card.querySelector('img')?.getAttribute('src') ?? '',
+        })),
+      );
+
+      return items
+        .filter((i) => i.link && i.title)
+        .map((i, idx) => ({
+          platform: 'ozon' as const,
+          productId: String(idx),
+          title: i.title,
+          priceUzs: parseInt(i.price.replace(/[^0-9]/g, ''), 10) || 0,
+          originalPriceUzs: parseInt(i.price.replace(/[^0-9]/g, ''), 10) || 0,
+          rating: 0,
+          feedbacks: 0,
+          url: `${BASE_URL}${i.link.split('?')[0]}`,
+          image: i.img,
+        }));
+    } catch {
+      return [];
+    }
+  }
+
   private parseProducts(widgetStates: Record<string, string>): OzonCompareItem[] {
     const results: OzonCompareItem[] = [];
 
     for (const [key, rawJson] of Object.entries(widgetStates)) {
-      // skuGrid — search results va recommendations, searchResultsV2 — asosiy qidiruv
       if (!key.startsWith('skuGrid-') && !key.startsWith('searchResultsV2-')) continue;
 
       let widget: OzonWidgetState;
@@ -129,15 +176,13 @@ export class OzonCompareService {
     if (!p.skuId || !p.link) return null;
 
     const image = p.items?.find((i) => i.type === 'image')?.image?.link ?? '';
-
     const state = p.state ?? [];
 
     const priceState = state.find((s) => s.type === 'priceV2');
     const priceText =
       priceState?.priceV2?.price?.find((pr) => pr.textStyle === 'PRICE')?.text ?? '';
     const originalText =
-      priceState?.priceV2?.price?.find((pr) => pr.textStyle === 'ORIGINAL_PRICE')?.text ??
-      priceText;
+      priceState?.priceV2?.price?.find((pr) => pr.textStyle === 'ORIGINAL_PRICE')?.text ?? priceText;
 
     const titleState = state.find((s) => s.type === 'textAtom' && s.id === 'name');
     const title = titleState?.textAtom?.text ?? p.alt ?? '';
@@ -157,30 +202,6 @@ export class OzonCompareService {
       url: `${BASE_URL}${p.link.split('?')[0]}`,
       image,
     };
-  }
-
-  /** Ozon manifest versiyasini `uz.ozon.com` bosh sahifasidan olib Redis ga cache qiladi */
-  private async getManifestVersion(): Promise<string> {
-    const cacheKey = 'ozon:manifest-version';
-    const cached = await this.redis.get(cacheKey);
-    if (cached) return cached;
-
-    try {
-      const res = await fetch(`${BASE_URL}/`, {
-        headers: { 'User-Agent': BROWSER_UA, Accept: 'text/html' },
-        redirect: 'follow',
-      });
-      const version = res.headers.get('x-o3-manifest-version') ?? '';
-      if (version) {
-        await this.redis.setex(cacheKey, MANIFEST_CACHE_TTL, version);
-        this.logger.log(`Ozon manifest version yangilandi: ${version.slice(0, 50)}...`);
-        return version;
-      }
-    } catch (err) {
-      this.logger.warn(`Manifest version olishda xato: ${err}`);
-    }
-
-    return '';
   }
 }
 

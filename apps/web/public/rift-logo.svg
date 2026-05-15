@@ -1,4 +1,4 @@
-<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="1024" height="1024" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="lg" x1="0" y1="0" x2="160" y2="160" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#818cf8"/>
@@ -13,16 +13,35 @@
       <stop offset="0%" stop-color="#06b6d4"/>
       <stop offset="100%" stop-color="#6366f1"/>
     </linearGradient>
+    <linearGradient id="border" x1="0" y1="0" x2="160" y2="160" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#818cf8" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.5"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="6" stdDeviation="14" flood-color="#6366f1" flood-opacity="0.4"/>
+    </filter>
     <clipPath id="clip">
       <rect width="160" height="160" rx="38"/>
     </clipPath>
   </defs>
 
+  <!-- Shadow -->
+  <rect width="160" height="160" rx="38" fill="url(#lbg)" filter="url(#shadow)"/>
+
   <!-- Background -->
-  <rect width="160" height="160" rx="38" fill="url(#lbg)"/>
+  <rect width="160" height="160" rx="38" fill="url(#lbg)" clip-path="url(#clip)"/>
 
   <!-- Glass shimmer -->
-  <path d="M0 0 Q80 0 160 0 L160 50 Q80 68 0 50 Z" fill="white" fill-opacity="0.05" clip-path="url(#clip)"/>
+  <path d="M0 0 Q80 0 160 0 L160 50 Q80 68 0 50 Z"
+    fill="white" fill-opacity="0.06" clip-path="url(#clip)"/>
+
+  <!-- Bottom glow -->
+  <ellipse cx="80" cy="158" rx="72" ry="32"
+    fill="#6366f1" fill-opacity="0.12" clip-path="url(#clip)"/>
 
   <!-- R lettermark -->
   <text x="10" y="132" font-size="130" font-weight="800"
@@ -33,10 +52,11 @@
   <g clip-path="url(#clip)">
     <polygon points="100,0 116,0 90,160 74,160" fill="#0c0c1a"/>
     <line x1="108" y1="0" x2="82" y2="160"
-      stroke="url(#lc)" stroke-width="1.5" opacity="0.85"/>
+      stroke="url(#lc)" stroke-width="1.5"
+      filter="url(#glow)" opacity="0.9"/>
   </g>
 
   <!-- Border -->
   <rect width="160" height="160" rx="38" fill="none"
-    stroke="url(#lg)" stroke-width="1.5" opacity="0.4"/>
+    stroke="url(#border)" stroke-width="1.5"/>
 </svg>
